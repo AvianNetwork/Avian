@@ -8,6 +8,7 @@
 #define RAVEN_SCRIPT_SIGN_H
 
 #include "script/interpreter.h"
+#include "validation.h"
 
 class CKeyID;
 class CKeyStore;

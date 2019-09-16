@@ -56,6 +56,8 @@ enum
     ravenconsensus_SCRIPT_FLAGS_VERIFY_CHECKLOCKTIMEVERIFY = (1U << 9), // enable CHECKLOCKTIMEVERIFY (BIP65)
     ravenconsensus_SCRIPT_FLAGS_VERIFY_CHECKSEQUENCEVERIFY = (1U << 10), // enable CHECKSEQUENCEVERIFY (BIP112)
     ravenconsensus_SCRIPT_FLAGS_VERIFY_WITNESS             = (1U << 11), // enable WITNESS (BIP141)
+    // enable SIGHASH_FORKID replay protection
+    ravenconsensus_SCRIPT_ENABLE_SIGHASH_FORKID            = (1U << 16),
     ravenconsensus_SCRIPT_FLAGS_VERIFY_ALL                 = ravenconsensus_SCRIPT_FLAGS_VERIFY_P2SH | ravenconsensus_SCRIPT_FLAGS_VERIFY_DERSIG |
                                                                ravenconsensus_SCRIPT_FLAGS_VERIFY_NULLDUMMY | ravenconsensus_SCRIPT_FLAGS_VERIFY_CHECKLOCKTIMEVERIFY |
                                                                ravenconsensus_SCRIPT_FLAGS_VERIFY_CHECKSEQUENCEVERIFY | ravenconsensus_SCRIPT_FLAGS_VERIFY_WITNESS

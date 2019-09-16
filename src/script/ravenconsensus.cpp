@@ -115,7 +115,8 @@ int ravenconsensus_verify_script(const unsigned char *scriptPubKey, unsigned int
                                    const unsigned char *txTo        , unsigned int txToLen,
                                    unsigned int nIn, unsigned int flags, ravenconsensus_error* err)
 {
-    if (flags & ravenconsensus_SCRIPT_FLAGS_VERIFY_WITNESS) {
+    if (flags & ravenconsensus_SCRIPT_ENABLE_SIGHASH_FORKID ||
+        flags & ravenconsensus_SCRIPT_FLAGS_VERIFY_WITNESS) {
         return set_error(err, ravenconsensus_ERR_AMOUNT_REQUIRED);
     }
 
