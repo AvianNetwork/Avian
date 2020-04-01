@@ -27,7 +27,7 @@ static const int64_t MAX_BLOCK_SIGOPS_COST = 80000;
 static const int COINBASE_MATURITY = 100;
 
 /** Timestamp at which the UAHF starts. */
-static const uint64_t DEFAULT_UAHF_START_TIME = 1585639770;
+static const uint64_t DEFAULT_UAHF_START_TIME = 1585828800;
 
 
 static const int WITNESS_SCALE_FACTOR = 4;

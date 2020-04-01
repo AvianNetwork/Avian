@@ -1286,7 +1286,10 @@ UniValue signrawtransaction(const JSONRPCRequest& request)
     const CKeyStore& keystore = tempKeystore;
 #endif
 
-    int nHashType = SIGHASH_ALL | SIGHASH_FORKID;
+    int nHashType = SIGHASH_ALL;
+    if (IsUAHFenabledForCurrentBlock()) {
+        nHashType |= SIGHASH_FORKID;
+    }
     if (!request.params[3].isNull()) {
         static std::map<std::string, int> mapSigHashValues = {
             {std::string("ALL"), int(SIGHASH_ALL)},
