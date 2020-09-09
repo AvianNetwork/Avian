@@ -331,6 +331,10 @@ void PruneBlockFilesManual(int nManualPruneHeight);
 bool IsUAHFenabled(const CBlockIndex *pindexPrev);
 bool IsUAHFenabledForCurrentBlock();
 
+/** Check is UAHF FOR Assets has activated. */
+bool IsUAHFForAssetsenabled(const CBlockIndex *pindexPrev);
+bool IsUAHFForAssetsenabledForCurrentBlock();
+
 /** (try to) add transaction to memory pool
  * plTxnReplaced will be appended to with all transactions replaced from mempool **/
 bool AcceptToMemoryPool(CTxMemPool& pool, CValidationState &state, const CTransactionRef &tx,

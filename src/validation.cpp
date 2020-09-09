@@ -416,6 +416,27 @@ bool IsUAHFenabledForCurrentBlock() {
     return IsUAHFenabled(chainActive.Tip());
 }
 
+
+//static bool IsUAHFForAssetsenabled(const Config &config, int64_t nMedianTimePast) {
+static bool IsUAHFForAssetsenabled(int64_t nMedianTimePast) {
+    return nMedianTimePast >= DEFAULT_UAHF_FOR_ASSETS_START_TIME ;
+}
+
+//bool IsUAHFenabled(const Config &config, const CBlockIndex *pindexPrev) {
+bool IsUAHFForAssetsenabled(const CBlockIndex *pindexPrev) {
+    if (pindexPrev == nullptr) {
+        return false;
+    }
+
+    return IsUAHFForAssetsenabled(pindexPrev->GetMedianTimePast());
+}
+
+//bool IsUAHFenabledForCurrentBlock(const Config &config) {
+bool IsUAHFForAssetsenabledForCurrentBlock() {
+    AssertLockHeld(cs_main);
+    return IsUAHFForAssetsenabled(chainActive.Tip());
+}
+
 /* Make mempool consistent after a reorg, by re-adding or recursively erasing
  * disconnected block transactions from the mempool, and also removing any
  * other transactions from the mempool that are no longer valid given the new
