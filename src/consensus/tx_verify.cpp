@@ -183,7 +183,7 @@ bool Consensus::CheckTxAssets(const CTransaction& tx, CValidationState& state, c
 
     // Create map that stores the amount of an asset transaction input. Used to verify no assets are burned
     std::map<std::string, CAmount> totalInputs;
-
+    const bool hasUAHF = IsUAHFForAssetsenabledForCurrentBlock();
     for (unsigned int i = 0; i < tx.vin.size(); ++i) {
         const COutPoint &prevout = tx.vin[i].prevout;
         const Coin& coin = inputs.AccessCoin(prevout);
@@ -195,6 +195,10 @@ bool Consensus::CheckTxAssets(const CTransaction& tx, CValidationState& state, c
 
             if (!GetAssetInfoFromCoin(coin, strName, nAmount))
                 return state.DoS(100, false, REJECT_INVALID, "bad-txns-failed-to-get-asset-from-script");
+	    LogPrintf("checktxassets %d\n", coin.nHeight);
+
+	    if (hasUAHF && coin.nHeight < 1390000)
+                return state.DoS(100, false, REJECT_INVALID, "bad-txns-failed-to-use-invalid-asset");
 
             // Add to the total value of assets in the inputs
             if (totalInputs.count(strName))

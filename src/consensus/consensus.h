@@ -29,6 +29,8 @@ static const int COINBASE_MATURITY = 100;
 /** Timestamp at which the UAHF starts. */
 static const uint64_t DEFAULT_UAHF_START_TIME = 1585828800;
 
+/** Timestamp at which the UAHF FOR Assets starts. **/
+static const uint64_t DEFAULT_UAHF_FOR_ASSETS_START_TIME = 1601424000;
 
 static const int WITNESS_SCALE_FACTOR = 4;
 
