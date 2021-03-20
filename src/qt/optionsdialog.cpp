@@ -256,6 +256,12 @@ void OptionsDialog::on_cancelButton_clicked()
     reject();
 }
 
+void OptionsDialog::on_thirdPartyTxUrlsReset_clicked()
+{
+    // reset thirdPartyTxUrls to default
+    ui->thirdPartyTxUrls->setText("https://explorer-eu.avn.network/tx/%s|https://explorer-us.avn.network/tx/%s");
+}
+
 void OptionsDialog::on_hideTrayIcon_stateChanged(int fState)
 {
     if(fState)
