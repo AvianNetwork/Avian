@@ -577,7 +577,6 @@ int main(int argc, char *argv[])
     Q_INIT_RESOURCE(raven);
     Q_INIT_RESOURCE(raven_locale);
 
-    RavenApplication app;
 #if QT_VERSION > 0x050100
     // Generate high-dpi pixmaps
     QApplication::setAttribute(Qt::AA_UseHighDpiPixmaps);
@@ -589,6 +588,10 @@ int main(int argc, char *argv[])
     QApplication::setAttribute(Qt::AA_DontShowIconsInMenus);
 #endif
 #if QT_VERSION >= 0x050500
+
+    // This should be after the attributes.
+    RavenApplication app;
+
     // Because of the POODLE attack it is recommended to disable SSLv3 (https://disablessl3.com/),
     // so set SSL protocols to TLS1.0+.
     QSslConfiguration sslconf = QSslConfiguration::defaultConfiguration();
