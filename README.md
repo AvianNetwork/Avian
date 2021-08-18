@@ -74,9 +74,13 @@ A digital peer to peer network for the facilitation of asset transfer.
 
 
 
-In the fictional world of Westeros, ravens are used as messengers who carry statements of truth. RavencoinLite is a use case specific blockchain designed to carry statements of truth about who owns what assets.
+Having started development on August 12th of 2021, Ravencoin Lite (RVL) is a fork of Ravencoin Classic (RVC), aimed primarily at bringing the means of development back into the hands of the community after RVC has been abandoned by its creators. With the RVC github locked, and software in disrepair, RVL seeks to improve upon the existing foundations by implementing the necessary updates and bug fixes need to bring the original x16r fork of Ravencoin up to par with modern cryptocurrencies.
+This project is being spearheaded by a small group of enthusiasts, representing the interests of the actual RVC community, as opposed to the original fork, which was created and maintained by Chinese ASIC manufacturers looking to make a return on their machines after RVN switched to the x16rv2 algorithm. As such, we are always seeking for people wishing to contribute their experience and knowhow to the development of Ravencoin Lite.
 
-
+Our goal is to stick to the x16r algorithm as previously declared by the RVC project, however, an algo change can be facilitated if desired by the community at large.
+The current roadmap includes, in no particular order; a complete re-branding of the RVC software, a fix to the known issue of the old RVC wallet using the same directory as RVN if installed on the same machine, the establishment of a new (see: functional) website and block explorer, as well as the reintroduction of support for asset transfer on the blockchain, which had been previously been disabled by RVC.
+I would like to reiterate that there are no professional developers on the dev team as of this date; we are merely a group of dedicated  community members who got tired of waiting around for change and took matters into their own hands. As such, the speed of development will greatly depend on the amount of contributors.
+Let us come together as a community, and make the restoration of RVC a reality!
 
 Thank you to the Bitcoin developers.
 
@@ -95,7 +99,7 @@ The success of the Ethereum ERC 20 token shows the demand for tokenized assets t
 
 Bitcoin also has the capability of serving as the rails for tokens by using projects such as Omnilayer, RSK or Counterparty. However, neither Bitcoin nor Ethereum was specifically designed for facilitating ownership of other assets.
 
-RavencoinLite is designed to be a use case specific blockchain designed to efficiently handle one specific function: the transfer of assets from one party to another.
+RavencoinLite is designed to be a use case specific blockchain designed to efficiently handle one specific function: the transfer of assets from one party to another., while providing a secure network for transactions.
 
 Bitcoin is and always should be focused on its goals of being a better form of money. Bitcoin developers will unlikely prioritize improvements or features which are specifically beneficial to the facilitation of token transfers.  One goal of the RavencoinLite project is to see if a use case specific blockchain and development effort can create code which can either improve existing structures like Bitcoin or provide advantages for specific use cases.
 
