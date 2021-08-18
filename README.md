@@ -25,7 +25,7 @@ Development Process
 -------------------
 
 The `master` branch is regularly built and tested, but is not guaranteed to be
-completely stable. [Tags](https://github.com/https://github.com/RavencoinLite/tags/RavencoinLite/tags) are created
+completely stable. [Tags](https://github.com/RavencoinLite/tags/RavencoinLite/tags) are created
 regularly to indicate new official, stable release versions of RavencoinLite Core.
 
 The contribution workflow is described in [CONTRIBUTING.md](CONTRIBUTING.md).
@@ -74,7 +74,7 @@ A digital peer to peer network for the facilitation of asset transfer.
 
 
 
-In the fictional world of Westeros, ravens are used as messengers who carry statements of truth. RavencoinLite is a use case specific blockchain designed to carry statements of truth about who owns what assets. 
+In the fictional world of Westeros, ravens are used as messengers who carry statements of truth. RavencoinLite is a use case specific blockchain designed to carry statements of truth about who owns what assets.
 
 
 
