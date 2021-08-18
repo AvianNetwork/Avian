@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2010 Satoshi Nakamoto
+RavencoinLite// Copyright (c) 2009-2010 Satoshi Nakamoto
 // Copyright (c) 2009-2016 The Bitcoin Core developers
 // Copyright (c) 2017 The Raven Core developers
 // Distributed under the MIT software license, see the accompanying
@@ -531,8 +531,8 @@ std::string HelpMessage(HelpMessageMode mode)
 
 std::string LicenseInfo()
 {
-    const std::string URL_SOURCE_CODE = "<https://github.com/ravencoinclassicio/RavencoinClassic>";
-    const std::string URL_WEBSITE = "<https://ravencoinclassic.io>";
+    const std::string URL_SOURCE_CODE = "<https://github.com/RavencoinLite/RavencoinLite>";
+    const std::string URL_WEBSITE = "<https://ravencoinlite.org>";
 
     return CopyrightHolders(strprintf(_("Copyright (C) %i-%i"), 2009, COPYRIGHT_YEAR) + " ") + "\n" +
            "\n" +
