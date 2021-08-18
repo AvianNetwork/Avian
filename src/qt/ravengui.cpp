@@ -392,7 +392,7 @@ void RavenGUI::createActions()
 
     /** RVN START */
     transferAssetAction = new QAction(platformStyle->SingleColorIconOnOff(":/icons/asset_transfer_selected", ":/icons/asset_transfer"), tr("&Transfer Assets"), this);
-    transferAssetAction->setStatusTip(tr("Transfer assets to RVC addresses"));
+    transferAssetAction->setStatusTip(tr("Transfer assets to RVL addresses"));
     transferAssetAction->setToolTip(transferAssetAction->statusTip());
     transferAssetAction->setCheckable(true);
     transferAssetAction->setShortcut(QKeySequence(Qt::ALT + Qt::Key_5));
@@ -684,7 +684,7 @@ void RavenGUI::createToolBars()
         labelCurrentMarket->setAlignment(Qt::AlignVCenter);
         labelCurrentMarket->setStyleSheet(STRING_LABEL_COLOR);
         labelCurrentMarket->setFont(currentMarketFont);
-        labelCurrentMarket->setText(tr("Ravenclassic Market Price"));
+        labelCurrentMarket->setText(tr("RavencoinLite Market Price"));
 
         QString currentPriceStyleSheet = ".QLabel{color: %1;}";
         labelCurrentPrice->setContentsMargins(25,0,0,0);
@@ -694,7 +694,7 @@ void RavenGUI::createToolBars()
         labelCurrentPrice->setFont(currentMarketFont);
 
         QLabel* labelBtcRvn = new QLabel();
-        labelBtcRvn->setText("USDT / RVC");
+        labelBtcRvn->setText("USDT / RVL");
         labelBtcRvn->setContentsMargins(15,0,0,0);
         labelBtcRvn->setFixedHeight(75);
         labelBtcRvn->setAlignment(Qt::AlignVCenter);
@@ -809,13 +809,13 @@ void RavenGUI::setClientModel(ClientModel *_clientModel)
         }
 #endif // ENABLE_WALLET
         unitDisplayControl->setOptionsModel(_clientModel->getOptionsModel());
-        
+
         OptionsModel* optionsModel = _clientModel->getOptionsModel();
         if(optionsModel)
         {
             // be aware of the tray icon disable state change reported by the OptionsModel object.
             connect(optionsModel,SIGNAL(hideTrayIconChanged(bool)),this,SLOT(setTrayIconVisible(bool)));
-        
+
             // initialize the disable state of the tray icon with the current value in the model.
             setTrayIconVisible(optionsModel->getHideTrayIcon());
         }
@@ -1332,7 +1332,7 @@ void RavenGUI::incomingTransaction(const QString& date, int unit, const CAmount&
         msg += tr("Amount: %1\n").arg(RavenUnits::formatWithCustomName(assetName, amount, MAX_ASSET_UNITS, true));
 
     msg += tr("Type: %1\n").arg(type);
-    
+
     if (!label.isEmpty())
         msg += tr("Label: %1\n").arg(label);
     else if (!address.isEmpty())
@@ -1346,7 +1346,7 @@ void RavenGUI::checkAssets()
     // Check that status of RIP2 and activate the assets icon if it is active
     if(AreAssetsDeployed()) {
         transferAssetAction->setDisabled(false);
-        transferAssetAction->setToolTip(tr("Transfer assets to RVC addresses"));
+        transferAssetAction->setToolTip(tr("Transfer assets to RVL addresses"));
         createAssetAction->setDisabled(false);
         createAssetAction->setToolTip(tr("Create new main/sub/unique assets"));
         manageAssetAction->setDisabled(false);
@@ -1410,7 +1410,7 @@ void RavenGUI::setHDStatus(int hdEnabled)
     labelWalletHDStatusIcon->setPixmap(platformStyle->SingleColorIcon(hdEnabled ? ":/icons/hd_enabled" : ":/icons/hd_disabled").pixmap(STATUSBAR_ICONSIZE,STATUSBAR_ICONSIZE));
     labelWalletHDStatusIcon->setToolTip(hdEnabled ? tr("HD key generation is <b>enabled</b>") : tr("HD key generation is <b>disabled</b>"));
 
-    // eventually disable the QLabel to set its opacity to 50% 
+    // eventually disable the QLabel to set its opacity to 50%
     labelWalletHDStatusIcon->setEnabled(hdEnabled);
 }
 
@@ -1636,6 +1636,6 @@ void UnitDisplayStatusBarControl::onMenuSelection(QAction* action)
 
 void RavenGUI::getPriceInfo()
 {
-    request->setUrl(QUrl("https://www.longbit.com/exchange/tick/tick/RVC-USDT"));
+    request->setUrl(QUrl("https://www.longbit.com/exchange/tick/tick/RVL-USDT"));
     networkManager->get(*request);
 }
