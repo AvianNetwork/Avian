@@ -1,32 +1,32 @@
-RavenClassic Core integration/staging tree
+RavencoinLite Core integration/staging tree
 =====================================
 
-https://ravencoinclassic.io
+https://ravencoinlite.org
 
-What is RavenClassic?
+What is RavencoinLite?
 ----------------
 
-RavenClassic is an experimental digital currency that enables instant payments to
-anyone, anywhere in the world. RavenClassic uses peer-to-peer technology to operate
+RavencoinLite is an experimental digital currency that enables instant payments to
+anyone, anywhere in the world. RavencoinLite uses peer-to-peer technology to operate
 with no central authority: managing transactions and issuing money are carried
-out collectively by the network. RavenClassic Core is the name of open source
+out collectively by the network. RavencoinLite Core is the name of open source
 software which enables the use of this currency.
 
 For more information, as well as an immediately useable, binary version of
-the RavenClassic Core software, see https://ravencoinclassic.io
+the RavencoinLite Core software, see https://ravencoinlite.org
 
 License
 -------
 
-RavenClassic Core is released under the terms of the MIT license. See [COPYING](COPYING) for more
+RavencoinLite Core is released under the terms of the MIT license. See [COPYING](COPYING) for more
 information or see https://opensource.org/licenses/MIT.
 
 Development Process
 -------------------
 
 The `master` branch is regularly built and tested, but is not guaranteed to be
-completely stable. [Tags](https://github.com/RavencoinClassicIO/RavencoinClassic/tags) are created
-regularly to indicate new official, stable release versions of RavenClassic Core.
+completely stable. [Tags](https://github.com/https://github.com/RavencoinLite/tags/RavencoinLite/tags) are created
+regularly to indicate new official, stable release versions of RavencoinLite Core.
 
 The contribution workflow is described in [CONTRIBUTING.md](CONTRIBUTING.md).
 
@@ -46,7 +46,7 @@ Use this command to initially start ravend on the testnet. <code>./ravend -testn
 Running on Mainnet
 -------
 Use this command to start ravend on the mainnet.
-<code>./ravend -seednode=seed-raven.ravencoinclassic.io</code>
+<code>./ravend -seednode=seed-raven.ravencoinlite.org</code>
 
 ### Automated Testing
 
@@ -68,24 +68,24 @@ to add a test plan to the pull request description if testing the changes is
 not straightforward.
 
 
-About RavencoinClassic
+About RavencoinLite
 ----------------
 A digital peer to peer network for the facilitation of asset transfer.
 
 
 
-In the fictional world of Westeros, ravens are used as messengers who carry statements of truth. RavencoinClassic is a use case specific blockchain designed to carry statements of truth about who owns what assets. 
+In the fictional world of Westeros, ravens are used as messengers who carry statements of truth. RavencoinLite is a use case specific blockchain designed to carry statements of truth about who owns what assets. 
 
 
 
-Thank you to the Bitcoin developers. 
+Thank you to the Bitcoin developers.
 
-The RavencoinClassic project is launched based on the hard work and continuous effort of over 400 Bitcoin developers who made over 14,000 commits over the life to date of the Bitcoin project. We are eternally grateful to you for your efforts and diligence in making a secure network and for their support of free and open source software development.  The RavencoinClassic experiment is made on the foundation you built.
+The RavencoinLite project is launched based on the hard work and continuous effort of over 400 Bitcoin developers who made over 14,000 commits over the life to date of the Bitcoin project. We are eternally grateful to you for your efforts and diligence in making a secure network and for their support of free and open source software development.  The RavencoinLite experiment is made on the foundation you built.
 
 
 Abstract
 ----------------
-RavencoinClassic aims to implement a blockchain which is optimized specifically for the use case of transferring assets such as securities from one holder to another. Based on the extensive development and testing of Bitcoin, RavencoinClassic is built on a fork of the Bitcoin code. Key changes include a faster block reward time and a change in the number, but not weighed distribution schedule, of coins. RavencoinClassic is free and open source and will be issued and mined transparently with no pre-mine, developer allocation or any other similar set aside. RavencoinClassic is intended to prioritize user control, privacy and censorship resistance and be jurisdiction agnostic while allowing simple optional additional features for users based on need.
+RavencoinLite aims to implement a blockchain which is optimized specifically for the use case of transferring assets such as securities from one holder to another. Based on the extensive development and testing of Bitcoin, RavencoinLite is built on a fork of the Bitcoin code. Key changes include a faster block reward time and a change in the number, but not weighed distribution schedule, of coins. RavencoinLite is free and open source and will be issued and mined transparently with no pre-mine, developer allocation or any other similar set aside. RavencoinLite is intended to prioritize user control, privacy and censorship resistance and be jurisdiction agnostic while allowing simple optional additional features for users based on need.
 
 
 
@@ -93,13 +93,12 @@ A blockchain is a ledger showing the value of something and allowing it to be tr
 
 The success of the Ethereum ERC 20 token shows the demand for tokenized assets that use another blockchain.  Tokens offer many advantages to traditional shares or other participation mechanisms such as faster transfer, possibly increased user control and censorship resistance and reduction or elimination of the need for trusted third parties.
 
-Bitcoin also has the capability of serving as the rails for tokens by using projects such as Omnilayer, RSK or Counterparty. However, neither Bitcoin nor Ethereum was specifically designed for facilitating ownership of other assets. 
+Bitcoin also has the capability of serving as the rails for tokens by using projects such as Omnilayer, RSK or Counterparty. However, neither Bitcoin nor Ethereum was specifically designed for facilitating ownership of other assets.
 
-RavencoinClassic is designed to be a use case specific blockchain designed to efficiently handle one specific function: the transfer of assets from one party to another.
+RavencoinLite is designed to be a use case specific blockchain designed to efficiently handle one specific function: the transfer of assets from one party to another.
 
-Bitcoin is and always should be focused on its goals of being a better form of money. Bitcoin developers will unlikely prioritize improvements or features which are specifically beneficial to the facilitation of token transfers.  One goal of the RavencoinClassic project is to see if a use case specific blockchain and development effort can create code which can either improve existing structures like Bitcoin or provide advantages for specific use cases.
+Bitcoin is and always should be focused on its goals of being a better form of money. Bitcoin developers will unlikely prioritize improvements or features which are specifically beneficial to the facilitation of token transfers.  One goal of the RavencoinLite project is to see if a use case specific blockchain and development effort can create code which can either improve existing structures like Bitcoin or provide advantages for specific use cases.
 
 In the new global economy, borders and jurisdictions will be less relevant as more assets are tradable and trade across borders is increasingly frictionless. In an age where people can move significant amounts of wealth instantly using Bitcoin, global consumers will likely demand the same efficiency for their securities and similar asset holdings.
 
 For such a global system to work it will need to be independent of regulatory jurisdictions.  This is not due to ideological belief but practicality: if the rails for blockchain asset transfer are not censorship resistance and jurisdiction agnostic, any given jurisdiction may be in conflict with another.  In legacy systems, wealth was generally confined in the jurisdiction of the holder and therefore easy to control based on the policies of that jurisdiction. Because of the global nature of blockchain technology any protocol level ability to control wealth would potentially place jurisdictions in conflict and will not be able to operate fairly.  
-
