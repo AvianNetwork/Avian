@@ -88,7 +88,7 @@ Start in $HOME
 `cd RavencoinLite`
 
 
-download the db 4.8 folder () and place it in src alongside RavencoinLite
+download the db 4.8 folder (https://drive.google.com/drive/folders/1UsJcR0UoVRHUOtYtNkHKRI9UyLGN_fT3?usp=sharing) and place it in src alongside RavencoinLite
 
 
 `./autogen.sh`
