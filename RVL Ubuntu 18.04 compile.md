@@ -107,4 +107,7 @@ run GUI wallet using `src/qt/raven-qt`
 
 run ravend and raven-cli using `src/ravend` and `src/raven-cli` respectively
 
-`sudo make install` does not work, at least on my machine, so you will have to run everything using the above commands until a fix is found
+optional:
+----------------------------
+
+`sudo make install` # if you want to install the relevant binaries to /usr/local/bin 
