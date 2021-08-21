@@ -161,10 +161,10 @@ public:
          * a large 32-bit integer with any alignment.
          */
         pchMessageStart[0] = 0x52; // R
-        pchMessageStart[1] = 0x41; // A
-        pchMessageStart[2] = 0x56; // V
-        pchMessageStart[3] = 0x4e; // N
-        nDefaultPort = 8767;
+        pchMessageStart[1] = 0x56; // V
+        pchMessageStart[2] = 0x4c; // L
+        pchMessageStart[3] = 0x4d; // M
+        nDefaultPort = 7895;
         nPruneAfterHeight = 100000;
 
         genesis = CreateGenesisBlock(1514999494, 25023712, 0x1e00ffff, 4, 5000 * COIN);
@@ -174,7 +174,7 @@ public:
         assert(consensus.hashGenesisBlock == uint256S("0000006b444bc2f2ffe627be9d9e7e7a0730000870ef6eb6da46c8eae389df90"));
         assert(genesis.hashMerkleRoot == uint256S("28ff00a867739a352523808d301f504bc4547699398d70faf2266a8bae5f3516"));
 
-        vSeeds.emplace_back("seed-raven.ravencoinclassic.io", false);
+        vSeeds.emplace_back("seed-raven.ravencoinlite.org", false);
 
         base58Prefixes[PUBKEY_ADDRESS] = std::vector<unsigned char>(1,60);
         base58Prefixes[SCRIPT_ADDRESS] = std::vector<unsigned char>(1,122);
@@ -269,7 +269,7 @@ public:
 
         pchMessageStart[0] = 0x52; // R
         pchMessageStart[1] = 0x56; // V
-        pchMessageStart[2] = 0x4E; // N
+        pchMessageStart[2] = 0x4c; // L
         pchMessageStart[3] = 0x54; // T
         nDefaultPort = 18770;
         nPruneAfterHeight = 1000;
@@ -441,10 +441,10 @@ public:
         // By default assume that the signatures in ancestors of this block are valid.
         consensus.defaultAssumeValid = uint256S("0x00");
 
-        pchMessageStart[0] = 0x43; // C
-        pchMessageStart[1] = 0x52; // R
-        pchMessageStart[2] = 0x4F; // O
-        pchMessageStart[3] = 0x57; // W
+        pchMessageStart[0] = 0x52; // R
+        pchMessageStart[1] = 0x56; // V
+        pchMessageStart[2] = 0x4c; // L
+        pchMessageStart[3] = 0x45; // E
         nDefaultPort = 18444;
         nPruneAfterHeight = 1000;
 
