@@ -87,15 +87,30 @@ Start in $HOME
 
 `cd RavencoinLite`
 
+`RAVEN_ROOT=$(pwd)`
 
-download the db 4.8 folder (https://drive.google.com/drive/folders/1UsJcR0UoVRHUOtYtNkHKRI9UyLGN_fT3?usp=sharing) and place it in src alongside RavencoinLite
+`BDB_PREFIX="${RAVEN_ROOT}/db4"`
 
+`mkdir -p $BDB_PREFIX`
+
+`wget 'http://download.oracle.com/berkeley-db/db-4.8.30.NC.tar.gz'`
+
+`echo '12edc0df75bf9abd7f82f821795bcee50f42cb2e5f76a6a281b85732798364ef  db-4.8.30.NC.tar.gz' | sha256sum -c`
+
+`tar -xzvf db-4.8.30.NC.tar.gz`
+
+`cd db-4.8.30.NC/build_unix/`
+
+`../dist/configure --enable-cxx --disable-shared --with-pic --prefix=$BDB_PREFIX`
+
+`make install`
+
+`cd $RAVEN_ROOT`
 
 `./autogen.sh`
 
-`export BDB_PREFIX=$HOME/src/db4`
+`./configure LDFLAGS="-L${BDB_PREFIX}/lib/" CPPFLAGS="-I${BDB_PREFIX}/include/" # (other args...)`
 
-`./configure BDB_LIBS="-L${BDB_PREFIX}/lib -ldb_cxx-4.8" BDB_CFLAGS="-I${BDB_PREFIX}/include" --prefix=/usr/local`
 
 `make -j8`  # 8 for 8 cpu threads, adjust to fit your setup
 
