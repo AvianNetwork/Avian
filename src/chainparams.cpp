@@ -191,17 +191,13 @@ public:
 
         checkpointData = (CCheckpointData) {
             {
-                { 535721, uint256S("0x000000000001217f58a594ca742c8635ecaaaf695d1a63f6ab06979f1c159e04")},
             }
         };
 
         chainTxData = ChainTxData{
-            // Update as we know more about the contents of the Raven chain
-            // Stats as of 000000000000a72545994ce72b25042ea63707fca169ca4deb7f9dab4f1b1798 window size 43200
-            1543817453, // * UNIX timestamp of last known number of transactions
-            2033711,    // * total number of transactions between genesis and that timestamp
-                        //   (the tx=... number in the SetBestChain debug.log lines)
-            0.1         // * estimated number of transactions per second after that timestamp
+	    0,
+            0,
+            0
         };
 
         /** RVN Start **/
@@ -368,14 +364,11 @@ public:
         };
 
         chainTxData = ChainTxData{
-            // Update as we know more about the contents of the Raven chain
-            // Stats as of 00000023b66f46d74890287a7b1157dd780c7c5fdda2b561eb96684d2b39d62e window size 43200
-            1543633332, // * UNIX timestamp of last known number of transactions
-            146666,     // * total number of transactions between genesis and that timestamp
-                        //   (the tx=... number in the SetBestChain debug.log lines)
-            0.02        // * estimated number of transactions per second after that timestamp
+	    0,
+            0,
+            0
         };
-
+	    
         /** RVN Start **/
         // Burn Amounts
         nIssueAssetBurnAmount = 500 * COIN;
