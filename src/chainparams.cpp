@@ -172,7 +172,7 @@ public:
         consensus.hashGenesisBlock = genesis.GetX16RHash();
 
         assert(consensus.hashGenesisBlock == uint256S("0000006b444bc2f2ffe627be9d9e7e7a0730000870ef6eb6da46c8eae389df90"));
-        assert(genesis.hashMerkleRoot == uint256S("28ff00a867739a352523808d301f504bc4547699398d70faf2266a8bae5f3516"));
+        assert(genesis.hashMerkleRoot == uint256S("0x"));
 
         vSeeds.emplace_back("seed-raven.ravencoinlite.org", false);
 
