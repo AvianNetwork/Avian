@@ -1,8 +1,8 @@
-                                    RavencoinLite: A Peer to Peer Electronic System for the Creation and Transfer of Assets:
+                                 RavencoinLite: A Peer to Peer Electronic System for the Creation and Transfer of Assets:
 
-                                                              The RavencoinLite Developers
-                                                              http://www.RavencoinLite.org
-                                                              August 12, 2021
+                                                      The RavencoinLite Developers
+                                                      http://www.RavencoinLite.org
+                                                            August 12, 2021
 
 In the fictional world of Westeros, ravens are used as messengers who carry statements of truth. RavencoinLite is a use-case focused blockchain designed to carry statements of truth about who owns what assets.
 
