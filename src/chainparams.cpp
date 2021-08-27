@@ -55,8 +55,8 @@ static CBlock CreateGenesisBlock(const char* pszTimestamp, const CScript& genesi
 
 static CBlock CreateGenesisBlock(uint32_t nTime, uint32_t nNonce, uint32_t nBits, int32_t nVersion, const CAmount& genesisReward)
 {
-    const char* pszTimestamp = "NY Times 23/Aug/2021 FDA Fully Approves Pfizer-BioNTech Vaccine, a First for a Covid-19 Shot";
-    const CScript genesisOutputScript = CScript() << ParseHex("04678afdb0fe5548271967f1a67130b7105cd6a828e03909a67962e0ea1f61deb649f6bc3f4cef38c4f35504e51ec112de5c384df7ba0b8d578a4c702b6bf11d5f") << OP_CHECKSIG;
+    const char* pszTimestamp = "RavencoinLite is still here";
+    const CScript genesisOutputScript = CScript() << ParseHex("01fds01189fe5548271967f1a67130b7105cd6a828e03909a67962e0ea1f61deb649f6bc3f4cef38c4f35504e51ec112de5c384df7ba0b8d578a4c702b6bf09087") << OP_CHECKSIG;
     return CreateGenesisBlock(pszTimestamp, genesisOutputScript, nTime, nNonce, nBits, nVersion, genesisReward);
 }
 
@@ -140,11 +140,11 @@ public:
 
 
 
-        // The best chain should have at least this much work.
-        consensus.nMinimumChainWork = uint256S("0x00");
+         // The best chain should have at least this much work.
+        consensus.nMinimumChainWork = uint256S("0x0000000000000000000000000000000000000000000000000000000000000002");
 
         // By default assume that the signatures in ancestors of this block are valid.
-        consensus.defaultAssumeValid = uint256S("0x00");
+        consensus.defaultAssumeValid = uint256S("0x0000e7f2b2ae2e3ccbb2349034770709d50dc21ca6809823dbe123d989d97f6c");
 
 
         // The best chain should have at least this much work.
@@ -168,44 +168,23 @@ public:
         nDefaultPort = 7895;
         nPruneAfterHeight = 100000;
 
-uint256 TempHashHolding;
-        uint256 BestBlockHash = uint256S("0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
-        for (int i=0;i<5000000;i++) {
-            genesis = CreateGenesisBlock(1629951211, i, 0x1d00ffff, 4, 2500 * COIN);
-            genesis.hashPrevBlock = TempHashHolding; 
-            consensus.hashGenesisBlock = genesis.GetHash();
+genesis = CreateGenesisBlock(1630067829, 8650489, 0x1e00ffff, 4, 10 * COIN);
 
-            if (UintToArith256(consensus.hashGenesisBlock) < UintToArith256(BestBlockHash)) {
-                BestBlockHash = consensus.hashGenesisBlock;
-                std::cout << BestBlockHash.GetHex() << " Nonce: " << i << "\n";
-            }
+      
 
-            TempHashHolding = consensus.hashGenesisBlock;
-            //std::cout << consensus.hashGenesisBlock.GetHex() << "\n";
-        }
-        std::cout << "\n";
-        std::cout << "\n";
-        std::cout << "\n";
 
-        std::cout << BestBlockHash.GetHex();
+        consensus.hashGenesisBlock = genesis.GetHash();
+       assert(consensus.hashGenesisBlock == uint256S("0x000000cdb10fc01df7fba251f2168ef7cd7854b571049db4902c315694461dd0"));
+        assert(genesis.hashMerkleRoot == uint256S("0x63d9b6b6b549a2d96eb5ac4eb2ab80761e6d7bffa9ae1a647191e08d6416184d"));
 
-        std::cout << "\n";
-        std::cout << "\n";
-        int totalHits = 0;
-        double totalTime = 0.0;
 
-        for(int x = 0; x < 16; x++) {
-            totalHits += algoHashHits[x];
-            totalTime += algoHashTotal[x];
-            std::cout << "hash algo " << x << " hits " << algoHashHits[x] << " total " << algoHashTotal[x] << " avg " << algoHashTotal[x]/algoHashHits[x] << std::endl;
-        }
+       
 
-        std::cout << "Totals: hash algo " <<  " hits " << totalHits << " total " << totalTime << " avg " << totalTime/totalHits << std::endl;
 
-        assert(consensus.hashGenesisBlock == uint256S("0x0000020e3d192d5ac784dfa570692b420b73914827f14699802ced74465166b1"));
-        assert(genesis.hashMerkleRoot == uint256S("0x4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b"));
-
-        vSeeds.emplace_back("seed-raven.ravencoinlite.org", false);
+        vSeeds.emplace_back("seed1.ravencoinlite.org", false);
+		vSeeds.emplace_back("seed2.ravencoinlite.org", false);
+		vSeeds.emplace_back("seed3.ravencoinlite.org", false);
+		vSeeds.emplace_back("45.63.1.191", false);
 
         base58Prefixes[PUBKEY_ADDRESS] = std::vector<unsigned char>(1,60);
         base58Prefixes[SCRIPT_ADDRESS] = std::vector<unsigned char>(1,122);
@@ -222,6 +201,8 @@ uint256 TempHashHolding;
 
         checkpointData = (CCheckpointData) {
             {
+                { 0, uint256S("0x000000cdb10fc01df7fba251f2168ef7cd7854b571049db4902c315694461dd0")}
+		   
             }
         };
 
@@ -287,10 +268,10 @@ public:
 
 
         // The best chain should have at least this much work.
-        consensus.nMinimumChainWork = uint256S("0x00");
+        consensus.nMinimumChainWork = uint256S("0x0000000000000000000000000000000000000000000000000000000000000002");
 
         // By default assume that the signatures in ancestors of this block are valid.
-        consensus.defaultAssumeValid = uint256S("0x00");
+        consensus.defaultAssumeValid = uint256S("0x0000e7f2b2ae2e3ccbb2349034770709d50dc21ca6809823dbe123d989d97f6c");
 
 
         pchMessageStart[0] = 0x52; // R
@@ -300,15 +281,17 @@ public:
         nDefaultPort = 18770;
         nPruneAfterHeight = 1000;
 
-        uint32_t nGenesisTime = 1629771005;  
+         
 	    
 	    
-        genesis = CreateGenesisBlock(nGenesisTime, 15615880, 0x1e00ffff, 2, 2500 * COIN);
-        consensus.hashGenesisBlock = genesis.GetX16RHash();
+        genesis = CreateGenesisBlock(1630065295, 24922064, 0x1e00ffff, 4, 10 * COIN);
+      
 
-        //Test MerkleRoot and GenesisBlock
-        assert(consensus.hashGenesisBlock == uint256S("0x7e152a3679fbe8933bba66d747c58d5d0566fb0160a8f2f497f6902da3215423"));
-        assert(genesis.hashMerkleRoot == uint256S("3f3621f5a83a2697099fea380f24f2854e15c912828a09112942d543033bcbf8"));
+
+        consensus.hashGenesisBlock = genesis.GetHash();
+       assert(consensus.hashGenesisBlock == uint256S("0x00000084af22998d2aed78cc29f1fa587f854150ccd2991dfc82241c8f049219"));
+        assert(genesis.hashMerkleRoot == uint256S("0x63d9b6b6b549a2d96eb5ac4eb2ab80761e6d7bffa9ae1a647191e08d6416184d"));
+
 
         vFixedSeeds.clear();
         vSeeds.clear();
@@ -330,6 +313,7 @@ public:
 
         checkpointData = (CCheckpointData) {
             {
+                    { 0, uint256S("0x63d9b6b6b549a2d96eb5ac4eb2ab80761e6d7bffa9ae1a647191e08d6416184d")}
             }
         };
 
