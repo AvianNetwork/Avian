@@ -181,10 +181,7 @@ genesis = CreateGenesisBlock(1630067829, 8650489, 0x1e00ffff, 4, 10 * COIN);
        
 
 
-        vSeeds.emplace_back("seed1.ravencoinlite.org", false);
-		vSeeds.emplace_back("seed2.ravencoinlite.org", false);
-		vSeeds.emplace_back("seed3.ravencoinlite.org", false);
-		vSeeds.emplace_back("45.63.1.191", false);
+        vSeeds.emplace_back("seeed-raven.ravencoinlite.org", false);
 
         base58Prefixes[PUBKEY_ADDRESS] = std::vector<unsigned char>(1,60);
         base58Prefixes[SCRIPT_ADDRESS] = std::vector<unsigned char>(1,122);
@@ -296,7 +293,7 @@ public:
         vFixedSeeds.clear();
         vSeeds.clear();
 
-        vSeeds.emplace_back("seed-testnet-raven.ravencoinlite.org", false);
+        vSeeds.emplace_back("testnet-seed-raven.ravencoinlite.org", false);
 
         base58Prefixes[PUBKEY_ADDRESS] = std::vector<unsigned char>(1,111);
         base58Prefixes[SCRIPT_ADDRESS] = std::vector<unsigned char>(1,196);
