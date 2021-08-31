@@ -198,14 +198,14 @@ RavenGUI::RavenGUI(const PlatformStyle *_platformStyle, const NetworkStyle *netw
         setCentralWidget(rpcConsole);
     }
 
-    /** RVL START */
+    /** RVN START */
     labelCurrentMarket = new QLabel();
     labelCurrentPrice = new QLabel();
     headerWidget = new QWidget();
     pricingTimer = new QTimer();
     networkManager = new QNetworkAccessManager();
     request = new QNetworkRequest();
-    /** RVL END */
+    /** RVN END */
 
     // Accept D&D of URIs
     setAcceptDrops(true);
@@ -390,7 +390,7 @@ void RavenGUI::createActions()
     historyAction->setFont(font);
     tabGroup->addAction(historyAction);
 
-    /** RVL START */
+    /** RVN START */
     transferAssetAction = new QAction(platformStyle->SingleColorIconOnOff(":/icons/asset_transfer_selected", ":/icons/asset_transfer"), tr("&Transfer Assets"), this);
     transferAssetAction->setStatusTip(tr("Transfer assets to RVL addresses"));
     transferAssetAction->setToolTip(transferAssetAction->statusTip());
@@ -431,7 +431,7 @@ void RavenGUI::createActions()
     votingAction->setFont(font);
     tabGroup->addAction(votingAction);
 
-    /** RVL END */
+    /** RVN END */
 
 #ifdef ENABLE_WALLET
     // These showNormalIfMinimized are needed because Send Coins and Receive Coins
@@ -582,7 +582,7 @@ void RavenGUI::createToolBars()
 {
     if(walletFrame)
     {
-        /** RVL START */
+        /** RVN START */
         // Create the orange background and the vertical tool bar
         QWidget* toolbarWidget = new QWidget();
 
@@ -594,7 +594,7 @@ void RavenGUI::createToolBars()
         label->setPixmap(QPixmap::fromImage(QImage(":/icons/ravencointext")));
         label->setContentsMargins(0,0,0,50);
         label->setStyleSheet(".QLabel{background-color: transparent;}");
-        /** RVL END */
+        /** RVN END */
 
         QToolBar *toolbar = new QToolBar();
         toolbar->setStyle(style());
@@ -622,7 +622,7 @@ void RavenGUI::createToolBars()
         stringToUse = normalString;
 #endif
 
-        /** RVL START */
+        /** RVN START */
         QString tbStyleSheet = ".QToolBar {background-color : transparent; border-color: transparent; }  "
                                ".QToolButton {background-color: transparent; border-color: transparent; width: 249px; color: %1; border: none;} "
                                ".QToolButton:checked {background: none; background-color: none; selection-background-color: none; color: %2; border: none; font: %4} "
@@ -693,18 +693,18 @@ void RavenGUI::createToolBars()
         labelCurrentPrice->setStyleSheet(currentPriceStyleSheet.arg(COLOR_LABELS.name()));
         labelCurrentPrice->setFont(currentMarketFont);
 
-        QLabel* labelBtcRVL = new QLabel();
-        labelBtcRVL->setText("USDT / RVL");
-        labelBtcRVL->setContentsMargins(15,0,0,0);
-        labelBtcRVL->setFixedHeight(75);
-        labelBtcRVL->setAlignment(Qt::AlignVCenter);
-        labelBtcRVL->setStyleSheet(STRING_LABEL_COLOR);
-        labelBtcRVL->setFont(currentMarketFont);
+        QLabel* labelBtcRvn = new QLabel();
+        labelBtcRvn->setText("USDT / RVL");
+        labelBtcRvn->setContentsMargins(15,0,0,0);
+        labelBtcRvn->setFixedHeight(75);
+        labelBtcRvn->setAlignment(Qt::AlignVCenter);
+        labelBtcRvn->setStyleSheet(STRING_LABEL_COLOR);
+        labelBtcRvn->setFont(currentMarketFont);
 
         priceLayout->setGeometry(headerWidget->rect());
         priceLayout->addWidget(labelCurrentMarket, 0, Qt::AlignVCenter | Qt::AlignLeft);
         priceLayout->addWidget(labelCurrentPrice, 0,  Qt::AlignVCenter | Qt::AlignLeft);
-        priceLayout->addWidget(labelBtcRVL, 0 , Qt::AlignVCenter | Qt::AlignLeft);
+        priceLayout->addWidget(labelBtcRvn, 0 , Qt::AlignVCenter | Qt::AlignLeft);
         priceLayout->addStretch();
 
         // Create the layout for widget to the right of the tool bar
@@ -773,7 +773,7 @@ void RavenGUI::createToolBars()
         connect(pricingTimer, SIGNAL(timeout()), this, SLOT(getPriceInfo()));
         pricingTimer->start(10000);
         getPriceInfo();
-        /** RVL END */
+        /** RVN END */
     }
 }
 
@@ -881,13 +881,13 @@ void RavenGUI::setWalletActionsEnabled(bool enabled)
     usedReceivingAddressesAction->setEnabled(enabled);
     openAction->setEnabled(enabled);
 
-    /** RVL START */
+    /** RVN START */
     transferAssetAction->setEnabled(false);
     createAssetAction->setEnabled(false);
     manageAssetAction->setEnabled(false);
     messagingAction->setEnabled(false);
     votingAction->setEnabled(false);
-    /** RVL END */
+    /** RVN END */
 }
 
 void RavenGUI::createTrayIcon(const NetworkStyle *networkStyle)
@@ -1032,7 +1032,7 @@ void RavenGUI::gotoVerifyMessageTab(QString addr)
     if (walletFrame) walletFrame->gotoVerifyMessageTab(addr);
 }
 
-/** RVL START */
+/** RVN START */
 void RavenGUI::gotoAssetsPage()
 {
     transferAssetAction->setChecked(true);
@@ -1050,7 +1050,7 @@ void RavenGUI::gotoManageAssetsPage()
     manageAssetAction->setChecked(true);
     if (walletFrame) walletFrame->gotoManageAssetsPage();
 };
-/** RVL END */
+/** RVN END */
 #endif // ENABLE_WALLET
 
 void RavenGUI::updateNetworkState()
@@ -1326,7 +1326,7 @@ void RavenGUI::incomingTransaction(const QString& date, int unit, const CAmount&
 {
     // On new transaction, make an info balloon
     QString msg = tr("Date: %1\n").arg(date);
-    if (assetName == "RVL")
+    if (assetName == "RVN")
         msg += tr("Amount: %1\n").arg(RavenUnits::formatWithUnit(unit, amount, true));
     else
         msg += tr("Amount: %1\n").arg(RavenUnits::formatWithCustomName(assetName, amount, MAX_ASSET_UNITS, true));

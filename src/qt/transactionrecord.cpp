@@ -48,10 +48,10 @@ QList<TransactionRecord> TransactionRecord::decomposeTransaction(const CWallet *
             const CTxOut& txout = wtx.tx->vout[i];
             isminetype mine = wallet->IsMine(txout);
 
-            /** RVL START */
+            /** RVN START */
             if (txout.scriptPubKey.IsAssetScript())
                 continue;
-            /** RVL START */
+            /** RVN START */
 
             if(mine)
             {
@@ -96,10 +96,10 @@ QList<TransactionRecord> TransactionRecord::decomposeTransaction(const CWallet *
         isminetype fAllToMe = ISMINE_SPENDABLE;
         for (const CTxOut& txout : wtx.tx->vout)
         {
-            /** RVL START */
+            /** RVN START */
             if (txout.scriptPubKey.IsAssetScript())
                 continue;
-            /** RVL START */
+            /** RVN START */
 
             isminetype mine = wallet->IsMine(txout);
             if(mine & ISMINE_WATCH_ONLY) involvesWatchAddress = true;
@@ -126,10 +126,10 @@ QList<TransactionRecord> TransactionRecord::decomposeTransaction(const CWallet *
             {
                 const CTxOut& txout = wtx.tx->vout[nOut];
 
-                /** RVL START */
+                /** RVN START */
                 if (txout.scriptPubKey.IsAssetScript())
                     continue;
-                /** RVL START */
+                /** RVN START */
 
                 TransactionRecord sub(hash, nTime);
                 sub.idx = nOut;
@@ -175,7 +175,7 @@ QList<TransactionRecord> TransactionRecord::decomposeTransaction(const CWallet *
             //
 
 
-            /** RVL START */
+            /** RVN START */
             // We will only show mixed debit transactions that are nNet < 0 or if they are nNet == 0 and
             // they do not contain assets. This is so the list of transaction doesn't add 0 amount transactions to the
             // list.
@@ -195,12 +195,12 @@ QList<TransactionRecord> TransactionRecord::decomposeTransaction(const CWallet *
                 parts.append(TransactionRecord(hash, nTime, TransactionRecord::Other, "", nNet, 0));
                 parts.last().involvesWatchAddress = involvesWatchAddress;
             }
-            /** RVL START */
+            /** RVN START */
         }
     }
 
 
-    /** RVL START */
+    /** RVN START */
     if (AreAssetsDeployed()) {
         CAmount nFee;
         std::string strSentAccount;
@@ -295,7 +295,7 @@ QList<TransactionRecord> TransactionRecord::decomposeTransaction(const CWallet *
             }
         }
     }
-    /** RVL END */
+    /** RVN END */
 
     return parts;
 }
