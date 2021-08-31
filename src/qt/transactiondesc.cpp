@@ -52,7 +52,7 @@ QString TransactionDesc::toHTML(CWallet *wallet, CWalletTx &wtx, TransactionReco
 {
     QString strHTML;
 
-    if (rec->assetName != "RVN") {
+    if (rec->assetName != "RVL") {
         return toAssetHTML(wallet, wtx, rec, unit);
     }
 
@@ -383,7 +383,7 @@ QString TransactionDesc::toAssetHTML(CWallet *wallet, CWalletTx &wtx, Transactio
         strHTML += "<b>" + tr("Debit") + ":</b> " + RavenUnits::formatWithCustomName(QString::fromStdString(rec->assetName), nAssetsRec, rec->units, true) + "<br>";
     }
 
-    strHTML += "<b>" + tr("Net RVN amount") + ":</b> " + RavenUnits::formatHtmlWithUnit(unit, nNet, true) + "<br>";
+    strHTML += "<b>" + tr("Net RVL amount") + ":</b> " + RavenUnits::formatHtmlWithUnit(unit, nNet, true) + "<br>";
 
     //
     // Message

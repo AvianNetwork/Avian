@@ -663,7 +663,7 @@ void WalletModel::listCoins(std::map<QString, std::vector<COutput> >& mapCoins) 
     }
 }
 
-/** RVN START */
+/** RVL START */
 // AvailableCoins + LockedCoins grouped by wallet address (put change in one group with wallet address)
 void WalletModel::listAssets(std::map<QString, std::map<QString, std::vector<COutput> > >& mapCoins) const
 {
@@ -689,7 +689,7 @@ void WalletModel::listAssets(std::map<QString, std::map<QString, std::vector<COu
         }
     }
 }
-/** RVN END */
+/** RVL END */
 
 bool WalletModel::isLockedCoin(uint256 hash, unsigned int n) const
 {

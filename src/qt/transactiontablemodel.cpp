@@ -734,7 +734,7 @@ QVariant TransactionTableModel::headerData(int section, Qt::Orientation orientat
             case Amount:
                 return tr("Amount removed from or added to balance.");
             case AssetName:
-                return tr("The asset (or RVN) removed or added to balance.");
+                return tr("The asset (or RVL) removed or added to balance.");
             }
         }
     }
