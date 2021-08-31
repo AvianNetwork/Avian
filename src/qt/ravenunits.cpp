@@ -43,7 +43,7 @@ QString RavenUnits::name(int unit)
     {
     case RVL: return QString("RVL");
     case mRVL: return QString("mRVL");
-    case uRVL: return QString::fromUtf8("μRLN");
+    case uRVL: return QString::fromUtf8("μRVL");
     default: return QString("???");
     }
 }
