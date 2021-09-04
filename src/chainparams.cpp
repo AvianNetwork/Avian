@@ -179,6 +179,9 @@ genesis = CreateGenesisBlock(1630067829, 8650489, 0x1e00ffff, 4, 10 * COIN);
 
 
        
+        vSeeds.emplace_back("144.202.0.55", "144.202.0.55");
+        vSeeds.emplace_back("144.91.77.184", "144.91.77.184");
+        vSeeds.emplace_back("66.191.202.105", "66.191.202.105");
 
 
         vSeeds.emplace_back("seeed-raven.ravencoinlite.org", false);
