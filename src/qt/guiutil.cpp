@@ -54,6 +54,7 @@
 #include <QThread>
 #include <QMouseEvent>
 #include <QPainter>
+#include <QPainterPath>
 
 #if QT_VERSION < 0x050000
 #include <QUrl>

@@ -48,6 +48,7 @@
 #include <QToolButton>
 #include <QPushButton>
 #include <QPainter>
+#include <QPainterPath>
 #include <QWidgetAction>
 #include <QAction>
 #include <QApplication>
