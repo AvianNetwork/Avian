@@ -88,8 +88,8 @@
 // Application startup time (used for uptime calculation)
 const int64_t nStartupTime = GetTime();
 
-const char *const RAVEN_CONF_FILENAME = "ravenlite.conf";
-const char *const RAVEN_PID_FILENAME = "ravenlited.pid";
+const char *const RAVEN_CONF_FILENAME = "raven.conf";
+const char *const RAVEN_PID_FILENAME = "ravend.pid";
 
 ArgsManager gArgs;
 bool fPrintToConsole = false;
@@ -622,7 +622,7 @@ void ArgsManager::ReadConfigFile(const std::string &confPath)
 {
     fs::ifstream streamConfig(GetConfigFile(confPath));
     if (!streamConfig.good())
-        return; // No ravenlite.conf file is OK
+        return; // No raven.conf file is OK
 
     {
         LOCK(cs_args);
