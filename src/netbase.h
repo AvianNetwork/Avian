@@ -7,7 +7,7 @@
 #define RAVEN_NETBASE_H
 
 #if defined(HAVE_CONFIG_H)
-#include "config/raven-config.h"
+#include "config/ravenlite-config.h"
 #endif
 
 #include "compat.h"
