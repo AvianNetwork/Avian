@@ -5,7 +5,7 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #if defined(HAVE_CONFIG_H)
-#include "config/raven-config.h"
+#include "config/ravenlite-config.h"
 #endif
 
 #include "util.h"
@@ -88,8 +88,8 @@
 // Application startup time (used for uptime calculation)
 const int64_t nStartupTime = GetTime();
 
-const char *const RAVEN_CONF_FILENAME = "raven.conf";
-const char *const RAVEN_PID_FILENAME = "ravend.pid";
+const char *const RAVEN_CONF_FILENAME = "ravenlite.conf";
+const char *const RAVEN_PID_FILENAME = "ravenlited.pid";
 
 ArgsManager gArgs;
 bool fPrintToConsole = false;
@@ -522,7 +522,7 @@ static std::string FormatException(const std::exception *pex, const char *pszThr
     char pszModule[MAX_PATH] = "";
     GetModuleFileNameA(nullptr, pszModule, sizeof(pszModule));
 #else
-    const char *pszModule = "raven";
+    const char *pszModule = "ravenlite";
 #endif
     if (pex)
         return strprintf(
@@ -622,7 +622,7 @@ void ArgsManager::ReadConfigFile(const std::string &confPath)
 {
     fs::ifstream streamConfig(GetConfigFile(confPath));
     if (!streamConfig.good())
-        return; // No raven.conf file is OK
+        return; // No ravenlite.conf file is OK
 
     {
         LOCK(cs_args);
@@ -631,7 +631,7 @@ void ArgsManager::ReadConfigFile(const std::string &confPath)
 
         for (boost::program_options::detail::config_file_iterator it(streamConfig, setOptions), end; it != end; ++it)
         {
-            // Don't overwrite existing settings so command line settings override raven.conf
+            // Don't overwrite existing settings so command line settings override ravenlite.conf
             std::string strKey = std::string("-") + it->string_key;
             std::string strValue = it->value[0];
             InterpretNegativeSetting(strKey, strValue);
