@@ -10,7 +10,7 @@
 #include <stdint.h>
 
 #if defined(BUILD_RAVEN_INTERNAL) && defined(HAVE_CONFIG_H)
-#include "config/raven-config.h"
+#include "config/ravenlite-config.h"
   #if defined(_WIN32)
     #if defined(DLL_EXPORT)
       #if defined(HAVE_FUNC_ATTRIBUTE_DLLEXPORT)

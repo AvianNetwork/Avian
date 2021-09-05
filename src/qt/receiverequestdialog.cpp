@@ -23,7 +23,7 @@
 #endif
 
 #if defined(HAVE_CONFIG_H)
-#include "config/raven-config.h" /* for USE_QRCODE */
+#include "config/ravenlite-config.h" /* for USE_QRCODE */
 #endif
 
 #ifdef USE_QRCODE
