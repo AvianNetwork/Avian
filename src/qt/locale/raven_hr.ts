@@ -55,7 +55,7 @@
     </message>
     <message>
         <source>These are your Raven addresses for sending payments. Always check the amount and the receiving address before sending coins.</source>
-        <translation>Ovo su vaše Raven adrese za slanje novca. Uvijek provjerite iznos i adresu primatelja prije slanja novca.</translation>
+        <translation>Ovo su vaše Raven Lite adrese za slanje novca. Uvijek provjerite iznos i adresu primatelja prije slanja novca.</translation>
     </message>
     <message>
         <source>&amp;Copy Address</source>
@@ -227,11 +227,11 @@
     </message>
     <message>
         <source>Sign messages with your Raven addresses to prove you own them</source>
-        <translation>Poruku potpišemo s raven adresom, kako bi dokazali vlasništvo nad tom adresom</translation>
+        <translation>Poruku potpišemo s Raven Lite adresom, kako bi dokazali vlasništvo nad tom adresom</translation>
     </message>
     <message>
         <source>Verify messages to ensure they were signed with specified Raven addresses</source>
-        <translation>Provjeravanje poruke, kao dokaz, da je potpisana navedenom raven adresom</translation>
+        <translation>Provjeravanje poruke, kao dokaz, da je potpisana navedenom Raven Lite adresom</translation>
     </message>
     <message>
         <source>&amp;File</source>
@@ -271,7 +271,7 @@
     </message>
     <message numerus="yes">
         <source>%n active connection(s) to Raven network</source>
-        <translation><numerusform>%n aktivna veza na Raven mrežu</numerusform><numerusform>%n aktivnih veza na Raven mrežu</numerusform><numerusform>%n aktivnih veza na Raven mrežu</numerusform></translation>
+        <translation><numerusform>%n aktivna veza na Raven Lite mrežu</numerusform><numerusform>%n aktivnih veza na Raven mrežu</numerusform><numerusform>%n aktivnih veza na Raven Lite mrežu</numerusform></translation>
     </message>
     <message numerus="yes">
         <source>Processed %n block(s) of transaction history.</source>
@@ -423,11 +423,11 @@
     </message>
     <message>
         <source>The label associated with this address list entry</source>
-        <translation>Oznaka raven adrese</translation>
+        <translation>Oznaka Raven Lite adrese</translation>
     </message>
     <message>
         <source>The address associated with this address list entry. This can only be modified for sending addresses.</source>
-        <translation>Raven adresa. Izmjene adrese su moguće samo za adrese za slanje.</translation>
+        <translation>Raven Lite adresa. Izmjene adrese su moguće samo za adrese za slanje.</translation>
     </message>
     <message>
         <source>&amp;Address</source>
@@ -569,7 +569,7 @@
     </message>
     <message>
         <source>Automatically open the Raven client port on the router. This only works when your router supports UPnP and it is enabled.</source>
-        <translation>Automatski otvori port Raven klijenta na ruteru. To radi samo ako ruter podržava UPnP i ako je omogućen.</translation>
+        <translation>Automatski otvori port Raven Lite klijenta na ruteru. To radi samo ako ruter podržava UPnP i ako je omogućen.</translation>
     </message>
     <message>
         <source>Map port using &amp;UPnP</source>
@@ -878,7 +878,7 @@
     </message>
     <message>
         <source>Confirm the send action</source>
-        <translation>Potvrdi akciju slanja</translation>
+        <translation>Potvrdi akciju koji slanja novac</translation>
     </message>
     <message>
         <source>S&amp;end</source>
