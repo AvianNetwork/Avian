@@ -1637,6 +1637,6 @@ void UnitDisplayStatusBarControl::onMenuSelection(QAction* action)
 
 void RavenGUI::getPriceInfo()
 {
-    request->setUrl(QUrl("https://www.exbitron.com/api/v2/peatio/public/markets/rvlrvn/depth"));
+    request->setUrl(QUrl("https://www.exbitron.com/api/v2/peatio/public/markets/rvlrvn/tickers"));
     networkManager->get(*request);
 }
