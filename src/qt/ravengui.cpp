@@ -695,7 +695,7 @@ void RavenGUI::createToolBars()
         labelCurrentPrice->setFont(currentMarketFont);
 
         QLabel* labelBtcRvn = new QLabel();
-        labelBtcRvn->setText("USDT / RVL");
+        labelBtcRvn->setText("RVN / RVL");
         labelBtcRvn->setContentsMargins(15,0,0,0);
         labelBtcRvn->setFixedHeight(75);
         labelBtcRvn->setAlignment(Qt::AlignVCenter);
@@ -764,7 +764,7 @@ void RavenGUI::createToolBars()
                                     labelCurrentPrice->setStyleSheet(currentPriceStyleSheet.arg(COLOR_LABELS.name()));
                             }
                             labelCurrentPrice->setText(QString("%1").arg(QString().setNum(next, 'f', 8)));
-			    labelCurrentPrice->setToolTip(tr("Brought to you by longbit.com"));
+			    labelCurrentPrice->setToolTip(tr("Brought to you by exbitron.com"));
                         }
                     }
                 }
@@ -1637,6 +1637,6 @@ void UnitDisplayStatusBarControl::onMenuSelection(QAction* action)
 
 void RavenGUI::getPriceInfo()
 {
-    request->setUrl(QUrl("https://www.longbit.com/exchange/tick/tick/RVL-USDT"));
+    request->setUrl(QUrl("https://www.exbitron.com/api/v2/peatio/public/markets/rvlrvn/depth"));
     networkManager->get(*request);
 }
