@@ -1,4 +1,4 @@
-Source: raven
+Source: ravencoinlite
 Section: utils
 Priority: optional
 Maintainer: Matt Corallo <matt@mattcorallo.com>
@@ -30,7 +30,7 @@ Homepage: https://ravencoin.org/
 Vcs-Git: git://github.com/RavenProject/Ravencoin.git
 Vcs-Browser: https://github.com/RavenProject/Ravencoin
 
-Package: ravend
+Package: ravencoinlited
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}
 Description: peer-to-peer network based digital currency - daemon
@@ -43,7 +43,7 @@ Description: peer-to-peer network based digital currency - daemon
  This package provides the daemon, ravend, and the CLI tool
  raven-cli to interact with the daemon.
 
-Package: raven-qt
+Package: ravencoinlite-qt
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}
 Description: peer-to-peer network based digital currency - Qt GUI
@@ -55,7 +55,7 @@ Description: peer-to-peer network based digital currency - Qt GUI
  .
  This package provides Raven-Qt, a GUI for Raven based on Qt.
 
-Package: raven-tx
+Package: ravencoinlite-tx
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}
 Description: peer-to-peer digital currency - standalone transaction tool
