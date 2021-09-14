@@ -134,5 +134,5 @@ jobs:
           name: ravencoinlite-${{ github.sha }}-${{ matrix.name }}
           path: |
             depends/${{ matrix.host }}/bin/ravend*
-            src/qt/raven-qt         
+            src/qt/raven-qt*    
             dist/RavencoinLite-Qt.app
