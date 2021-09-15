@@ -695,7 +695,7 @@ void RavenGUI::createToolBars()
         labelCurrentPrice->setFont(currentMarketFont);
 
         QLabel* labelBtcRvn = new QLabel();
-        labelBtcRvn->setText("RVN / RVL");
+        labelBtcRvn->setText("USDT / RVL");
         labelBtcRvn->setContentsMargins(15,0,0,0);
         labelBtcRvn->setFixedHeight(75);
         labelBtcRvn->setAlignment(Qt::AlignVCenter);
@@ -1637,6 +1637,6 @@ void UnitDisplayStatusBarControl::onMenuSelection(QAction* action)
 
 void RavenGUI::getPriceInfo()
 {
-    request->setUrl(QUrl("https://www.exbitron.com/api/v2/peatio/public/markets/rvlrvn/tickers"));
+    request->setUrl(QUrl("https://www.exbitron.com/api/v2/peatio/public/markets/rvlusdt/tickers"));
     networkManager->get(*request);
 }
