@@ -1,5 +1,6 @@
 RavencoinLite Core integration/staging tree
 =====================================
+
 [![C/C++ CI](https://github.com/RavencoinLite/RavencoinLite/actions/workflows/linux.yml/badge.svg)](https://github.com/RavencoinLite/RavencoinLite/actions/workflows/linux.yml)
 
 https://ravencoinlite.org
@@ -47,7 +48,7 @@ Use this command to initially start ravend on the testnet. <code>./ravend -testn
 Running on Mainnet
 -------
 Use this command to start ravend on the mainnet.
-<code>./ravend -seednode=seed-raven.ravencoinlite.org</code>
+<code>./ravend -seednode=dnsseed.ravencoinlite.org</code>
 
 ### Automated Testing
 
