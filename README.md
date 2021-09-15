@@ -1,7 +1,7 @@
 RavencoinLite Core integration/staging tree
 =====================================
 
-[![C/C++ CI](https://github.com/RavencoinLite/RavencoinLite/actions/workflows/linux.yml/badge.svg)](https://github.com/RavencoinLite/RavencoinLite/actions/workflows/linux.yml)
+[![C/C++ CI](https://github.com/RavencoinLite/RavencoinLite/actions/workflows/c-cpp.yml/badge.svg)](https://github.com/RavencoinLite/RavencoinLite/actions/workflows/c-cpp.yml)
 
 https://ravencoinlite.org
 
