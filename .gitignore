@@ -35,8 +35,8 @@ config.log
 config.status
 configure
 libtool
-src/config/raven-config.h
-src/config/raven-config.h.in
+src/config/ravenlite-config.h
+src/config/ravenlite-config.h.in
 src/config/stamp-h1
 share/setup.nsi
 share/qt/Info.plist
