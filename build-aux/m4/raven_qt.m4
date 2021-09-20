@@ -153,8 +153,9 @@ AC_DEFUN([RAVEN_QT_CONFIGURE],[
          Q_IMPORT_PLUGIN(qjpcodecs)
          Q_IMPORT_PLUGIN(qtwcodecs)
          Q_IMPORT_PLUGIN(qkrcodecs)
-         Q_IMPORT_PLUGIN(AccessibleFactory)],
-         [-lqcncodecs -lqjpcodecs -lqtwcodecs -lqkrcodecs -lqtaccessiblewidgets])
+         Q_IMPORT_PLUGIN(AccessibleFactory)
+         Q_IMPORT_PLUGIN(QWindowsPrinterSupportPlugin)],
+         [-lqcncodecs -lqjpcodecs -lqtwcodecs -lqkrcodecs -lqtaccessiblewidgets -lwindowsprintersupport])
     fi
   fi
   CPPFLAGS=$TEMP_CPPFLAGS
@@ -337,6 +338,7 @@ AC_DEFUN([_RAVEN_QT_FIND_STATIC_PLUGINS],[
         if test -d "$qt_plugin_path/accessible"; then
           QT_LIBS="$QT_LIBS -L$qt_plugin_path/accessible"
         fi
+        QT_LIBS="$QT_LIBS -L$qt_plugin_path/printsupport"
       fi
      if test x$use_pkgconfig = xyes; then
      : dnl
@@ -396,7 +398,7 @@ AC_DEFUN([_RAVEN_QT_FIND_LIBS_WITH_PKGCONFIG],[
       QT_LIB_PREFIX=Qt
       raven_qt_got_major_vers=4
     fi
-    qt5_modules="Qt5Core Qt5Gui Qt5Network Qt5Widgets"
+    qt5_modules="Qt5Core Qt5Gui Qt5Network Qt5Widgets Qt5PrintSupport"
     qt4_modules="QtCore QtGui QtNetwork"
     RAVEN_QT_CHECK([
       if test x$raven_qt_want_version = xqt5 || ( test x$raven_qt_want_version = xauto && test x$auto_priority_version = xqt5 ); then

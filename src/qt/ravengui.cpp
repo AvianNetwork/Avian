@@ -488,6 +488,8 @@ void RavenGUI::createActions()
     signMessageAction->setStatusTip(tr("Sign messages with your Raven addresses to prove you own them"));
     verifyMessageAction = new QAction(platformStyle->TextColorIcon(":/icons/verify"), tr("&Verify message..."), this);
     verifyMessageAction->setStatusTip(tr("Verify messages to ensure they were signed with specified Raven addresses"));
+    paperWalletAction = new QAction(QIcon(":/icons/print"), tr("&Print paper wallets"), this);
+    paperWalletAction->setStatusTip(tr("Print paper wallets"));
 
     openRPCConsoleAction = new QAction(platformStyle->TextColorIcon(":/icons/debugwindow"), tr("&Debug window"), this);
     openRPCConsoleAction->setStatusTip(tr("Open debugging and diagnostic console"));
@@ -527,6 +529,7 @@ void RavenGUI::createActions()
         connect(usedSendingAddressesAction, SIGNAL(triggered()), walletFrame, SLOT(usedSendingAddresses()));
         connect(usedReceivingAddressesAction, SIGNAL(triggered()), walletFrame, SLOT(usedReceivingAddresses()));
         connect(openAction, SIGNAL(triggered()), this, SLOT(openClicked()));
+        connect(paperWalletAction, SIGNAL(triggered()), walletFrame, SLOT(printPaperWallets()));
     }
 #endif // ENABLE_WALLET
 
@@ -551,6 +554,7 @@ void RavenGUI::createMenuBar()
         file->addAction(openAction);
         file->addAction(signMessageAction);
         file->addAction(verifyMessageAction);
+        file->addAction(paperWalletAction);
         file->addSeparator();
         file->addAction(usedSendingAddressesAction);
         file->addAction(usedReceivingAddressesAction);
@@ -881,14 +885,15 @@ void RavenGUI::setWalletActionsEnabled(bool enabled)
     usedSendingAddressesAction->setEnabled(enabled);
     usedReceivingAddressesAction->setEnabled(enabled);
     openAction->setEnabled(enabled);
+    paperWalletAction->setEnabled(enabled);
 
-    /** RVN START */
+    /** RVL START */
     transferAssetAction->setEnabled(false);
     createAssetAction->setEnabled(false);
     manageAssetAction->setEnabled(false);
     messagingAction->setEnabled(false);
     votingAction->setEnabled(false);
-    /** RVN END */
+    /** RVL END */
 }
 
 void RavenGUI::createTrayIcon(const NetworkStyle *networkStyle)

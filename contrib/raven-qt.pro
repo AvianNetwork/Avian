@@ -19,3 +19,7 @@ FORMS += \
 
 RESOURCES += \
     ../src/qt/raven.qrc
+
+
+QT += \
+    printsupport
