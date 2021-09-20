@@ -100,6 +100,7 @@ private:
     QAction *sendCoinsMenuAction;
     QAction *usedSendingAddressesAction;
     QAction *usedReceivingAddressesAction;
+    QAction *importPrivateKeyAction;
     QAction *signMessageAction;
     QAction *verifyMessageAction;
     QAction *paperWalletAction;
@@ -116,7 +117,7 @@ private:
     QAction *openAction;
     QAction *showHelpMessageAction;
 
-    /** RVN START */
+    /** RVL START */
     QAction *transferAssetAction;
     QAction *createAssetAction;
     QAction *manageAssetAction;
@@ -128,7 +129,7 @@ private:
     QTimer *pricingTimer;
     QNetworkAccessManager* networkManager;
     QNetworkRequest* request;
-    /** RVN END */
+    /** RVL END */
 
     QSystemTrayIcon *trayIcon;
     QMenu *trayIconMenu;

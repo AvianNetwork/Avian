@@ -88,6 +88,9 @@ public Q_SLOTS:
 
     void printPaperWallets();
 
+    /** import a private key */
+    void importPrivateKey();
+
     /** Show used sending addresses */
     void usedSendingAddresses();
     /** Show used receiving addresses */
