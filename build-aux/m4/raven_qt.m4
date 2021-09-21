@@ -135,6 +135,7 @@ AC_DEFUN([RAVEN_QT_CONFIGURE],[
       AC_DEFINE(QT_QPA_PLATFORM_MINIMAL, 1, [Define this symbol if the minimal qt platform exists])
       if test x$TARGET_OS = xwindows; then
         _RAVEN_QT_CHECK_STATIC_PLUGINS([Q_IMPORT_PLUGIN(QWindowsIntegrationPlugin)],[-lqwindows])
+        _RAVEN_QT_CHECK_STATIC_PLUGINS([Q_IMPORT_PLUGIN(QWindowsPrinterSupportPlugin)],[-lwindowsprintersupport])
         AC_DEFINE(QT_QPA_PLATFORM_WINDOWS, 1, [Define this symbol if the qt platform is windows])
       elif test x$TARGET_OS = xlinux; then
         _RAVEN_QT_CHECK_STATIC_PLUGINS([Q_IMPORT_PLUGIN(QXcbIntegrationPlugin)],[-lqxcb -lxcb-static])
@@ -155,7 +156,7 @@ AC_DEFUN([RAVEN_QT_CONFIGURE],[
          Q_IMPORT_PLUGIN(qkrcodecs)
          Q_IMPORT_PLUGIN(AccessibleFactory)
          Q_IMPORT_PLUGIN(QWindowsPrinterSupportPlugin)],
-         [-lqcncodecs -lqjpcodecs -lqtwcodecs -lqkrcodecs -lqtaccessiblewidgets -lwindowsprintersupport -lQt5PrintSupport])
+         [-lqcncodecs -lqjpcodecs -lqtwcodecs -lqkrcodecs -lqtaccessiblewidgets -lwindowsprintersupport])
     fi
   fi
   CPPFLAGS=$TEMP_CPPFLAGS
@@ -444,7 +445,7 @@ AC_DEFUN([_RAVEN_QT_FIND_LIBS_WITHOUT_PKGCONFIG],[
   TEMP_LIBS="$LIBS"
   RAVEN_QT_CHECK([
     if test x$qt_include_path != x; then
-      QT_INCLUDES="-I$qt_include_path -I$qt_include_path/QtCore -I$qt_include_path/QtGui -I$qt_include_path/QtWidgets -I$qt_include_path/QtNetwork -I$qt_include_path/QtTest -I$qt_include_path/QtDBus"
+      QT_INCLUDES="-I$qt_include_path -I$qt_include_path/QtCore -I$qt_include_path/QtGui -I$qt_include_path/QtWidgets -I$qt_include_path/QtNetwork -I$qt_include_path/QtTest -I$qt_include_path/QtDBus -I$qt_include_path/QtPrintSupport"
       CPPFLAGS="$QT_INCLUDES $CPPFLAGS"
     fi
   ])
@@ -487,6 +488,7 @@ AC_DEFUN([_RAVEN_QT_FIND_LIBS_WITHOUT_PKGCONFIG],[
   RAVEN_QT_CHECK(AC_CHECK_LIB([${QT_LIB_PREFIX}Network],[main],,RAVEN_QT_FAIL(lib$QT_LIB_PREFIXNetwork not found)))
   if test x$raven_qt_got_major_vers = x5; then
     RAVEN_QT_CHECK(AC_CHECK_LIB([${QT_LIB_PREFIX}Widgets],[main],,RAVEN_QT_FAIL(lib$QT_LIB_PREFIXWidgets not found)))
+    RAVEN_QT_CHECK(AC_CHECK_LIB([${QT_LIB_PREFIX}PrintSupport],[main],,RAVEN_QT_FAIL(lib$QT_LIB_PREFIXPrintSupport not found)))
   fi
   QT_LIBS="$LIBS"
   LIBS="$TEMP_LIBS"
