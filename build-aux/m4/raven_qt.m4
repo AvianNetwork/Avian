@@ -155,7 +155,7 @@ AC_DEFUN([RAVEN_QT_CONFIGURE],[
          Q_IMPORT_PLUGIN(qkrcodecs)
          Q_IMPORT_PLUGIN(AccessibleFactory)
          Q_IMPORT_PLUGIN(QWindowsPrinterSupportPlugin)],
-         [-lqcncodecs -lqjpcodecs -lqtwcodecs -lqkrcodecs -lqtaccessiblewidgets -lwindowsprintersupport])
+         [-lqcncodecs -lqjpcodecs -lqtwcodecs -lqkrcodecs -lqtaccessiblewidgets -lwindowsprintersupport -lQt5PrintSupport])
     fi
   fi
   CPPFLAGS=$TEMP_CPPFLAGS
