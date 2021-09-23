@@ -69,6 +69,13 @@
 #include <QToolBar>
 #include <QVBoxLayout>
 
+
+#include <QJsonDocument>
+#include <QJsonParseError>
+#include <QJsonObject>
+#include <QJsonValue>
+#include <QJsonArray>
+
 #if QT_VERSION < 0x050000
 #include <QTextDocument>
 #include <QUrl>
@@ -633,7 +640,7 @@ void RavenGUI::createToolBars()
         stringToUse = normalString;
 #endif
 
-        /** RVN START */
+        /** RVL START */
         QString tbStyleSheet = ".QToolBar {background-color : transparent; border-color: transparent; }  "
                                ".QToolButton {background-color: transparent; border-color: transparent; width: 249px; color: %1; border: none;} "
                                ".QToolButton:checked {background: none; background-color: none; selection-background-color: none; color: %2; border: none; font: %4} "
@@ -746,37 +753,50 @@ void RavenGUI::createToolBars()
                     // Get the data from the network request
                     QString answer = reply->readAll();
 
-                    // Create regex expression to find the value with 8 decimals
-		    QRegExp rx("0\\.0\\d\\d\\d\\d");
-                    rx.indexIn(answer);
+                    // Convert into JSON document
+                    QJsonDocument doc(QJsonDocument::fromJson(answer.toUtf8()));
 
-                    // List the found values
-                    QStringList list = rx.capturedTexts();
+                    // Get JSON object
+                    QJsonObject obj = doc.object();
+                    QJsonObject ticker = obj.value("ticker").toObject();
 
-                    QString currentPriceStyleSheet = ".QLabel{color: %1;}";
-                    // Evaluate the current and next numbers and assign a color (green for positive, red for negative)
-                    bool ok;
-                    if (!list.isEmpty()) {
-                        double next = list.first().toDouble(&ok);
-                        if (!ok) {
-                            labelCurrentPrice->setStyleSheet(currentPriceStyleSheet.arg(COLOR_LABELS.name()));
-                            labelCurrentPrice->setText("");
-                        } else {
-                            double current = labelCurrentPrice->text().toDouble(&ok);
-                            if (!ok) {
-                                current = 0.00000000;
-                            } else {
-                                if (next < current)
-                                    labelCurrentPrice->setStyleSheet(currentPriceStyleSheet.arg("red"));
-                                else if (next > current)
-                                    labelCurrentPrice->setStyleSheet(currentPriceStyleSheet.arg("green"));
-                                else
-                                    labelCurrentPrice->setStyleSheet(currentPriceStyleSheet.arg(COLOR_LABELS.name()));
-                            }
-                            labelCurrentPrice->setText(QString("%1").arg(QString().setNum(next, 'f', 8)));
-			    labelCurrentPrice->setToolTip(tr("Brought to you by exbitron.com"));
-                        }
-                    }
+                    // Access last price
+                    double num = ticker.value("last").toString().toDouble();
+
+                    labelCurrentPrice->setText(QString("%1").arg(QString().setNum(num, 'f', 8)));
+			        labelCurrentPrice->setToolTip(tr("Brought to you by exbitron.com"));
+
+            //         // Create regex expression to find the value with 8 decimals
+		    // QRegExp rx("0\\.0\\d\\d\\d\\d");
+            //         rx.indexIn(answer);
+
+            //         // List the found values
+            //         QStringList list = rx.capturedTexts();
+
+            //         QString currentPriceStyleSheet = ".QLabel{color: %1;}";
+            //         // Evaluate the current and next numbers and assign a color (green for positive, red for negative)
+            //         bool ok;
+            //         if (!list.isEmpty()) {
+            //             double next = list.first().toDouble(&ok);
+            //             if (!ok) {
+            //                 labelCurrentPrice->setStyleSheet(currentPriceStyleSheet.arg(COLOR_LABELS.name()));
+            //                 labelCurrentPrice->setText("");
+            //             } else {
+            //                 double current = labelCurrentPrice->text().toDouble(&ok);
+            //                 if (!ok) {
+            //                     current = 0.00000000;
+            //                 } else {
+            //                     if (next < current)
+            //                         labelCurrentPrice->setStyleSheet(currentPriceStyleSheet.arg("red"));
+            //                     else if (next > current)
+            //                         labelCurrentPrice->setStyleSheet(currentPriceStyleSheet.arg("green"));
+            //                     else
+            //                         labelCurrentPrice->setStyleSheet(currentPriceStyleSheet.arg(COLOR_LABELS.name()));
+            //                 }
+            //                 labelCurrentPrice->setText(QString("%1").arg(QString().setNum(next, 'f', 8)));
+			//     labelCurrentPrice->setToolTip(tr("Brought to you by exbitron.com"));
+            //             }
+            //         }
                 }
         );
 
@@ -784,7 +804,7 @@ void RavenGUI::createToolBars()
         connect(pricingTimer, SIGNAL(timeout()), this, SLOT(getPriceInfo()));
         pricingTimer->start(10000);
         getPriceInfo();
-        /** RVN END */
+        /** RVL END */
     }
 }
 
@@ -1226,7 +1246,7 @@ void RavenGUI::setNumBlocks(int count, const QDateTime& blockDate, double nVerif
 
 void RavenGUI::message(const QString &title, const QString &message, unsigned int style, bool *ret)
 {
-    QString strTitle = tr("Raven"); // default title
+    QString strTitle = tr("Ravenlite"); // default title
     // Default to information icon
     int nMBoxIcon = QMessageBox::Information;
     int nNotifyIcon = Notificator::Information;

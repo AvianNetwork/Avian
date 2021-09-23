@@ -25420,7 +25420,7 @@ fi
       QT_LIB_PREFIX=Qt
       raven_qt_got_major_vers=4
     fi
-    qt5_modules="Qt5Core Qt5Gui Qt5Network Qt5Widgets"
+    qt5_modules="Qt5Core Qt5Gui Qt5Network Qt5Widgets Qt5PrintSupport"
     qt4_modules="QtCore QtGui QtNetwork"
 
   if test "x$raven_enable_qt" != "xno" && test x$raven_qt_want_version != xno; then
@@ -26941,7 +26941,6 @@ printf "%s\n" "#define QT_STATICPLUGIN 1" >>confdefs.h
   if test x$raven_qt_got_major_vers = x5; then
       if test x$qt_plugin_path != x; then
         QT_LIBS="$QT_LIBS -L$qt_plugin_path/platforms"
-        QT_LIBS="$QT_LIBS -L$qt_plugin_path/printsupport"
         if test -d "$qt_plugin_path/accessible"; then
           QT_LIBS="$QT_LIBS -L$qt_plugin_path/accessible"
         fi
