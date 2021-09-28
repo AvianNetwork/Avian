@@ -178,7 +178,7 @@ genesis = CreateGenesisBlock(1630067829, 8650489, 0x1e00ffff, 4, 10 * COIN);
         assert(genesis.hashMerkleRoot == uint256S("0x63d9b6b6b549a2d96eb5ac4eb2ab80761e6d7bffa9ae1a647191e08d6416184d"));
 
         vSeeds.emplace_back("dnsseed.ravencoinlite.org", true);
-	    vSeeds.emplace_back("dnsseed2.ravencoinlite.org", true);
+	vSeeds.emplace_back("dnsseed2.ravencoinlite.org", true);
         vSeeds.emplace_back("dnsseed3.ravencoinlite.org", true);
         vSeeds.emplace_back("dnsseed4.ravencoinlite.org", true);
 
