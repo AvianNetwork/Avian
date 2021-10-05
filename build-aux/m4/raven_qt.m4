@@ -142,6 +142,7 @@ AC_DEFUN([RAVEN_QT_CONFIGURE],[
         AC_DEFINE(QT_QPA_PLATFORM_XCB, 1, [Define this symbol if the qt platform is xcb])
       elif test x$TARGET_OS = xdarwin; then
         AX_CHECK_LINK_FLAG([[-framework IOKit]],[QT_LIBS="$QT_LIBS -framework IOKit"],[AC_MSG_ERROR(could not iokit framework)])
+        AX_CHECK_LINK_FLAG([[-lcups]],[QT_LIBS="$QT_LIBS -lcups"],[AC_MSG_ERROR(could not link against cups)])
         _RAVEN_QT_CHECK_STATIC_PLUGINS([Q_IMPORT_PLUGIN(QCocoaIntegrationPlugin)],[-lqcocoa])
         AC_DEFINE(QT_QPA_PLATFORM_COCOA, 1, [Define this symbol if the qt platform is cocoa])
       fi
@@ -335,11 +336,11 @@ dnl Outputs: QT_LIBS is appended
 AC_DEFUN([_RAVEN_QT_FIND_STATIC_PLUGINS],[
   if test x$raven_qt_got_major_vers = x5; then
       if test x$qt_plugin_path != x; then
+        QT_LIBS="$QT_LIBS -L$qt_plugin_path/printsupport"
         QT_LIBS="$QT_LIBS -L$qt_plugin_path/platforms"
         if test -d "$qt_plugin_path/accessible"; then
           QT_LIBS="$QT_LIBS -L$qt_plugin_path/accessible"
         fi
-        QT_LIBS="$QT_LIBS -L$qt_plugin_path/printsupport"
       fi
      if test x$use_pkgconfig = xyes; then
      : dnl
