@@ -136,6 +136,6 @@ jobs:
             depends/${{ matrix.host }}/bin/ravend*
             src/qt/raven-qt
             src/qt/raven-qt.exe
-            src/qt/raven-cli
-            src/qt/raven-cli.exe
+            src/raven-cli
+            src/raven-cli.exe
             dist/RavencoinLite-Qt.app
