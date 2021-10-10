@@ -40,7 +40,7 @@ jobs:
             dep-opts: "DEBUG=1"
             config-opts: "--enable-gui=qt5 --enable-zmq --enable-glibc-back-compat --enable-reduce-exports CPPFLAGS=-DDEBUG_LOCKORDER"
             goal: install
-            strip-cmd: strip
+            strip-cmd: "strip"
           - name: x86_64-win
             host: x86_64-w64-mingw32
             arch: "i386"
@@ -133,8 +133,7 @@ jobs:
           
       - name: Strip built binaries
         if: ${{ matrix.strip-cmd }}
-        run: |
-          ${{ strip-cmd }} depends/${{ matrix.host }}/bin/ravend* src/qt/raven-qt* src/raven-cli* dist/RavencoinLite-Qt.app* || ( echo "Failed stripping builds. The build will have a bigger file size" )
+        run: ${{ strip-cmd }} depends/${{ matrix.host }}/bin/ravend* src/qt/raven-qt* src/raven-cli* dist/RavencoinLite-Qt.app* || ( echo "Failed stripping builds. The build will have a bigger file size" )
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v2
