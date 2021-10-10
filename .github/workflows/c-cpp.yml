@@ -132,8 +132,8 @@ jobs:
           make $MAKEJOBS ${{ matrix.goal }} || ( echo "Build failure. Verbose build follows." && make ${{ matrix.goal }} V=1 ; false )
           
       - name: Strip built binaries
-        if: ${{ matrix.strip-cmd }}
-        run: ${{ strip-cmd }} depends/${{ matrix.host }}/bin/ravend* src/qt/raven-qt* src/raven-cli* dist/RavencoinLite-Qt.app* || ( echo "Failed stripping builds. The build will have a bigger file size" )
+        run: |
+          ${{ strip-cmd }} depends/${{ matrix.host }}/bin/ravend* src/qt/raven-qt* src/raven-cli* dist/RavencoinLite-Qt.app* || ( echo "Failed stripping builds. The build will have a bigger file size" )
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v2
