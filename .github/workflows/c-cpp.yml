@@ -133,7 +133,7 @@ jobs:
           
       - name: Strip built binaries
         run: |
-          ${{ strip-cmd }} depends/${{ matrix.host }}/bin/ravend* src/qt/raven-qt* src/raven-cli* dist/RavencoinLite-Qt.app* || ( echo "Failed stripping builds. The build will have a bigger file size" )
+          ${{ matrix.strip-cmd }} depends/${{ matrix.host }}/bin/ravend* src/qt/raven-qt* src/raven-cli* dist/RavencoinLite-Qt.app* || ( echo "Failed stripping builds. The build will have a bigger file size" )
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v2
