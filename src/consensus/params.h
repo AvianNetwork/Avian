@@ -69,6 +69,7 @@ struct ConsensusParams {
     uint256 defaultAssumeValid;
     bool nSegwitEnabled;
     bool nCSVEnabled;
+    uint32_t nX16rtTimestamp;
 };
 } // namespace Consensus
 

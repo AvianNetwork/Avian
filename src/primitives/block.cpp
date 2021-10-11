@@ -5,6 +5,11 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include "versionbits.h"
+
+#include <cstdint>
+
+#include "chainparams.h"
+
 #include "primitives/block.h"
 
 #include "algo/hash_algos.h"
@@ -12,7 +17,13 @@
 #include "utilstrencodings.h"
 #include "crypto/common.h"
 
+#include "consensus/consensus.h"
 
+#define TIME_MASK 0xffffff80
+
+static const uint32_t MAINNET_X16RT_ACTIVATIONTIME = 2000000000;
+static const uint32_t TESTNET_X16RT_ACTIVATIONTIME = 1634101200;
+static const uint32_t REGTEST_X16RT_ACTIVATIONTIME = 1629951212;
 
 BlockNetwork bNetwork = BlockNetwork();
 
@@ -33,8 +44,28 @@ void BlockNetwork::SetNetwork(const std::string& net)
 
 uint256 CBlockHeader::GetHash() const
 {
+    uint256 thash;
+    unsigned int profile = 0x0;
+    uint32_t nTimeToUse = MAINNET_X16RT_ACTIVATIONTIME;
 
-    return HashX16R(BEGIN(nVersion), END(nNonce), hashPrevBlock);
+    if (bNetwork.fOnTestnet)
+        nTimeToUse = TESTNET_X16RT_ACTIVATIONTIME;
+    else if (bNetwork.fOnRegtest)
+        nTimeToUse = REGTEST_X16RT_ACTIVATIONTIME;
+    else
+        nTimeToUse = MAINNET_X16RT_ACTIVATIONTIME;
+
+    if (nTime > nTimeToUse) {
+        // x16rt
+        int32_t nTimeX16r = nTime&TIME_MASK;
+        uint256 hashTime = Hash(BEGIN(nTimeX16r), END(nTimeX16r));
+        thash = HashX16R(BEGIN(nVersion), END(nNonce), hashTime);
+    }
+    else {
+        thash = HashX16R(BEGIN(nVersion), END(nNonce), hashPrevBlock);
+    }
+
+    return thash;
 }
 
 uint256 CBlockHeader::GetX16RHash() const

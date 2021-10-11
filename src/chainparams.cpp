@@ -139,8 +139,10 @@ public:
         consensus.vDeployments[Consensus::DEPLOYMENT_ASSETS].nTimeout = 1572480000; // Oct 31, 2019
 
 
+        // x16rt switch
+        consensus.nX16rtTimestamp = 2000000000;
 
-         // The best chain should have at least this much work.
+        // The best chain should have at least this much work.
         consensus.nMinimumChainWork = uint256S("0x0000000000000000000000000000000000000000000000000000000000000002");
 
         // By default assume that the signatures in ancestors of this block are valid.
@@ -168,21 +170,17 @@ public:
         nDefaultPort = 7895;
         nPruneAfterHeight = 100000;
 
-genesis = CreateGenesisBlock(1630067829, 8650489, 0x1e00ffff, 4, 10 * COIN);
-
-      
-
+        genesis = CreateGenesisBlock(1630067829, 8650489, 0x1e00ffff, 4, 10 * COIN);
 
         consensus.hashGenesisBlock = genesis.GetHash();
-       assert(consensus.hashGenesisBlock == uint256S("0x000000cdb10fc01df7fba251f2168ef7cd7854b571049db4902c315694461dd0"));
+        assert(consensus.hashGenesisBlock == uint256S("0x000000cdb10fc01df7fba251f2168ef7cd7854b571049db4902c315694461dd0"));
         assert(genesis.hashMerkleRoot == uint256S("0x63d9b6b6b549a2d96eb5ac4eb2ab80761e6d7bffa9ae1a647191e08d6416184d"));
 
-	vSeeds.emplace_back("159.65.178.148", true);
-	vSeeds.emplace_back("144.91.77.184", true);
-        vSeeds.emplace_back("51.89.166.31", true);			    
-        vSeeds.emplace_back("66.191.202.105", true);
-	vSeeds.emplace_back("144.202.0.55", true);
-	vSeeds.emplace_back("71.202.82.78", true);
+        // DNS Seeds
+        vSeeds.emplace_back("dnsseed.ravencoinlite.org", true);
+	    vSeeds.emplace_back("dnsseed2.ravencoinlite.org", true);
+        vSeeds.emplace_back("dnsseed3.ravencoinlite.org", true);
+        vSeeds.emplace_back("dnsseed4.ravencoinlite.org", true);
 
         base58Prefixes[PUBKEY_ADDRESS] = std::vector<unsigned char>(1,60);
         base58Prefixes[SCRIPT_ADDRESS] = std::vector<unsigned char>(1,122);
@@ -205,12 +203,12 @@ genesis = CreateGenesisBlock(1630067829, 8650489, 0x1e00ffff, 4, 10 * COIN);
         };
 
         chainTxData = ChainTxData{
-	    0,
+	        0,
             0,
             0
         };
 
-        /** RVN Start **/
+        /** RVL Start **/
         // Burn Amounts
         nIssueAssetBurnAmount = 500 * COIN;
         nReissueAssetBurnAmount = 100 * COIN;
@@ -232,7 +230,7 @@ genesis = CreateGenesisBlock(1630067829, 8650489, 0x1e00ffff, 4, 10 * COIN);
         nMaxReorganizationDepth = 60; // 60 at 1 minute block timespan is +/- 60 minutes.
         nMinReorganizationPeers = 4;
         nMinReorganizationAge = 60 * 60 * 12; // 12 hours
-        /** RVN End **/
+        /** RVL End **/
     }
 };
 
@@ -265,6 +263,9 @@ public:
         consensus.vDeployments[Consensus::DEPLOYMENT_ASSETS].nTimeout = 1538351999; // GMT: Sunday, September 30, 2018 11:59:59 PM
 
 
+        // testnet x16rt switch
+        consensus.nX16rtTimestamp = 1634101200; // Oct 13, 2021 
+
         // The best chain should have at least this much work.
         consensus.nMinimumChainWork = uint256S("0x0000000000000000000000000000000000000000000000000000000000000002");
 
@@ -287,7 +288,7 @@ public:
 
 
         consensus.hashGenesisBlock = genesis.GetHash();
-       assert(consensus.hashGenesisBlock == uint256S("0x00000084af22998d2aed78cc29f1fa587f854150ccd2991dfc82241c8f049219"));
+        assert(consensus.hashGenesisBlock == uint256S("0x00000084af22998d2aed78cc29f1fa587f854150ccd2991dfc82241c8f049219"));
         assert(genesis.hashMerkleRoot == uint256S("0x63d9b6b6b549a2d96eb5ac4eb2ab80761e6d7bffa9ae1a647191e08d6416184d"));
 
 
@@ -314,12 +315,12 @@ public:
         };
 
         chainTxData = ChainTxData{
-	    0,
+	        0,
             0,
             0
         };
 	    
-        /** RVN Start **/
+        /** RVL Start **/
         // Burn Amounts
         nIssueAssetBurnAmount = 500 * COIN;
         nReissueAssetBurnAmount = 100 * COIN;
@@ -341,7 +342,7 @@ public:
         nMaxReorganizationDepth = 60; // 60 at 1 minute block timespan is +/- 60 minutes.
         nMinReorganizationPeers = 4;
         nMinReorganizationAge = 60 * 60 * 12; // 12 hours
-        /** RVN End **/
+        /** RVL End **/
 
     }
 };
@@ -373,7 +374,8 @@ public:
         consensus.vDeployments[Consensus::DEPLOYMENT_ASSETS].nStartTime = 0;
         consensus.vDeployments[Consensus::DEPLOYMENT_ASSETS].nTimeout = 999999999999ULL;
 
-
+        // regtest x16rt switch (genesis +1)
+        consensus.nX16rtTimestamp = 1629951212;
 
         // The best chain should have at least this much work.
         consensus.nMinimumChainWork = uint256S("0x00");
@@ -480,7 +482,7 @@ public:
         base58Prefixes[EXT_SECRET_KEY] = {0x04, 0x35, 0x83, 0x94};
 
 
-        /** RVN Start **/
+        /** RVL Start **/
         // Burn Amounts
         nIssueAssetBurnAmount = 500 * COIN;
         nReissueAssetBurnAmount = 100 * COIN;
@@ -502,7 +504,7 @@ public:
         nMaxReorganizationDepth = 60; // 60 at 1 minute block timespan is +/- 60 minutes.
         nMinReorganizationPeers = 4;
         nMinReorganizationAge = 60 * 60 * 12; // 12 hours
-        /** RVN End **/
+        /** RVL End **/
     }
 };
 

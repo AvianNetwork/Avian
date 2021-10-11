@@ -81,6 +81,8 @@ unsigned int static DarkGravityWave(const CBlockIndex* pindexLast, const CBlockH
         bnNew = bnPowLimit;
     }
 
+    LogPrintf("--- diff --- %d: %d\n", pindexLast->nHeight, bnNew.GetCompact());
+
     return bnNew.GetCompact();
 }
 
@@ -118,6 +120,22 @@ unsigned int GetNextWorkRequiredBTC(const CBlockIndex* pindexLast, const CBlockH
     assert(pindexFirst);
 
     return CalculateNextWorkRequired(pindexLast, pindexFirst->GetBlockTime(), params);
+}
+
+bool IsTransitioningToX16rt(const CBlockIndex* pindexLast, const CBlockHeader *pblock, const Consensus::ConsensusParams& params)
+{
+    if (pblock->nTime <= params.nX16rtTimestamp)
+        return false;
+        
+    int64_t dgwWindow = 0; // RVL does not have DGWPastBlocks so no need to check.
+    const CBlockIndex* pindex = pindexLast;
+    
+    while (pindex->pprev && dgwWindow > 0) {
+        pindex = pindex->pprev;
+        dgwWindow--;
+    }
+    
+    return pindex->nTime <= params.nX16rtTimestamp;
 }
 
 unsigned int GetNextWorkRequired(const CBlockIndex* pindexLast, const CBlockHeader *pblock, const Consensus::ConsensusParams& params)

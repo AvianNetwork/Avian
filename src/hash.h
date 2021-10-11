@@ -15,10 +15,10 @@
 #include "uint256.h"
 #include "version.h"
 
-
 extern "C" {
 #include "crypto/sph_sha2.h"
 }
+
 #include <vector>
 
 typedef uint256 ChainCode;
@@ -309,4 +309,3 @@ extern int algoHashHits[16];
 
 
 #endif // RAVEN_HASH_H
-

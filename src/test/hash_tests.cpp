@@ -9,7 +9,7 @@
 #include "consensus/merkle.h"
 
 #include <vector>
-#include<iostream>
+#include <iostream>
 
 #include <boost/test/unit_test.hpp>
 
