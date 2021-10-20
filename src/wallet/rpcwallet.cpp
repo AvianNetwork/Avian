@@ -3240,7 +3240,22 @@ UniValue generate(const JSONRPCRequest& request)
         throw JSONRPCError(RPC_INTERNAL_ERROR, "No coinbase script available");
     }
 
-    return generateBlocks(coinbase_script, num_generate, max_tries, true);
+    std::string strAlgo = gArgs.GetArg("-powalgo", DEFAULT_POW_TYPE);
+
+    bool algoFound = false;
+    POW_TYPE powType;
+    for (unsigned int i = 0; i < NUM_BLOCK_TYPES; i++) {
+        if (strAlgo == POW_TYPE_NAMES[i]) {
+            powType = (POW_TYPE)i;
+            algoFound = true;
+            break;
+        }
+    }
+    
+    if (!algoFound)
+        throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid pow algorithm requested");
+
+    return generateBlocks(coinbase_script, num_generate, max_tries, true, powType);
 }
 
 UniValue rescanblockchain(const JSONRPCRequest& request)

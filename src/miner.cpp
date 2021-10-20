@@ -32,6 +32,7 @@
 //#include "wallet/rpcwallet.h"
 
 
+#include <boost/core/ref.hpp>
 #include <boost/thread.hpp>
 #include <algorithm>
 #include <queue>
@@ -57,7 +58,7 @@ uint64_t nHashesPerSec = 0;
 uint64_t nHashesDone = 0;
 
 
-int64_t UpdateTime(CBlockHeader* pblock, const Consensus::ConsensusParams& consensusParams, const CBlockIndex* pindexPrev)
+int64_t UpdateTime(CBlockHeader* pblock, const Consensus::ConsensusParams& consensusParams, const CBlockIndex* pindexPrev, const POW_TYPE powType)
 {
     int64_t nOldTime = pblock->nTime;
     int64_t nNewTime = std::max(pindexPrev->GetMedianTimePast()+1, GetAdjustedTime());
@@ -65,9 +66,13 @@ int64_t UpdateTime(CBlockHeader* pblock, const Consensus::ConsensusParams& conse
     if (nOldTime < nNewTime)
         pblock->nTime = nNewTime;
 
-    // Updating time can change work required on testnet:
-    if (consensusParams.fPowAllowMinDifficultyBlocks)
-        pblock->nBits = GetNextWorkRequired(pindexPrev, pblock, consensusParams);
+    if (IsCrowEnabled(pindexPrev, consensusParams)) {
+         if (consensusParams.fPowAllowMinDifficultyBlocks)
+            pblock->nBits = GetNextWorkRequiredLWMA(pindexPrev, pblock, consensusParams, powType);
+    } else {
+        if (consensusParams.fPowAllowMinDifficultyBlocks)
+            pblock->nBits = GetNextWorkRequired(pindexPrev, pblock, consensusParams);
+    }
 
     return nNewTime - nOldTime;
 }
@@ -118,7 +123,8 @@ void BlockAssembler::resetBlock()
     nFees = 0;
 }
 
-std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& scriptPubKeyIn, bool fMineWitnessTx)
+// Crow: Accept POW_TYPE arg
+std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& scriptPubKeyIn, bool fMineWitnessTx, const POW_TYPE powType)
 {
     int64_t nTimeStart = GetTimeMicros();
 
@@ -141,6 +147,18 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     nHeight = pindexPrev->nHeight + 1;
 
     pblock->nVersion = ComputeBlockVersion(pindexPrev, chainparams.GetConsensus());
+
+    // Crow: Refuse to attempt to create a non-x16r block before activation
+    if (!IsCrowEnabled(pindexPrev, chainparams.GetConsensus()) && powType != 0)
+        throw std::runtime_error("Error: Won't attempt to create a non-x16r block before Crow activation");
+
+    // Crow: If Crow Algo is enabled, encode desired pow type.
+    if (IsCrowEnabled(pindexPrev, chainparams.GetConsensus())) {
+        if (powType >= NUM_BLOCK_TYPES)
+            throw std::runtime_error("Error: Unrecognised pow type requested");
+        pblock->nVersion |= powType << 16;
+    }
+
     // -regtest only: allow overriding block.nVersion with
     // -blockversion=N to test forking scenarios
     if (chainparams.MineBlocksOnDemand())
@@ -186,8 +204,14 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
 
     // Fill in header
     pblock->hashPrevBlock  = pindexPrev->GetBlockHash();
-    UpdateTime(pblock, chainparams.GetConsensus(), pindexPrev);
-    pblock->nBits          = GetNextWorkRequired(pindexPrev, pblock, chainparams.GetConsensus());
+    UpdateTime(pblock, chainparams.GetConsensus(), pindexPrev, powType);
+
+    if (IsCrowEnabled(pindexPrev, chainparams.GetConsensus())) {
+        pblock->nBits = GetNextWorkRequiredLWMA(pindexPrev, pblock, chainparams.GetConsensus(), powType);
+    } else {
+        pblock->nBits = GetNextWorkRequired(pindexPrev, pblock, chainparams.GetConsensus());
+    }
+
     pblock->nNonce         = 0;
     pblocktemplate->vTxSigOpsCost[0] = WITNESS_SCALE_FACTOR * GetLegacySigOpCount(*pblock->vtx[0]);
 
@@ -507,7 +531,7 @@ CWallet *GetFirstWallet() {
     return(vpwallets[0]);
 }
 
-void static RavenMiner(const CChainParams& chainparams)
+void static RavenMiner(const CChainParams& chainparams, const POW_TYPE powType)
 {
     LogPrintf("RavenMiner -- started\n");
     SetThreadPriority(THREAD_PRIORITY_LOWEST);
@@ -578,8 +602,8 @@ void static RavenMiner(const CChainParams& chainparams)
             if(!pindexPrev) break;
 
 
-
-            std::unique_ptr<CBlockTemplate> pblocktemplate(BlockAssembler(Params()).CreateNewBlock(coinbaseScript->reserveScript));
+            // Build block with Crow algo powType
+            std::unique_ptr<CBlockTemplate> pblocktemplate(BlockAssembler(Params()).CreateNewBlock(coinbaseScript->reserveScript, true, powType));
 
             if (!pblocktemplate.get())
             {
@@ -642,7 +666,7 @@ void static RavenMiner(const CChainParams& chainparams)
                     break;
 
                 // Update nTime every few seconds
-                if (UpdateTime(pblock, chainparams.GetConsensus(), pindexPrev) < 0)
+                if (UpdateTime(pblock, chainparams.GetConsensus(), pindexPrev, powType) < 0)
                     break; // Recreate the block if the clock has run backwards,
                            // so that we can use the correct time.
                 if (chainparams.GetConsensus().fPowAllowMinDifficultyBlocks)
@@ -691,8 +715,22 @@ int GenerateRavens(bool fGenerate, int nThreads, const CChainParams& chainparams
     nHashesDone = 0;
     nHashesPerSec = 0;
 
+    std::string strAlgo = gArgs.GetArg("-powalgo", DEFAULT_POW_TYPE);
+
+    bool algoFound = false;
+    POW_TYPE powType;
+    for (unsigned int i = 0; i < NUM_BLOCK_TYPES; i++) {
+        if (strAlgo == POW_TYPE_NAMES[i]) {
+            powType = (POW_TYPE)i;
+            algoFound = true;
+            break;
+        }
+    }
+    if (!algoFound)
+        LogPrintf("RavenMiner -- Invalid pow algorithm requested");
+
     for (int i = 0; i < nThreads; i++){
-        minerThreads->create_thread(boost::bind(&RavenMiner, boost::cref(chainparams)));
+        minerThreads->create_thread(boost::bind(&RavenMiner, boost::cref(chainparams), boost::cref(powType)));
     }
 
     return(numCores);

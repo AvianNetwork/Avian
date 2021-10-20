@@ -10,6 +10,27 @@
 #include "primitives/transaction.h"
 #include "serialize.h"
 #include "uint256.h"
+#include <string>
+
+// Crow: An impossible pow hash (can't meet any target)
+const uint256 HIGH_HASH = uint256S("0x0fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
+
+// Crow: Default value for -powalgo argument
+const std::string DEFAULT_POW_TYPE = "x16rt";
+
+// Crow: Pow type names
+const std::string POW_TYPE_NAMES[] = {
+    "x16rt",
+    "minotaurx"
+};
+
+// Crow: Pow type IDs
+enum POW_TYPE {
+    POW_TYPE_X16RT,
+    POW_TYPE_CROW,
+    //
+    NUM_BLOCK_TYPES
+};
 
 /** Nodes collect new transactions into a block, hash them into a hash tree,
  * and scan through nonce values to make the block's hash satisfy proof-of-work
@@ -77,6 +98,9 @@ public:
     uint256 GetHash() const;
     uint256 GetX16RHash() const;
 
+    // Crow: MinotaurX
+    static uint256 CrowHashArbitrary(const char* data);
+
     /// Use for testing algo switch
     uint256 TestTiger() const;
     uint256 TestSha512() const;
@@ -85,6 +109,21 @@ public:
     int64_t GetBlockTime() const
     {
         return (int64_t)nTime;
+    }
+
+    // Crow: Get pow type from version bits
+    POW_TYPE GetPoWType() const {
+        return (POW_TYPE)((nVersion >> 16) & 0xFF);
+    }
+
+    // Crow: Get pow type name
+    std::string GetPoWTypeName() const {
+        // if (nVersion >= 0x20000000)
+        //     return POW_TYPE_NAMES[0];
+        POW_TYPE pt = GetPoWType();
+        if (pt >= NUM_BLOCK_TYPES)
+            return "unrecognised";
+        return POW_TYPE_NAMES[pt];
     }
 };
 

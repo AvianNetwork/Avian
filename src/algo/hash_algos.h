@@ -45,7 +45,6 @@ class CBlockHeader;
 #define GLOBAL extern
 #endif
 
-
 inline int GetHashSelection(const uint256 PrevBlockHash, int index) {
     assert(index >= 0);
     assert(index < 16);
@@ -55,6 +54,7 @@ inline int GetHashSelection(const uint256 PrevBlockHash, int index) {
     return(hashSelection);
 }
 
+// SHA-256
 /** A hasher class for Bitcoin's 256-bit hash (double SHA-256). */
 class CHash256 {
 private:

@@ -126,6 +126,21 @@ RAVEN_CORE_H = \
   algo/sponge.cpp \
   algo/sph_sha2.c \
   algo/gost_streebog.c \
+  algo/crow/blake2.h \
+  algo/crow/blake2-impl.h \
+  algo/crow/blake2s-ref.c \
+  algo/crow/hashblake.h \
+  algo/crow/hashgroestl.h \
+  algo/crow/hashquark.h \
+  algo/crow/hashqubit.h \
+  algo/crow/hashskein.h \
+  algo/crow/hashx11.h \
+  algo/crow/hashx13.h \
+  algo/crow/hashx15.h \
+  algo/crow/hashx17.h \
+  algo/crow/crow.h \
+  algo/crow/yespower/yespower.c \
+  algo/crow/yespower/crypto/sha256.c \
   spentindex.h \
   timestampindex.h \
   addrman.h \

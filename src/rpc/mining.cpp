@@ -49,7 +49,7 @@ unsigned int ParseConfirmTarget(const UniValue& value)
  * or from the last difficulty change if 'lookup' is nonpositive.
  * If 'height' is nonnegative, compute the estimate at the time when a given block was found.
  */
-UniValue GetNetworkHashPS(int lookup, int height) {
+UniValue GetNetworkHashPS(int lookup, int height, POW_TYPE powType) {
     CBlockIndex *pb = chainActive.Tip();
 
     if (height >= 0 && height < chainActive.Height())
@@ -65,6 +65,18 @@ UniValue GetNetworkHashPS(int lookup, int height) {
     // If lookup is larger than chain, then set it to chain length.
     if (lookup > pb->nHeight)
         lookup = pb->nHeight;
+
+     // Crow; Skip incorrect powType
+    while(IsCrowEnabled(pb, Params().GetConsensus()) && pb->GetBlockHeader().GetPoWType() != powType) {
+        assert (pb->pprev);
+        pb = pb->pprev;
+    }
+    // We have either stepped back to before crow fork, or the requested powType block
+    // If we have stepped back to (or started looking up from) pre crow, but requested crow pow type, then there are no hashes
+    if (!IsCrowEnabled(pb, Params().GetConsensus()) && powType == POW_TYPE_CROW) {
+        return 0;
+    }
+    // We are either post-fork and with correct powType, or pre-fork and with correct powType!
 
     CBlockIndex *pb0 = pb;
     int64_t minTime = pb0->GetBlockTime();
@@ -90,13 +102,14 @@ UniValue getnetworkhashps(const JSONRPCRequest& request)
 {
     if (request.fHelp || request.params.size() > 2)
         throw std::runtime_error(
-            "getnetworkhashps ( nblocks height )\n"
-            "\nReturns the estimated network hashes per second based on the last n blocks.\n"
+            "getnetworkhashps ( nblocks height powalgo )\n"           
+             "\nReturns the estimated network hashes per second based on the last n blocks.\n"
             "Pass in [blocks] to override # of blocks, -1 specifies since last difficulty change.\n"
             "Pass in [height] to estimate the network speed at the time when a certain block was found.\n"
             "\nArguments:\n"
             "1. nblocks     (numeric, optional, default=5) The number of blocks, or -1 for blocks since last difficulty change.\n"
             "2. height      (numeric, optional, default=-1) To estimate at the time of the given height.\n"
+            "3. powalgo     (string, optional) This can be set to \"crow\" or \"x16rt\". If omitted, wallet's default is assumed (-powalgo conf option)\n" // LitecoinCash: MinotaurX
             "\nResult:\n"
             "x             (numeric) Hashes per second estimated\n"
             "\nExamples:\n"
@@ -104,11 +117,28 @@ UniValue getnetworkhashps(const JSONRPCRequest& request)
             + HelpExampleRpc("getnetworkhashps", "")
        );
 
+    // Crow
+    std::string strAlgo = gArgs.GetArg("-powalgo", DEFAULT_POW_TYPE);
+    if (!request.params[2].isNull())
+        strAlgo = request.params[2].get_str();
+
+    bool algoFound = false;
+    POW_TYPE powType;
+    for (unsigned int i = 0; i < NUM_BLOCK_TYPES; i++) {
+        if (strAlgo == POW_TYPE_NAMES[i]) {
+            powType = (POW_TYPE)i;
+            algoFound = true;
+            break;
+        }
+    }
+    if (!algoFound)
+        throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid pow algorithm requested");
+
     LOCK(cs_main);
-    return GetNetworkHashPS(!request.params[0].isNull() ? request.params[0].get_int() : 5, !request.params[1].isNull() ? request.params[1].get_int() : -1);
+    return GetNetworkHashPS(!request.params[0].isNull() ? request.params[0].get_int() : 5, !request.params[1].isNull() ? request.params[1].get_int() : -1, powType);
 }
 
-UniValue generateBlocks(std::shared_ptr<CReserveScript> coinbaseScript, int nGenerate, uint64_t nMaxTries, bool keepScript)
+UniValue generateBlocks(std::shared_ptr<CReserveScript> coinbaseScript, int nGenerate, uint64_t nMaxTries, bool keepScript, const POW_TYPE powType)
 {
     static const int nInnerLoopCount = 0x10000;
     int nHeightEnd = 0;
@@ -123,7 +153,7 @@ UniValue generateBlocks(std::shared_ptr<CReserveScript> coinbaseScript, int nGen
     UniValue blockHashes(UniValue::VARR);
     while (nHeight < nHeightEnd)
     {
-        std::unique_ptr<CBlockTemplate> pblocktemplate(BlockAssembler(Params()).CreateNewBlock(coinbaseScript->reserveScript));
+        std::unique_ptr<CBlockTemplate> pblocktemplate(BlockAssembler(Params()).CreateNewBlock(coinbaseScript->reserveScript, true, powType));
         if (!pblocktemplate.get())
             throw JSONRPCError(RPC_INTERNAL_ERROR, "Couldn't create new block");
         CBlock *pblock = &pblocktemplate->block;
@@ -173,6 +203,21 @@ UniValue generatetoaddress(const JSONRPCRequest& request)
             + HelpExampleCli("generatetoaddress", "11 \"myaddress\"")
         );
 
+    std::string strAlgo = gArgs.GetArg("-powalgo", DEFAULT_POW_TYPE);
+
+    bool algoFound = false;
+    POW_TYPE powType;
+    for (unsigned int i = 0; i < NUM_BLOCK_TYPES; i++) {
+        if (strAlgo == POW_TYPE_NAMES[i]) {
+            powType = (POW_TYPE)i;
+            algoFound = true;
+            break;
+        }
+    }
+    if (!algoFound)
+        throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid pow algorithm requested");
+
+
     int nGenerate = request.params[0].get_int();
     uint64_t nMaxTries = 1000000;
     if (!request.params[2].isNull()) {
@@ -187,7 +232,7 @@ UniValue generatetoaddress(const JSONRPCRequest& request)
     std::shared_ptr<CReserveScript> coinbaseScript = std::make_shared<CReserveScript>();
     coinbaseScript->reserveScript = GetScriptForDestination(destination);
 
-    return generateBlocks(coinbaseScript, nGenerate, nMaxTries, false);
+    return generateBlocks(coinbaseScript, nGenerate, nMaxTries, false, powType);
 }
 
 UniValue getmininginfo(const JSONRPCRequest& request)
@@ -201,7 +246,8 @@ UniValue getmininginfo(const JSONRPCRequest& request)
             "  \"blocks\": nnn,             (numeric) The current block\n"
             "  \"currentblockweight\": nnn, (numeric) The last block weight\n"
             "  \"currentblocktx\": nnn,     (numeric) The last block transaction\n"
-            "  \"difficulty\": xxx.xxxxx    (numeric) The current difficulty\n"
+            "  \"difficulty\": xxx.xxxxx    (numeric) The current difficulty for pre-Crow\n"
+            "  \"crowdifficulty\": x.x (numeric) the current difficulty for Crow once activated\n"  // Crow
             "  \"networkhashps\": nnn,      (numeric) The network hashes per second\n"
             "  \"hashespersec\": nnn,       (numeric) The hashes per second of built-in miner\n"
             "  \"pooledtx\": n              (numeric) The size of the mempool\n"
@@ -221,6 +267,8 @@ UniValue getmininginfo(const JSONRPCRequest& request)
     obj.push_back(Pair("currentblockweight", (uint64_t)nLastBlockWeight));
     obj.push_back(Pair("currentblocktx",   (uint64_t)nLastBlockTx));
     obj.push_back(Pair("difficulty",       (double)GetDifficulty()));
+    if (IsCrowEnabled(chainActive.Tip(), Params().GetConsensus()))
+        obj.push_back(Pair("crowdifficulty", GetDifficulty(nullptr, POW_TYPE_CROW)));  
     obj.push_back(Pair("networkhashps",    getnetworkhashps(request)));
     obj.push_back(Pair("hashespersec",     (uint64_t)nHashesPerSec));
     obj.push_back(Pair("pooledtx",         (uint64_t)mempool.size()));
@@ -313,6 +361,7 @@ UniValue getblocktemplate(const JSONRPCRequest& request)
             "\nArguments:\n"
             "1. template_request         (json object, optional) A json object in the following spec\n"
             "     {\n"
+            "       \"powalgo\":\"xxxx\"     (string, optional) This can be set to \"x16rt\" or \"crow\". If omitted, wallet's default is assumed (-powalgo conf option)\n"
             "       \"mode\":\"template\"    (string, optional) This must be set to \"template\", \"proposal\" (see BIP 23), or omitted\n"
             "       \"capabilities\":[     (array, optional) A list of strings\n"
             "           \"support\"          (string) client side supported feature, 'longpoll', 'coinbasetxn', 'coinbasevalue', 'proposal', 'serverlist', 'workid'\n"
@@ -382,6 +431,7 @@ UniValue getblocktemplate(const JSONRPCRequest& request)
     UniValue lpval = NullUniValue;
     std::set<std::string> setClientRules;
     int64_t nMaxVersionPreVB = -1;
+    std::string strAlgo = gArgs.GetArg("-powalgo", DEFAULT_POW_TYPE);
     if (!request.params[0].isNull())
     {
         const UniValue& oparam = request.params[0].get_obj();
@@ -426,6 +476,10 @@ UniValue getblocktemplate(const JSONRPCRequest& request)
             return BIP22ValidationResult(state);
         }
 
+        const UniValue& algoval = find_value(oparam, "powalgo");
+        if (algoval.isStr())
+            strAlgo = algoval.get_str();
+
         const UniValue& aClientRules = find_value(oparam, "rules");
         if (aClientRules.isArray()) {
             for (unsigned int i = 0; i < aClientRules.size(); ++i) {
@@ -440,6 +494,18 @@ UniValue getblocktemplate(const JSONRPCRequest& request)
             }
         }
     }
+
+    bool algoFound = false;
+    POW_TYPE powType;
+    for (unsigned int i = 0; i < NUM_BLOCK_TYPES; i++) {
+        if (strAlgo == POW_TYPE_NAMES[i]) {
+            powType = (POW_TYPE)i;
+            algoFound = true;
+            break;
+        }
+    }
+    if (!algoFound)
+        throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid pow algorithm requested");
 
     if (strMode != "template")
         throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid mode");
@@ -514,9 +580,11 @@ UniValue getblocktemplate(const JSONRPCRequest& request)
     // Cache whether the last invocation was with segwit support, to avoid returning
     // a segwit-block to a non-segwit caller.
     static bool fLastTemplateSupportsSegwit = true;
+    static POW_TYPE lastPowType = NUM_BLOCK_TYPES; // Crow
     if (pindexPrev != chainActive.Tip() ||
         (mempool.GetTransactionsUpdated() != nTransactionsUpdatedLast && GetTime() - nStart > 5) ||
-        fLastTemplateSupportsSegwit != fSupportsSegwit)
+        fLastTemplateSupportsSegwit != fSupportsSegwit ||
+        lastPowType != powType) // Crow: Include powType check in cache refresh condition
     {
         // Clear pindexPrev so future calls make a new block, despite any failures from here on
         pindexPrev = nullptr;
@@ -529,7 +597,8 @@ UniValue getblocktemplate(const JSONRPCRequest& request)
 
         // Create new block
         CScript scriptDummy = CScript() << OP_TRUE;
-        pblocktemplate = BlockAssembler(Params()).CreateNewBlock(scriptDummy, fSupportsSegwit);
+        pblocktemplate = BlockAssembler(Params()).CreateNewBlock(scriptDummy, fSupportsSegwit, powType);   // Crow: Include powType
+        lastPowType = powType;   // Crow: Cache pow type just requested        
         if (!pblocktemplate)
             throw JSONRPCError(RPC_OUT_OF_MEMORY, "Out of memory");
 
@@ -540,7 +609,7 @@ UniValue getblocktemplate(const JSONRPCRequest& request)
     const Consensus::ConsensusParams& consensusParams = Params().GetConsensus();
 
     // Update nTime
-    UpdateTime(pblock, consensusParams, pindexPrev);
+    UpdateTime(pblock, consensusParams, pindexPrev, powType);
     pblock->nNonce = 0;
 
     // NOTE: If at some point we support pre-segwit miners post-segwit-activation, this needs to take segwit support into consideration

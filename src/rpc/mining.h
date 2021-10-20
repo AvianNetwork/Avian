@@ -14,7 +14,7 @@ static const bool DEFAULT_GENERATE = false;
 static const int DEFAULT_GENERATE_THREADS = 1;
 
 /** Generate blocks (mine) */
-UniValue generateBlocks(std::shared_ptr<CReserveScript> coinbaseScript, int nGenerate, uint64_t nMaxTries, bool keepScript);
+UniValue generateBlocks(std::shared_ptr<CReserveScript> coinbaseScript, int nGenerate, uint64_t nMaxTries, bool keepScript, const POW_TYPE powType);
 
 UniValue getgenerate(const UniValue& params, bool fHelp);
 

@@ -138,6 +138,16 @@ public:
         consensus.vDeployments[Consensus::DEPLOYMENT_ASSETS].nStartTime = 1540944000; // Oct 31, 2018
         consensus.vDeployments[Consensus::DEPLOYMENT_ASSETS].nTimeout = 1572480000; // Oct 31, 2019
 
+        // Crow Algo Deployment
+        consensus.vDeployments[Consensus::DEPLOYMENT_CROW].bit = 7;
+        consensus.vDeployments[Consensus::DEPLOYMENT_CROW].nStartTime = 2208988800;  // Jan 1, 2040
+        consensus.vDeployments[Consensus::DEPLOYMENT_CROW].nTimeout = 2208988800 + 31536000;  // Start + 1 year
+
+        // Crow Algo consensus
+        consensus.powForkTime = 2208988800;                 // Time of PoW hash method change
+        consensus.lwmaAveragingWindow = 90;                 // Averaging window size for LWMA diff adjust
+        consensus.powTypeLimits.emplace_back(uint256S("0x00000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"));   // x16rt limit
+        consensus.powTypeLimits.emplace_back(uint256S("0x000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"));   // Crow limit
 
         // x16rt switch
         consensus.nX16rtTimestamp = 2000000000;
@@ -177,10 +187,12 @@ public:
         assert(genesis.hashMerkleRoot == uint256S("0x63d9b6b6b549a2d96eb5ac4eb2ab80761e6d7bffa9ae1a647191e08d6416184d"));
 
         // DNS Seeds
-        vSeeds.emplace_back("dnsseed.ravencoinlite.org", true);
-	    vSeeds.emplace_back("dnsseed2.ravencoinlite.org", true);
-        vSeeds.emplace_back("dnsseed3.ravencoinlite.org", true);
-        vSeeds.emplace_back("dnsseed4.ravencoinlite.org", true);
+       	vSeeds.emplace_back("159.65.178.148", true);
+	    vSeeds.emplace_back("144.91.77.184", true);
+        vSeeds.emplace_back("51.89.166.31", true);			    
+        vSeeds.emplace_back("66.191.202.105", true);
+	    vSeeds.emplace_back("144.202.0.55", true);
+	    vSeeds.emplace_back("71.202.82.78", true);
 
         base58Prefixes[PUBKEY_ADDRESS] = std::vector<unsigned char>(1,60);
         base58Prefixes[SCRIPT_ADDRESS] = std::vector<unsigned char>(1,122);
@@ -262,6 +274,16 @@ public:
         consensus.vDeployments[Consensus::DEPLOYMENT_ASSETS].nStartTime = 1533924000; // GMT: Friday, August 10, 2018 6:00:00 PM
         consensus.vDeployments[Consensus::DEPLOYMENT_ASSETS].nTimeout = 1538351999; // GMT: Sunday, September 30, 2018 11:59:59 PM
 
+        // Crow Algo Deployment (testnet)
+        consensus.vDeployments[Consensus::DEPLOYMENT_CROW].bit = 7;
+        consensus.vDeployments[Consensus::DEPLOYMENT_CROW].nStartTime = -1;
+        consensus.vDeployments[Consensus::DEPLOYMENT_CROW].nTimeout = std::numeric_limits<int64_t>::max();
+
+        // Crow Algo consensus
+        consensus.powForkTime = 1635847608;                 // Time of PoW hash method change 
+        consensus.lwmaAveragingWindow = 90;                 // Averaging window size for LWMA diff adjust
+        consensus.powTypeLimits.emplace_back(uint256S("0x00000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"));   // x16rt limit
+        consensus.powTypeLimits.emplace_back(uint256S("0x000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"));   // Crow limit
 
         // testnet x16rt switch
         consensus.nX16rtTimestamp = 1634101200; // Oct 13, 2021 

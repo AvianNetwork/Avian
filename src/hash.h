@@ -1,5 +1,6 @@
 // Copyright (c) 2012-2018 The Bitcoin Core developers
 // Copyright (c) 2017 The Raven Core developers
+// Copyright (c) 2021 The Ravencoin Lite Core developers
 // Copyright (c) 2009-2010 Satoshi Nakamoto
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
@@ -16,7 +17,7 @@
 #include "version.h"
 
 extern "C" {
-#include "crypto/sph_sha2.h"
+#include "algo/sph_sha2.h"
 }
 
 #include <vector>
@@ -295,14 +296,14 @@ public:
 uint64_t SipHashUint256(uint64_t k0, uint64_t k1, const uint256& val);
 uint64_t SipHashUint256Extra(uint64_t k0, uint64_t k1, const uint256& val, uint32_t extra);
 
-inline int GetHashSelection(const uint256 PrevBlockHash, int index) {
-    assert(index >= 0);
-    assert(index < 16);
+// inline int GetHashSelection(const uint256 PrevBlockHash, int index) {
+//     assert(index >= 0);
+//     assert(index < 16);
 
-    #define START_OF_LAST_16_NIBBLES_OF_HASH 48
-    int hashSelection = PrevBlockHash.GetNibble(START_OF_LAST_16_NIBBLES_OF_HASH + index);
-    return(hashSelection);
-}
+//     #define START_OF_LAST_16_NIBBLES_OF_HASH 48
+//     int hashSelection = PrevBlockHash.GetNibble(START_OF_LAST_16_NIBBLES_OF_HASH + index);
+//     return(hashSelection);
+// }
 
 extern double algoHashTotal[16];
 extern int algoHashHits[16];
