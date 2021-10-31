@@ -177,10 +177,12 @@ genesis = CreateGenesisBlock(1630067829, 8650489, 0x1e00ffff, 4, 10 * COIN);
        assert(consensus.hashGenesisBlock == uint256S("0x000000cdb10fc01df7fba251f2168ef7cd7854b571049db4902c315694461dd0"));
         assert(genesis.hashMerkleRoot == uint256S("0x63d9b6b6b549a2d96eb5ac4eb2ab80761e6d7bffa9ae1a647191e08d6416184d"));
 
-        vSeeds.emplace_back("dnsseed.ravencoinlite.org", true);
-	vSeeds.emplace_back("dnsseed2.ravencoinlite.org", true);
-        vSeeds.emplace_back("dnsseed3.ravencoinlite.org", true);
-        vSeeds.emplace_back("dnsseed4.ravencoinlite.org", true);
+        vSeeds.emplace_back("144.91.77.184", "true);
+        vSeeds.emplace_back("167.172.145.77", "true);
+        vSeeds.emplace_back("51.89.166.31", "true);			    
+        vSeeds.emplace_back("66.191.202.105", "true");
+	vSeeds.emplace_back("144.202.0.55", "true");
+	vSeeds.emplace_back("71.202.82.78", "true");
 
         base58Prefixes[PUBKEY_ADDRESS] = std::vector<unsigned char>(1,60);
         base58Prefixes[SCRIPT_ADDRESS] = std::vector<unsigned char>(1,122);
@@ -291,8 +293,6 @@ public:
 
         vFixedSeeds.clear();
         vSeeds.clear();
-
-        vSeeds.emplace_back("testnet-seed-raven.ravencoinlite.org", false);
 
         base58Prefixes[PUBKEY_ADDRESS] = std::vector<unsigned char>(1,111);
         base58Prefixes[SCRIPT_ADDRESS] = std::vector<unsigned char>(1,196);
