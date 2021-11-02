@@ -177,8 +177,8 @@ genesis = CreateGenesisBlock(1630067829, 8650489, 0x1e00ffff, 4, 10 * COIN);
        assert(consensus.hashGenesisBlock == uint256S("0x000000cdb10fc01df7fba251f2168ef7cd7854b571049db4902c315694461dd0"));
         assert(genesis.hashMerkleRoot == uint256S("0x63d9b6b6b549a2d96eb5ac4eb2ab80761e6d7bffa9ae1a647191e08d6416184d"));
 
-        vSeeds.emplace_back("144.91.77.184", true);
-        vSeeds.emplace_back("167.172.145.77", true);
+	vSeeds.emplace_back("159.65.178.148", true);
+	vSeeds.emplace_back("144.91.77.184", true);
         vSeeds.emplace_back("51.89.166.31", true);			    
         vSeeds.emplace_back("66.191.202.105", true);
 	vSeeds.emplace_back("144.202.0.55", true);
