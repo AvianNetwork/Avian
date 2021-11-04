@@ -3,7 +3,7 @@ RavencoinLite Core integration/staging tree
 
 [![C/C++ CI](https://github.com/RavencoinLite/RavencoinLite/actions/workflows/c-cpp.yml/badge.svg)](https://github.com/RavencoinLite/RavencoinLite/actions/workflows/c-cpp.yml)
 
-https://ravencoinlite.lite
+https://ravencoinlite.info
 
 What is RavencoinLite?
 ----------------
@@ -15,7 +15,7 @@ out collectively by the network. RavencoinLite Core is the name of open source
 software which enables the use of this currency.
 
 For more information, as well as an immediately useable, binary version of
-the RavencoinLite Core software, see https://ravencoinlite.org
+the RavencoinLite Core software, see https://ravencoinlite.info
 
 License
 -------
@@ -48,7 +48,7 @@ Use this command to initially start ravend on the testnet. <code>./ravend -testn
 Running on Mainnet
 -------
 Use this command to start ravend on the mainnet.
-<code>./ravend -seednode=dnsseed.ravencoinlite.lite</code>
+<code>./ravend -seednode=dnsseed.ravencoinlite.info</code>
 
 ### Automated Testing
 
