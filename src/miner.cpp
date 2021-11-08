@@ -42,7 +42,7 @@
 extern std::vector<CWalletRef> vpwallets;
 //////////////////////////////////////////////////////////////////////////////
 //
-// RavenMiner
+// AvianMiner
 //
 
 //
@@ -531,9 +531,9 @@ CWallet *GetFirstWallet() {
     return(vpwallets[0]);
 }
 
-void static RavenMiner(const CChainParams& chainparams, const POW_TYPE powType)
+void static AvianMiner(const CChainParams& chainparams, const POW_TYPE powType)
 {
-    LogPrintf("RavenMiner -- started\n");
+    LogPrintf("AvianMiner -- started\n");
     SetThreadPriority(THREAD_PRIORITY_LOWEST);
     RenameThread("raven-miner");
 
@@ -547,7 +547,7 @@ void static RavenMiner(const CChainParams& chainparams, const POW_TYPE powType)
     #endif
 
     if (!EnsureWalletIsAvailable(pWallet, false)) {
-        LogPrintf("RavenMiner -- Wallet not available\n");
+        LogPrintf("AvianMiner -- Wallet not available\n");
     }
 
     if (pWallet == NULL)
@@ -607,13 +607,13 @@ void static RavenMiner(const CChainParams& chainparams, const POW_TYPE powType)
 
             if (!pblocktemplate.get())
             {
-                LogPrintf("RavenMiner -- Keypool ran out, please call keypoolrefill before restarting the mining thread\n");
+                LogPrintf("AvianMiner -- Keypool ran out, please call keypoolrefill before restarting the mining thread\n");
                 return;
             }
             CBlock *pblock = &pblocktemplate->block;
             IncrementExtraNonce(pblock, pindexPrev, nExtraNonce);
 
-            LogPrintf("RavenMiner -- Running miner with %u transactions in block (%u bytes)\n", pblock->vtx.size(),
+            LogPrintf("AvianMiner -- Running miner with %u transactions in block (%u bytes)\n", pblock->vtx.size(),
                 ::GetSerializeSize(*pblock, SER_NETWORK, PROTOCOL_VERSION));
 
             //
@@ -632,7 +632,7 @@ void static RavenMiner(const CChainParams& chainparams, const POW_TYPE powType)
                     {
                         // Found a solution
                         SetThreadPriority(THREAD_PRIORITY_NORMAL);
-                        LogPrintf("RavenMiner:\n  proof-of-work found\n  hash: %s\n  target: %s\n", hash.GetHex(), hashTarget.GetHex());
+                        LogPrintf("AvianMiner:\n  proof-of-work found\n  hash: %s\n  target: %s\n", hash.GetHex(), hashTarget.GetHex());
                         ProcessBlockFound(pblock, chainparams);
                         SetThreadPriority(THREAD_PRIORITY_LOWEST);
                         coinbaseScript->KeepScript();
@@ -679,12 +679,12 @@ void static RavenMiner(const CChainParams& chainparams, const POW_TYPE powType)
     }
     catch (const boost::thread_interrupted&)
     {
-        LogPrintf("RavenMiner -- terminated\n");
+        LogPrintf("AvianMiner -- terminated\n");
         throw;
     }
     catch (const std::runtime_error &e)
     {
-        LogPrintf("RavenMiner -- runtime error: %s\n", e.what());
+        LogPrintf("AvianMiner -- runtime error: %s\n", e.what());
         return;
     }
 }
@@ -727,10 +727,10 @@ int GenerateRavens(bool fGenerate, int nThreads, const CChainParams& chainparams
         }
     }
     if (!algoFound)
-        LogPrintf("RavenMiner -- Invalid pow algorithm requested");
+        LogPrintf("AvianMiner -- Invalid pow algorithm requested");
 
     for (int i = 0; i < nThreads; i++){
-        minerThreads->create_thread(boost::bind(&RavenMiner, boost::cref(chainparams), boost::cref(powType)));
+        minerThreads->create_thread(boost::bind(&AvianMiner, boost::cref(chainparams), boost::cref(powType)));
     }
 
     return(numCores);

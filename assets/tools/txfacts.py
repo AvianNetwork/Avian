@@ -6,8 +6,8 @@ import subprocess
 import json
 
 
-#Set this to your raven-cli program
-cli = "raven-cli"
+#Set this to your avian-cli program
+cli = "avian-cli"
 
 mode = "-testnet"
 mode = ""

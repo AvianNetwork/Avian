@@ -70,7 +70,7 @@ bool AppInitMain(boost::thread_group &threadGroup, CScheduler &scheduler);
 /** The help message mode determines what help message to show */
 enum HelpMessageMode
 {
-    HMM_RAVEND,
+    HMM_AVIAND,
     HMM_RAVEN_QT
 };
 

@@ -77,11 +77,11 @@ private:
     const PlatformStyle *platformStyle;
 
 
-    /** RVL START */
+    /** AVN START */
     AssetsDialog *assetsPage;
     CreateAssetDialog *createAssetsPage;
     ReissueAssetDialog *manageAssetsPage;
-    /** RVL END */
+    /** AVN END */
 
 public Q_SLOTS:
     /** Switch to overview (home) page */

@@ -110,7 +110,7 @@ jobs:
           cache-name: depends
         with:
           path: ./depends/built
-          key: ${{ matrix.name }}-${{ env.cache-name }}-${{ hashFiles('depends/packages/*') }}
+          key: ${{ matrix.name }}-${{ env.cache-name }}-cache-${{ hashFiles('depends/packages/*') }}
 
       - name: Build depends
         run: |
@@ -133,16 +133,16 @@ jobs:
           
       - name: Strip built binaries
         run: |
-          ${{ matrix.strip-cmd }} depends/${{ matrix.host }}/bin/ravend* src/qt/raven-qt* src/raven-cli* dist/RavencoinLite-Qt.app* || ( echo "Failed stripping builds. The build will have a bigger file size" )
+          ${{ matrix.strip-cmd }} depends/${{ matrix.host }}/bin/aviand* src/qt/avian-qt* src/avian-cli* dist/Avian-Qt.app* || ( echo "Failed stripping builds. The build will have a bigger file size" )
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v2
         with:
-          name: ravencoinlite-${{ github.sha }}-${{ matrix.name }}
+          name: avian-${{ github.sha }}-${{ matrix.name }}
           path: |
-            depends/${{ matrix.host }}/bin/ravend*
-            src/qt/raven-qt
-            src/qt/raven-qt.exe
-            src/raven-cli
-            src/raven-cli.exe
-            dist/RavencoinLite-Qt.app
+            depends/${{ matrix.host }}/bin/aviand*
+            src/qt/avian-qt
+            src/qt/avian-qt.exe
+            src/avian-cli
+            src/avian-cli.exe
+            dist/Avian-Qt.app

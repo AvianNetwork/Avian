@@ -7,9 +7,9 @@ User=raven
 Group=raven
 
 Type=forking
-PIDFile=/var/lib/ravend/ravend.pid
-ExecStart=/usr/bin/ravend -daemon -pid=/var/lib/ravend/ravend.pid \
--conf=/etc/raven/raven.conf -datadir=/var/lib/ravend -disablewallet
+PIDFile=/var/lib/aviand/aviand.pid
+ExecStart=/usr/bin/aviand -daemon -pid=/var/lib/aviand/aviand.pid \
+-conf=/etc/raven/raven.conf -datadir=/var/lib/aviand -disablewallet
 
 Restart=always
 PrivateTmp=true

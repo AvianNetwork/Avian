@@ -144,9 +144,9 @@ void BumpFee(TransactionView& view, const uint256& txid, bool expectDisabled, st
 //
 // This also requires overriding the default minimal Qt platform:
 //
-//     src/qt/test/test_raven-qt -platform xcb      # Linux
-//     src/qt/test/test_raven-qt -platform windows  # Windows
-//     src/qt/test/test_raven-qt -platform cocoa    # macOS
+//     src/qt/test/test_avian-qt -platform xcb      # Linux
+//     src/qt/test/test_avian-qt -platform windows  # Windows
+//     src/qt/test/test_avian-qt -platform cocoa    # macOS
 void TestGUI()
 {
     // Set up wallet and chain with 105 blocks (5 mature blocks for spending).

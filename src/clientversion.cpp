@@ -11,10 +11,10 @@
 
 /**
  * Name of client reported in the 'version' message. Report the same name
- * for both ravend and raven-qt, to make it harder for attackers to
+ * for both aviand and avian-qt, to make it harder for attackers to
  * target servers or GUI users specifically.
  */
-const std::string CLIENT_NAME("RavencoinLite");
+const std::string CLIENT_NAME("Avian");
 
 /**
  * Client version number

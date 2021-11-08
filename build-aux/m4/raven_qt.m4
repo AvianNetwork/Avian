@@ -8,7 +8,7 @@ dnl Output: If qt version is auto, set raven_enable_qt to false. Else, exit.
 AC_DEFUN([RAVEN_QT_FAIL],[
   if test "x$raven_qt_want_version" = "xauto" && test x$raven_qt_force != xyes; then
     if test x$raven_enable_qt != xno; then
-      AC_MSG_WARN([$1; raven-qt frontend will not be built])
+      AC_MSG_WARN([$1; avian-qt frontend will not be built])
     fi
     raven_enable_qt=no
     raven_enable_qt_test=no
@@ -55,7 +55,7 @@ AC_DEFUN([RAVEN_QT_INIT],[
   dnl enable qt support
   AC_ARG_WITH([gui],
     [AS_HELP_STRING([--with-gui@<:@=no|qt4|qt5|auto@:>@],
-    [build raven-qt GUI (default=auto, qt5 tried first)])],
+    [build avian-qt GUI (default=auto, qt5 tried first)])],
     [
      raven_qt_want_version=$withval
      if test x$raven_qt_want_version = xyes; then

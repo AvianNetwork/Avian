@@ -128,6 +128,7 @@ bool IsTransitioningToX16rt(const CBlockIndex* pindexLast, const CBlockHeader *p
         return false;
         
     int64_t dgwWindow = 0; // RVL does not have DGWPastBlocks so no need to check.
+
     const CBlockIndex* pindex = pindexLast;
     
     while (pindex->pprev && dgwWindow > 0) {

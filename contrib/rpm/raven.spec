@@ -27,13 +27,13 @@ Source1:	http://download.oracle.com/berkeley-db/db-%{bdbv}.NC.tar.gz
 Source10:	https://raw.githubusercontent.com/raven/raven/v%{version}/contrib/debian/examples/raven.conf
 
 #man pages
-Source20:	https://raw.githubusercontent.com/raven/raven/v%{version}/doc/man/ravend.1
-Source21:	https://raw.githubusercontent.com/raven/raven/v%{version}/doc/man/raven-cli.1
-Source22:	https://raw.githubusercontent.com/raven/raven/v%{version}/doc/man/raven-qt.1
+Source20:	https://raw.githubusercontent.com/raven/raven/v%{version}/doc/man/aviand.1
+Source21:	https://raw.githubusercontent.com/raven/raven/v%{version}/doc/man/avian-cli.1
+Source22:	https://raw.githubusercontent.com/raven/raven/v%{version}/doc/man/avian-qt.1
 
 #selinux
 Source30:	https://raw.githubusercontent.com/raven/raven/v%{version}/contrib/rpm/raven.te
-# Source31 - what about raven-tx and bench_raven ???
+# Source31 - what about avian-tx and bench_raven ???
 Source31:	https://raw.githubusercontent.com/raven/raven/v%{version}/contrib/rpm/raven.fc
 Source32:	https://raw.githubusercontent.com/raven/raven/v%{version}/contrib/rpm/raven.if
 
@@ -141,8 +141,8 @@ Group:		Applications/System
 This package provides several command line utilities for interacting with a
 raven-core daemon.
 
-The raven-cli utility allows you to communicate and control a raven daemon
-over RPC, the raven-tx utility allows you to create a custom transaction, and
+The avian-cli utility allows you to communicate and control a raven daemon
+over RPC, the avian-tx utility allows you to create a custom transaction, and
 the bench_raven utility can be used to perform some benchmarks.
 
 This package contains utilities needed by the raven-server package.
@@ -182,12 +182,12 @@ popd
 make install DESTDIR=%{buildroot}
 
 mkdir -p -m755 %{buildroot}%{_sbindir}
-mv %{buildroot}%{_bindir}/ravend %{buildroot}%{_sbindir}/ravend
+mv %{buildroot}%{_bindir}/aviand %{buildroot}%{_sbindir}/aviand
 
 # systemd stuff
 mkdir -p %{buildroot}%{_tmpfilesdir}
 cat <<EOF > %{buildroot}%{_tmpfilesdir}/raven.conf
-d /run/ravend 0750 raven raven -
+d /run/aviand 0750 raven raven -
 EOF
 touch -a -m -t 201504280000 %{buildroot}%{_tmpfilesdir}/raven.conf
 
@@ -202,7 +202,7 @@ OPTIONS=""
 # Don't change these unless you know what you're doing.
 CONFIG_FILE="%{_sysconfdir}/raven/raven.conf"
 DATA_DIR="%{_localstatedir}/lib/raven"
-PID_FILE="/run/ravend/ravend.pid"
+PID_FILE="/run/aviand/aviand.pid"
 EOF
 touch -a -m -t 201504280000 %{buildroot}%{_sysconfdir}/sysconfig/raven
 
@@ -214,7 +214,7 @@ After=syslog.target network.target
 
 [Service]
 Type=forking
-ExecStart=%{_sbindir}/ravend -daemon -conf=\${CONFIG_FILE} -datadir=\${DATA_DIR} -pid=\${PID_FILE} \$OPTIONS
+ExecStart=%{_sbindir}/aviand -daemon -conf=\${CONFIG_FILE} -datadir=\${DATA_DIR} -pid=\${PID_FILE} \$OPTIONS
 EnvironmentFile=%{_sysconfdir}/sysconfig/raven
 User=raven
 Group=raven
@@ -269,7 +269,7 @@ Name=Raven
 Comment=Raven P2P Cryptocurrency
 Comment[fr]=Raven, monnaie virtuelle cryptographique pair à pair
 Comment[tr]=Raven, eşten eşe kriptografik sanal para birimi
-Exec=raven-qt %u
+Exec=avian-qt %u
 Terminal=false
 Type=Application
 Icon=raven128
@@ -284,7 +284,7 @@ touch -a -m -t 201511100546 %{buildroot}%{_datadir}/applications/raven-core.desk
 mkdir -p %{buildroot}%{_datadir}/kde4/services
 cat <<EOF > %{buildroot}%{_datadir}/kde4/services/raven-core.protocol
 [Protocol]
-exec=raven-qt '%u'
+exec=avian-qt '%u'
 protocol=raven
 input=none
 output=none
@@ -300,10 +300,10 @@ touch -a -m -t 201511100546 %{buildroot}%{_datadir}/kde4/services/raven-core.pro
 %endif
 
 # man pages
-install -D -p %{SOURCE20} %{buildroot}%{_mandir}/man1/ravend.1
-install -p %{SOURCE21} %{buildroot}%{_mandir}/man1/raven-cli.1
+install -D -p %{SOURCE20} %{buildroot}%{_mandir}/man1/aviand.1
+install -p %{SOURCE21} %{buildroot}%{_mandir}/man1/avian-cli.1
 %if %{_buildqt}
-install -p %{SOURCE22} %{buildroot}%{_mandir}/man1/raven-qt.1
+install -p %{SOURCE22} %{buildroot}%{_mandir}/man1/avian-qt.1
 %endif
 
 # nuke these, we do extensive testing of binaries in %%check before packaging
@@ -376,7 +376,7 @@ rm -rf %{buildroot}
 %defattr(-,root,root,-)
 %license COPYING db-%{bdbv}.NC-LICENSE
 %doc COPYING raven.conf.example doc/README.md doc/bips.md doc/files.md doc/multiwallet-qt.md doc/reduce-traffic.md doc/release-notes.md doc/tor.md
-%attr(0755,root,root) %{_bindir}/raven-qt
+%attr(0755,root,root) %{_bindir}/avian-qt
 %attr(0644,root,root) %{_datadir}/applications/raven-core.desktop
 %attr(0644,root,root) %{_datadir}/kde4/services/raven-core.protocol
 %attr(0644,root,root) %{_datadir}/pixmaps/*.ico
@@ -384,7 +384,7 @@ rm -rf %{buildroot}
 %attr(0644,root,root) %{_datadir}/pixmaps/*.svg
 %attr(0644,root,root) %{_datadir}/pixmaps/*.png
 %attr(0644,root,root) %{_datadir}/pixmaps/*.xpm
-%attr(0644,root,root) %{_mandir}/man1/raven-qt.1*
+%attr(0644,root,root) %{_mandir}/man1/avian-qt.1*
 %endif
 
 %files libs
@@ -407,23 +407,23 @@ rm -rf %{buildroot}
 %defattr(-,root,root,-)
 %license COPYING db-%{bdbv}.NC-LICENSE
 %doc COPYING raven.conf.example doc/README.md doc/REST-interface.md doc/bips.md doc/dnsseed-policy.md doc/files.md doc/reduce-traffic.md doc/release-notes.md doc/tor.md
-%attr(0755,root,root) %{_sbindir}/ravend
+%attr(0755,root,root) %{_sbindir}/aviand
 %attr(0644,root,root) %{_tmpfilesdir}/raven.conf
 %attr(0644,root,root) %{_unitdir}/raven.service
 %dir %attr(0750,raven,raven) %{_sysconfdir}/raven
 %dir %attr(0750,raven,raven) %{_localstatedir}/lib/raven
 %config(noreplace) %attr(0600,root,root) %{_sysconfdir}/sysconfig/raven
 %attr(0644,root,root) %{_datadir}/selinux/*/*.pp
-%attr(0644,root,root) %{_mandir}/man1/ravend.1*
+%attr(0644,root,root) %{_mandir}/man1/aviand.1*
 
 %files utils
 %defattr(-,root,root,-)
 %license COPYING
 %doc COPYING raven.conf.example doc/README.md
-%attr(0755,root,root) %{_bindir}/raven-cli
-%attr(0755,root,root) %{_bindir}/raven-tx
+%attr(0755,root,root) %{_bindir}/avian-cli
+%attr(0755,root,root) %{_bindir}/avian-tx
 %attr(0755,root,root) %{_bindir}/bench_raven
-%attr(0644,root,root) %{_mandir}/man1/raven-cli.1*
+%attr(0644,root,root) %{_mandir}/man1/avian-cli.1*
 
 
 

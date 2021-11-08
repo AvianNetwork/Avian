@@ -1,11 +1,11 @@
 [Desktop Entry]
 Encoding=UTF-8
-Name=Ravencoinlite Core
+Name=Avian Core
 Comment=Connect to the Raven P2P Network
 Comment[de]=Verbinde mit dem Raven peer-to-peer Netzwerk
 Comment[fr]=Raven, monnaie virtuelle cryptographique pair à pair
 Comment[tr]=Raven, eşten eşe kriptografik sanal para birimi
-Exec=ravencoinlite-qt %u
+Exec=avian-qt %u
 Terminal=false
 Type=Application
 Icon=raven128

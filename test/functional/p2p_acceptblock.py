@@ -67,8 +67,8 @@ from test_framework.blocktools import create_block, create_coinbase
 class AcceptBlockTest(RavenTestFramework):
     def add_options(self, parser):
         parser.add_option("--testbinary", dest="testbinary",
-                          default=os.getenv("RAVEND", "ravend"),
-                          help="ravend binary to test")
+                          default=os.getenv("AVIAND", "aviand"),
+                          help="aviand binary to test")
 
     def set_test_params(self):
         self.setup_clean_chain = True

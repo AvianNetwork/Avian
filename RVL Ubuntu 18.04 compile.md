@@ -118,9 +118,9 @@ Start in $HOME
 afterword:
 ----------------------------
 
-run GUI wallet using `src/qt/raven-qt`
+run GUI wallet using `src/qt/avian-qt`
 
-run ravend and raven-cli using `src/ravend` and `src/raven-cli` respectively
+run aviand and avian-cli using `src/aviand` and `src/avian-cli` respectively
 
 optional:
 ----------------------------

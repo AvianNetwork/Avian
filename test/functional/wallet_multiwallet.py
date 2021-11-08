@@ -5,7 +5,7 @@
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """Test multiwallet.
 
-Verify that a ravend node can load multiple wallet files
+Verify that a aviand node can load multiple wallet files
 """
 import os
 import shutil

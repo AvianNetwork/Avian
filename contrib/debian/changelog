@@ -43,7 +43,7 @@ raven (0.13.1-trusty2) trusty; urgency=medium
 raven (0.13.1-trusty1) trusty; urgency=medium
 
   * New upstream release.
-  * Backport updated raven-qt.desktop from upstream master
+  * Backport updated avian-qt.desktop from upstream master
   * Add zmq dependency
   * Switch to Qt5 (breaks precise, but that was already broken by C++11)
 
@@ -278,7 +278,7 @@ raven (0.6.1-natty0) natty; urgency=low
 raven (0.6.0-natty0) natty; urgency=low
 
   * New upstream release.
-  * Add GNOME/KDE support for raven-qt's raven: URI support.
+  * Add GNOME/KDE support for avian-qt's raven: URI support.
     Thanks to luke-jr for the KDE .protocol file.
 
  -- Matt Corallo <matt@bluematt.me>  Sat, 31 Mar 2012 15:35:00 -0500
@@ -331,7 +331,7 @@ raven (0.5.0~rc7-natty0) natty; urgency=low
 raven (0.5.0~rc3-natty0) natty; urgency=low
 
   * New upstream release candidate.
-  * Don't set rpcpassword for raven-qt.
+  * Don't set rpcpassword for avian-qt.
 
  -- Matt Corallo <matt@bluematt.me>  Tue, 8 Nov 2011 11:56:00 -0400
 
@@ -354,7 +354,7 @@ raven (0.5.0~rc1-natty0) natty; urgency=low
 
 raven (0.5.0~rc1-2) experimental; urgency=low
 
-  * Add raven-qt
+  * Add avian-qt
 
  -- Matt Corallo <matt@bluematt.me>  Tue, 25 Oct 2011 15:24:18 -0400
 
@@ -403,7 +403,7 @@ raven (0.3.24~dfsg-1) unstable; urgency=low
 
   [ Jonas Smedegaard ]
   * Improve various usage hints:
-    + Explicitly mention in long description that ravend contains
+    + Explicitly mention in long description that aviand contains
       daemon and command-line interface.
     + Extend README.Debian with section on lack of GUI, and add primary
       headline.
@@ -446,7 +446,7 @@ raven (0.3.21~dfsg-1) unstable; urgency=low
   * Bump policy compliance to standards-version 3.9.2.
   * Shorten Vcs-Browser paragraph in control file.
   * Fix mention daemon (not CLI tools) in short description.
-  * Stop conflicting with or replace raven-cli: Only transitional, no
+  * Stop conflicting with or replace avian-cli: Only transitional, no
     longer needed.
   * Link against unversioned berkeleydb. Update NEWS and README.Debian
     accordingly (and improve wording while at it).
@@ -471,7 +471,7 @@ raven (0.3.20.2~dfsg-2) unstable; urgency=medium
 raven (0.3.20.2~dfsg-1) unstable; urgency=low
 
   * New upstream release.
-  * Fix provide and replace former package name raven-cli.
+  * Fix provide and replace former package name avian-cli.
     Closes: bug#618439. Thanks to Shane Wegner.
 
  -- Jonas Smedegaard <dr@jones.dk>  Tue, 15 Mar 2011 11:41:43 +0100
@@ -484,7 +484,7 @@ raven (0.3.20.01~dfsg-1) unstable; urgency=low
   * Add myself as uploader.
 
   [ Jonas Smedegaard ]
-  * Add wrapper for ravend to ease initial startup.
+  * Add wrapper for aviand to ease initial startup.
   * Update patches:
     + Drop patch 2002: Applied upstream.
     + Add patch 1005 to add phtread linker option.
@@ -492,7 +492,7 @@ raven (0.3.20.01~dfsg-1) unstable; urgency=low
     + Refresh patches.
   * Extend copyright years in rules file header.
   * Rewrite copyright file using draft svn166 of DEP5 format.
-  * Rename binary package to ravend (from bincoin-cli).
+  * Rename binary package to aviand (from bincoin-cli).
     Closes: bug#614025. Thanks to Luke-Jr.
 
  -- Jonas Smedegaard <dr@jones.dk>  Tue, 01 Mar 2011 15:55:04 +0100
@@ -527,7 +527,7 @@ raven (0.3.19~dfsg-4) unstable; urgency=low
 
   [ Micah Anderson ]
   * Provide example raven.conf.
-  * Add ravend(1) and raven.conf(5) man pages.
+  * Add aviand(1) and raven.conf(5) man pages.
 
   [ Jonas Smedegaard ]
   * Ease backporting:

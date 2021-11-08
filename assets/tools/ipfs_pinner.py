@@ -27,8 +27,8 @@ import signal  #Used for timeout
 JSON_ONLY_CHECK = False
 FILESIZE_THRESHOLD = 100000000
 
-#Set this to your raven-cli program
-cli = "raven-cli"
+#Set this to your avian-cli program
+cli = "avian-cli"
 
 #mode = "-testnet"
 mode = ""

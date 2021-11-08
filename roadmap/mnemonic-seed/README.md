@@ -11,7 +11,7 @@ In an effort to bring ease-of-use and interoperability between the core wallet a
 
 The core wallet, by default, will generate a 12-word seed and calculated master key for  derivation.  When using the 12-word seed, the derivation path will use the BIP44 standard.
 
-A command-line option (-noseed) can be passed when starting ravend and/or raven-qt for the first time to create a wallet using the original key system that existed in Bitcoin and Ravencoin on Jan 3, 2019.
+A command-line option (-noseed) can be passed when starting aviand and/or avian-qt for the first time to create a wallet using the original key system that existed in Bitcoin and Ravencoin on Jan 3, 2019.
 
 When using the 12-word seed which will be the new default, the address derivation will change to be compatible with the BIP32/BIP39/BIP44 standards.  Since this is already implemented in the Ravencoin mobile wallet, the 12-words will be cross-compatible.  The derivation path is m/44'/175'/0'/0 for the first non-change address.
 

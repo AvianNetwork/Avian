@@ -130,9 +130,9 @@ class BIP66Test(RavenTestFramework):
         wait_until(lambda: "reject" in node0.last_message.keys(), lock=mininode_lock)
         with mininode_lock:
             # We can receive different reject messages depending on whether
-            # ravend is running with multiple script check threads. If script
+            # aviand is running with multiple script check threads. If script
             # check threads are not in use, then transaction script validation
-            # happens sequentially, and ravend produces more specific reject
+            # happens sequentially, and aviand produces more specific reject
             # reasons.
             assert node0.last_message["reject"].code in [REJECT_INVALID, REJECT_NONSTANDARD]
             assert_equal(node0.last_message["reject"].data, block.sha256)

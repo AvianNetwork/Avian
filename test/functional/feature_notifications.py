@@ -67,7 +67,7 @@ class NotificationsTest(RavenTestFramework):
         self.nodes[1].generate(41)
         self.sync_all()
 
-        # Give ravend 10 seconds to write the alert notification
+        # Give aviand 10 seconds to write the alert notification
         wait_until(lambda: os.path.isfile(self.alert_filename) and os.path.getsize(self.alert_filename), timeout=10)
 
         with open(self.alert_filename, 'r', encoding='utf8') as f:
