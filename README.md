@@ -2,15 +2,14 @@ Avian Core integration/staging tree
 =====================================
 
 UPDATE UNDERWAY. Please join Discord for immediate news on updates and help:
-https://discord.gg/xZd8xwVhVS
+
 <!-- [![C/C++ CI](https://github.com/RavencoinLite/RavencoinLite/actions/workflows/c-cpp.yml/badge.svg)](https://github.com/RavencoinLite/RavencoinLite/actions/workflows/c-cpp.yml) -->
-
 https://avn.network/
-
-Twitter:                        https://twitter.com/avianfoundation
-Telegram group:                 https://t.me/AvianNetwork
-Telegram Announcements Channel: https://t.me/AvianNetworkAnnouncements
-Reddit:                         https://www.reddit.com/r/aviannetwork/ 
+https://discord.gg/xZd8xwVhVS
+https://twitter.com/avianfoundation
+https://t.me/AvianNetwork
+https://t.me/AvianNetworkAnnouncements
+https://www.reddit.com/r/aviannetwork/ 
 
 What is Avian?
 ----------------
