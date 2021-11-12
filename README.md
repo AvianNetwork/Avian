@@ -1,21 +1,28 @@
-RavencoinLite Core integration/staging tree
+Avian Core integration/staging tree
 =====================================
 
-[![C/C++ CI](https://github.com/RavencoinLite/RavencoinLite/actions/workflows/c-cpp.yml/badge.svg)](https://github.com/RavencoinLite/RavencoinLite/actions/workflows/c-cpp.yml)
+UPDATE UNDERWAY. Please join Discord for immediate news on updates and help:
+https://discord.gg/xZd8xwVhVS
+<!-- [![C/C++ CI](https://github.com/RavencoinLite/RavencoinLite/actions/workflows/c-cpp.yml/badge.svg)](https://github.com/RavencoinLite/RavencoinLite/actions/workflows/c-cpp.yml) -->
 
-https://ravencoinlite.info
+https://avn.network/
 
-What is RavencoinLite?
+Twitter:                        https://twitter.com/avianfoundation
+Telegram group:                 https://t.me/AvianNetwork
+Telegram Announcements Channel: https://t.me/AvianNetworkAnnouncements
+Reddit:                         https://www.reddit.com/r/aviannetwork/ 
+
+What is Avian?
 ----------------
 
-RavencoinLite is an experimental digital currency that enables instant payments to
-anyone, anywhere in the world. RavencoinLite uses peer-to-peer technology to operate
+Avian is an experimental digital currency that enables instant payments to
+anyone, anywhere in the world. Avian uses peer-to-peer technology to operate
 with no central authority: managing transactions and issuing money are carried
-out collectively by the network. RavencoinLite Core is the name of open source
+out collectively by the network. Avian Core is the name of open source
 software which enables the use of this currency.
 
 For more information, as well as an immediately useable, binary version of
-the RavencoinLite Core software, see https://ravencoinlite.info
+the Avian Core software, see https://avn.network/
 
 License
 -------
