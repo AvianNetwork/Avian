@@ -5580,7 +5580,7 @@ bool AreAssetsDeployed() {
     return fAssetsIsActive;
 }
 
-bool (unsigned int nBlockNumber) {
+bool IsDGWActive(unsigned int nBlockNumber) {
     return nBlockNumber >= Params().DGWActivationBlock();
 }
 

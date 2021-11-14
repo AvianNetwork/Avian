@@ -76,23 +76,32 @@ UniValue GetNetworkHashPS(int lookup, int height, POW_TYPE powType) {
     if (!IsCrowEnabled(pb, Params().GetConsensus()) && powType == POW_TYPE_CROW) {
         return 0;
     }
-    // We are either post-fork and with correct powType, or pre-fork and with correct powType!
-
-    CBlockIndex *pb0 = pb;
-    int64_t minTime = pb0->GetBlockTime();
+    // We are either post-fork and with correct powType, or pre-fork and    int64_t minTime = pb->GetBlockTime();
+    int64_t minTime = pb->GetBlockTime();
     int64_t maxTime = minTime;
+	arith_uint256 workDiff = GetBlockProof(*pb, powType); 
+
     for (int i = 0; i < lookup; i++) {
-        pb0 = pb0->pprev;
-        int64_t time = pb0->GetBlockTime();
+        pb = pb->pprev;
+
+        while(IsCrowEnabled(pb, Params().GetConsensus()) && pb->GetBlockHeader().GetPoWType() != powType) {
+            assert (pb->pprev);
+            pb = pb->pprev;
+        }
+        if(!IsCrowEnabled(pb, Params().GetConsensus()) && powType == POW_TYPE_CROW) {
+            break;
+        }
+
+        int64_t time = pb->GetBlockTime();
         minTime = std::min(time, minTime);
         maxTime = std::max(time, maxTime);
+        workDiff += GetBlockProof(*pb, powType); 
     }
 
     // In case there's a situation where minTime == maxTime, we don't want a divide by zero exception.
     if (minTime == maxTime)
         return 0;
 
-    arith_uint256 workDiff = pb->nChainWork - pb0->nChainWork;
     int64_t timeDiff = maxTime - minTime;
 
     return workDiff.getdouble() / timeDiff;
@@ -100,7 +109,7 @@ UniValue GetNetworkHashPS(int lookup, int height, POW_TYPE powType) {
 
 UniValue getnetworkhashps(const JSONRPCRequest& request)
 {
-    if (request.fHelp || request.params.size() > 2)
+    if (request.fHelp || request.params.size() > 3)
         throw std::runtime_error(
             "getnetworkhashps ( nblocks height powalgo )\n"           
              "\nReturns the estimated network hashes per second based on the last n blocks.\n"
@@ -109,7 +118,7 @@ UniValue getnetworkhashps(const JSONRPCRequest& request)
             "\nArguments:\n"
             "1. nblocks     (numeric, optional, default=5) The number of blocks, or -1 for blocks since last difficulty change.\n"
             "2. height      (numeric, optional, default=-1) To estimate at the time of the given height.\n"
-            "3. powalgo     (string, optional) This can be set to \"crow\" or \"x16rt\". If omitted, wallet's default is assumed (-powalgo conf option)\n" // LitecoinCash: MinotaurX
+            "3. powalgo     (string, optional) This can be set to \"minotaurx\" or \"x16rt\". If omitted, wallet's default is assumed (-powalgo conf option)\n" // LitecoinCash: MinotaurX
             "\nResult:\n"
             "x             (numeric) Hashes per second estimated\n"
             "\nExamples:\n"
