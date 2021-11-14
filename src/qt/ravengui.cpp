@@ -600,8 +600,8 @@ void RavenGUI::createToolBars()
 {
     if(walletFrame)
     {
-        /** RVN START */
-        // Create the orange background and the vertical tool bar
+        /** AVN START */
+        // Create the background and the vertical tool bar
         QWidget* toolbarWidget = new QWidget();
 
         QString widgetStyleSheet = ".QWidget {background-color: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1, stop: 0 %1, stop: 1 %2);}";
@@ -609,10 +609,10 @@ void RavenGUI::createToolBars()
         toolbarWidget->setStyleSheet(widgetStyleSheet.arg(platformStyle->LightBlueColor().name(), platformStyle->DarkBlueColor().name()));
 
         QLabel* label = new QLabel();
-        label->setPixmap(QPixmap::fromImage(QImage(":/icons/ravencointext")));
+        label->setPixmap(QPixmap::fromImage(QImage(":/icons/avianlogo")));
         label->setContentsMargins(0,0,0,50);
         label->setStyleSheet(".QLabel{background-color: transparent;}");
-        /** RVN END */
+        /** AVN END */
 
         QToolBar *toolbar = new QToolBar();
         toolbar->setStyle(style());
