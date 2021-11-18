@@ -872,3 +872,13 @@ bool CWalletDB::WriteVersion(int nVersion)
 {
     return batch.WriteVersion(nVersion);
 }
+
+void CHDChain::SetSeedFromSeedId()
+{
+    // try to get the seed
+	CKey seed;
+    if (!pwallet || !pwallet->GetKey(seed_id, seed))
+        throw std::runtime_error(std::string(__func__) + ": seed not found");
+
+    vchSeed = SecureVector(seed.begin(), seed.end());
+}
