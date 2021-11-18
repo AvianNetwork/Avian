@@ -121,7 +121,8 @@ QT_FORMS_UI = \
   qt/forms/assetsdialog.ui \
   qt/forms/createassetdialog.ui \
   qt/forms/reissueassetdialog.ui \
-  qt/forms/sendassetsentry.ui
+  qt/forms/sendassetsentry.ui \
+  qt/forms/mnemonicdialog.ui
 
 QT_MOC_CPP = \
   qt/moc_addressbookpage.cpp \
@@ -181,7 +182,8 @@ QT_MOC_CPP = \
   qt/moc_assetsdialog.cpp \
   qt/moc_createassetdialog.cpp \
   qt/moc_reissueassetdialog.cpp \
-  qt/moc_sendassetsentry.cpp
+  qt/moc_sendassetsentry.cpp \
+  qt/moc_mnemonicdialog.cpp
 
 RAVEN_MM = \
   qt/macdockiconhandler.mm \
@@ -271,7 +273,8 @@ RAVEN_QT_H = \
   qt/walletmodel.h \
   qt/walletmodeltransaction.h \
   qt/walletview.h \
-  qt/winshutdownmonitor.h
+  qt/winshutdownmonitor.h \
+  qt/mnemonicdialog.h
 
 RES_ICONS = \
   qt/res/icons/add.png \
@@ -448,7 +451,8 @@ RAVEN_QT_WALLET_CPP = \
   qt/walletframe.cpp \
   qt/walletmodel.cpp \
   qt/walletmodeltransaction.cpp \
-  qt/walletview.cpp
+  qt/walletview.cpp \
+  qt/mnemonicdialog.cpp
 
 RAVEN_QT_CPP = $(RAVEN_QT_BASE_CPP)
 if TARGET_WINDOWS

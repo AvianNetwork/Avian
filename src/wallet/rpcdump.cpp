@@ -667,7 +667,7 @@ UniValue dumpwallet(const JSONRPCRequest& request)
 
         file << "# extended private masterkey: " << b58extkey.ToString() << "\n\n";
 
-		if(pwallet->GetHDChain().vchMnemonic.size() > 0)
+	    if(pwallet->GetHDChain().IsBip44())
 		{
 			SecureString ssMnemonic(pwallet->GetHDChain().vchMnemonic.begin(), pwallet->GetHDChain().vchMnemonic.end());
 			SecureString ssMnemonicPassphrase(pwallet->GetHDChain().vchMnemonicPassphrase.begin(), pwallet->GetHDChain().vchMnemonicPassphrase.end());
