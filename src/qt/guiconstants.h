@@ -52,15 +52,15 @@ static const bool DEFAULT_SPLASHSCREEN = true;
 /* Ravencoin light orange */
 #define COLOR_LIGHT_ORANGE QColor("#f79433")
 /* Ravencoin dark blue */
-#define COLOR_DARK_BLUE QColor("#3d3d3d")
+#define COLOR_DARK_BLUE QColor("#2ec0a0")
 /* Ravencoin light blue */
-#define COLOR_LIGHT_BLUE QColor("#4d4d4d")
+#define COLOR_LIGHT_BLUE QColor("#2ec0a1")
 /* Ravencoin asset text */
 #define COLOR_ASSET_TEXT QColor(255, 255, 255)
 /* Ravencoin shadow color - light mode */
 #define COLOR_SHADOW_LIGHT QColor("#e1e6f3")
 /* Toolbar not selected text color */
-#define COLOR_TOOLBAR_NOT_SELECTED_TEXT QColor("#a5b7f3")
+#define COLOR_TOOLBAR_NOT_SELECTED_TEXT QColor("#16897b")
 /* Toolbar selected text color */
 #define COLOR_TOOLBAR_SELECTED_TEXT COLOR_WHITE
 
@@ -88,7 +88,7 @@ static const bool DEFAULT_SPLASHSCREEN = true;
 
 
 /* Ravencoin label color as a string */
-#define STRING_LABEL_COLOR "color: #4960ad"
+#define STRING_LABEL_COLOR "color: #16897b"
 
 
 

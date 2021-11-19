@@ -275,7 +275,7 @@ public:
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nTimeout = 1230767999; // December 31, 2008
         consensus.vDeployments[Consensus::DEPLOYMENT_ASSETS].bit = 5;
         consensus.vDeployments[Consensus::DEPLOYMENT_ASSETS].nStartTime = 1533924000; // GMT: Friday, August 10, 2018 6:00:00 PM
-        consensus.vDeployments[Consensus::DEPLOYMENT_ASSETS].nTimeout = 1538351999; // GMT: Sunday, September 30, 2018 11:59:59 PM
+        consensus.vDeployments[Consensus::DEPLOYMENT_ASSETS].nTimeout = std::numeric_limits<int64_t>::max();
 
         // Crow Algo Deployment (testnet)
         consensus.vDeployments[Consensus::DEPLOYMENT_CROW].bit = 7;

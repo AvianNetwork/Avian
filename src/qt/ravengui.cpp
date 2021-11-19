@@ -611,7 +611,7 @@ void RavenGUI::createToolBars()
 
         QLabel* label = new QLabel();
         label->setPixmap(QPixmap::fromImage(QImage(":/icons/avianlogo")));
-        label->setContentsMargins(0,0,0,50);
+        label->setContentsMargins(0,0,0,0);
         label->setStyleSheet(".QLabel{background-color: transparent;}");
         /** AVN END */
 
@@ -703,7 +703,7 @@ void RavenGUI::createToolBars()
         labelCurrentMarket->setAlignment(Qt::AlignVCenter);
         labelCurrentMarket->setStyleSheet(STRING_LABEL_COLOR);
         labelCurrentMarket->setFont(currentMarketFont);
-        labelCurrentMarket->setText(tr("Avian Market Price"));
+        labelCurrentMarket->setText(tr("Avian (AVN) Market Price"));
 
         QString currentPriceStyleSheet = ".QLabel{color: %1;}";
         labelCurrentPrice->setContentsMargins(25,0,0,0);
@@ -1684,7 +1684,7 @@ void UnitDisplayStatusBarControl::onMenuSelection(QAction* action)
 
 void RavenGUI::getPriceInfo()
 {
-    request->setUrl(QUrl("https://www.exbitron.com/api/v2/peatio/public/markets/avnusdt/tickers"));
+    request->setUrl(QUrl("https://www.exbitron.com/api/v2/peatio/public/markets/rvlusdt/tickers"));
     networkManager->get(*request);
 }
 
