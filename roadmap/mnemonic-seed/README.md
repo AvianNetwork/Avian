@@ -26,7 +26,7 @@ For those the never import a private key into the wallet.dat, safely storing the
 
 For the case when a private key is imported in the core client's wallet.dat, a warning should be presented that the 12-word mnemonic backup is now insufficient, and the wallet.dat should be backed up.  The reason is that the imported key is added to a list of keys and cannot be derived from the 12-word seed, so any funds sent to the address(es) for the imported key(s) would be lost in the case of wallet.dat being lost or corrupted.
 
-When creating the wallet.dat for the first time, the default should be generating 128 bits of entropy, and storing either the words, or the 132 bits (which includes a 4 bit checkum).  If, however, the -noseed option is set via command-line or raven.conf, then the orginal method of creating a master key should be used, and the original path derivation should be used.
+When creating the wallet.dat for the first time, the default should be generating 128 bits of entropy, and storing either the words, or the 132 bits (which includes a 4 bit checkum).  If, however, the -noseed option is set via command-line or avian.conf, then the orginal method of creating a master key should be used, and the original path derivation should be used.
 
 The path derivation should be dependent on the way the master key is generated: 
 * Original Master Key:  BIP32 m/0'/0' (external) or m/0'/1' (internal)

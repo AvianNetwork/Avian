@@ -44,7 +44,7 @@ This allows for running aviand without having to do any manual configuration.
 relative to the data directory. `wallet` *only* supports relative paths.
 
 For an example configuration file that describes the configuration settings,
-see `contrib/debian/examples/raven.conf`.
+see `contrib/debian/examples/avian.conf`.
 
 Paths
 ---------------------------------
@@ -54,7 +54,7 @@ Paths
 All three configurations assume several paths that might need to be adjusted.
 
 Binary:              `/usr/bin/aviand`  
-Configuration file:  `/etc/raven/raven.conf`  
+Configuration file:  `/etc/raven/avian.conf`  
 Data directory:      `/var/lib/aviand`  
 PID file:            `/var/run/aviand/aviand.pid` (OpenRC and Upstart) or `/var/lib/aviand/aviand.pid` (systemd)  
 Lock file:           `/var/lock/subsys/aviand` (CentOS)  
@@ -68,7 +68,7 @@ can then be controlled by group membership.
 ### Mac OS X
 
 Binary:              `/usr/local/bin/aviand`  
-Configuration file:  `~/Library/Application Support/Raven/raven.conf`  
+Configuration file:  `~/Library/Application Support/Raven/avian.conf`  
 Data directory:      `~/Library/Application Support/Raven`  
 Lock file:           `~/Library/Application Support/Raven/.lock`  
 

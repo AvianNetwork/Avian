@@ -1,6 +1,6 @@
 
 * banlist.dat: stores the IPs/Subnets of banned nodes
-* raven.conf: contains configuration settings for aviand or avian-qt
+* avian.conf: contains configuration settings for aviand or avian-qt
 * aviand.pid: stores the process id of aviand while running
 * blocks/blk000??.dat: block data (custom, 128 MiB per file); since 0.8.0
 * blocks/rev000??.dat; block undo data (custom); since 0.8.0 (format changed since pre-0.8)

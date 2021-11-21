@@ -31,7 +31,7 @@ rpc_port = 18766
 #mode =  "-regtest"
 #rpc_port = 18443
 csv_file = "Raven Assets - Sheet1.csv"
-#Set this information in your raven.conf file (in datadir, not testnet3)
+#Set this information in your avian.conf file (in datadir, not testnet3)
 rpc_user = 'rpcuser'
 rpc_pass = 'rpcpass555'
 

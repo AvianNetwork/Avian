@@ -351,6 +351,16 @@ OverviewPage::OverviewPage(const PlatformStyle *platformStyle, QWidget *parent) 
     ui->labelPendingText->setStyleSheet(STRING_LABEL_COLOR);
     ui->labelImmatureText->setStyleSheet(STRING_LABEL_COLOR);
     ui->labelTotalText->setStyleSheet(STRING_LABEL_COLOR);
+
+    ui->labelBalance->setStyleSheet(STRING_LABEL_COLOR);
+    ui->labelUnconfirmed->setStyleSheet(STRING_LABEL_COLOR);
+    ui->labelImmature->setStyleSheet(STRING_LABEL_COLOR);
+    ui->labelTotal->setStyleSheet(STRING_LABEL_COLOR);
+    ui->labelWatchAvailable->setStyleSheet(STRING_LABEL_COLOR);
+    ui->labelWatchPending->setStyleSheet(STRING_LABEL_COLOR);
+    ui->labelWatchImmature->setStyleSheet(STRING_LABEL_COLOR);
+    ui->labelWatchTotal->setStyleSheet(STRING_LABEL_COLOR);
+
     ui->labelSpendable->setStyleSheet(STRING_LABEL_COLOR);
     ui->labelWatchonly->setStyleSheet(STRING_LABEL_COLOR);
     ui->recentTransactionsLabel->setStyleSheet(STRING_LABEL_COLOR);

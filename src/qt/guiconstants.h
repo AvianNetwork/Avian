@@ -60,7 +60,7 @@ static const bool DEFAULT_SPLASHSCREEN = true;
 /* Ravencoin shadow color - light mode */
 #define COLOR_SHADOW_LIGHT QColor("#e1e6f3")
 /* Toolbar not selected text color */
-#define COLOR_TOOLBAR_NOT_SELECTED_TEXT QColor("#16897b")
+#define COLOR_TOOLBAR_NOT_SELECTED_TEXT QColor("#FFFFFF")
 /* Toolbar selected text color */
 #define COLOR_TOOLBAR_SELECTED_TEXT COLOR_WHITE
 
@@ -88,7 +88,7 @@ static const bool DEFAULT_SPLASHSCREEN = true;
 
 
 /* Ravencoin label color as a string */
-#define STRING_LABEL_COLOR "color: #16897b"
+#define STRING_LABEL_COLOR "color: #000000"
 
 
 

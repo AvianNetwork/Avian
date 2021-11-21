@@ -37,6 +37,6 @@ if sys.version_info.major >= 3:
 m = hmac.new(bytearray(salt, 'utf-8'), bytearray(password, 'utf-8'), digestmod)
 result = m.hexdigest()
 
-print("String to be appended to raven.conf:")
+print("String to be appended to avian.conf:")
 print("rpcauth="+username+":"+salt+"$"+result)
 print("Your password:\n"+password)

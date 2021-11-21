@@ -88,7 +88,7 @@
 // Application startup time (used for uptime calculation)
 const int64_t nStartupTime = GetTime();
 
-const char *const RAVEN_CONF_FILENAME = "raven.conf";
+const char *const RAVEN_CONF_FILENAME = "avian.conf";
 const char *const RAVEN_PID_FILENAME = "aviand.pid";
 
 ArgsManager gArgs;
@@ -623,7 +623,7 @@ void ArgsManager::ReadConfigFile(const std::string &confPath)
 {
     fs::ifstream streamConfig(GetConfigFile(confPath));
     if (!streamConfig.good())
-        return; // No raven.conf file is OK
+        return; // No avian.conf file is OK
 
     {
         LOCK(cs_args);

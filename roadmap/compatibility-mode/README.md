@@ -19,7 +19,7 @@ Every Bitcoin-type, or Ravencoin-type coin uses a different RPC port.  For examp
 
 An exchange can configure multiple Ravencoin assets by selecting a different port for each asset.  Once configured, aviand will emulate a aviand daemon with RPC calls that send the specified asset, instead of RVN.
 
-Configuration is done in ```raven.conf```  
+Configuration is done in ```avian.conf```  
 ```emulate=TRONCO:8888,FREE_HUGS:8889,MAIN/SUB:8890```
 
 Each emulated asset must have its own port that is available on the machine.

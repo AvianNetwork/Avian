@@ -9,7 +9,7 @@ Group=raven
 Type=forking
 PIDFile=/var/lib/aviand/aviand.pid
 ExecStart=/usr/bin/aviand -daemon -pid=/var/lib/aviand/aviand.pid \
--conf=/etc/raven/raven.conf -datadir=/var/lib/aviand -disablewallet
+-conf=/etc/raven/avian.conf -datadir=/var/lib/aviand -disablewallet
 
 Restart=always
 PrivateTmp=true

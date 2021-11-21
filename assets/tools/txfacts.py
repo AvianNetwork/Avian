@@ -12,7 +12,7 @@ cli = "avian-cli"
 mode = "-testnet"
 mode = ""
 rpc_port = 18766
-#Set this information in your raven.conf file (in datadir, not testnet3)
+#Set this information in your avian.conf file (in datadir, not testnet3)
 rpc_user = 'rpcuser'
 rpc_pass = 'rpcpass555'
 

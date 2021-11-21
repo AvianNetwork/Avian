@@ -24,7 +24,7 @@ URL:		https://raven.org/
 Source0:	https://raven.org/bin/raven-core-%{version}/raven-%{version}.tar.gz
 Source1:	http://download.oracle.com/berkeley-db/db-%{bdbv}.NC.tar.gz
 
-Source10:	https://raw.githubusercontent.com/raven/raven/v%{version}/contrib/debian/examples/raven.conf
+Source10:	https://raw.githubusercontent.com/raven/raven/v%{version}/contrib/debian/examples/avian.conf
 
 #man pages
 Source20:	https://raw.githubusercontent.com/raven/raven/v%{version}/doc/man/aviand.1
@@ -151,7 +151,7 @@ This package contains utilities needed by the raven-server package.
 %prep
 %setup -q
 %patch0 -p1 -b .libressl
-cp -p %{SOURCE10} ./raven.conf.example
+cp -p %{SOURCE10} ./avian.conf.example
 tar -zxf %{SOURCE1}
 cp -p db-%{bdbv}.NC/LICENSE ./db-%{bdbv}.NC-LICENSE
 mkdir db4 SELinux
@@ -186,10 +186,10 @@ mv %{buildroot}%{_bindir}/aviand %{buildroot}%{_sbindir}/aviand
 
 # systemd stuff
 mkdir -p %{buildroot}%{_tmpfilesdir}
-cat <<EOF > %{buildroot}%{_tmpfilesdir}/raven.conf
+cat <<EOF > %{buildroot}%{_tmpfilesdir}/avian.conf
 d /run/aviand 0750 raven raven -
 EOF
-touch -a -m -t 201504280000 %{buildroot}%{_tmpfilesdir}/raven.conf
+touch -a -m -t 201504280000 %{buildroot}%{_tmpfilesdir}/avian.conf
 
 mkdir -p %{buildroot}%{_sysconfdir}/sysconfig
 cat <<EOF > %{buildroot}%{_sysconfdir}/sysconfig/raven
@@ -200,7 +200,7 @@ OPTIONS=""
 
 # System service defaults.
 # Don't change these unless you know what you're doing.
-CONFIG_FILE="%{_sysconfdir}/raven/raven.conf"
+CONFIG_FILE="%{_sysconfdir}/raven/avian.conf"
 DATA_DIR="%{_localstatedir}/lib/raven"
 PID_FILE="/run/aviand/aviand.pid"
 EOF
@@ -375,7 +375,7 @@ rm -rf %{buildroot}
 %files core
 %defattr(-,root,root,-)
 %license COPYING db-%{bdbv}.NC-LICENSE
-%doc COPYING raven.conf.example doc/README.md doc/bips.md doc/files.md doc/multiwallet-qt.md doc/reduce-traffic.md doc/release-notes.md doc/tor.md
+%doc COPYING avian.conf.example doc/README.md doc/bips.md doc/files.md doc/multiwallet-qt.md doc/reduce-traffic.md doc/release-notes.md doc/tor.md
 %attr(0755,root,root) %{_bindir}/avian-qt
 %attr(0644,root,root) %{_datadir}/applications/raven-core.desktop
 %attr(0644,root,root) %{_datadir}/kde4/services/raven-core.protocol
@@ -406,9 +406,9 @@ rm -rf %{buildroot}
 %files server
 %defattr(-,root,root,-)
 %license COPYING db-%{bdbv}.NC-LICENSE
-%doc COPYING raven.conf.example doc/README.md doc/REST-interface.md doc/bips.md doc/dnsseed-policy.md doc/files.md doc/reduce-traffic.md doc/release-notes.md doc/tor.md
+%doc COPYING avian.conf.example doc/README.md doc/REST-interface.md doc/bips.md doc/dnsseed-policy.md doc/files.md doc/reduce-traffic.md doc/release-notes.md doc/tor.md
 %attr(0755,root,root) %{_sbindir}/aviand
-%attr(0644,root,root) %{_tmpfilesdir}/raven.conf
+%attr(0644,root,root) %{_tmpfilesdir}/avian.conf
 %attr(0644,root,root) %{_unitdir}/raven.service
 %dir %attr(0750,raven,raven) %{_sysconfdir}/raven
 %dir %attr(0750,raven,raven) %{_localstatedir}/lib/raven
@@ -419,7 +419,7 @@ rm -rf %{buildroot}
 %files utils
 %defattr(-,root,root,-)
 %license COPYING
-%doc COPYING raven.conf.example doc/README.md
+%doc COPYING avian.conf.example doc/README.md
 %attr(0755,root,root) %{_bindir}/avian-cli
 %attr(0755,root,root) %{_bindir}/avian-tx
 %attr(0755,root,root) %{_bindir}/bench_raven

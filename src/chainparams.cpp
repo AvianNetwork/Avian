@@ -288,7 +288,7 @@ public:
         //consensus.powTypeLimits.emplace_back(uint256S("0x00000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"));   // x16rt limit
         //consensus.powTypeLimits.emplace_back(uint256S("0x000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"));   // Crow limit
         consensus.powTypeLimits.emplace_back(uint256S("00000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"));   // x16rt limit
-        consensus.powTypeLimits.emplace_back(uint256S("00000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"));   // Crow limit
+        consensus.powTypeLimits.emplace_back(uint256S("000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"));   // Crow limit
 
         // testnet x16rt switch
         consensus.nX16rtTimestamp = 1634101200; // Oct 13, 2021 

@@ -3,13 +3,13 @@ Jenkinsfile
 *.tar.gz
 
 *.exe
-src/raven
+src/avian
 src/aviand
 src/avian-cli
 src/avian-tx
-src/test/test_raven
-src/test/test_raven_fuzzy
-src/test/test_raven_hash
+src/test/test_avian
+src/test/test_avian_fuzzy
+src/test/test_avian_hash
 src/qt/test/test_avian-qt
 .vscode
 output.txt
