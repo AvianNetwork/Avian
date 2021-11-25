@@ -533,8 +533,8 @@ std::string HelpMessage(HelpMessageMode mode)
 
 std::string LicenseInfo()
 {
-    const std::string URL_SOURCE_CODE = "<https://github.com/RavencoinLite/RavencoinLite>";
-    const std::string URL_WEBSITE = "<https://ravencoinlite.org>";
+    const std::string URL_SOURCE_CODE = "<https://github.com/AvianNetwork/Avian>";
+    const std::string URL_WEBSITE = "<https://avn.network>";
 
     return CopyrightHolders(strprintf(_("Copyright (C) %i-%i"), 2009, COPYRIGHT_YEAR) + " ") + "\n" +
            "\n" +
