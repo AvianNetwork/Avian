@@ -278,7 +278,7 @@ raven (0.6.1-natty0) natty; urgency=low
 raven (0.6.0-natty0) natty; urgency=low
 
   * New upstream release.
-  * Add GNOME/KDE support for avian-qt's raven: URI support.
+  * Add GNOME/KDE support for avian-qt's avian: URI support.
     Thanks to luke-jr for the KDE .protocol file.
 
  -- Matt Corallo <matt@bluematt.me>  Sat, 31 Mar 2012 15:35:00 -0500
@@ -348,7 +348,7 @@ raven (0.5.0~rc1-natty0) natty; urgency=low
   * Mark for natty
   * Fix broken build
   * Fix copyright listing
-  * Remove raven: URL handler until raven actually has support for it (Oops)
+  * Remove avian: URL handler until raven actually has support for it (Oops)
 
  -- Matt Corallo <matt@bluematt.me>  Wed, 26 Oct 2011 14:37:18 -0400
 

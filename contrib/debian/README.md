@@ -4,7 +4,7 @@ Debian
 This directory contains files used to package aviand/avian-qt
 for Debian-based Linux systems. If you compile aviand/avian-qt yourself, there are some useful files here.
 
-## raven: URI support ##
+## avian: URI support ##
 
 
 avian-qt.desktop  (Gnome / Open Desktop)

@@ -57,7 +57,7 @@ namespace GUIUtil
     void setupAddressWidget(QValidatedLineEdit *widget, QWidget *parent);
     void setupAmountWidget(QLineEdit *widget, QWidget *parent);
 
-    // Parse "raven:" URI into recipient object, return true on successful parsing
+    // Parse "avian:" URI into recipient object, return true on successful parsing
     bool parseRavenURI(const QUrl &uri, SendCoinsRecipient *out);
     bool parseRavenURI(QString uri, SendCoinsRecipient *out);
     QString formatRavenURI(const SendCoinsRecipient &info);

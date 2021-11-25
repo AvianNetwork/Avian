@@ -414,8 +414,8 @@
         <translation>Tab-werkbalk</translation>
     </message>
     <message>
-        <source>Request payments (generates QR codes and raven: URIs)</source>
-        <translation>Vraag betaling aan (genereert QR-codes en raven: URI's)</translation>
+        <source>Request payments (generates QR codes and avian: URIs)</source>
+        <translation>Vraag betaling aan (genereert QR-codes en avian: URI's)</translation>
     </message>
     <message>
         <source>Show the list of used sending addresses and labels</source>
@@ -426,8 +426,8 @@
         <translation>Toon de lijst met gebruikte ontvangst adressen en labels</translation>
     </message>
     <message>
-        <source>Open a raven: URI or payment request</source>
-        <translation>Open een raven: URI of betalingsverzoek</translation>
+        <source>Open a avian: URI or payment request</source>
+        <translation>Open een avian: URI of betalingsverzoek</translation>
     </message>
     <message>
         <source>&amp;Command-line options</source>
@@ -1270,7 +1270,7 @@
         <translation>Fout bij betalingsverzoek</translation>
     </message>
     <message>
-        <source>Cannot start raven: click-to-pay handler</source>
+        <source>Cannot start avian: click-to-pay handler</source>
         <translation>Kan raven niet starten: click-to-pay handler</translation>
     </message>
     <message>
@@ -2288,8 +2288,8 @@
         <translation>Vul een label voor dit adres in om het aan de lijst met gebruikte adressen toe te voegen</translation>
     </message>
     <message>
-        <source>A message that was attached to the raven: URI which will be stored with the transaction for your reference. Note: This message will not be sent over the Raven network.</source>
-        <translation>Een bericht dat werd toegevoegd aan de raven: URI welke wordt opgeslagen met de transactie ter referentie. Opmerking: Dit bericht zal niet worden verzonden over het Ravennetwerk.</translation>
+        <source>A message that was attached to the avian: URI which will be stored with the transaction for your reference. Note: This message will not be sent over the Raven network.</source>
+        <translation>Een bericht dat werd toegevoegd aan de avian: URI welke wordt opgeslagen met de transactie ter referentie. Opmerking: Dit bericht zal niet worden verzonden over het Ravennetwerk.</translation>
     </message>
     <message>
         <source>Pay To:</source>
