@@ -496,7 +496,7 @@ UniValue getdifficulty(const JSONRPCRequest& request)
             "getdifficulty ( powalgo )\n"
             "\nReturns the proof-of-work difficulty as a multiple of the minimum difficulty.\n"
             "\nArguments:\n"
-            "1. \"powalgo\":\"xxxx\"     (string, optional) This can be set to \"sha256d\" or \"minotaurx\". If omitted, wallet's default is assumed (-powalgo conf option)\n"
+            "1. \"powalgo\":\"xxxx\"     (string, optional) This can be set to \"x16rt\" or \"minotaurx\". If omitted, wallet's default is assumed (-powalgo conf option)\n"
             "\nResult:\n"
             "n.nnn       (numeric) the proof-of-work difficulty as a multiple of the minimum difficulty.\n"
             "\nExamples:\n"
