@@ -1,5 +1,5 @@
 // Copyright (c) 2019-2021 The Litecoin Cash Core developers
-// Copyright (c) 2021 The Ravencoin Lite Core developers
+// Copyright (c) 2021 The Avian Core developers
 // Copyright (c) 2021 Shafil Alam
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
