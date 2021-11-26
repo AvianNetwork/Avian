@@ -186,8 +186,16 @@ public:
         assert(consensus.hashGenesisBlock == uint256S("0x000000cdb10fc01df7fba251f2168ef7cd7854b571049db4902c315694461dd0"));
         assert(genesis.hashMerkleRoot == uint256S("0x63d9b6b6b549a2d96eb5ac4eb2ab80761e6d7bffa9ae1a647191e08d6416184d"));
 
+        // Main seeders
         vSeeds.emplace_back("dnsseed.us.avn.network", true);
         vSeeds.emplace_back("dnsseed.eu.avn.network", true);
+
+        // Backup nodes
+        vSeeds.emplace_back("159.65.178.148:7895", true);
+	    vSeeds.emplace_back("144.91.77.184:7895", true);
+        vSeeds.emplace_back("51.89.166.31:7895", true);			    
+        vSeeds.emplace_back("66.191.202.105:7895", true);
+	    vSeeds.emplace_back("71.202.82.78:7895", true);
 
         base58Prefixes[PUBKEY_ADDRESS] = std::vector<unsigned char>(1,60);
         base58Prefixes[SCRIPT_ADDRESS] = std::vector<unsigned char>(1,122);
