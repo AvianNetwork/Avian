@@ -22,6 +22,7 @@
 #include "platformstyle.h"
 #include "rpcconsole.h"
 #include "utilitydialog.h"
+#include "validation.h"
 
 #ifdef ENABLE_WALLET
 #include "walletframe.h"
@@ -82,7 +83,6 @@
 #include <QUrl>
 #else
 #include <QUrlQuery>
-#include <validation.h>
 #include <tinyformat.h>
 #include <QFontDatabase>
 
@@ -1684,7 +1684,13 @@ void UnitDisplayStatusBarControl::onMenuSelection(QAction* action)
 
 void RavenGUI::getPriceInfo()
 {
-    request->setUrl(QUrl("https://www.exbitron.com/api/v2/peatio/public/markets/rvlusdt/tickers"));
+    QString url;
+    if(IsCrowEnabled(chainActive.Tip(), Params().GetConsensus()))
+        url = "https://www.exbitron.com/api/v2/peatio/public/markets/avnusdt/tickers";
+    else
+        url = "https://www.exbitron.com/api/v2/peatio/public/markets/rvlusdt/tickers";
+
+    request->setUrl(QUrl(url));
     networkManager->get(*request);
 }
 
