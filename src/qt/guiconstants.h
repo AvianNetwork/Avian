@@ -111,10 +111,9 @@ static const int MAX_URI_LENGTH = 255;
 /* Number of frames in spinner animation */
 #define SPINNER_FRAMES 36
 
-/* Keep old values for compatibility (New: AVN, Old: RVL) */
-#define QAPP_ORG_NAME "Raven Lite"
-#define QAPP_ORG_DOMAIN "ravencoinlite.org"
-#define QAPP_APP_NAME_DEFAULT "RavenLite-Qt"
-#define QAPP_APP_NAME_TESTNET "RavenLite-Qt-testnet"
+#define QAPP_ORG_NAME "Avian"
+#define QAPP_ORG_DOMAIN "avn.network"
+#define QAPP_APP_NAME_DEFAULT "Avian-Qt"
+#define QAPP_APP_NAME_TESTNET "Avian-Qt-testnet"
 
 #endif // RAVEN_QT_GUICONSTANTS_H
