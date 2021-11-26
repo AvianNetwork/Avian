@@ -144,13 +144,13 @@ public:
         consensus.vDeployments[Consensus::DEPLOYMENT_CROW].nTimeout = 2208988800 + 31536000;  // Start + 1 year
 
         // Crow Algo consensus
-        consensus.powForkTime = 2208988800;                 // Time of PoW hash method change
+        consensus.powForkTime = 1638748800;                 // Time of PoW hash method change (Dec 06 2021)
         consensus.lwmaAveragingWindow = 90;                 // Averaging window size for LWMA diff adjust
         consensus.powTypeLimits.emplace_back(uint256S("00000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"));   // x16rt limit
         consensus.powTypeLimits.emplace_back(uint256S("00000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"));   // Crow limit
 
         // x16rt switch
-        consensus.nX16rtTimestamp = 2000000000;
+        consensus.nX16rtTimestamp = 1638748799;
 
         // The best chain should have at least this much work.
         consensus.nMinimumChainWork = uint256S("0x0000000000000000000000000000000000000000000000000000000000000002");
