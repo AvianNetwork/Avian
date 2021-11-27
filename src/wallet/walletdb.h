@@ -66,21 +66,12 @@ public:
     uint32_t nInternalChainCounter;
     CKeyID seed_id; //!< seed hash160
 
-    bool bUse_bip44;
-    SecureVector vchMnemonic;
-    SecureVector vchMnemonicPassphrase;
-    SecureVector vchSeed;    
-
     static const int VERSION_HD_BASE        = 1;
     static const int VERSION_HD_CHAIN_SPLIT = 2;
-    static const int VERSION_HD_BIP44_BIP39 = 3;
-    static const int CURRENT_VERSION        = VERSION_HD_BIP44_BIP39;
+    static const int CURRENT_VERSION        = VERSION_HD_CHAIN_SPLIT;
     int nVersion;
 
     CHDChain() { SetNull(); }
-    CWallet* pwallet;
-
-    CHDChain(CWallet* pw): pwallet(pw) { SetNull(); }
 
     ADD_SERIALIZE_METHODS;
     template <typename Stream, typename Operation>
@@ -91,25 +82,7 @@ public:
         READWRITE(seed_id);
         if (this->nVersion >= VERSION_HD_CHAIN_SPLIT)
             READWRITE(nInternalChainCounter);
-
-        if(VERSION_HD_BIP44_BIP39 == nVersion) {
-            READWRITE(bUse_bip44);
-            READWRITE(vchMnemonic);
-            READWRITE(vchMnemonicPassphrase);
-            READWRITE(vchSeed);
-        }
-        else
-        {
-        	// when loading an old bip32 only wallet, get vchSeed from seed_id
-        	if(ser_action.ForRead())
-        	{
-        		SetSeedFromSeedId();
-        	}
-        }
-   
     }
-
-    void SetSeedFromSeedId();
 
     void SetNull()
     {
@@ -119,14 +92,6 @@ public:
         seed_id.SetNull();
     }
 
-      bool IsNull() { return seed_id.IsNull();}
-
-
-    void UseBip44( bool b = true)   { bUse_bip44 = b;}
-    bool IsBip44() const            { return bUse_bip44 == true;}
-
-
-    bool SetMnemonic(const SecureString& ssMnemonic, const SecureString& ssMnemonicPassphrase, SecureVector& vchSeed);
 };
 
 class CKeyMetadata
@@ -282,13 +247,6 @@ public:
     bool ReadVersion(int& nVersion);
     //! Write wallet version
     bool WriteVersion(int nVersion);
-
-    bool WriteBip39Words(const uint256& hash, const std::vector<unsigned char>& vchWords, bool fEncrypted);
-    bool WriteBip39Passphrase(const std::vector<unsigned char>& vchPassphrase, bool fEncrypted);
-    bool ReadBip39Words(uint256& hash, std::vector<unsigned char>& vchWords, bool fEncrypted);
-    bool ReadBip39Passphrase(std::vector<unsigned char>& vchPassphrase, bool fEncrypted);
-    bool EraseBip39Words(bool fEncrypted);
-    bool EraseBip39Passphrase(bool fEncrypted);
 private:
     CDB batch;
     CWalletDBWrapper& m_dbw;

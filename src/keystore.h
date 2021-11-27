@@ -60,10 +60,6 @@ protected:
     ScriptMap mapScripts;
     WatchOnlySet setWatchOnly;
 
-    uint256 nWordHash;
-    std::vector<unsigned char> vchWords;
-    std::vector<unsigned char> vchPassphrase;
-
 public:
     bool AddKeyPubKey(const CKey& key, const CPubKey &pubkey) override;
     bool GetPubKey(const CKeyID &address, CPubKey& vchPubKeyOut) const override;
@@ -106,10 +102,6 @@ public:
     bool RemoveWatchOnly(const CScript &dest) override;
     bool HaveWatchOnly(const CScript &dest) const override;
     bool HaveWatchOnly() const override;
-
-    bool AddWords(const uint256& p_hash, const std::vector<unsigned char>& p_vchWords);
-    bool AddPassphrase(const std::vector<unsigned char>& p_vchPassphrase);
-    void GetBip39Data(uint256& p_hash, std::vector<unsigned char>& p_vchWords, std::vector<unsigned char>& p_vchPassphrase);
 };
 
 typedef std::vector<unsigned char, secure_allocator<unsigned char> > CKeyingMaterial;

@@ -516,50 +516,6 @@ bool ReadKeyValue(CWallet* pwallet, CDataStream& ssKey, CDataStream& ssValue,
                 return false;
             }
         }
-        else if (strType == "cbip39words")
-        {
-            std::pair<uint256,std::vector<unsigned char> > valuePair;
-            ssValue >> valuePair;
-
-            if (!pwallet->LoadCryptedWords(valuePair.first, valuePair.second))
-            {
-                strErr = "Error reading wallet database: LoadCryptedWords failed";
-                return false;
-            }
-        }
-        else if (strType == "cbip39passphrase")
-        {
-            std::vector<unsigned char> vchPassphrase;
-            ssValue >> vchPassphrase;
-
-            if (!pwallet->LoadCryptedPassphrase(vchPassphrase))
-            {
-                strErr = "Error reading wallet database: LoadCryptedPassphrase failed";
-                return false;
-            }
-        }
-        else if (strType == "bip39words")
-        {
-            std::pair<uint256,std::vector<unsigned char> > valuePair;
-            ssValue >> valuePair;
-
-            if (!pwallet->LoadWords(valuePair.first, valuePair.second))
-            {
-                strErr = "Error reading wallet database: LoadWords failed";
-                return false;
-            }
-        }
-        else if (strType == "bip39passphrase")
-        {
-            std::vector<unsigned char> vchPassphrase;
-            ssValue >> vchPassphrase;
-
-            if (!pwallet->LoadPassphrase(vchPassphrase))
-            {
-                strErr = "Error reading wallet database: LoadPassphrase failed";
-                return false;
-            }
-        }
     } catch (...)
     {
         return false;
@@ -622,9 +578,9 @@ DBErrors CWalletDB::LoadWallet(CWallet* pwallet)
                 else
                 {
                     // Leave other errors alone, if we try to fix them we might make things worse.
+                    fNoncriticalErrors = true; 
                     // ... but do warn the user there is something wrong.
                     if (strType == "tx") {
-                        fNoncriticalErrors = true; 
                         // Rescan if there is a bad transaction record:
                         gArgs.SoftSetBoolArg("-rescan", true);
                     }
@@ -882,54 +838,6 @@ bool CWalletDB::WriteDestData(const std::string &address, const std::string &key
     return WriteIC(std::make_pair(std::string("destdata"), std::make_pair(address, key)), value);
 }
 
-bool CWalletDB::WriteBip39Words(const uint256& hash, const std::vector<unsigned char>& vchWords, bool fEncrypted)
-{
-    std::string key = fEncrypted ? "c" : "";
-    key.append("bip39words");
-    return WriteIC(key, std::make_pair(hash,vchWords), true);
-}
-
-bool CWalletDB::WriteBip39Passphrase(const std::vector<unsigned char>& vchPassphrase,  bool fEncrypted)
-{
-    std::string key = fEncrypted ? "c" : "";
-    key.append("bip39passphrase");
-    return WriteIC(key, vchPassphrase, true);
-}
-
-bool CWalletDB::ReadBip39Words(uint256& hash, std::vector<unsigned char>& vchWords,  bool fEncrypted)
-{
-    std::string key = fEncrypted ? "c" : "";
-    key.append("bip39words");
-    std::pair<uint256, std::vector<unsigned char>> valuePair;
-    bool ret = batch.Read(key, valuePair);
-    if (ret) {
-        hash = valuePair.first;
-        vchWords = valuePair.second;
-    }
-    return ret;
-}
-
-bool CWalletDB::ReadBip39Passphrase(std::vector<unsigned char>& vchPassphrase,  bool fEncrypted)
-{
-    std::string key = fEncrypted ? "c" : "";
-    key.append("bip39passphrase");
-    return batch.Read(key, vchPassphrase);
-}
-
-bool CWalletDB::EraseBip39Words(bool fEncrypted)
-{
-    std::string key = fEncrypted ? "c" : "";
-    key.append("bip39words");
-    return EraseIC(key);
-}
-
-bool CWalletDB::EraseBip39Passphrase(bool fEncrypted)
-{
-    std::string key = fEncrypted ? "c" : "";
-    key.append("bip39passphrase");
-    return EraseIC(key);
-}
-
 bool CWalletDB::EraseDestData(const std::string &address, const std::string &key)
 {
     return EraseIC(std::make_pair(std::string("destdata"), std::make_pair(address, key)));
@@ -964,39 +872,4 @@ bool CWalletDB::ReadVersion(int& nVersion)
 bool CWalletDB::WriteVersion(int nVersion)
 {
     return batch.WriteVersion(nVersion);
-}
-
-void CHDChain::SetSeedFromSeedId()
-{
-    // try to get the seed
-	CKey seed;
-    if (!pwallet || !pwallet->GetKey(seed_id, seed))
-        throw std::runtime_error(std::string(__func__) + ": seed not found");
-
-    vchSeed = SecureVector(seed.begin(), seed.end());
-}
-
-bool CHDChain::SetMnemonic(const SecureString& ssMnemonic, const SecureString& ssMnemonicPassphrase, SecureVector& vchSeed)
-{
-    SecureString ssMnemonicTmp = ssMnemonic;
-
-    // can't (re)set mnemonic if seed was already set
-    if (!IsNull())
-        return false;
-
-    // empty mnemonic i.e. "generate a new one"
-    if (ssMnemonic.empty()) {
-        ssMnemonicTmp = CMnemonic::Generate(bUse_bip44 ? 128 : 256);
-    }
-    // NOTE: default mnemonic passphrase is an empty string
-    if (!CMnemonic::Check(ssMnemonicTmp)) {
-        throw std::runtime_error(std::string(__func__) + ": invalid mnemonic: `" + std::string(ssMnemonicTmp.c_str()) + "`");
-    }
-
-    CMnemonic::ToSeed(ssMnemonicTmp, ssMnemonicPassphrase, vchSeed);
-
-    vchMnemonic = SecureVector(ssMnemonicTmp.begin(), ssMnemonicTmp.end());
-    vchMnemonicPassphrase = SecureVector(ssMnemonicPassphrase.begin(), ssMnemonicPassphrase.end());
-
-    return true;
 }

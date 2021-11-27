@@ -57,21 +57,26 @@ void MnemonicDialog::on_btnCancel_clicked()
 
 void MnemonicDialog::on_btnImport_clicked()
 {
-    std::string words = ui->tbxMnemonic->toPlainText().toStdString();
-    std::string passphrase = ui->edtPassword->text().toStdString();
+    // TODO: Fix BIP44
 
-    my_words = words;
-    my_passphrase = passphrase;
+    // std::string words = ui->tbxMnemonic->toPlainText().toStdString();
+    // std::string passphrase = ui->edtPassword->text().toStdString();
 
-    SecureString tmp(my_words.begin(), my_words.end());
+    // my_words = words;
+    // my_passphrase = passphrase;
+
+    // SecureString tmp(my_words.begin(), my_words.end());
 
     // NOTE: default mnemonic passphrase is an empty string
-    if (!CMnemonic::Check(tmp)) {
-        ui->lblHelp->setText("Words are not valid, please check the words and try again");
-        my_words.clear();
-        my_passphrase.clear();
-        return;
-    }
+    // if (!CMnemonic::Check(tmp)) {
+    //     ui->lblHelp->setText("Words are not valid, please check the words and try again");
+    //     my_words.clear();
+    //     my_passphrase.clear();
+    //     return;
+    // }
+
+    ui->lblHelp->setText("TODO: Fix BIP44");
+    return;
 
     close();
 };
