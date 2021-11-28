@@ -218,7 +218,7 @@
         <translation>Barra de pestañas</translation>
     </message>
     <message>
-        <source>Request payments (generates QR codes and raven: URIs)</source>
+        <source>Request payments (generates QR codes and avian: URIs)</source>
         <translation>Solicitar pagos (genera codigo QR y URL's de Raven)</translation>
     </message>
     <message>
@@ -230,8 +230,8 @@
         <translation>Muestra la lista de direcciones de recepción y etiquetas</translation>
     </message>
     <message>
-        <source>Open a raven: URI or payment request</source>
-        <translation>Abrir un raven: URI o petición de pago</translation>
+        <source>Open a avian: URI or payment request</source>
+        <translation>Abrir un avian: URI o petición de pago</translation>
     </message>
     <message>
         <source>&amp;Command-line options</source>

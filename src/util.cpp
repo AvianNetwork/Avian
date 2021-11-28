@@ -5,7 +5,7 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #if defined(HAVE_CONFIG_H)
-#include "config/ravenlite-config.h"
+#include "config/avian-config.h"
 #endif
 
 #include "util.h"
@@ -88,8 +88,8 @@
 // Application startup time (used for uptime calculation)
 const int64_t nStartupTime = GetTime();
 
-const char *const RAVEN_CONF_FILENAME = "raven.conf";
-const char *const RAVEN_PID_FILENAME = "ravend.pid";
+const char *const RAVEN_CONF_FILENAME = "avian.conf";
+const char *const RAVEN_PID_FILENAME = "aviand.pid";
 
 ArgsManager gArgs;
 bool fPrintToConsole = false;
@@ -249,6 +249,7 @@ const CLogCategoryDesc LogCategories[] =
                 {BCLog::COINDB,      "coindb"},
                 {BCLog::QT,          "qt"},
                 {BCLog::LEVELDB,     "leveldb"},
+                {BCLog::CROW,        "crow"},  // Crow
                 {BCLog::ALL,         "1"},
                 {BCLog::ALL,         "all"},
         };
@@ -547,7 +548,7 @@ fs::path GetDefaultDataDir()
     // Unix: ~/.ravenlite
 #ifdef WIN32
     // Windows
-    return GetSpecialFolderPath(CSIDL_APPDATA) / "RavenLite";
+    return GetSpecialFolderPath(CSIDL_APPDATA) / "Avian";
 #else
     fs::path pathRet;
     char *pszHome = getenv("HOME");
@@ -557,10 +558,10 @@ fs::path GetDefaultDataDir()
         pathRet = fs::path(pszHome);
 #ifdef MAC_OSX
     // Mac
-    return pathRet / "Library/Application Support/RavenLite";
+    return pathRet / "Library/Application Support/Avian";
 #else
     // Unix
-    return pathRet / ".ravenlite";
+    return pathRet / ".avian";
 #endif
 #endif
 }
@@ -622,7 +623,7 @@ void ArgsManager::ReadConfigFile(const std::string &confPath)
 {
     fs::ifstream streamConfig(GetConfigFile(confPath));
     if (!streamConfig.good())
-        return; // No raven.conf file is OK
+        return; // No avian.conf file is OK
 
     {
         LOCK(cs_args);
@@ -631,7 +632,7 @@ void ArgsManager::ReadConfigFile(const std::string &confPath)
 
         for (boost::program_options::detail::config_file_iterator it(streamConfig, setOptions), end; it != end; ++it)
         {
-            // Don't overwrite existing settings so command line settings override ravenlite.conf
+            // Don't overwrite existing settings so command line settings override avian.conf
             std::string strKey = std::string("-") + it->string_key;
             std::string strValue = it->value[0];
             InterpretNegativeSetting(strKey, strValue);

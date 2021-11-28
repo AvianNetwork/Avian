@@ -4,7 +4,13 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include "chain.h"
+#include <chain.h>
+#include <validation.h>
+#include <chainparams.h>
+#include <consensus/consensus.h>
+#include <consensus/params.h>
+#include <consensus/validation.h>
+#include <rpc/blockchain.h>
 
 /**
  * CChain implementation
@@ -116,6 +122,31 @@ void CBlockIndex::BuildSkip()
 {
     if (pprev)
         pskip = pprev->GetAncestor(GetSkipHeight(nHeight));
+}
+
+
+arith_uint256 GetBlockProof(const CBlockIndex& block, POW_TYPE powType)
+{
+    arith_uint256 bnTarget;
+    bool fNegative;
+    bool fOverflow;
+
+    bnTarget.SetCompact(block.nBits, &fNegative, &fOverflow);
+    if (fNegative || fOverflow || bnTarget == 0)
+        return 0;
+
+    // skip the wrong pow type
+    if (IsCrowEnabled(&block, Params().GetConsensus()) && block.GetBlockHeader().GetPoWType() != powType)
+        return 0;
+    //  if you ask for minotaurx hashes before it's enabled, there aren't any!
+    if (!IsCrowEnabled(&block, Params().GetConsensus()) && powType == POW_TYPE_CROW) 
+        return 0;
+ 
+    // We need to compute 2**256 / (bnTarget+1), but we can't represent 2**256
+    // as it's too large for an arith_uint256. However, as 2**256 is at least as large
+    // as bnTarget+1, it is equal to ((2**256 - bnTarget - 1) / (bnTarget+1)) + 1,
+    // or ~bnTarget / (bnTarget+1) + 1.
+    return (~bnTarget / (bnTarget + 1)) + 1;
 }
 
 arith_uint256 GetBlockProof(const CBlockIndex& block)

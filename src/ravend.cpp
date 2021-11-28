@@ -5,7 +5,7 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #if defined(HAVE_CONFIG_H)
-#include "config/ravenlite-config.h"
+#include "config/avian-config.h"
 #endif
 
 #include "chainparams.h"
@@ -71,7 +71,7 @@ bool AppInit(int argc, char* argv[])
     //
     // Parameters
     //
-    // If Qt is used, parameters/raven.conf are parsed in qt/raven.cpp's main()
+    // If Qt is used, parameters/avian.conf are parsed in qt/raven.cpp's main()
     gArgs.ParseParameters(argc, argv);
 
     // Process help and version before taking care about datadir
@@ -86,9 +86,9 @@ bool AppInit(int argc, char* argv[])
         else
         {
             strUsage += "\n" + _("Usage:") + "\n" +
-                  "  ravend [options]                     " + strprintf(_("Start %s Daemon"), _(PACKAGE_NAME)) + "\n";
+                  "  aviand [options]                     " + strprintf(_("Start %s Daemon"), _(PACKAGE_NAME)) + "\n";
 
-            strUsage += "\n" + HelpMessage(HMM_RAVEND);
+            strUsage += "\n" + HelpMessage(HMM_AVIAND);
         }
 
         fprintf(stdout, "%s", strUsage.c_str());
@@ -111,7 +111,7 @@ bool AppInit(int argc, char* argv[])
         }
         // Check for -testnet or -regtest parameter (ConsensusParams() calls are only valid after this clause)
         try {
-            SelectParams(ChainNameFromCommandLine());
+            SelectParams(ChainNameFromCommandLine(),true);
         } catch (const std::exception& e) {
             fprintf(stderr, "Error: %s\n", e.what());
             return false;
@@ -120,12 +120,12 @@ bool AppInit(int argc, char* argv[])
         // Error out when loose non-argument tokens are encountered on command line
         for (int i = 1; i < argc; i++) {
             if (!IsSwitchChar(argv[i][0])) {
-                fprintf(stderr, "Error: Command line contains unexpected token '%s', see ravend -h for a list of options.\n", argv[i]);
+                fprintf(stderr, "Error: Command line contains unexpected token '%s', see aviand -h for a list of options.\n", argv[i]);
                 exit(EXIT_FAILURE);
             }
         }
 
-        // -server defaults to true for ravend but not for the GUI so do this here
+        // -server defaults to true for aviand but not for the GUI so do this here
         gArgs.SoftSetBoolArg("-server", true);
         // Set this early so that parameter interactions go to console
         InitLogging();
@@ -152,7 +152,7 @@ bool AppInit(int argc, char* argv[])
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 #endif
-            fprintf(stdout, "Raven server starting\n");
+            fprintf(stdout, "Avian server starting\n");
 
             // Daemonize
             if (daemon(1, 0)) { // don't chdir (1), do close FDs (0)
@@ -197,7 +197,7 @@ int main(int argc, char* argv[])
 {
     SetupEnvironment();
 
-    // Connect ravend signal handlers
+    // Connect aviand signal handlers
     noui_connect();
 
     return (AppInit(argc, argv) ? EXIT_SUCCESS : EXIT_FAILURE);

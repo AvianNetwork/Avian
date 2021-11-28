@@ -298,8 +298,8 @@
         <translation>Εργαλειοθήκη καρτελών</translation>
     </message>
     <message>
-        <source>Request payments (generates QR codes and raven: URIs)</source>
-        <translation>Αίτηση πληρωμών (δημιουργεί QR codes και διευθύνσεις raven: )</translation>
+        <source>Request payments (generates QR codes and avian: URIs)</source>
+        <translation>Αίτηση πληρωμών (δημιουργεί QR codes και διευθύνσεις avian: )</translation>
     </message>
     <message>
         <source>Show the list of used sending addresses and labels</source>
@@ -310,8 +310,8 @@
         <translation>Προβολή της λίστας των χρησιμοποιημένων διευθύνσεων και ετικετών λήψεως</translation>
     </message>
     <message>
-        <source>Open a raven: URI or payment request</source>
-        <translation>Άνοιγμα raven: URI αίτησης πληρωμής</translation>
+        <source>Open a avian: URI or payment request</source>
+        <translation>Άνοιγμα avian: URI αίτησης πληρωμής</translation>
     </message>
     <message>
         <source>&amp;Command-line options</source>

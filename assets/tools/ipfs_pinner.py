@@ -27,13 +27,13 @@ import signal  #Used for timeout
 JSON_ONLY_CHECK = False
 FILESIZE_THRESHOLD = 100000000
 
-#Set this to your raven-cli program
-cli = "raven-cli"
+#Set this to your avian-cli program
+cli = "avian-cli"
 
 #mode = "-testnet"
 mode = ""
 rpc_port = 8766
-#Set this information in your raven.conf file (in datadir, not testnet3)
+#Set this information in your avian.conf file (in datadir, not testnet3)
 rpc_user = 'rpcuser'
 rpc_pass = 'rpcpass555'
 

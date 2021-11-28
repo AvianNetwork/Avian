@@ -645,7 +645,7 @@ UniValue echo(const JSONRPCRequest& request)
             "echo|echojson \"message\" ...\n"
             "\nSimply echo back the input arguments. This command is for testing.\n"
             "\nThe difference between echo and echojson is that echojson has argument conversion enabled in the client-side table in"
-            "raven-cli and the GUI. There is no server-side difference."
+            "avian-cli and the GUI. There is no server-side difference."
         );
 
     return request.params;

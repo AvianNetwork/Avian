@@ -3,7 +3,7 @@
 # Copyright (c) 2017-2018 The Raven Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
-"""Test running ravend with the -rpcbind and -rpcallowip options."""
+"""Test running aviand with the -rpcbind and -rpcallowip options."""
 
 import socket
 import sys

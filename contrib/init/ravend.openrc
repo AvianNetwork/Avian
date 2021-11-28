@@ -3,40 +3,40 @@
 # backward compatibility for existing gentoo layout 
 #
 if [ -d "/var/lib/raven/.raven" ]; then
-	RAVEND_DEFAULT_DATADIR="/var/lib/raven/.raven"
+	AVIAND_DEFAULT_DATADIR="/var/lib/raven/.raven"
 else
-	RAVEND_DEFAULT_DATADIR="/var/lib/ravend"
+	AVIAND_DEFAULT_DATADIR="/var/lib/aviand"
 fi
 
-RAVEND_CONFIGFILE=${RAVEND_CONFIGFILE:-/etc/raven/raven.conf}
-RAVEND_PIDDIR=${RAVEND_PIDDIR:-/var/run/ravend}
-RAVEND_PIDFILE=${RAVEND_PIDFILE:-${RAVEND_PIDDIR}/ravend.pid}
-RAVEND_DATADIR=${RAVEND_DATADIR:-${RAVEND_DEFAULT_DATADIR}}
-RAVEND_USER=${RAVEND_USER:-${RAVEN_USER:-raven}}
-RAVEND_GROUP=${RAVEND_GROUP:-raven}
-RAVEND_BIN=${RAVEND_BIN:-/usr/bin/ravend}
-RAVEND_NICE=${RAVEND_NICE:-${NICELEVEL:-0}}
-RAVEND_OPTS="${RAVEND_OPTS:-${RAVEN_OPTS}}"
+AVIAND_CONFIGFILE=${AVIAND_CONFIGFILE:-/etc/raven/avian.conf}
+AVIAND_PIDDIR=${AVIAND_PIDDIR:-/var/run/aviand}
+AVIAND_PIDFILE=${AVIAND_PIDFILE:-${AVIAND_PIDDIR}/aviand.pid}
+AVIAND_DATADIR=${AVIAND_DATADIR:-${AVIAND_DEFAULT_DATADIR}}
+AVIAND_USER=${AVIAND_USER:-${RAVEN_USER:-raven}}
+AVIAND_GROUP=${AVIAND_GROUP:-raven}
+AVIAND_BIN=${AVIAND_BIN:-/usr/bin/aviand}
+AVIAND_NICE=${AVIAND_NICE:-${NICELEVEL:-0}}
+AVIAND_OPTS="${AVIAND_OPTS:-${RAVEN_OPTS}}"
 
 name="Raven Core Daemon"
 description="Raven cryptocurrency P2P network daemon"
 
-command="/usr/bin/ravend"
-command_args="-pid=\"${RAVEND_PIDFILE}\" \
-		-conf=\"${RAVEND_CONFIGFILE}\" \
-		-datadir=\"${RAVEND_DATADIR}\" \
+command="/usr/bin/aviand"
+command_args="-pid=\"${AVIAND_PIDFILE}\" \
+		-conf=\"${AVIAND_CONFIGFILE}\" \
+		-datadir=\"${AVIAND_DATADIR}\" \
 		-daemon \
-		${RAVEND_OPTS}"
+		${AVIAND_OPTS}"
 
-required_files="${RAVEND_CONFIGFILE}"
-start_stop_daemon_args="-u ${RAVEND_USER} \
-			-N ${RAVEND_NICE} -w 2000"
-pidfile="${RAVEND_PIDFILE}"
+required_files="${AVIAND_CONFIGFILE}"
+start_stop_daemon_args="-u ${AVIAND_USER} \
+			-N ${AVIAND_NICE} -w 2000"
+pidfile="${AVIAND_PIDFILE}"
 
 # The retry schedule to use when stopping the daemon. Could be either
 # a timeout in seconds or multiple signal/timeout pairs (like
 # "SIGKILL/180 SIGTERM/300")
-retry="${RAVEND_SIGTERM_TIMEOUT}"
+retry="${AVIAND_SIGTERM_TIMEOUT}"
 
 depend() {
 	need localmount net
@@ -50,29 +50,29 @@ start_pre() {
 	checkpath \
 	-d \
 	--mode 0750 \
-	--owner "${RAVEND_USER}:${RAVEND_GROUP}" \
-	"${RAVEND_DATADIR}"
+	--owner "${AVIAND_USER}:${AVIAND_GROUP}" \
+	"${AVIAND_DATADIR}"
 
 	checkpath \
 	-d \
 	--mode 0755 \
-	--owner "${RAVEND_USER}:${RAVEND_GROUP}" \
-	"${RAVEND_PIDDIR}"
+	--owner "${AVIAND_USER}:${AVIAND_GROUP}" \
+	"${AVIAND_PIDDIR}"
 
 	checkpath -f \
-	-o ${RAVEND_USER}:${RAVEND_GROUP} \
+	-o ${AVIAND_USER}:${AVIAND_GROUP} \
 	-m 0660 \
-	${RAVEND_CONFIGFILE}
+	${AVIAND_CONFIGFILE}
 
 	checkconfig || return 1
 }
 
 checkconfig()
 {
-	if ! grep -qs '^rpcpassword=' "${RAVEND_CONFIGFILE}" ; then
+	if ! grep -qs '^rpcpassword=' "${AVIAND_CONFIGFILE}" ; then
 		eerror ""
-		eerror "ERROR: You must set a secure rpcpassword to run ravend."
-		eerror "The setting must appear in ${RAVEND_CONFIGFILE}"
+		eerror "ERROR: You must set a secure rpcpassword to run aviand."
+		eerror "The setting must appear in ${AVIAND_CONFIGFILE}"
 		eerror ""
 		eerror "This password is security critical to securing wallets "
 		eerror "and must not be the same as the rpcuser setting."

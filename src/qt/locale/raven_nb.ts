@@ -410,8 +410,8 @@
         <translation>Verktøylinje for faner</translation>
     </message>
     <message>
-        <source>Request payments (generates QR codes and raven: URIs)</source>
-        <translation>Forespør betalinger (genererer QR-koder og raven: URIer)</translation>
+        <source>Request payments (generates QR codes and avian: URIs)</source>
+        <translation>Forespør betalinger (genererer QR-koder og avian: URIer)</translation>
     </message>
     <message>
         <source>Show the list of used sending addresses and labels</source>
@@ -422,8 +422,8 @@
         <translation>Vis listen over bruke mottaksadresser og merkelapper</translation>
     </message>
     <message>
-        <source>Open a raven: URI or payment request</source>
-        <translation>Åpne en Raven: URI eller betalingsetterspørring</translation>
+        <source>Open a avian: URI or payment request</source>
+        <translation>Åpne en Avian: URI eller betalingsetterspørring</translation>
     </message>
     <message>
         <source>&amp;Command-line options</source>
@@ -1896,7 +1896,7 @@
         <translation>Skriv inn en merkelapp for denne adressen for å legge den til listen av brukte adresser</translation>
     </message>
     <message>
-        <source>A message that was attached to the raven: URI which will be stored with the transaction for your reference. Note: This message will not be sent over the Raven network.</source>
+        <source>A message that was attached to the avian: URI which will be stored with the transaction for your reference. Note: This message will not be sent over the Raven network.</source>
         <translation>En melding som var tilknyttet ravenen: URI vil bli lagret med transaksjonen for din oversikt. Denne meldingen vil ikke bli sendt over Raven-nettverket.</translation>
     </message>
     <message>

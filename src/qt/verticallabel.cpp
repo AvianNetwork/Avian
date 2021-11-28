@@ -20,7 +20,7 @@ VerticalLabel::~VerticalLabel()
 void VerticalLabel::paintEvent(QPaintEvent*)
 {
     QPainter painter(this);
-    painter.setPen(Qt::black);
+    painter.setPen(Qt::white);
     painter.setBrush(Qt::Dense1Pattern);
     painter.translate(width() / 2, height());
     painter.rotate(270);

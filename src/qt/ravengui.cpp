@@ -4,7 +4,7 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #if defined(HAVE_CONFIG_H)
-#include "config/ravenlite-config.h"
+#include "config/avian-config.h"
 #endif
 
 #include "ravengui.h"
@@ -22,10 +22,12 @@
 #include "platformstyle.h"
 #include "rpcconsole.h"
 #include "utilitydialog.h"
+#include "validation.h"
 
 #ifdef ENABLE_WALLET
 #include "walletframe.h"
 #include "walletmodel.h"
+#include "mnemonicdialog.h"
 #endif // ENABLE_WALLET
 
 #ifdef Q_OS_MAC
@@ -81,7 +83,6 @@
 #include <QUrl>
 #else
 #include <QUrlQuery>
-#include <validation.h>
 #include <tinyformat.h>
 #include <QFontDatabase>
 
@@ -380,7 +381,7 @@ void RavenGUI::createActions()
     sendCoinsMenuAction->setToolTip(sendCoinsMenuAction->statusTip());
 
     receiveCoinsAction = new QAction(platformStyle->SingleColorIconOnOff(":/icons/receiving_addresses_selected", ":/icons/receiving_addresses"), tr("&Receive"), this);
-    receiveCoinsAction->setStatusTip(tr("Request payments (generates QR codes and raven: URIs)"));
+    receiveCoinsAction->setStatusTip(tr("Request payments (generates QR codes and avian: URIs)"));
     receiveCoinsAction->setToolTip(receiveCoinsAction->statusTip());
     receiveCoinsAction->setCheckable(true);
     receiveCoinsAction->setShortcut(QKeySequence(Qt::ALT + Qt::Key_3));
@@ -401,7 +402,7 @@ void RavenGUI::createActions()
 
     /** RVN START */
     transferAssetAction = new QAction(platformStyle->SingleColorIconOnOff(":/icons/asset_transfer_selected", ":/icons/asset_transfer"), tr("&Transfer Assets"), this);
-    transferAssetAction->setStatusTip(tr("Transfer assets to RVL addresses"));
+    transferAssetAction->setStatusTip(tr("Transfer assets to AVN addresses"));
     transferAssetAction->setToolTip(transferAssetAction->statusTip());
     transferAssetAction->setCheckable(true);
     transferAssetAction->setShortcut(QKeySequence(Qt::ALT + Qt::Key_5));
@@ -510,10 +511,10 @@ void RavenGUI::createActions()
     usedReceivingAddressesAction->setStatusTip(tr("Show the list of used receiving addresses and labels"));
 
     openAction = new QAction(platformStyle->TextColorIcon(":/icons/open"), tr("Open &URI..."), this);
-    openAction->setStatusTip(tr("Open a raven: URI or payment request"));
+    openAction->setStatusTip(tr("Open a avian: URI or payment request"));
 
     importPrivateKeyAction = new QAction(platformStyle->TextColorIcon(":/icons/address-book"), tr("&Import Private Key..."), this);
-    importPrivateKeyAction->setStatusTip(tr("Import a Ravenlite private key"));
+    importPrivateKeyAction->setStatusTip(tr("Import a Avian private key"));
 
     showHelpMessageAction = new QAction(platformStyle->TextColorIcon(":/icons/info"), tr("&Command-line options"), this);
     showHelpMessageAction->setMenuRole(QAction::NoRole);
@@ -600,8 +601,8 @@ void RavenGUI::createToolBars()
 {
     if(walletFrame)
     {
-        /** RVN START */
-        // Create the orange background and the vertical tool bar
+        /** AVN START */
+        // Create the background and the vertical tool bar
         QWidget* toolbarWidget = new QWidget();
 
         QString widgetStyleSheet = ".QWidget {background-color: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1, stop: 0 %1, stop: 1 %2);}";
@@ -609,10 +610,10 @@ void RavenGUI::createToolBars()
         toolbarWidget->setStyleSheet(widgetStyleSheet.arg(platformStyle->LightBlueColor().name(), platformStyle->DarkBlueColor().name()));
 
         QLabel* label = new QLabel();
-        label->setPixmap(QPixmap::fromImage(QImage(":/icons/ravencointext")));
-        label->setContentsMargins(0,0,0,50);
+        label->setPixmap(QPixmap::fromImage(QImage(":/icons/avianlogo")));
+        label->setContentsMargins(0,0,0,0);
         label->setStyleSheet(".QLabel{background-color: transparent;}");
-        /** RVN END */
+        /** AVN END */
 
         QToolBar *toolbar = new QToolBar();
         toolbar->setStyle(style());
@@ -640,7 +641,7 @@ void RavenGUI::createToolBars()
         stringToUse = normalString;
 #endif
 
-        /** RVL START */
+        /** AVN START */
         QString tbStyleSheet = ".QToolBar {background-color : transparent; border-color: transparent; }  "
                                ".QToolButton {background-color: transparent; border-color: transparent; width: 249px; color: %1; border: none;} "
                                ".QToolButton:checked {background: none; background-color: none; selection-background-color: none; color: %2; border: none; font: %4} "
@@ -702,17 +703,17 @@ void RavenGUI::createToolBars()
         labelCurrentMarket->setAlignment(Qt::AlignVCenter);
         labelCurrentMarket->setStyleSheet(STRING_LABEL_COLOR);
         labelCurrentMarket->setFont(currentMarketFont);
-        labelCurrentMarket->setText(tr("RavencoinLite Market Price"));
+        labelCurrentMarket->setText(tr("Avian (AVN) Market Price"));
 
         QString currentPriceStyleSheet = ".QLabel{color: %1;}";
         labelCurrentPrice->setContentsMargins(25,0,0,0);
         labelCurrentPrice->setFixedHeight(75);
         labelCurrentPrice->setAlignment(Qt::AlignVCenter);
-        labelCurrentPrice->setStyleSheet(currentPriceStyleSheet.arg(COLOR_LABELS.name()));
+        labelCurrentPrice->setStyleSheet(currentPriceStyleSheet.arg(COLOR_DARK_BLUE.name()));
         labelCurrentPrice->setFont(currentMarketFont);
 
         QLabel* labelBtcRvn = new QLabel();
-        labelBtcRvn->setText("USDT / RVL");
+        labelBtcRvn->setText("USDT / AVN");
         labelBtcRvn->setContentsMargins(15,0,0,0);
         labelBtcRvn->setFixedHeight(75);
         labelBtcRvn->setAlignment(Qt::AlignVCenter);
@@ -804,7 +805,7 @@ void RavenGUI::createToolBars()
         connect(pricingTimer, SIGNAL(timeout()), this, SLOT(getPriceInfo()));
         pricingTimer->start(10000);
         getPriceInfo();
-        /** RVL END */
+        /** AVN END */
     }
 }
 
@@ -913,13 +914,13 @@ void RavenGUI::setWalletActionsEnabled(bool enabled)
     openAction->setEnabled(enabled);
     paperWalletAction->setEnabled(enabled);
 
-    /** RVL START */
+    /** AVN START */
     transferAssetAction->setEnabled(false);
     createAssetAction->setEnabled(false);
     manageAssetAction->setEnabled(false);
     messagingAction->setEnabled(false);
     votingAction->setEnabled(false);
-    /** RVL END */
+    /** AVN END */
 }
 
 void RavenGUI::createTrayIcon(const NetworkStyle *networkStyle)
@@ -1246,7 +1247,7 @@ void RavenGUI::setNumBlocks(int count, const QDateTime& blockDate, double nVerif
 
 void RavenGUI::message(const QString &title, const QString &message, unsigned int style, bool *ret)
 {
-    QString strTitle = tr("Ravenlite"); // default title
+    QString strTitle = tr("Avian"); // default title
     // Default to information icon
     int nMBoxIcon = QMessageBox::Information;
     int nNotifyIcon = Notificator::Information;
@@ -1378,7 +1379,7 @@ void RavenGUI::checkAssets()
     // Check that status of RIP2 and activate the assets icon if it is active
     if(AreAssetsDeployed()) {
         transferAssetAction->setDisabled(false);
-        transferAssetAction->setToolTip(tr("Transfer assets to RVL addresses"));
+        transferAssetAction->setToolTip(tr("Transfer assets to AVN addresses"));
         createAssetAction->setDisabled(false);
         createAssetAction->setToolTip(tr("Create new main/sub/unique assets"));
         manageAssetAction->setDisabled(false);
@@ -1570,11 +1571,25 @@ static bool ThreadSafeMessageBox(RavenGUI *gui, const std::string& message, cons
     return ret;
 }
 
+static bool ThreadSafeMnemonic(RavenGUI *gui, unsigned int style)
+{
+    bool modal = (style & CClientUIInterface::MODAL);
+    // The SECURE flag has no effect in the Qt GUI.
+    // bool secure = (style & CClientUIInterface::SECURE);
+    style &= ~CClientUIInterface::SECURE;
+    bool ret = false;
+    // In case of modal message, use blocking connection to wait for user to click a button
+    QMetaObject::invokeMethod(gui, "mnemonic",
+                              modal ? GUIUtil::blockingGUIThreadConnection() : Qt::QueuedConnection);
+    return ret;
+}
+
 void RavenGUI::subscribeToCoreSignals()
 {
     // Connect signals to client
     uiInterface.ThreadSafeMessageBox.connect(boost::bind(ThreadSafeMessageBox, this, boost::placeholders::_1, boost::placeholders::_2, boost::placeholders::_3));
     uiInterface.ThreadSafeQuestion.connect(boost::bind(ThreadSafeMessageBox, this, boost::placeholders::_1, boost::placeholders::_3, boost::placeholders::_4));
+    uiInterface.ShowMnemonic.connect(boost::bind(ThreadSafeMnemonic, this, boost::placeholders::_1));
 }
 
 void RavenGUI::unsubscribeFromCoreSignals()
@@ -1582,6 +1597,7 @@ void RavenGUI::unsubscribeFromCoreSignals()
     // Disconnect signals from client
     uiInterface.ThreadSafeMessageBox.disconnect(boost::bind(ThreadSafeMessageBox, this, boost::placeholders::_1, boost::placeholders::_2, boost::placeholders::_3));
     uiInterface.ThreadSafeQuestion.disconnect(boost::bind(ThreadSafeMessageBox, this, boost::placeholders::_1, boost::placeholders::_3, boost::placeholders::_4));
+    uiInterface.ShowMnemonic.disconnect(boost::bind(ThreadSafeMnemonic, this, boost::placeholders::_1));
 }
 
 void RavenGUI::toggleNetworkActive()
@@ -1668,6 +1684,18 @@ void UnitDisplayStatusBarControl::onMenuSelection(QAction* action)
 
 void RavenGUI::getPriceInfo()
 {
-    request->setUrl(QUrl("https://www.exbitron.com/api/v2/peatio/public/markets/rvlusdt/tickers"));
+    QString url;
+    if(IsCrowEnabled(chainActive.Tip(), Params().GetConsensus()))
+        url = "https://www.exbitron.com/api/v2/peatio/public/markets/avnusdt/tickers";
+    else
+        url = "https://www.exbitron.com/api/v2/peatio/public/markets/rvlusdt/tickers";
+
+    request->setUrl(QUrl(url));
     networkManager->get(*request);
+}
+
+void RavenGUI::mnemonic()
+{
+        MnemonicDialog dlg(this);
+        dlg.exec();
 }

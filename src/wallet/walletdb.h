@@ -11,6 +11,7 @@
 #include "primitives/transaction.h"
 #include "wallet/db.h"
 #include "key.h"
+#include "wallet/bip39.h"
 
 #include <list>
 #include <stdint.h>
@@ -71,6 +72,7 @@ public:
     int nVersion;
 
     CHDChain() { SetNull(); }
+
     ADD_SERIALIZE_METHODS;
     template <typename Stream, typename Operation>
     inline void SerializationOp(Stream& s, Operation ser_action)
@@ -89,6 +91,7 @@ public:
         nInternalChainCounter = 0;
         seed_id.SetNull();
     }
+
 };
 
 class CKeyMetadata

@@ -3,7 +3,7 @@
 # Copyright (c) 2017 The Raven Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
-"""Compare two or more ravends to each other.
+"""Compare two or more aviands to each other.
 
 To use, create a class that implements get_tests(), and pass it in
 as the test generator to TestManager.  get_tests() should be a python

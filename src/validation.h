@@ -8,8 +8,9 @@
 #define RAVEN_VALIDATION_H
 
 #if defined(HAVE_CONFIG_H)
-#include "config/ravenlite-config.h"
+#include "config/avian-config.h"
 #endif
+
 
 #include "amount.h"
 #include "coins.h"
@@ -133,6 +134,9 @@ static const unsigned int MAX_FEEFILTER_CHANGE_DELAY = 5 * 60;
 static const int64_t BLOCK_DOWNLOAD_TIMEOUT_BASE = 1000000;
 /** Additional block download timeout per parallel downloading peer (i.e. 5 min) */
 static const int64_t BLOCK_DOWNLOAD_TIMEOUT_PER_PEER = 500000;
+
+// Crow: Check if Crow is activated at given point
+bool IsCrowEnabled(const CBlockIndex* pindexPrev, const Consensus::ConsensusParams& params);
 
 static const int64_t DEFAULT_MAX_TIP_AGE = 24 * 60 * 60;
 /** Maximum age of our tip in seconds for us to be considered current for fee estimation */

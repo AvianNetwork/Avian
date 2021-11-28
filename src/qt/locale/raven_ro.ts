@@ -214,12 +214,12 @@
         <translation>&amp;Ajutor</translation>
     </message>
     <message>
-        <source>Request payments (generates QR codes and raven: URIs)</source>
-        <translation>Cerere plată (generează coduri QR și raven: URIs)</translation>
+        <source>Request payments (generates QR codes and avian: URIs)</source>
+        <translation>Cerere plată (generează coduri QR și avian: URIs)</translation>
     </message>
     <message>
-        <source>Open a raven: URI or payment request</source>
-        <translation>Deschide un raven: URI sau cerere de plată</translation>
+        <source>Open a avian: URI or payment request</source>
+        <translation>Deschide un avian: URI sau cerere de plată</translation>
     </message>
     <message>
         <source>%1 behind</source>

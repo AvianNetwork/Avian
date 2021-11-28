@@ -414,8 +414,8 @@
         <translation>Panel s listy</translation>
     </message>
     <message>
-        <source>Request payments (generates QR codes and raven: URIs)</source>
-        <translation>Požaduj platby (generuje QR kódy a raven: URI)</translation>
+        <source>Request payments (generates QR codes and avian: URIs)</source>
+        <translation>Požaduj platby (generuje QR kódy a avian: URI)</translation>
     </message>
     <message>
         <source>Show the list of used sending addresses and labels</source>
@@ -426,8 +426,8 @@
         <translation>Ukaž seznam použitých přijímacích adres a jejich označení</translation>
     </message>
     <message>
-        <source>Open a raven: URI or payment request</source>
-        <translation>Načti raven: URI nebo platební požadavek</translation>
+        <source>Open a avian: URI or payment request</source>
+        <translation>Načti avian: URI nebo platební požadavek</translation>
     </message>
     <message>
         <source>&amp;Command-line options</source>
@@ -1270,8 +1270,8 @@
         <translation>Chyba platebního požadavku</translation>
     </message>
     <message>
-        <source>Cannot start raven: click-to-pay handler</source>
-        <translation>Nemůžu spustit raven: obsluha click-to-pay</translation>
+        <source>Cannot start avian: click-to-pay handler</source>
+        <translation>Nemůžu spustit avian: obsluha click-to-pay</translation>
     </message>
     <message>
         <source>URI handling</source>
@@ -2288,8 +2288,8 @@
         <translation>Zadej označení této adresy; obojí se ti pak uloží do adresáře</translation>
     </message>
     <message>
-        <source>A message that was attached to the raven: URI which will be stored with the transaction for your reference. Note: This message will not be sent over the Raven network.</source>
-        <translation>Zpráva, která byla připojena k raven: URI a která se ti pro přehled uloží k transakci. Poznámka: Tahle zpráva se neposílá s platbou po ravenové síti.</translation>
+        <source>A message that was attached to the avian: URI which will be stored with the transaction for your reference. Note: This message will not be sent over the Raven network.</source>
+        <translation>Zpráva, která byla připojena k avian: URI a která se ti pro přehled uloží k transakci. Poznámka: Tahle zpráva se neposílá s platbou po ravenové síti.</translation>
     </message>
     <message>
         <source>Pay To:</source>

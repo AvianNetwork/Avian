@@ -414,8 +414,8 @@
         <translation>Панель вкладок</translation>
     </message>
     <message>
-        <source>Request payments (generates QR codes and raven: URIs)</source>
-        <translation>Запросить платежи (создаёт QR-коды и raven: ссылки)</translation>
+        <source>Request payments (generates QR codes and avian: URIs)</source>
+        <translation>Запросить платежи (создаёт QR-коды и avian: ссылки)</translation>
     </message>
     <message>
         <source>Show the list of used sending addresses and labels</source>
@@ -426,8 +426,8 @@
         <translation>Показать список использованных адресов и меток получения</translation>
     </message>
     <message>
-        <source>Open a raven: URI or payment request</source>
-        <translation>Открыть raven: URI или запрос платежа</translation>
+        <source>Open a avian: URI or payment request</source>
+        <translation>Открыть avian: URI или запрос платежа</translation>
     </message>
     <message>
         <source>&amp;Command-line options</source>
@@ -1270,8 +1270,8 @@
         <translation>Ошибка запроса платежа</translation>
     </message>
     <message>
-        <source>Cannot start raven: click-to-pay handler</source>
-        <translation>Не удаётся запустить raven: обработчик click-to-pay</translation>
+        <source>Cannot start avian: click-to-pay handler</source>
+        <translation>Не удаётся запустить avian: обработчик click-to-pay</translation>
     </message>
     <message>
         <source>URI handling</source>
@@ -2288,8 +2288,8 @@
         <translation>Введите метку для этого адреса, чтобы добавить его в список использованных</translation>
     </message>
     <message>
-        <source>A message that was attached to the raven: URI which will be stored with the transaction for your reference. Note: This message will not be sent over the Raven network.</source>
-        <translation>К raven: URI было прикреплено сообщение, которое будет сохранено вместе с транзакцией для вашего сведения. Заметьте: сообщение не будет отправлено через сеть Raven.</translation>
+        <source>A message that was attached to the avian: URI which will be stored with the transaction for your reference. Note: This message will not be sent over the Raven network.</source>
+        <translation>К avian: URI было прикреплено сообщение, которое будет сохранено вместе с транзакцией для вашего сведения. Заметьте: сообщение не будет отправлено через сеть Raven.</translation>
     </message>
     <message>
         <source>Pay To:</source>

@@ -414,8 +414,8 @@
         <translation>Lišta záložiek</translation>
     </message>
     <message>
-        <source>Request payments (generates QR codes and raven: URIs)</source>
-        <translation>Vyžiadať platby (vygeneruje QR kódy a raven: URI)</translation>
+        <source>Request payments (generates QR codes and avian: URIs)</source>
+        <translation>Vyžiadať platby (vygeneruje QR kódy a avian: URI)</translation>
     </message>
     <message>
         <source>Show the list of used sending addresses and labels</source>
@@ -426,7 +426,7 @@
         <translation>Zobraziť zoznam použitých prijímacích adries a ich popisov</translation>
     </message>
     <message>
-        <source>Open a raven: URI or payment request</source>
+        <source>Open a avian: URI or payment request</source>
         <translation>Otvoriť raven URI alebo výzvu k platbe</translation>
     </message>
     <message>
@@ -2277,8 +2277,8 @@
         <translation>Vložte popis pre túto adresu aby sa uložila do zoznamu použitých adries</translation>
     </message>
     <message>
-        <source>A message that was attached to the raven: URI which will be stored with the transaction for your reference. Note: This message will not be sent over the Raven network.</source>
-        <translation>Správa ktorá bola pripojená k raven: URI a ktorá bude uložená s transakcou pre Vaše potreby. Poznámka: Táto správa nebude poslaná cez sieť Raven.</translation>
+        <source>A message that was attached to the avian: URI which will be stored with the transaction for your reference. Note: This message will not be sent over the Raven network.</source>
+        <translation>Správa ktorá bola pripojená k avian: URI a ktorá bude uložená s transakcou pre Vaše potreby. Poznámka: Táto správa nebude poslaná cez sieť Raven.</translation>
     </message>
     <message>
         <source>Pay To:</source>

@@ -1,5 +1,6 @@
 // Copyright (c) 2011-2016 The Bitcoin Core developers
 // Copyright (c) 2017 The Raven Core developers
+// Copyright (c) 2021 The Avian Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -351,6 +352,16 @@ OverviewPage::OverviewPage(const PlatformStyle *platformStyle, QWidget *parent) 
     ui->labelPendingText->setStyleSheet(STRING_LABEL_COLOR);
     ui->labelImmatureText->setStyleSheet(STRING_LABEL_COLOR);
     ui->labelTotalText->setStyleSheet(STRING_LABEL_COLOR);
+
+    ui->labelBalance->setStyleSheet(STRING_LABEL_COLOR);
+    ui->labelUnconfirmed->setStyleSheet(STRING_LABEL_COLOR);
+    ui->labelImmature->setStyleSheet(STRING_LABEL_COLOR);
+    ui->labelTotal->setStyleSheet(STRING_LABEL_COLOR);
+    ui->labelWatchAvailable->setStyleSheet(STRING_LABEL_COLOR);
+    ui->labelWatchPending->setStyleSheet(STRING_LABEL_COLOR);
+    ui->labelWatchImmature->setStyleSheet(STRING_LABEL_COLOR);
+    ui->labelWatchTotal->setStyleSheet(STRING_LABEL_COLOR);
+
     ui->labelSpendable->setStyleSheet(STRING_LABEL_COLOR);
     ui->labelWatchonly->setStyleSheet(STRING_LABEL_COLOR);
     ui->recentTransactionsLabel->setStyleSheet(STRING_LABEL_COLOR);
@@ -627,7 +638,7 @@ void OverviewPage::showAssets()
         ui->assetBalanceLabel->hide();
         ui->labelAssetStatus->hide();
 
-        // This keeps the RVN balance grid from expanding and looking terrible when asset balance is hidden
+        // This keeps the AVN balance grid from expanding and looking terrible when asset balance is hidden
         ui->assetVerticalSpaceWidget->show();
         ui->assetVerticalSpaceWidget2->show();
     }

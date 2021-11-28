@@ -1,10 +1,10 @@
-// Copyright (c) 2021 The Ravencoin Lite Core developers
+// Copyright (c) 2021 The Avian Core developers
 // Copyright (c) 2021 The Dogecoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #if defined(HAVE_CONFIG_H)
-#include "config/ravenlite-config.h"
+#include "config/avian-config.h"
 #endif
 
 #include "importkeysdialog.h"

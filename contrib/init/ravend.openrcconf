@@ -1,7 +1,7 @@
 # /etc/conf.d/ravend: config file for /etc/init.d/ravend
 
 # Config file location
-#RAVEND_CONFIGFILE="/etc/raven/raven.conf"
+#RAVEND_CONFIGFILE="/etc/raven/avian.conf"
 
 # What directory to write pidfile to?  (created and owned by $RAVEND_USER)
 #RAVEND_PIDDIR="/var/run/ravend"

@@ -2,7 +2,7 @@ OpenBSD build guide
 ======================
 (updated for OpenBSD 6.1)
 
-This guide describes how to build ravend and command-line utilities on OpenBSD.
+This guide describes how to build aviand and command-line utilities on OpenBSD.
 
 As OpenBSD is most common as a server OS, we will not bother with the GUI.
 
@@ -35,7 +35,7 @@ This compiler will not overwrite the system compiler, it will be installed as `e
 
 Do not use `pkg_add boost`! The boost version installed thus is compiled using the `g++` compiler not `eg++`, which will result in a conflict between `/usr/local/lib/libestdc++.so.XX.0` and `/usr/lib/libstdc++.so.XX.0`, resulting in a test crash:
 
-    test_raven:/usr/lib/libstdc++.so.57.0: /usr/local/lib/libestdc++.so.17.0 : WARNING: symbol(_ZN11__gnu_debug17_S_debug_me ssagesE) size mismatch, relink your program
+    test_avian:/usr/lib/libstdc++.so.57.0: /usr/local/lib/libestdc++.so.17.0 : WARNING: symbol(_ZN11__gnu_debug17_S_debug_me ssagesE) size mismatch, relink your program
     ...
     Segmentation fault (core dumped)
 
@@ -163,9 +163,9 @@ gmake
 However, this does not appear to work. Compilation succeeds, but link fails
 with many 'local symbol discarded' errors:
 
-    local symbol 150: discarded in section `.text._ZN10tinyformat6detail14FormatIterator6finishEv' from libraven_util.a(libraven_util_a-random.o)
-    local symbol 151: discarded in section `.text._ZN10tinyformat6detail14FormatIterator21streamStateFromFormatERSoRjPKcii' from libraven_util.a(libraven_util_a-random.o)
-    local symbol 152: discarded in section `.text._ZN10tinyformat6detail12convertToIntIA13_cLb0EE6invokeERA13_Kc' from libraven_util.a(libraven_util_a-random.o)
+    local symbol 150: discarded in section `.text._ZN10tinyformat6detail14FormatIterator6finishEv' from libavian_util.a(libavian_util_a-random.o)
+    local symbol 151: discarded in section `.text._ZN10tinyformat6detail14FormatIterator21streamStateFromFormatERSoRjPKcii' from libavian_util.a(libavian_util_a-random.o)
+    local symbol 152: discarded in section `.text._ZN10tinyformat6detail12convertToIntIA13_cLb0EE6invokeERA13_Kc' from libavian_util.a(libavian_util_a-random.o)
 
 According to similar reported errors this is a binutils (ld) issue in 2.15, the
 version installed by OpenBSD 5.7:

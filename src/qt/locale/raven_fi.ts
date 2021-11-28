@@ -414,8 +414,8 @@
         <translation>Välilehtipalkki</translation>
     </message>
     <message>
-        <source>Request payments (generates QR codes and raven: URIs)</source>
-        <translation>Pyydä maksuja (Luo QR koodit ja raven: URIt)</translation>
+        <source>Request payments (generates QR codes and avian: URIs)</source>
+        <translation>Pyydä maksuja (Luo QR koodit ja avian: URIt)</translation>
     </message>
     <message>
         <source>Show the list of used sending addresses and labels</source>
@@ -426,8 +426,8 @@
         <translation>Näytä vastaanottamiseen käytettyjen osoitteiden ja nimien lista</translation>
     </message>
     <message>
-        <source>Open a raven: URI or payment request</source>
-        <translation>Avaa raven: URI tai maksupyyntö</translation>
+        <source>Open a avian: URI or payment request</source>
+        <translation>Avaa avian: URI tai maksupyyntö</translation>
     </message>
     <message>
         <source>&amp;Command-line options</source>
@@ -1984,8 +1984,8 @@
         <translation>Aseta nimi tälle osoitteelle lisätäksesi sen käytettyjen osoitteiden listalle.</translation>
     </message>
     <message>
-        <source>A message that was attached to the raven: URI which will be stored with the transaction for your reference. Note: This message will not be sent over the Raven network.</source>
-        <translation>Viesti joka liitettiin raven: URI:iin tallennetaan rahansiirtoon viitteeksi. Tätä viestiä ei lähetetä Raven-verkkoon.</translation>
+        <source>A message that was attached to the avian: URI which will be stored with the transaction for your reference. Note: This message will not be sent over the Raven network.</source>
+        <translation>Viesti joka liitettiin avian: URI:iin tallennetaan rahansiirtoon viitteeksi. Tätä viestiä ei lähetetä Raven-verkkoon.</translation>
     </message>
     <message>
         <source>Pay To:</source>
@@ -2911,7 +2911,7 @@
     </message>
     <message>
         <source>Set key pool size to &lt;n&gt; (default: %u)</source>
-        <translation>Aseta avainaltaan kooksi &lt;n&gt; (oletus: %u)</translation>
+        <translation>Aseta avianaltaan kooksi &lt;n&gt; (oletus: %u)</translation>
     </message>
     <message>
         <source>Set maximum BIP141 block weight (default: %d)</source>

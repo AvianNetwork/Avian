@@ -3,7 +3,7 @@
 # Copyright (c) 2017-2018 The Raven Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
-"""Test raven-cli"""
+"""Test avian-cli"""
 from test_framework.test_framework import RavenTestFramework
 from test_framework.util import assert_equal, assert_raises_process_error, get_auth_cookie
 
@@ -16,7 +16,7 @@ class TestRavenCli(RavenTestFramework):
     def run_test(self):
         """Main test logic"""
 
-        self.log.info("Compare responses from getinfo RPC and `raven-cli getinfo`")
+        self.log.info("Compare responses from getinfo RPC and `avian-cli getinfo`")
         cli_get_info = self.nodes[0].cli.getinfo()
         rpc_get_info = self.nodes[0].getinfo()
 
@@ -32,7 +32,7 @@ class TestRavenCli(RavenTestFramework):
         assert_equal(["foo", "bar"], self.nodes[0].cli('-rpcuser=%s' % user, '-stdin', '-stdinrpcpass', input=password + "\nfoo\nbar").echo())
         assert_raises_process_error(1, "incorrect rpcuser or rpcpassword", self.nodes[0].cli('-rpcuser=%s' % user, '-stdin', '-stdinrpcpass', input="foo").echo)
 
-        self.log.info("Compare responses from `raven-cli -getinfo` and the RPCs data is retrieved from.")
+        self.log.info("Compare responses from `avian-cli -getinfo` and the RPCs data is retrieved from.")
         cli_get_info = self.nodes[0].cli('-getinfo').help()
         wallet_info = self.nodes[0].getwalletinfo()
         network_info = self.nodes[0].getnetworkinfo()

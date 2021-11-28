@@ -218,11 +218,11 @@
         <translation>Ciļņu rīkjosla</translation>
     </message>
     <message>
-        <source>Request payments (generates QR codes and raven: URIs)</source>
-        <translation>Pieprasīt maksājumus (izveido QR kodu un raven: URIs)</translation>
+        <source>Request payments (generates QR codes and avian: URIs)</source>
+        <translation>Pieprasīt maksājumus (izveido QR kodu un avian: URIs)</translation>
     </message>
     <message>
-        <source>Open a raven: URI or payment request</source>
+        <source>Open a avian: URI or payment request</source>
         <translation>Atvērt raven URI vai maksājuma pieprasījumu</translation>
     </message>
     <message>

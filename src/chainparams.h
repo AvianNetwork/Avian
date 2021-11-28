@@ -12,6 +12,7 @@
 #include "primitives/block.h"
 #include "protocol.h"
 
+#include <cstdint>
 #include <memory>
 #include <vector>
 
@@ -128,7 +129,8 @@ protected:
     CCheckpointData checkpointData;
     ChainTxData chainTxData;
 
-    /** RVN Start **/
+    /** AVN Start **/
+
     // Burn Amounts
     CAmount nIssueAssetBurnAmount;
     CAmount nReissueAssetBurnAmount;
@@ -150,7 +152,7 @@ protected:
     int nMaxReorganizationDepth;
     int nMinReorganizationPeers;
     int nMinReorganizationAge;
-    /** RVN End **/
+    /** AVN End **/
 };
 
 /**

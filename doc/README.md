@@ -21,11 +21,11 @@ The following are some helpful notes on how to run Ravencoin on your native plat
 
    a. GUI wallet:
    
-   `./raven-qt`
+   `./avian-qt`
 
    b. Core deamon:
    
-   `./ravend -deamon`
+   `./aviand -deamon`
 
 #### Ubuntu 16.04, 17.04/17.10 and 18.04
 
@@ -73,7 +73,7 @@ The GUI wallet requires the QR Code encoding library and Google's data interchan
 
 ### OS X
 
-1) Download Raven-Qt.dmg.
+1) Download Avian-Qt.dmg.
 
 2) Double click the DMG to mount it. 
 
@@ -89,16 +89,16 @@ Note: You may get the follow error on first launch:
 ```
 Dyld Error Message:
   Library not loaded: @loader_path/libboost_system-mt.dylib
-  Referenced from: /Applications/Raven-Qt.app/Contents/Frameworks/libboost_thread-mt.dylib
+  Referenced from: /Applications/Avian-Qt.app/Contents/Frameworks/libboost_thread-mt.dylib
   Reason: image not found
 ```
-To resolve, you will need to copy libboost_system.dylib to libboost_system-mt.dylib in the /Applications/Raven-Qt.app/Contents/Frameworks folder
+To resolve, you will need to copy libboost_system.dylib to libboost_system-mt.dylib in the /Applications/Avian-Qt.app/Contents/Frameworks folder
 
 ### Windows
 
 1) Download windows-x86_64.zip and unpack executables to desired folder.
 
-2) Double click the raven-qt.exe to launch it.
+2) Double click the avian-qt.exe to launch it.
 
 ### Need Help?
 

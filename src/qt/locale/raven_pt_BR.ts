@@ -410,8 +410,8 @@
         <translation>Barra de ferramentas</translation>
     </message>
     <message>
-        <source>Request payments (generates QR codes and raven: URIs)</source>
-        <translation>Solicitações de pagamentos (gera códigos QR e raven: URIs)</translation>
+        <source>Request payments (generates QR codes and avian: URIs)</source>
+        <translation>Solicitações de pagamentos (gera códigos QR e avian: URIs)</translation>
     </message>
     <message>
         <source>Show the list of used sending addresses and labels</source>
@@ -422,8 +422,8 @@
         <translation>Mostrar a lista de endereços de recebimento usados ​​e rótulos</translation>
     </message>
     <message>
-        <source>Open a raven: URI or payment request</source>
-        <translation>Abrir um raven: URI ou cobrança</translation>
+        <source>Open a avian: URI or payment request</source>
+        <translation>Abrir um avian: URI ou cobrança</translation>
     </message>
     <message>
         <source>&amp;Command-line options</source>
@@ -1266,8 +1266,8 @@
         <translation>Erro no pedido de pagamento</translation>
     </message>
     <message>
-        <source>Cannot start raven: click-to-pay handler</source>
-        <translation>Não foi possível iniciar raven: manipulador click-to-pay</translation>
+        <source>Cannot start avian: click-to-pay handler</source>
+        <translation>Não foi possível iniciar avian: manipulador click-to-pay</translation>
     </message>
     <message>
         <source>URI handling</source>
@@ -2284,8 +2284,8 @@
         <translation>Digite um rótulo para este endereço para adicioná-lo no catálogo</translation>
     </message>
     <message>
-        <source>A message that was attached to the raven: URI which will be stored with the transaction for your reference. Note: This message will not be sent over the Raven network.</source>
-        <translation>A mensagem que foi anexada ao raven: URI na qual será gravada na transação para sua referência. Nota: Essa mensagem não será gravada publicamente na rede Raven.</translation>
+        <source>A message that was attached to the avian: URI which will be stored with the transaction for your reference. Note: This message will not be sent over the Raven network.</source>
+        <translation>A mensagem que foi anexada ao avian: URI na qual será gravada na transação para sua referência. Nota: Essa mensagem não será gravada publicamente na rede Raven.</translation>
     </message>
     <message>
         <source>Pay To:</source>

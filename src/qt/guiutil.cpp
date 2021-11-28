@@ -222,7 +222,7 @@ void setupAmountWidget(QLineEdit *widget, QWidget *parent)
 
 bool parseRavenURI(const QUrl &uri, SendCoinsRecipient *out)
 {
-    // return if URI is not valid or is no raven: URI
+    // return if URI is not valid or is no avian: URI
     if(!uri.isValid() || uri.scheme() != QString("raven"))
         return false;
 
@@ -283,13 +283,13 @@ bool parseRavenURI(const QUrl &uri, SendCoinsRecipient *out)
 
 bool parseRavenURI(QString uri, SendCoinsRecipient *out)
 {
-    // Convert raven:// to raven:
+    // Convert avian:// to avian:
     //
-    //    Cannot handle this later, because raven:// will cause Qt to see the part after // as host,
+    //    Cannot handle this later, because avian:// will cause Qt to see the part after // as host,
     //    which will lower-case it (and thus invalidate the address).
-    if(uri.startsWith("raven://", Qt::CaseInsensitive))
+    if(uri.startsWith("avian://", Qt::CaseInsensitive))
     {
-        uri.replace(0, 10, "raven:");
+        uri.replace(0, 10, "avian:");
     }
     QUrl uriInstance(uri);
     return parseRavenURI(uriInstance, out);
@@ -297,7 +297,7 @@ bool parseRavenURI(QString uri, SendCoinsRecipient *out)
 
 QString formatRavenURI(const SendCoinsRecipient &info)
 {
-    QString ret = QString("raven:%1").arg(info.address);
+    QString ret = QString("avian:%1").arg(info.address);
     int paramCount = 0;
 
     if (info.amount)
@@ -504,7 +504,7 @@ bool openRavenConf()
     
     configFile.close();
     
-    /* Open raven.conf with the associated application */
+    /* Open avian.conf with the associated application */
     return QDesktopServices::openUrl(QUrl::fromLocalFile(boostPathToQString(pathConfig)));
 }
 

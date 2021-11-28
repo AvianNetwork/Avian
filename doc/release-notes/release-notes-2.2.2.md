@@ -20,8 +20,8 @@ How to Upgrade
 
 If you are running an older version, shut it down. Wait until it has completely
 shut down (which might take a few minutes for older versions), then run the 
-installer (on Windows) or just copy over `/Applications/Raven-Qt` (on Mac)
-or `ravend`/`raven-qt` (on Linux).
+installer (on Windows) or just copy over `/Applications/Avian-Qt` (on Mac)
+or `aviand`/`avian-qt` (on Linux).
 
 The first time you run version 2.1.0 or higher, your chainstate database may
 be converted to a new format, which will take anywhere from a few minutes to

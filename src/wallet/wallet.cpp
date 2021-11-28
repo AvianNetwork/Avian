@@ -173,7 +173,7 @@ CPubKey CWallet::GenerateNewKey(CWalletDB &walletdb, bool internal)
 
 void CWallet::DeriveNewChildKey(CWalletDB &walletdb, CKeyMetadata& metadata, CKey& secret, bool internal)
 {
-    // for now we use a fixed keypath scheme of m/0'/0'/k
+        // for now we use a fixed keypath scheme of m/0'/0'/k
     CKey seed;                     //seed (256bit)
     CExtKey masterKey;             //hd master key
     CExtKey accountKey;            //key at m/0'
@@ -670,12 +670,12 @@ bool CWallet::EncryptWallet(const SecureString& strWalletPassphrase)
         }
 
         NewKeyPool();
+
         Lock();
 
         // Need to completely rewrite the wallet file; if we don't, bdb might keep
         // bits of the unencrypted private key in slack space in the database file.
         dbw->Rewrite();
-
     }
     NotifyStatusChanged(this);
 

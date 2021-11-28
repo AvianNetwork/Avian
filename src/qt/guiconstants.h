@@ -1,5 +1,6 @@
 // Copyright (c) 2011-2016 The Bitcoin Core developers
 // Copyright (c) 2017 The Raven Core developers
+// Copyright (c) 2021 The Avian Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -41,7 +42,7 @@ static const bool DEFAULT_SPLASHSCREEN = true;
 #define COLOR_WALLETFRAME_SHADOW QColor(0,0,0,71)
 
 /* Color of labels */
-#define COLOR_LABELS QColor("#4960ad")
+#define COLOR_LABELS QColor("#FFFFFF")
 
 /** LIGHT MODE */
 /* Background color, very light gray */
@@ -51,15 +52,15 @@ static const bool DEFAULT_SPLASHSCREEN = true;
 /* Ravencoin light orange */
 #define COLOR_LIGHT_ORANGE QColor("#f79433")
 /* Ravencoin dark blue */
-#define COLOR_DARK_BLUE QColor("#475eaa")
+#define COLOR_DARK_BLUE QColor("#002b26")
 /* Ravencoin light blue */
-#define COLOR_LIGHT_BLUE QColor("#5874cf")
+#define COLOR_LIGHT_BLUE QColor("#002b27")
 /* Ravencoin asset text */
 #define COLOR_ASSET_TEXT QColor(255, 255, 255)
 /* Ravencoin shadow color - light mode */
 #define COLOR_SHADOW_LIGHT QColor("#e1e6f3")
 /* Toolbar not selected text color */
-#define COLOR_TOOLBAR_NOT_SELECTED_TEXT QColor("#a5b7f3")
+#define COLOR_TOOLBAR_NOT_SELECTED_TEXT QColor("#FFFFFF")
 /* Toolbar selected text color */
 #define COLOR_TOOLBAR_SELECTED_TEXT COLOR_WHITE
 
@@ -87,7 +88,7 @@ static const bool DEFAULT_SPLASHSCREEN = true;
 
 
 /* Ravencoin label color as a string */
-#define STRING_LABEL_COLOR "color: #4960ad"
+#define STRING_LABEL_COLOR "color: #000000"
 
 
 
@@ -110,9 +111,9 @@ static const int MAX_URI_LENGTH = 255;
 /* Number of frames in spinner animation */
 #define SPINNER_FRAMES 36
 
-#define QAPP_ORG_NAME "Raven Lite"
-#define QAPP_ORG_DOMAIN "ravencoinlite.org"
-#define QAPP_APP_NAME_DEFAULT "RavenLite-Qt"
-#define QAPP_APP_NAME_TESTNET "RavenLite-Qt-testnet"
+#define QAPP_ORG_NAME "Avian"
+#define QAPP_ORG_DOMAIN "avn.network"
+#define QAPP_APP_NAME_DEFAULT "Avian-Qt"
+#define QAPP_APP_NAME_TESTNET "Avian-Qt-testnet"
 
 #endif // RAVEN_QT_GUICONSTANTS_H

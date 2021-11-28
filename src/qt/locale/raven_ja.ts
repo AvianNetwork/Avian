@@ -414,8 +414,8 @@
         <translation>タブツールバー</translation>
     </message>
     <message>
-        <source>Request payments (generates QR codes and raven: URIs)</source>
-        <translation>支払いを要求する (QRコードとraven:ではじまるURIを生成する)</translation>
+        <source>Request payments (generates QR codes and avian: URIs)</source>
+        <translation>支払いを要求する (QRコードとavian:ではじまるURIを生成する)</translation>
     </message>
     <message>
         <source>Show the list of used sending addresses and labels</source>
@@ -426,8 +426,8 @@
         <translation>支払いを受け取るアドレスとラベルのリストを表示する</translation>
     </message>
     <message>
-        <source>Open a raven: URI or payment request</source>
-        <translation>raven: URIまたは支払いリクエストを開く</translation>
+        <source>Open a avian: URI or payment request</source>
+        <translation>avian: URIまたは支払いリクエストを開く</translation>
     </message>
     <message>
         <source>&amp;Command-line options</source>
@@ -1270,7 +1270,7 @@
         <translation>支払いのリクエストのエラーです</translation>
     </message>
     <message>
-        <source>Cannot start raven: click-to-pay handler</source>
+        <source>Cannot start avian: click-to-pay handler</source>
         <translation>Raven を起動できません: click-to-pay handler</translation>
     </message>
     <message>
@@ -2288,8 +2288,8 @@
         <translation>このアドレスに対するラベルを入力することで、使用済みアドレスの一覧に追加することができます</translation>
     </message>
     <message>
-        <source>A message that was attached to the raven: URI which will be stored with the transaction for your reference. Note: This message will not be sent over the Raven network.</source>
-        <translation>raven: URIに添付されていたメッセージです。これは参照用としてトランザクションとともに保存されます。注意：このメッセージはRavenネットワークを通して送信されるわけではありません。</translation>
+        <source>A message that was attached to the avian: URI which will be stored with the transaction for your reference. Note: This message will not be sent over the Raven network.</source>
+        <translation>avian: URIに添付されていたメッセージです。これは参照用としてトランザクションとともに保存されます。注意：このメッセージはRavenネットワークを通して送信されるわけではありません。</translation>
     </message>
     <message>
         <source>Pay To:</source>

@@ -8,6 +8,7 @@
 #define RAVEN_CONSENSUS_PARAMS_H
 
 #include "uint256.h"
+#include <cstdint>
 #include <map>
 #include <string>
 
@@ -19,7 +20,8 @@ enum DeploymentPos
     DEPLOYMENT_ASSETS, // Deployment of RIP2
     // DEPLOYMENT_CSV, // Deployment of BIP68, BIP112, and BIP113.
 //    DEPLOYMENT_SEGWIT, // Deployment of BIP141, BIP143, and BIP147.
-    // NOTE: Also add new deployments to VersionBitsDeploymentInfo in versionbits.cpp
+    // NOTE: Also add new deployments to VersionBitsDeploymentInfo in versionbits.cpp,
+    DEPLOYMENT_CROW,
     MAX_VERSION_BITS_DEPLOYMENTS
 };
 
@@ -69,6 +71,12 @@ struct ConsensusParams {
     uint256 defaultAssumeValid;
     bool nSegwitEnabled;
     bool nCSVEnabled;
+    uint32_t nX16rtTimestamp;
+
+    // Crow consensus fields
+    uint32_t powForkTime;
+    int64_t lwmaAveragingWindow;        // Averaging window size for LWMA diff adjust
+    std::vector<uint256> powTypeLimits; // Limits for each pow type (with future-proofing space; can't pick up NUM_BLOCK_TYPES here)
 };
 } // namespace Consensus
 

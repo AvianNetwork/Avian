@@ -24,23 +24,23 @@ RAVEN_INCLUDES=-I$(builddir) -I$(builddir)/obj $(BDB_CPPFLAGS) $(BOOST_CPPFLAGS)
 RAVEN_INCLUDES += -I$(srcdir)/secp256k1/include
 RAVEN_INCLUDES += $(UNIVALUE_CFLAGS)
 
-LIBRAVEN_SERVER=libraven_server.a
-LIBRAVEN_COMMON=libraven_common.a
-LIBRAVEN_CONSENSUS=libraven_consensus.a
-LIBRAVEN_CLI=libraven_cli.a
-LIBRAVEN_UTIL=libraven_util.a
-LIBRAVEN_CRYPTO=crypto/libraven_crypto.a
-LIBRAVENQT=qt/libravenqt.a
+LIBAVIAN_SERVER=libavian_server.a
+LIBAVIAN_COMMON=libavian_common.a
+LIBAVIAN_CONSENSUS=libavian_consensus.a
+LIBAVIAN_CLI=libavian_cli.a
+LIBAVIAN_UTIL=libavian_util.a
+LIBAVIAN_CRYPTO=crypto/libavian_crypto.a
+LIBAVIANQT=qt/libavianqt.a
 LIBSECP256K1=secp256k1/libsecp256k1.la
 
 if ENABLE_ZMQ
-LIBRAVEN_ZMQ=libraven_zmq.a
+LIBAVIAN_ZMQ=libavian_zmq.a
 endif
 if BUILD_RAVEN_LIBS
-LIBRAVENCONSENSUS=libravenconsensus.la
+LIBAVIANCONSENSUS=libavianconsensus.la
 endif
 if ENABLE_WALLET
-LIBRAVEN_WALLET=libraven_wallet.a
+LIBAVIAN_WALLET=libavian_wallet.a
 endif
 
 $(LIBSECP256K1): $(wildcard secp256k1/src/*) $(wildcard secp256k1/include/*)
@@ -49,32 +49,32 @@ $(LIBSECP256K1): $(wildcard secp256k1/src/*) $(wildcard secp256k1/include/*)
 # Make is not made aware of per-object dependencies to avoid limiting building parallelization
 # But to build the less dependent modules first, we manually select their order here:
 EXTRA_LIBRARIES += \
-  $(LIBRAVEN_CRYPTO) \
-  $(LIBRAVEN_UTIL) \
-  $(LIBRAVEN_COMMON) \
-  $(LIBRAVEN_CONSENSUS) \
-  $(LIBRAVEN_SERVER) \
-  $(LIBRAVEN_CLI) \
-  $(LIBRAVEN_WALLET) \
-  $(LIBRAVEN_ZMQ)
+  $(LIBAVIAN_CRYPTO) \
+  $(LIBAVIAN_UTIL) \
+  $(LIBAVIAN_COMMON) \
+  $(LIBAVIAN_CONSENSUS) \
+  $(LIBAVIAN_SERVER) \
+  $(LIBAVIAN_CLI) \
+  $(LIBAVIAN_WALLET) \
+  $(LIBAVIAN_ZMQ)
 
-lib_LTLIBRARIES = $(LIBRAVENCONSENSUS)
+lib_LTLIBRARIES = $(LIBAVIANCONSENSUS)
 
 bin_PROGRAMS =
 noinst_PROGRAMS =
 TESTS =
 BENCHMARKS =
 
-if BUILD_RAVEND
-  bin_PROGRAMS += ravend
+if BUILD_AVIAND
+  bin_PROGRAMS += aviand
 endif
 
-if BUILD_RAVEN_CLI
-  bin_PROGRAMS += raven-cli
+if BUILD_AVIAN_CLI
+  bin_PROGRAMS += avian-cli
 endif
 
-if BUILD_RAVEN_TX
-  bin_PROGRAMS += raven-tx
+if BUILD_AVIAN_TX
+  bin_PROGRAMS += avian-tx
 endif
 
 .PHONY: FORCE check-symbols check-security
@@ -126,6 +126,21 @@ RAVEN_CORE_H = \
   algo/sponge.cpp \
   algo/sph_sha2.c \
   algo/gost_streebog.c \
+  algo/crow/blake2.h \
+  algo/crow/blake2-impl.h \
+  algo/crow/blake2s-ref.c \
+  algo/crow/hashblake.h \
+  algo/crow/hashgroestl.h \
+  algo/crow/hashquark.h \
+  algo/crow/hashqubit.h \
+  algo/crow/hashskein.h \
+  algo/crow/hashx11.h \
+  algo/crow/hashx13.h \
+  algo/crow/hashx15.h \
+  algo/crow/hashx17.h \
+  algo/crow/crow.h \
+  algo/crow/yespower/yespower.c \
+  algo/crow/yespower/crypto/sha256.c \
   spentindex.h \
   timestampindex.h \
   addrman.h \
@@ -223,23 +238,24 @@ RAVEN_CORE_H = \
   wallet/rpcwallet.h \
   wallet/wallet.h \
   wallet/walletdb.h \
+  wallet/bip39.h \
+  wallet/bip39_english.h \
   warnings.h \
   zmq/zmqabstractnotifier.h \
   zmq/zmqconfig.h\
   zmq/zmqnotificationinterface.h \
-  zmq/zmqpublishnotifier.h
-
+  zmq/zmqpublishnotifier.h 
 
 obj/build.h: FORCE
 	@$(MKDIR_P) $(builddir)/obj
 	@$(top_srcdir)/share/genbuild.sh "$(abs_top_builddir)/src/obj/build.h" \
 	  "$(abs_top_srcdir)"
-libraven_util_a-clientversion.$(OBJEXT): obj/build.h
+libavian_util_a-clientversion.$(OBJEXT): obj/build.h
 
-# server: shared between ravend and raven-qt
-libraven_server_a_CPPFLAGS = $(AM_CPPFLAGS) $(RAVEN_INCLUDES) $(MINIUPNPC_CPPFLAGS) $(EVENT_CFLAGS) $(EVENT_PTHREADS_CFLAGS)
-libraven_server_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
-libraven_server_a_SOURCES = \
+# server: shared between aviand and avian-qt
+libavian_server_a_CPPFLAGS = $(AM_CPPFLAGS) $(RAVEN_INCLUDES) $(MINIUPNPC_CPPFLAGS) $(EVENT_CFLAGS) $(EVENT_PTHREADS_CFLAGS)
+libavian_server_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
+libavian_server_a_SOURCES = \
   addrdb.cpp \
   addrman.cpp \
   bloom.cpp \
@@ -286,20 +302,20 @@ libraven_server_a_SOURCES = \
   $(RAVEN_CORE_H)
 
 if ENABLE_ZMQ
-libraven_zmq_a_CPPFLAGS = $(RAVEN_INCLUDES) $(ZMQ_CFLAGS)
-libraven_zmq_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
-libraven_zmq_a_SOURCES = \
+libavian_zmq_a_CPPFLAGS = $(RAVEN_INCLUDES) $(ZMQ_CFLAGS)
+libavian_zmq_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
+libavian_zmq_a_SOURCES = \
   zmq/zmqabstractnotifier.cpp \
   zmq/zmqnotificationinterface.cpp \
   zmq/zmqpublishnotifier.cpp
 endif
 
 
-# wallet: shared between ravend and raven-qt, but only linked
+# wallet: shared between aviand and avian-qt, but only linked
 # when wallet enabled
-libraven_wallet_a_CPPFLAGS = $(AM_CPPFLAGS) $(RAVEN_INCLUDES)
-libraven_wallet_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
-libraven_wallet_a_SOURCES = \
+libavian_wallet_a_CPPFLAGS = $(AM_CPPFLAGS) $(RAVEN_INCLUDES)
+libavian_wallet_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
+libavian_wallet_a_SOURCES = \
   wallet/crypter.cpp \
   wallet/db.cpp \
   wallet/feebumper.cpp \
@@ -309,12 +325,13 @@ libraven_wallet_a_SOURCES = \
   wallet/rpcwallet.cpp \
   wallet/wallet.cpp \
   wallet/walletdb.cpp \
+  wallet/bip39.cpp \
   $(RAVEN_CORE_H)
 
 # crypto primitives library
-crypto_libraven_crypto_a_CPPFLAGS = $(AM_CPPFLAGS)
-crypto_libraven_crypto_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
-crypto_libraven_crypto_a_SOURCES = \
+crypto_libavian_crypto_a_CPPFLAGS = $(AM_CPPFLAGS)
+crypto_libavian_crypto_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
+crypto_libavian_crypto_a_SOURCES = \
   crypto/aes.cpp \
   crypto/aes.h \
   crypto/chacha20.h \
@@ -334,13 +351,13 @@ crypto_libraven_crypto_a_SOURCES = \
   crypto/sha512.cpp
 
 if USE_ASM
-crypto_libraven_crypto_a_SOURCES += crypto/sha256_sse4.cpp
+crypto_libavian_crypto_a_SOURCES += crypto/sha256_sse4.cpp
 endif
 
 # consensus: shared between all executables that validate any consensus rules.
-libraven_consensus_a_CPPFLAGS = $(AM_CPPFLAGS) $(RAVEN_INCLUDES)
-libraven_consensus_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
-libraven_consensus_a_SOURCES = \
+libavian_consensus_a_CPPFLAGS = $(AM_CPPFLAGS) $(RAVEN_INCLUDES)
+libavian_consensus_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
+libavian_consensus_a_SOURCES = \
   amount.h \
   arith_uint256.cpp \
   arith_uint256.h \
@@ -375,10 +392,10 @@ libraven_consensus_a_SOURCES = \
   version.h \
   $(RAVEN_CORE_H)
 
-# common: shared between ravend, and raven-qt and non-server tools
-libraven_common_a_CPPFLAGS = $(AM_CPPFLAGS) $(RAVEN_INCLUDES)
-libraven_common_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
-libraven_common_a_SOURCES = \
+# common: shared between aviand, and avian-qt and non-server tools
+libavian_common_a_CPPFLAGS = $(AM_CPPFLAGS) $(RAVEN_INCLUDES)
+libavian_common_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
+libavian_common_a_SOURCES = \
   base58.cpp \
   chainparams.cpp \
   coins.cpp \
@@ -400,9 +417,9 @@ libraven_common_a_SOURCES = \
 # util: shared between all executables.
 # This library *must* be included to make sure that the glibc
 # backward-compatibility objects and their sanity checks are linked.
-libraven_util_a_CPPFLAGS = $(AM_CPPFLAGS) $(RAVEN_INCLUDES)
-libraven_util_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
-libraven_util_a_SOURCES = \
+libavian_util_a_CPPFLAGS = $(AM_CPPFLAGS) $(RAVEN_INCLUDES)
+libavian_util_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
+libavian_util_a_SOURCES = \
   support/lockedpool.cpp \
   chainparamsbase.cpp \
   clientversion.cpp \
@@ -422,99 +439,99 @@ libraven_util_a_SOURCES = \
   $(RAVEN_CORE_H)
 
 if GLIBC_BACK_COMPAT
-libraven_util_a_SOURCES += compat/glibc_compat.cpp
+libavian_util_a_SOURCES += compat/glibc_compat.cpp
 AM_LDFLAGS += $(COMPAT_LDFLAGS)
 endif
 
-# cli: shared between raven-cli and raven-qt
-libraven_cli_a_CPPFLAGS = $(AM_CPPFLAGS) $(RAVEN_INCLUDES)
-libraven_cli_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
-libraven_cli_a_SOURCES = \
+# cli: shared between avian-cli and avian-qt
+libavian_cli_a_CPPFLAGS = $(AM_CPPFLAGS) $(RAVEN_INCLUDES)
+libavian_cli_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
+libavian_cli_a_SOURCES = \
   rpc/client.cpp \
   $(RAVEN_CORE_H)
 
-nodist_libraven_util_a_SOURCES = $(srcdir)/obj/build.h
+nodist_libavian_util_a_SOURCES = $(srcdir)/obj/build.h
 #
 
-# ravend binary #
-ravend_SOURCES = ravend.cpp
-ravend_CPPFLAGS = $(AM_CPPFLAGS) $(RAVEN_INCLUDES)
-ravend_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
-ravend_LDFLAGS = $(RELDFLAGS) $(AM_LDFLAGS) $(LIBTOOL_APP_LDFLAGS)
+# aviand binary #
+aviand_SOURCES = ravend.cpp
+aviand_CPPFLAGS = $(AM_CPPFLAGS) $(RAVEN_INCLUDES)
+aviand_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
+aviand_LDFLAGS = $(RELDFLAGS) $(AM_LDFLAGS) $(LIBTOOL_APP_LDFLAGS)
 
 if TARGET_WINDOWS
-ravend_SOURCES += ravend-res.rc
+aviand_SOURCES += ravend-res.rc
 endif
 
-ravend_LDADD = \
-  $(LIBRAVEN_SERVER) \
-  $(LIBRAVEN_COMMON) \
+aviand_LDADD = \
+  $(LIBAVIAN_SERVER) \
+  $(LIBAVIAN_COMMON) \
   $(LIBUNIVALUE) \
-  $(LIBRAVEN_UTIL) \
-  $(LIBRAVEN_WALLET) \
-  $(LIBRAVEN_ZMQ) \
-  $(LIBRAVEN_CONSENSUS) \
-  $(LIBRAVEN_CRYPTO) \
+  $(LIBAVIAN_UTIL) \
+  $(LIBAVIAN_WALLET) \
+  $(LIBAVIAN_ZMQ) \
+  $(LIBAVIAN_CONSENSUS) \
+  $(LIBAVIAN_CRYPTO) \
   $(LIBLEVELDB) \
   $(LIBLEVELDB_SSE42) \
   $(LIBMEMENV) \
   $(LIBSECP256K1)
 
-ravend_LDADD += $(BOOST_LIBS) $(BDB_LIBS) $(SSL_LIBS) $(CRYPTO_LIBS) $(MINIUPNPC_LIBS) $(EVENT_PTHREADS_LIBS) $(EVENT_LIBS) $(ZMQ_LIBS)
+aviand_LDADD += $(BOOST_LIBS) $(BDB_LIBS) $(SSL_LIBS) $(CRYPTO_LIBS) $(MINIUPNPC_LIBS) $(EVENT_PTHREADS_LIBS) $(EVENT_LIBS) $(ZMQ_LIBS)
 
-# raven-cli binary #
-raven_cli_SOURCES = raven-cli.cpp
-raven_cli_CPPFLAGS = $(AM_CPPFLAGS) $(RAVEN_INCLUDES) $(EVENT_CFLAGS)
-raven_cli_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
-raven_cli_LDFLAGS = $(RELDFLAGS) $(AM_LDFLAGS) $(LIBTOOL_APP_LDFLAGS)
+# avian-cli binary #
+avian_cli_SOURCES = raven-cli.cpp
+avian_cli_CPPFLAGS = $(AM_CPPFLAGS) $(RAVEN_INCLUDES) $(EVENT_CFLAGS)
+avian_cli_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
+avian_cli_LDFLAGS = $(RELDFLAGS) $(AM_LDFLAGS) $(LIBTOOL_APP_LDFLAGS)
 
 if TARGET_WINDOWS
-raven_cli_SOURCES += raven-cli-res.rc
+avian_cli_SOURCES += raven-cli-res.rc
 endif
 
-raven_cli_LDADD = \
-  $(LIBRAVEN_CLI) \
+avian_cli_LDADD = \
+  $(LIBAVIAN_CLI) \
   $(LIBUNIVALUE) \
-  $(LIBRAVEN_UTIL) \
-  $(LIBRAVEN_CRYPTO)
+  $(LIBAVIAN_UTIL) \
+  $(LIBAVIAN_CRYPTO)
 
-raven_cli_LDADD += $(BOOST_LIBS) $(SSL_LIBS) $(CRYPTO_LIBS) $(EVENT_LIBS)
+avian_cli_LDADD += $(BOOST_LIBS) $(SSL_LIBS) $(CRYPTO_LIBS) $(EVENT_LIBS)
 #
 
-# raven-tx binary #
-raven_tx_SOURCES = raven-tx.cpp
-raven_tx_CPPFLAGS = $(AM_CPPFLAGS) $(RAVEN_INCLUDES)
-raven_tx_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
-raven_tx_LDFLAGS = $(RELDFLAGS) $(AM_LDFLAGS) $(LIBTOOL_APP_LDFLAGS)
+# avian-tx binary #
+avian_tx_SOURCES = raven-tx.cpp
+avian_tx_CPPFLAGS = $(AM_CPPFLAGS) $(RAVEN_INCLUDES)
+avian_tx_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
+avian_tx_LDFLAGS = $(RELDFLAGS) $(AM_LDFLAGS) $(LIBTOOL_APP_LDFLAGS)
 
 if TARGET_WINDOWS
-raven_tx_SOURCES += raven-tx-res.rc
+avian_tx_SOURCES += raven-tx-res.rc
 endif
 
-raven_tx_LDADD = \
+avian_tx_LDADD = \
   $(LIBUNIVALUE) \
-  $(LIBRAVEN_COMMON) \
-  $(LIBRAVEN_UTIL) \
-  $(LIBRAVEN_CONSENSUS) \
-  $(LIBRAVEN_CRYPTO) \
+  $(LIBAVIAN_COMMON) \
+  $(LIBAVIAN_UTIL) \
+  $(LIBAVIAN_CONSENSUS) \
+  $(LIBAVIAN_CRYPTO) \
   $(LIBSECP256K1)
 
-raven_tx_LDADD += $(BOOST_LIBS) $(CRYPTO_LIBS)
+avian_tx_LDADD += $(BOOST_LIBS) $(CRYPTO_LIBS)
 #
 
 # ravenconsensus library #
 if BUILD_RAVEN_LIBS
 include_HEADERS = script/ravenconsensus.h
-libravenconsensus_la_SOURCES = $(crypto_libraven_crypto_a_SOURCES) $(libraven_consensus_a_SOURCES)
+libavianconsensus_la_SOURCES = $(crypto_libavian_crypto_a_SOURCES) $(libavian_consensus_a_SOURCES)
 
 if GLIBC_BACK_COMPAT
-  libravenconsensus_la_SOURCES += compat/glibc_compat.cpp
+  libavianconsensus_la_SOURCES += compat/glibc_compat.cpp
 endif
 
-libravenconsensus_la_LDFLAGS = $(AM_LDFLAGS) -no-undefined $(RELDFLAGS)
-libravenconsensus_la_LIBADD = $(LIBSECP256K1)
-libravenconsensus_la_CPPFLAGS = $(AM_CPPFLAGS) -I$(builddir)/obj -I$(srcdir)/secp256k1/include -DBUILD_RAVEN_INTERNAL
-libravenconsensus_la_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
+libavianconsensus_la_LDFLAGS = $(AM_LDFLAGS) -no-undefined $(RELDFLAGS)
+libavianconsensus_la_LIBADD = $(LIBSECP256K1)
+libavianconsensus_la_CPPFLAGS = $(AM_CPPFLAGS) -I$(builddir)/obj -I$(srcdir)/secp256k1/include -DBUILD_RAVEN_INTERNAL
+libavianconsensus_la_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
 
 endif
 #
@@ -544,12 +561,12 @@ CLEANFILES += obj/build.h
 EXTRA_DIST = $(CTAES_DIST)
 
 
-config/ravenlite-config.h: config/stamp-h1
+config/avian-config.h: config/stamp-h1
 	@$(MAKE) -C $(top_builddir) $(subdir)/$(@)
-config/stamp-h1: $(top_srcdir)/$(subdir)/config/ravenlite-config.h.in $(top_builddir)/config.status
+config/stamp-h1: $(top_srcdir)/$(subdir)/config/avian-config.h.in $(top_builddir)/config.status
 	$(AM_V_at)$(MAKE) -C $(top_builddir) $(subdir)/$(@)
-$(top_srcdir)/$(subdir)/config/ravenlite-config.h.in:  $(am__configure_deps)
-	$(AM_V_at)$(MAKE) -C $(top_srcdir) $(subdir)/config/ravenlite-config.h.in
+$(top_srcdir)/$(subdir)/config/avian-config.h.in:  $(am__configure_deps)
+	$(AM_V_at)$(MAKE) -C $(top_srcdir) $(subdir)/config/avian-config.h.in
 
 clean-local:
 	-$(MAKE) -C secp256k1 clean

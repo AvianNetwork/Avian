@@ -406,7 +406,7 @@
         <translation>شريط أدوات علامات التبويب</translation>
     </message>
     <message>
-        <source>Request payments (generates QR codes and raven: URIs)</source>
+        <source>Request payments (generates QR codes and avian: URIs)</source>
         <translation>أطلب دفعات (يولد كودات الرمز المربع وبيت كوين: العناوين المعطاة)</translation>
     </message>
     <message>
@@ -418,7 +418,7 @@
         <translation>عرض قائمة عناوين الإستقبال المستخدمة والملصقات</translation>
     </message>
     <message>
-        <source>Open a raven: URI or payment request</source>
+        <source>Open a avian: URI or payment request</source>
         <translation>فتح URI : Raven أو طلب دفع</translation>
     </message>
     <message>

@@ -414,7 +414,7 @@
         <translation>分頁工具列</translation>
     </message>
     <message>
-        <source>Request payments (generates QR codes and raven: URIs)</source>
+        <source>Request payments (generates QR codes and avian: URIs)</source>
         <translation>要求付款(產生 QR Code 和 raven 付款協議的資源識別碼: URI)</translation>
     </message>
     <message>
@@ -426,7 +426,7 @@
         <translation>顯示已使用過的收款位址和標記的清單</translation>
     </message>
     <message>
-        <source>Open a raven: URI or payment request</source>
+        <source>Open a avian: URI or payment request</source>
         <translation>開啓 raven 協議的資源識別碼(URI)或付款要求</translation>
     </message>
     <message>
@@ -1270,7 +1270,7 @@
         <translation>要求付款時發生錯誤</translation>
     </message>
     <message>
-        <source>Cannot start raven: click-to-pay handler</source>
+        <source>Cannot start avian: click-to-pay handler</source>
         <translation>沒辦法啟動 raven 協議的「按就付」處理器</translation>
     </message>
     <message>
@@ -2284,7 +2284,7 @@
         <translation>請輸入這個位址的標記，來把它加進去已使用過位址的清單。</translation>
     </message>
     <message>
-        <source>A message that was attached to the raven: URI which will be stored with the transaction for your reference. Note: This message will not be sent over the Raven network.</source>
+        <source>A message that was attached to the avian: URI which will be stored with the transaction for your reference. Note: This message will not be sent over the Raven network.</source>
         <translation>附加在 Raven 付款協議的資源識別碼(URI)中的訊息，會和交易內容一起存起來，給你自己做參考。注意: 這個訊息不會送到 Raven 網路上。</translation>
     </message>
     <message>

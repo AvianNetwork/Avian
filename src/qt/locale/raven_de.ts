@@ -414,8 +414,8 @@
         <translation>Registerkartenleiste</translation>
     </message>
     <message>
-        <source>Request payments (generates QR codes and raven: URIs)</source>
-        <translation>Zahlungen anfordern (erzeugt QR-Codes und "raven:"-URIs)</translation>
+        <source>Request payments (generates QR codes and avian: URIs)</source>
+        <translation>Zahlungen anfordern (erzeugt QR-Codes und "avian:"-URIs)</translation>
     </message>
     <message>
         <source>Show the list of used sending addresses and labels</source>
@@ -426,8 +426,8 @@
         <translation>Liste verwendeter Empfangsadressen und Bezeichnungen anzeigen</translation>
     </message>
     <message>
-        <source>Open a raven: URI or payment request</source>
-        <translation>Eine "raven:"-URI oder Zahlungsanforderung öffnen</translation>
+        <source>Open a avian: URI or payment request</source>
+        <translation>Eine "avian:"-URI oder Zahlungsanforderung öffnen</translation>
     </message>
     <message>
         <source>&amp;Command-line options</source>
@@ -1049,7 +1049,7 @@
     </message>
     <message>
         <source>Automatically open the Raven client port on the router. This only works when your router supports UPnP and it is enabled.</source>
-        <translation>Automatisch den Raven-Clientport auf dem Router öffnen. Dies funktioniert nur, wenn Ihr Router UPnP unterstützt und dies aktiviert ist.</translation>
+        <translation>Automatisch den Avian-Clientport auf dem Router öffnen. Dies funktioniert nur, wenn Ihr Router UPnP unterstützt und dies aktiviert ist.</translation>
     </message>
     <message>
         <source>Map port using &amp;UPnP</source>
@@ -1270,7 +1270,7 @@
         <translation>Fehlerhafte Zahlungsanforderung</translation>
     </message>
     <message>
-        <source>Cannot start raven: click-to-pay handler</source>
+        <source>Cannot start avian: click-to-pay handler</source>
         <translation>Kann Raven nicht starten: Klicken-zum-Bezahlen-Handler</translation>
     </message>
     <message>
@@ -2284,8 +2284,8 @@
         <translation>Adressbezeichnung eingeben, die dann zusammen mit der Adresse der Liste bereits verwendeter Adressen hinzugefügt wird.</translation>
     </message>
     <message>
-        <source>A message that was attached to the raven: URI which will be stored with the transaction for your reference. Note: This message will not be sent over the Raven network.</source>
-        <translation>Eine an die "raven:"-URI angefügte Nachricht, die zusammen mit der Transaktion gespeichert wird. Hinweis: Diese Nachricht wird nicht über das Raven-Netzwerk gesendet.</translation>
+        <source>A message that was attached to the avian: URI which will be stored with the transaction for your reference. Note: This message will not be sent over the Raven network.</source>
+        <translation>Eine an die "avian:"-URI angefügte Nachricht, die zusammen mit der Transaktion gespeichert wird. Hinweis: Diese Nachricht wird nicht über das Raven-Netzwerk gesendet.</translation>
     </message>
     <message>
         <source>Pay To:</source>

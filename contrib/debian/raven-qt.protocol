@@ -1,5 +1,5 @@
 [Protocol]
-exec=raven-qt '%u'
+exec=avian-qt '%u'
 protocol=raven
 input=none
 output=none

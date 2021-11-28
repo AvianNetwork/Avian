@@ -1,10 +1,10 @@
-// Copyright (c) 2021 The Ravencoin Lite Core developers 
+// Copyright (c) 2021 The Avian Core developers 
 // Copyright (c) 2021 The Dogecoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef RAVENLITE_QT_IMPORTKEYS_H
-#define RAVENLITE_QT_IMPORTKEYS_H
+#ifndef AVIAN_QT_IMPORTKEYS_H
+#define AVIAN_QT_IMPORTKEYS_H
 class CWallet;
 class CBlockIndex;
 
@@ -49,4 +49,4 @@ private Q_SLOTS:
     bool importKey();
 };
 
-#endif // RAVENLITE_QT_IMPORTKEYS_H
+#endif // AVIAN_QT_IMPORTKEYS_H

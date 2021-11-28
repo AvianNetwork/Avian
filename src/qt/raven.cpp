@@ -4,7 +4,7 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #if defined(HAVE_CONFIG_H)
-#include "config/ravenlite-config.h"
+#include "config/avian-config.h"
 #endif
 
 #include "ravengui.h"
@@ -335,7 +335,7 @@ void RavenCore::shutdown()
 }
 
 static int qt_argc = 1;
-static const char* qt_argv = "raven-qt";
+static const char* qt_argv = "avian-qt";
 
 RavenApplication::RavenApplication():
     QApplication(qt_argc, const_cast<char **>(&qt_argv)),
@@ -523,7 +523,7 @@ void RavenApplication::initializeResult(bool success)
 
 #ifdef ENABLE_WALLET
         // Now that initialization/startup is done, process any command-line
-        // raven: URIs or payment requests:
+        // avian: URIs or payment requests:
         connect(paymentServer, SIGNAL(receivedPaymentRequest(SendCoinsRecipient)),
                          window, SLOT(handlePaymentRequest(SendCoinsRecipient)));
         connect(window, SIGNAL(receivedURI(QString)),
@@ -631,7 +631,7 @@ int main(int argc, char *argv[])
     if (!Intro::pickDataDirectory())
         return EXIT_SUCCESS;
 
-    /// 6. Determine availability of data directory and parse raven.conf
+    /// 6. Determine availability of data directory and parse avian.conf
     /// - Do not call GetDataDir(true) before this step finishes
     if (!fs::is_directory(GetDataDir(false)))
     {
@@ -683,7 +683,7 @@ int main(int argc, char *argv[])
         exit(EXIT_SUCCESS);
 
     // Start up the payment server early, too, so impatient users that click on
-    // raven: links repeatedly have their payment requests routed to this process:
+    // avian: links repeatedly have their payment requests routed to this process:
     app.createPaymentServer();
 #endif
 

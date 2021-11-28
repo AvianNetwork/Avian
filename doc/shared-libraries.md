@@ -44,6 +44,6 @@ The interface is defined in the C header `ravenconsensus.h` located in  `src/scr
 
 ### Example Implementations
 - [NRaven](https://github.com/NicolasDorier/NRaven/blob/master/NRaven/Script.cs#L814) (.NET Bindings)
-- [node-libravenconsensus](https://github.com/bitpay/node-libravenconsensus) (Node.js Bindings)
-- [java-libravenconsensus](https://github.com/dexX7/java-libravenconsensus) (Java Bindings)
+- [node-libavianconsensus](https://github.com/bitpay/node-libavianconsensus) (Node.js Bindings)
+- [java-libavianconsensus](https://github.com/dexX7/java-libavianconsensus) (Java Bindings)
 - [ravenconsensus-php](https://github.com/Bit-Wasp/ravenconsensus-php) (PHP Bindings)
