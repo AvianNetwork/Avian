@@ -2,7 +2,7 @@
 
 ### Phase 1 - Complete
 
-Ravencoin (RVN) is a Proof of Work coin built on the Bitcoin UTXO model. As with other Bitcoin derivatives, RVN coins are distributed to persons augmenting the Raven network by mining Raven.
+Ravencoin (RVN) is a Proof of Work coin built on the Bitcoin UTXO model. As with other Bitcoin derivatives, RVN coins are distributed to persons augmenting the Avian network by mining Raven.
 *  x1000 coin distribution (21 Billion Total)
 *  10x faster blocks (1 per minute)
 *  In app CPU mining
