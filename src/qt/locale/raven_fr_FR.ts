@@ -326,7 +326,7 @@
         <translation>&amp;Options de ligne de commande</translation>
     </message>
     <message numerus="yes">
-        <source>%n active connection(s) to Raven network</source>
+        <source>%n active connection(s) to Avian network</source>
         <translation><numerusform>%n connexion active au réseau Raven</numerusform><numerusform>%n connexions actives au réseau Raven</numerusform></translation>
     </message>
     <message>

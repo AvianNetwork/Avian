@@ -250,7 +250,7 @@
         <translation>Opţiuni linie de &amp;comandă</translation>
     </message>
     <message numerus="yes">
-        <source>%n active connection(s) to Raven network</source>
+        <source>%n active connection(s) to Avian network</source>
         <translation><numerusform>%n conexiune activă către reţeaua Raven</numerusform><numerusform>%n conexiuni active către reţeaua Raven</numerusform><numerusform>%n de conexiuni active către reţeaua Raven</numerusform></translation>
     </message>
     <message numerus="yes">
@@ -664,7 +664,7 @@
         <translation>Mapare port folosind &amp;UPnP</translation>
     </message>
     <message>
-        <source>Connect to the Raven network through a SOCKS5 proxy.</source>
+        <source>Connect to the Avian network through a SOCKS5 proxy.</source>
         <translation>Conectare la reţeaua Raven printr-un proxy SOCKS.</translation>
     </message>
     <message>
@@ -775,7 +775,7 @@
         <translation>Form</translation>
     </message>
     <message>
-        <source>The displayed information may be out of date. Your wallet automatically synchronizes with the Raven network after a connection is established, but this process has not completed yet.</source>
+        <source>The displayed information may be out of date. Your wallet automatically synchronizes with the Avian network after a connection is established, but this process has not completed yet.</source>
         <translation>Informaţiile afişate pot fi neactualizate. Portofelul dvs. se sincronizează automat cu reţeaua Raven după ce o conexiune este stabilită, dar acest proces nu a fost finalizat încă.</translation>
     </message>
     <message>
@@ -1164,7 +1164,7 @@
         <translation>R&amp;efoloseşte o adresă de primire (nu este recomandat)</translation>
     </message>
     <message>
-        <source>An optional message to attach to the payment request, which will be displayed when the request is opened. Note: The message will not be sent with the payment over the Raven network.</source>
+        <source>An optional message to attach to the payment request, which will be displayed when the request is opened. Note: The message will not be sent with the payment over the Avian network.</source>
         <translation>Un mesaj opţional de ataşat la cererea de plată, care va fi afişat cînd cererea este deschisă. Notă: Acest mesaj nu va fi trimis cu plata către reţeaua Raven.</translation>
     </message>
     <message>
@@ -1412,7 +1412,7 @@
         <translation>Introduceţi eticheta pentru ca această adresa să fie introdusă în lista de adrese folosite</translation>
     </message>
     <message>
-        <source>A message that was attached to the avian: URI which will be stored with the transaction for your reference. Note: This message will not be sent over the Raven network.</source>
+        <source>A message that was attached to the avian: URI which will be stored with the transaction for your reference. Note: This message will not be sent over the Avian network.</source>
         <translation>un mesaj a fost ataşat la avian: URI care va fi stocat cu tranzacţia pentru referinţa dvs. Notă: Acest mesaj nu va fi trimis către reţeaua raven.</translation>
     </message>
     <message>

@@ -266,7 +266,7 @@
         <translation>Paran&amp;cssor kapcsolók</translation>
     </message>
     <message numerus="yes">
-        <source>%n active connection(s) to Raven network</source>
+        <source>%n active connection(s) to Avian network</source>
         <translation><numerusform>%n aktív kapcsolat a Raven hálózathoz</numerusform><numerusform>%n aktív kapcsolat a Raven hálózathoz</numerusform></translation>
     </message>
     <message numerus="yes">
@@ -612,7 +612,7 @@
         <translation>&amp;UPnP port-feltérképezés</translation>
     </message>
     <message>
-        <source>Connect to the Raven network through a SOCKS5 proxy.</source>
+        <source>Connect to the Avian network through a SOCKS5 proxy.</source>
         <translation>Csatlakozás a Raven hálózatához SOCKS5 proxyn keresztül</translation>
     </message>
     <message>
@@ -707,7 +707,7 @@
         <translation>Űrlap</translation>
     </message>
     <message>
-        <source>The displayed information may be out of date. Your wallet automatically synchronizes with the Raven network after a connection is established, but this process has not completed yet.</source>
+        <source>The displayed information may be out of date. Your wallet automatically synchronizes with the Avian network after a connection is established, but this process has not completed yet.</source>
         <translation>A kijelzett információ lehet, hogy elavult. A pénztárcája automatikusan szinkronizálja magát a Raven hálózattal miután a kapcsolat létrejön, de ez e folyamat még nem fejeződött be.</translation>
     </message>
     <message>

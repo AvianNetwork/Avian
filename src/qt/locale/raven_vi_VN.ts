@@ -536,7 +536,7 @@
         <translation>Ví</translation>
     </message>
     <message>
-        <source>Connect to the Raven network through a SOCKS5 proxy.</source>
+        <source>Connect to the Avian network through a SOCKS5 proxy.</source>
         <translation>Kết nối đến máy chủ Raven thông qua SOCKS5 proxy.</translation>
     </message>
     <message>

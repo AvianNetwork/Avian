@@ -892,7 +892,7 @@
         <translation>Port obert amb &amp;UPnP</translation>
     </message>
     <message>
-        <source>Connect to the Raven network through a SOCKS5 proxy.</source>
+        <source>Connect to the Avian network through a SOCKS5 proxy.</source>
         <translation>Connecta a la xarxa Raven a través d'un proxy SOCKS5.</translation>
     </message>
     <message>
@@ -995,7 +995,7 @@
         <translation>Formulari</translation>
     </message>
     <message>
-        <source>The displayed information may be out of date. Your wallet automatically synchronizes with the Raven network after a connection is established, but this process has not completed yet.</source>
+        <source>The displayed information may be out of date. Your wallet automatically synchronizes with the Avian network after a connection is established, but this process has not completed yet.</source>
         <translation>La informació mostrada pot no estar al día. El teu moneder es sincronitza automàticament amb la xarxa Raven un cop s'ha establit connexió, però este proces no s'ha completat encara.</translation>
     </message>
     <message>
@@ -1452,7 +1452,7 @@
         <translation>R&amp;eutilitza una adreça de recepció anterior (no recomanat)</translation>
     </message>
     <message>
-        <source>An optional message to attach to the payment request, which will be displayed when the request is opened. Note: The message will not be sent with the payment over the Raven network.</source>
+        <source>An optional message to attach to the payment request, which will be displayed when the request is opened. Note: The message will not be sent with the payment over the Avian network.</source>
         <translation>Un missatge opcional que s'adjuntarà a la sol·licitud de pagament, que es mostrarà quan s'òbriga la sol·licitud. Nota: El missatge no s'enviarà amb el pagament per la xarxa Raven.</translation>
     </message>
     <message>
@@ -1892,7 +1892,7 @@
         <translation>Introduïu una etiqueta per a esta adreça per afegir-la a la llista d'adreces utilitzades</translation>
     </message>
     <message>
-        <source>A message that was attached to the avian: URI which will be stored with the transaction for your reference. Note: This message will not be sent over the Raven network.</source>
+        <source>A message that was attached to the avian: URI which will be stored with the transaction for your reference. Note: This message will not be sent over the Avian network.</source>
         <translation>Un missatge que s'ha adjuntat al avian: URI que s'emmagatzemarà amb la transacció per a la vostra referència. Nota: el missatge no s'enviarà a través de la xarxa Raven.</translation>
     </message>
     <message>

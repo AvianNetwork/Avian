@@ -270,7 +270,7 @@
         <translation>Opcije &amp;naredbene linije</translation>
     </message>
     <message numerus="yes">
-        <source>%n active connection(s) to Raven network</source>
+        <source>%n active connection(s) to Avian network</source>
         <translation><numerusform>%n aktivna veza na Raven Lite mrežu</numerusform><numerusform>%n aktivnih veza na Raven mrežu</numerusform><numerusform>%n aktivnih veza na Raven Lite mrežu</numerusform></translation>
     </message>
     <message numerus="yes">
@@ -643,7 +643,7 @@
         <translation>Oblik</translation>
     </message>
     <message>
-        <source>The displayed information may be out of date. Your wallet automatically synchronizes with the Raven network after a connection is established, but this process has not completed yet.</source>
+        <source>The displayed information may be out of date. Your wallet automatically synchronizes with the Avian network after a connection is established, but this process has not completed yet.</source>
         <translation>Prikazani podatci mogu biti zastarjeli. Vaš novčanik se automatski sinkronizira s Raven mrežom kada je veza uspostavljena, ali taj proces još nije završen.</translation>
     </message>
     <message>
