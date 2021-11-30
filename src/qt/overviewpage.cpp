@@ -7,46 +7,43 @@
 #include "overviewpage.h"
 #include "ui_overviewpage.h"
 
-#include "ravenunits.h"
+#include "assetfilterproxy.h"
+#include "assetrecord.h"
+#include "assettablemodel.h"
 #include "clientmodel.h"
 #include "guiconstants.h"
 #include "guiutil.h"
 #include "optionsmodel.h"
 #include "platformstyle.h"
+#include "ravenunits.h"
 #include "transactionfilterproxy.h"
 #include "transactiontablemodel.h"
-#include "assetfilterproxy.h"
-#include "assettablemodel.h"
 #include "walletmodel.h"
-#include "assetrecord.h"
 
 #include <QAbstractItemDelegate>
 #include <QPainter>
 #include <QPainterPath>
-#include <validation.h>
 #include <utiltime.h>
+#include <validation.h>
 
 #define DECORATION_SIZE 54
 #define NUM_ITEMS 5
 
 #include <QDebug>
-#include <QTimer>
 #include <QGraphicsDropShadowEffect>
 #include <QScrollBar>
+#include <QTimer>
 
 class TxViewDelegate : public QAbstractItemDelegate
 {
     Q_OBJECT
 public:
-    explicit TxViewDelegate(const PlatformStyle *_platformStyle, QObject *parent=nullptr):
-        QAbstractItemDelegate(parent), unit(RavenUnits::RVN),
-        platformStyle(_platformStyle)
+    explicit TxViewDelegate(const PlatformStyle* _platformStyle, QObject* parent = nullptr) : QAbstractItemDelegate(parent), unit(RavenUnits::RVN),
+                                                                                              platformStyle(_platformStyle)
     {
-
     }
 
-    inline void paint(QPainter *painter, const QStyleOptionViewItem &option,
-                      const QModelIndex &index ) const
+    inline void paint(QPainter* painter, const QStyleOptionViewItem& option, const QModelIndex& index) const
     {
         painter->save();
 
@@ -55,9 +52,9 @@ public:
         QRect decorationRect(mainRect.topLeft(), QSize(DECORATION_SIZE, DECORATION_SIZE));
         int xspace = DECORATION_SIZE + 8;
         int ypad = 6;
-        int halfheight = (mainRect.height() - 2*ypad)/2;
-        QRect amountRect(mainRect.left() + xspace, mainRect.top()+ypad, mainRect.width() - xspace, halfheight);
-        QRect addressRect(mainRect.left() + xspace, mainRect.top()+ypad+halfheight, mainRect.width() - xspace, halfheight);
+        int halfheight = (mainRect.height() - 2 * ypad) / 2;
+        QRect amountRect(mainRect.left() + xspace, mainRect.top() + ypad, mainRect.width() - xspace, halfheight);
+        QRect addressRect(mainRect.left() + xspace, mainRect.top() + ypad + halfheight, mainRect.width() - xspace, halfheight);
 
         if (darkModeEnabled)
             icon = platformStyle->SingleColorIcon(icon, COLOR_TOOLBAR_NOT_SELECTED_TEXT);
@@ -71,15 +68,13 @@ public:
         bool confirmed = index.data(TransactionTableModel::ConfirmedRole).toBool();
         QVariant value = index.data(Qt::ForegroundRole);
         QColor foreground = platformStyle->TextColor();
-        if(value.canConvert<QBrush>())
-        {
+        if (value.canConvert<QBrush>()) {
             QBrush brush = qvariant_cast<QBrush>(value);
             foreground = brush.color();
         }
 
         QString amountText = index.data(TransactionTableModel::FormattedAmountRole).toString();
-        if(!confirmed)
-        {
+        if (!confirmed) {
             amountText = QString("[") + amountText + QString("]");
         }
 
@@ -89,67 +84,57 @@ public:
 
         painter->setPen(foreground);
         QRect boundingRect;
-        painter->drawText(addressRect, Qt::AlignLeft|Qt::AlignVCenter, address, &boundingRect);
+        painter->drawText(addressRect, Qt::AlignLeft | Qt::AlignVCenter, address, &boundingRect);
 
-        if (index.data(TransactionTableModel::WatchonlyRole).toBool())
-        {
+        if (index.data(TransactionTableModel::WatchonlyRole).toBool()) {
             QIcon iconWatchonly = qvariant_cast<QIcon>(index.data(TransactionTableModel::WatchonlyDecorationRole));
-            QRect watchonlyRect(boundingRect.right() + 5, mainRect.top()+ypad+halfheight, 16, halfheight);
+            QRect watchonlyRect(boundingRect.right() + 5, mainRect.top() + ypad + halfheight, 16, halfheight);
             iconWatchonly.paint(painter, watchonlyRect);
         }
 
-        if(amount < 0)
-        {
+        if (amount < 0) {
             foreground = COLOR_NEGATIVE;
-        }
-        else if(!confirmed)
-        {
+        } else if (!confirmed) {
             foreground = COLOR_UNCONFIRMED;
-        }
-        else
-        {
+        } else {
             foreground = platformStyle->TextColor();
         }
 
         painter->setPen(foreground);
-        painter->drawText(addressRect, Qt::AlignRight|Qt::AlignVCenter, amountText);
+        painter->drawText(addressRect, Qt::AlignRight | Qt::AlignVCenter, amountText);
 
         QString assetName = index.data(TransactionTableModel::AssetNameRole).toString();
 
         // Concatenate the strings if needed before painting
         GUIUtil::concatenate(painter, assetName, painter->fontMetrics().width(GUIUtil::dateTimeStr(date)), amountRect.left(), amountRect.right());
 
-        painter->drawText(amountRect, Qt::AlignRight|Qt::AlignVCenter, assetName);
+        painter->drawText(amountRect, Qt::AlignRight | Qt::AlignVCenter, assetName);
 
         painter->setPen(platformStyle->TextColor());
-        painter->drawText(amountRect, Qt::AlignLeft|Qt::AlignVCenter, GUIUtil::dateTimeStr(date));
+        painter->drawText(amountRect, Qt::AlignLeft | Qt::AlignVCenter, GUIUtil::dateTimeStr(date));
 
         painter->restore();
     }
 
-    inline QSize sizeHint(const QStyleOptionViewItem &option, const QModelIndex &index) const
+    inline QSize sizeHint(const QStyleOptionViewItem& option, const QModelIndex& index) const
     {
         return QSize(DECORATION_SIZE, DECORATION_SIZE);
     }
 
     int unit;
-    const PlatformStyle *platformStyle;
-
+    const PlatformStyle* platformStyle;
 };
 
 class AssetViewDelegate : public QAbstractItemDelegate
 {
-Q_OBJECT
+    Q_OBJECT
 public:
-    explicit AssetViewDelegate(const PlatformStyle *_platformStyle, QObject *parent=nullptr):
-            QAbstractItemDelegate(parent), unit(RavenUnits::RVN),
-            platformStyle(_platformStyle)
+    explicit AssetViewDelegate(const PlatformStyle* _platformStyle, QObject* parent = nullptr) : QAbstractItemDelegate(parent), unit(RavenUnits::RVN),
+                                                                                                 platformStyle(_platformStyle)
     {
-
     }
 
-    inline void paint(QPainter *painter, const QStyleOptionViewItem &option,
-                      const QModelIndex &index ) const
+    inline void paint(QPainter* painter, const QStyleOptionViewItem& option, const QModelIndex& index) const
     {
         painter->save();
 
@@ -175,12 +160,12 @@ public:
         gradientRect.setBottom(gradientRect.bottom() - 2);
         gradientRect.setRight(gradientRect.right() - 20);
 
-        int halfheight = (gradientRect.height() - 2*ypad)/2;
+        int halfheight = (gradientRect.height() - 2 * ypad) / 2;
 
         /** Create the three main rectangles  (Icon, Name, Amount) */
-        QRect assetAdministratorRect(QPoint(20, gradientRect.top() + halfheight/2 - 3*ypad), QSize(nIconSize, nIconSize));
-        QRect assetNameRect(gradientRect.left() + xspace - extraNameSpacing, gradientRect.top()+ypad+(halfheight/2), gradientRect.width() - xspace, halfheight + ypad);
-        QRect amountRect(gradientRect.left() + xspace, gradientRect.top()+ypad+(halfheight/2), gradientRect.width() - xspace - 16, halfheight);
+        QRect assetAdministratorRect(QPoint(20, gradientRect.top() + halfheight / 2 - 3 * ypad), QSize(nIconSize, nIconSize));
+        QRect assetNameRect(gradientRect.left() + xspace - extraNameSpacing, gradientRect.top() + ypad + (halfheight / 2), gradientRect.width() - xspace, halfheight + ypad);
+        QRect amountRect(gradientRect.left() + xspace, gradientRect.top() + ypad + (halfheight / 2), gradientRect.width() - xspace - 16, halfheight);
 
         // Create the gradient for the asset items
         QLinearGradient gradient(mainRect.topLeft(), mainRect.bottomRight());
@@ -258,48 +243,46 @@ public:
 
         /** Paint the asset name */
         painter->setPen(penName);
-        painter->drawText(assetNameRect, Qt::AlignLeft|Qt::AlignVCenter, name);
+        painter->drawText(assetNameRect, Qt::AlignLeft | Qt::AlignVCenter, name);
 
 
         /** Paint the amount */
         painter->setFont(amountFont);
-        painter->drawText(amountRect, Qt::AlignRight|Qt::AlignVCenter, amountText);
+        painter->drawText(amountRect, Qt::AlignRight | Qt::AlignVCenter, amountText);
 
         painter->restore();
     }
 
-    inline QSize sizeHint(const QStyleOptionViewItem &option, const QModelIndex &index) const
+    inline QSize sizeHint(const QStyleOptionViewItem& option, const QModelIndex& index) const
     {
         return QSize(42, 42);
     }
 
     int unit;
-    const PlatformStyle *platformStyle;
-
+    const PlatformStyle* platformStyle;
 };
 #include "overviewpage.moc"
 #include "ravengui.h"
 #include <QFontDatabase>
 
-OverviewPage::OverviewPage(const PlatformStyle *platformStyle, QWidget *parent) :
-    QWidget(parent),
-    ui(new Ui::OverviewPage),
-    clientModel(0),
-    walletModel(0),
-    currentBalance(-1),
-    currentUnconfirmedBalance(-1),
-    currentImmatureBalance(-1),
-    currentWatchOnlyBalance(-1),
-    currentWatchUnconfBalance(-1),
-    currentWatchImmatureBalance(-1),
-    txdelegate(new TxViewDelegate(platformStyle, this)),
-    assetdelegate(new AssetViewDelegate(platformStyle, this))
+OverviewPage::OverviewPage(const PlatformStyle* platformStyle, QWidget* parent) : QWidget(parent),
+                                                                                  ui(new Ui::OverviewPage),
+                                                                                  clientModel(0),
+                                                                                  walletModel(0),
+                                                                                  currentBalance(-1),
+                                                                                  currentUnconfirmedBalance(-1),
+                                                                                  currentImmatureBalance(-1),
+                                                                                  currentWatchOnlyBalance(-1),
+                                                                                  currentWatchUnconfBalance(-1),
+                                                                                  currentWatchImmatureBalance(-1),
+                                                                                  txdelegate(new TxViewDelegate(platformStyle, this)),
+                                                                                  assetdelegate(new AssetViewDelegate(platformStyle, this))
 {
     ui->setupUi(this);
 
     // use a SingleColorIcon for the "out of sync warning" icon
     QIcon icon = platformStyle->SingleColorIcon(":/icons/warning");
-    icon.addPixmap(icon.pixmap(QSize(64,64), QIcon::Normal), QIcon::Disabled); // also set the disabled icon because we are using a disabled QPushButton to work around missing HiDPI support of QLabel (https://bugreports.qt.io/browse/QTBUG-42503)
+    icon.addPixmap(icon.pixmap(QSize(64, 64), QIcon::Normal), QIcon::Disabled); // also set the disabled icon because we are using a disabled QPushButton to work around missing HiDPI support of QLabel (https://bugreports.qt.io/browse/QTBUG-42503)
     ui->labelTransactionsStatus->setIcon(icon);
     ui->labelWalletStatus->setIcon(icon);
     ui->labelAssetStatus->setIcon(icon);
@@ -319,7 +302,7 @@ OverviewPage::OverviewPage(const PlatformStyle *platformStyle, QWidget *parent) 
     // Delay before filtering assetes in ms
     static const int input_filter_delay = 200;
 
-    QTimer *asset_typing_delay;
+    QTimer* asset_typing_delay;
     asset_typing_delay = new QTimer(this);
     asset_typing_delay->setSingleShot(true);
     asset_typing_delay->setInterval(input_filter_delay);
@@ -346,25 +329,48 @@ OverviewPage::OverviewPage(const PlatformStyle *platformStyle, QWidget *parent) 
     ui->frame_2->setGraphicsEffect(GUIUtil::getShadowEffect());
 
     /** Update the labels colors */
-    ui->assetBalanceLabel->setStyleSheet(STRING_LABEL_COLOR);
-    ui->rvnBalancesLabel->setStyleSheet(STRING_LABEL_COLOR);
-    ui->labelBalanceText->setStyleSheet(STRING_LABEL_COLOR);
-    ui->labelPendingText->setStyleSheet(STRING_LABEL_COLOR);
-    ui->labelImmatureText->setStyleSheet(STRING_LABEL_COLOR);
-    ui->labelTotalText->setStyleSheet(STRING_LABEL_COLOR);
+    if (darkModeEnabled) {
+        ui->assetBalanceLabel->setStyleSheet(STRING_LABEL_COLOR_WHITE);
+        ui->rvnBalancesLabel->setStyleSheet(STRING_LABEL_COLOR_WHITE);
+        ui->labelBalanceText->setStyleSheet(STRING_LABEL_COLOR_WHITE);
+        ui->labelPendingText->setStyleSheet(STRING_LABEL_COLOR_WHITE);
+        ui->labelImmatureText->setStyleSheet(STRING_LABEL_COLOR_WHITE);
+        ui->labelTotalText->setStyleSheet(STRING_LABEL_COLOR_WHITE);
 
-    ui->labelBalance->setStyleSheet(STRING_LABEL_COLOR);
-    ui->labelUnconfirmed->setStyleSheet(STRING_LABEL_COLOR);
-    ui->labelImmature->setStyleSheet(STRING_LABEL_COLOR);
-    ui->labelTotal->setStyleSheet(STRING_LABEL_COLOR);
-    ui->labelWatchAvailable->setStyleSheet(STRING_LABEL_COLOR);
-    ui->labelWatchPending->setStyleSheet(STRING_LABEL_COLOR);
-    ui->labelWatchImmature->setStyleSheet(STRING_LABEL_COLOR);
-    ui->labelWatchTotal->setStyleSheet(STRING_LABEL_COLOR);
+        ui->labelBalance->setStyleSheet(STRING_LABEL_COLOR_WHITE);
+        ui->labelUnconfirmed->setStyleSheet(STRING_LABEL_COLOR_WHITE);
+        ui->labelImmature->setStyleSheet(STRING_LABEL_COLOR_WHITE);
+        ui->labelTotal->setStyleSheet(STRING_LABEL_COLOR_WHITE);
+        ui->labelWatchAvailable->setStyleSheet(STRING_LABEL_COLOR_WHITE);
+        ui->labelWatchPending->setStyleSheet(STRING_LABEL_COLOR_WHITE);
+        ui->labelWatchImmature->setStyleSheet(STRING_LABEL_COLOR_WHITE);
+        ui->labelWatchTotal->setStyleSheet(STRING_LABEL_COLOR_WHITE);
 
-    ui->labelSpendable->setStyleSheet(STRING_LABEL_COLOR);
-    ui->labelWatchonly->setStyleSheet(STRING_LABEL_COLOR);
-    ui->recentTransactionsLabel->setStyleSheet(STRING_LABEL_COLOR);
+        ui->labelSpendable->setStyleSheet(STRING_LABEL_COLOR_WHITE);
+        ui->labelWatchonly->setStyleSheet(STRING_LABEL_COLOR_WHITE);
+        ui->recentTransactionsLabel->setStyleSheet(STRING_LABEL_COLOR_WHITE);
+    } else {
+        ui->assetBalanceLabel->setStyleSheet(STRING_LABEL_COLOR);
+        ui->rvnBalancesLabel->setStyleSheet(STRING_LABEL_COLOR);
+        ui->labelBalanceText->setStyleSheet(STRING_LABEL_COLOR);
+        ui->labelPendingText->setStyleSheet(STRING_LABEL_COLOR);
+        ui->labelImmatureText->setStyleSheet(STRING_LABEL_COLOR);
+        ui->labelTotalText->setStyleSheet(STRING_LABEL_COLOR);
+
+
+        ui->labelBalance->setStyleSheet(STRING_LABEL_COLOR);
+        ui->labelUnconfirmed->setStyleSheet(STRING_LABEL_COLOR);
+        ui->labelImmature->setStyleSheet(STRING_LABEL_COLOR);
+        ui->labelTotal->setStyleSheet(STRING_LABEL_COLOR);
+        ui->labelWatchAvailable->setStyleSheet(STRING_LABEL_COLOR);
+        ui->labelWatchPending->setStyleSheet(STRING_LABEL_COLOR);
+        ui->labelWatchImmature->setStyleSheet(STRING_LABEL_COLOR);
+        ui->labelWatchTotal->setStyleSheet(STRING_LABEL_COLOR);
+
+        ui->labelSpendable->setStyleSheet(STRING_LABEL_COLOR);
+        ui->labelWatchonly->setStyleSheet(STRING_LABEL_COLOR);
+        ui->recentTransactionsLabel->setStyleSheet(STRING_LABEL_COLOR);
+    }
 
     /** Update the labels font */
     ui->rvnBalancesLabel->setFont(GUIUtil::getTopLabelFont());
@@ -396,7 +402,7 @@ OverviewPage::OverviewPage(const PlatformStyle *platformStyle, QWidget *parent) 
     ui->assetSearch->setFont(font);
 
     QFontMetrics fm = QFontMetrics(ui->assetSearch->font());
-    ui->assetSearch->setFixedHeight(fm.height()+ 5);
+    ui->assetSearch->setFixedHeight(fm.height() + 5);
 
     // Trigger the call to show the assets table if assets are active
     showAssets();
@@ -404,8 +410,8 @@ OverviewPage::OverviewPage(const PlatformStyle *platformStyle, QWidget *parent) 
 
     // context menu actions
     sendAction = new QAction(tr("Send Asset"), this);
-    QAction *copyAmountAction = new QAction(tr("Copy Amount"), this);
-    QAction *copyNameAction = new QAction(tr("Copy Name"), this);
+    QAction* copyAmountAction = new QAction(tr("Copy Amount"), this);
+    QAction* copyNameAction = new QAction(tr("Copy Name"), this);
     issueSub = new QAction(tr("Issue Sub Asset"), this);
     issueUnique = new QAction(tr("Issue Unique Asset"), this);
     reissue = new QAction(tr("Reissue Asset"), this);
@@ -430,17 +436,15 @@ OverviewPage::OverviewPage(const PlatformStyle *platformStyle, QWidget *parent) 
     // context menu signals
 }
 
-void OverviewPage::handleTransactionClicked(const QModelIndex &index)
+void OverviewPage::handleTransactionClicked(const QModelIndex& index)
 {
-    if(filter)
+    if (filter)
         Q_EMIT transactionClicked(filter->mapToSource(index));
 }
 
-void OverviewPage::handleAssetClicked(const QModelIndex &index)
+void OverviewPage::handleAssetClicked(const QModelIndex& index)
 {
-    if(assetFilter) {
-
-
+    if (assetFilter) {
         QString name = index.data(AssetTableModel::AssetNameRole).toString();
         bool fOwner = false;
         if (IsAssetNameAnOwner(name.toStdString())) {
@@ -464,27 +468,25 @@ void OverviewPage::handleAssetClicked(const QModelIndex &index)
             if (currentActiveAssetCache && currentActiveAssetCache->GetAssetMetaDataIfExists(name.toStdString(), asset))
                 if (asset.nReissuable)
                     reissue->setDisabled(false);
-
         }
 
         QAction* action = contextMenu->exec(QCursor::pos());
 
         if (action) {
             if (action->objectName() == "Send")
-                    Q_EMIT assetSendClicked(assetFilter->mapToSource(index));
+                Q_EMIT assetSendClicked(assetFilter->mapToSource(index));
             else if (action->objectName() == "Sub")
-                    Q_EMIT assetIssueSubClicked(assetFilter->mapToSource(index));
+                Q_EMIT assetIssueSubClicked(assetFilter->mapToSource(index));
             else if (action->objectName() == "Unique")
-                    Q_EMIT assetIssueUniqueClicked(assetFilter->mapToSource(index));
+                Q_EMIT assetIssueUniqueClicked(assetFilter->mapToSource(index));
             else if (action->objectName() == "Reissue")
-                    Q_EMIT assetReissueClicked(assetFilter->mapToSource(index));
+                Q_EMIT assetReissueClicked(assetFilter->mapToSource(index));
             else if (action->objectName() == "Copy Name")
                 GUIUtil::setClipboard(index.data(AssetTableModel::AssetNameRole).toString());
             else if (action->objectName() == "Copy Amount")
                 GUIUtil::setClipboard(index.data(AssetTableModel::FormattedAmountRole).toString());
         }
     }
-
 }
 
 void OverviewPage::handleOutOfSyncWarningClicks()
@@ -540,22 +542,20 @@ void OverviewPage::updateWatchOnlyLabels(bool showWatchOnly)
         ui->labelWatchImmature->hide();
 }
 
-void OverviewPage::setClientModel(ClientModel *model)
+void OverviewPage::setClientModel(ClientModel* model)
 {
     this->clientModel = model;
-    if(model)
-    {
+    if (model) {
         // Show warning if this is a prerelease version
         connect(model, SIGNAL(alertsChanged(QString)), this, SLOT(updateAlerts(QString)));
         updateAlerts(model->getStatusBarWarnings());
     }
 }
 
-void OverviewPage::setWalletModel(WalletModel *model)
+void OverviewPage::setWalletModel(WalletModel* model)
 {
     this->walletModel = model;
-    if(model && model->getOptionsModel())
-    {
+    if (model && model->getOptionsModel()) {
         // Set up transaction list
         filter.reset(new TransactionFilterProxy());
         filter->setSourceModel(model->getTransactionTableModel());
@@ -580,8 +580,8 @@ void OverviewPage::setWalletModel(WalletModel *model)
 
         // Keep up to date with wallet
         setBalance(model->getBalance(), model->getUnconfirmedBalance(), model->getImmatureBalance(),
-                   model->getWatchBalance(), model->getWatchUnconfirmedBalance(), model->getWatchImmatureBalance());
-        connect(model, SIGNAL(balanceChanged(CAmount,CAmount,CAmount,CAmount,CAmount,CAmount)), this, SLOT(setBalance(CAmount,CAmount,CAmount,CAmount,CAmount,CAmount)));
+            model->getWatchBalance(), model->getWatchUnconfirmedBalance(), model->getWatchImmatureBalance());
+        connect(model, SIGNAL(balanceChanged(CAmount, CAmount, CAmount, CAmount, CAmount, CAmount)), this, SLOT(setBalance(CAmount, CAmount, CAmount, CAmount, CAmount, CAmount)));
 
         connect(model->getOptionsModel(), SIGNAL(displayUnitChanged(int)), this, SLOT(updateDisplayUnit()));
 
@@ -595,11 +595,10 @@ void OverviewPage::setWalletModel(WalletModel *model)
 
 void OverviewPage::updateDisplayUnit()
 {
-    if(walletModel && walletModel->getOptionsModel())
-    {
-        if(currentBalance != -1)
+    if (walletModel && walletModel->getOptionsModel()) {
+        if (currentBalance != -1)
             setBalance(currentBalance, currentUnconfirmedBalance, currentImmatureBalance,
-                       currentWatchOnlyBalance, currentWatchUnconfBalance, currentWatchImmatureBalance);
+                currentWatchOnlyBalance, currentWatchUnconfBalance, currentWatchImmatureBalance);
 
         // Update txdelegate->unit with the current unit
         txdelegate->unit = walletModel->getOptionsModel()->getDisplayUnit();
@@ -608,7 +607,7 @@ void OverviewPage::updateDisplayUnit()
     }
 }
 
-void OverviewPage::updateAlerts(const QString &warnings)
+void OverviewPage::updateAlerts(const QString& warnings)
 {
     this->ui->labelAlerts->setVisible(!warnings.isEmpty());
     this->ui->labelAlerts->setText(warnings);

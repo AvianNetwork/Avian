@@ -709,7 +709,7 @@ void RavenGUI::createToolBars()
         labelCurrentPrice->setContentsMargins(25,0,0,0);
         labelCurrentPrice->setFixedHeight(75);
         labelCurrentPrice->setAlignment(Qt::AlignVCenter);
-        labelCurrentPrice->setStyleSheet(currentPriceStyleSheet.arg(COLOR_DARK_BLUE.name()));
+        labelCurrentPrice->setStyleSheet(currentPriceStyleSheet.arg(COLOR_LABELS.name()));
         labelCurrentPrice->setFont(currentMarketFont);
 
         QLabel* labelBtcRvn = new QLabel();

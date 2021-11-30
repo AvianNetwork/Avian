@@ -89,7 +89,7 @@ static const bool DEFAULT_SPLASHSCREEN = true;
 
 /* Ravencoin label color as a string */
 #define STRING_LABEL_COLOR "color: #000000"
-
+#define STRING_LABEL_COLOR_WHITE "color: #FFFFFF"
 
 
 
