@@ -36,6 +36,7 @@ build-aux/test-driver
 config.log
 config.status
 configure
+configure~
 libtool
 src/config/stamp-h1
 share/setup.nsi
