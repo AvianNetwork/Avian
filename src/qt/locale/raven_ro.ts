@@ -142,7 +142,7 @@
         <translation>Deschide &amp;URI...</translation>
     </message>
     <message>
-        <source>Send coins to a Raven address</source>
+        <source>Send coins to a Avian address</source>
         <translation>Trimite monedele către o adresă Raven</translation>
     </message>
     <message>
@@ -194,11 +194,11 @@
         <translation>Criptează cheile private care aparțin portofelului tău.</translation>
     </message>
     <message>
-        <source>Sign messages with your Raven addresses to prove you own them</source>
+        <source>Sign messages with your Avian addresses to prove you own them</source>
         <translation>Semnează mesajele cu adresa ta de Raven pentru a face dovada că îți aparțin.</translation>
     </message>
     <message>
-        <source>Verify messages to ensure they were signed with specified Raven addresses</source>
+        <source>Verify messages to ensure they were signed with specified Avian addresses</source>
         <translation>Verifică mesajele cu scopul de a asigura faptul că au fost semnate cu adresa de Raven specificată.</translation>
     </message>
     <message>

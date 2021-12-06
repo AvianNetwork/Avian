@@ -89,7 +89,7 @@ RavenAddressCheckValidator::RavenAddressCheckValidator(QObject *parent) :
 QValidator::State RavenAddressCheckValidator::validate(QString &input, int &pos) const
 {
     Q_UNUSED(pos);
-    // Validate the passed Raven address
+    // Validate the passed Avian address
     if (IsValidDestinationString(input.toStdString())) {
         return QValidator::Acceptable;
     }

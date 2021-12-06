@@ -226,8 +226,8 @@
         <translation>Reindexing blocks on disk...</translation>
     </message>
     <message>
-        <source>Send coins to a Raven address</source>
-        <translation>Send coins to a Raven address</translation>
+        <source>Send coins to a Avian address</source>
+        <translation>Send coins to a Avian address</translation>
     </message>
     <message>
         <source>Backup wallet to another location</source>
@@ -278,12 +278,12 @@
         <translation>Encrypt the private keys that belong to your wallet</translation>
     </message>
     <message>
-        <source>Sign messages with your Raven addresses to prove you own them</source>
-        <translation>Sign messages with your Raven addresses to prove you own them</translation>
+        <source>Sign messages with your Avian addresses to prove you own them</source>
+        <translation>Sign messages with your Avian addresses to prove you own them</translation>
     </message>
     <message>
-        <source>Verify messages to ensure they were signed with specified Raven addresses</source>
-        <translation>Verify messages to ensure they were signed with specified Raven addresses</translation>
+        <source>Verify messages to ensure they were signed with specified Avian addresses</source>
+        <translation>Verify messages to ensure they were signed with specified Avian addresses</translation>
     </message>
     <message>
         <source>&amp;File</source>
@@ -1008,8 +1008,8 @@
         <translation>Amount</translation>
     </message>
     <message>
-        <source>Enter a Raven address (e.g. %1)</source>
-        <translation>Enter a Raven address (e.g. %1)</translation>
+        <source>Enter a Avian address (e.g. %1)</source>
+        <translation>Enter a Avian address (e.g. %1)</translation>
     </message>
     <message>
         <source>%1 d</source>
@@ -1608,8 +1608,8 @@
         <translation>This is a normal payment.</translation>
     </message>
     <message>
-        <source>The Raven address to send the payment to</source>
-        <translation>The Raven address to send the payment to</translation>
+        <source>The Avian address to send the payment to</source>
+        <translation>The Avian address to send the payment to</translation>
     </message>
     <message>
         <source>Alt+A</source>
@@ -1693,8 +1693,8 @@
         <translation>You can sign messages/agreements with your addresses to prove you can receive avians sent to them. Be careful not to sign anything vague or random, as phishing attacks may try to trick you into signing your identity over to them. Only sign fully-detailed statements you agree to.</translation>
     </message>
     <message>
-        <source>The Raven address to sign the message with</source>
-        <translation>The Raven address to sign the message with</translation>
+        <source>The Avian address to sign the message with</source>
+        <translation>The Avian address to sign the message with</translation>
     </message>
     <message>
         <source>Choose previously used address</source>
@@ -1725,8 +1725,8 @@
         <translation>Copy the current signature to the system clipboard</translation>
     </message>
     <message>
-        <source>Sign the message to prove you own this Raven address</source>
-        <translation>Sign the message to prove you own this Raven address</translation>
+        <source>Sign the message to prove you own this Avian address</source>
+        <translation>Sign the message to prove you own this Avian address</translation>
     </message>
     <message>
         <source>Sign &amp;Message</source>
@@ -1749,12 +1749,12 @@
         <translation>Enter the receiver's address, message (ensure you copy line breaks, spaces, tabs, etc. exactly) and signature below to verify the message. Be careful not to read more into the signature than what is in the signed message itself, to avoid being tricked by a man-in-the-middle attack. Note that this only proves the signing party receives with the address, it cannot prove sendership of any transaction!</translation>
     </message>
     <message>
-        <source>The Raven address the message was signed with</source>
-        <translation>The Raven address the message was signed with</translation>
+        <source>The Avian address the message was signed with</source>
+        <translation>The Avian address the message was signed with</translation>
     </message>
     <message>
-        <source>Verify the message to ensure it was signed with the specified Raven address</source>
-        <translation>Verify the message to ensure it was signed with the specified Raven address</translation>
+        <source>Verify the message to ensure it was signed with the specified Avian address</source>
+        <translation>Verify the message to ensure it was signed with the specified Avian address</translation>
     </message>
     <message>
         <source>Verify &amp;Message</source>

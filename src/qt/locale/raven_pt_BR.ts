@@ -62,11 +62,11 @@
         <translation>Endereços de recebimento</translation>
     </message>
     <message>
-        <source>These are your Raven addresses for sending payments. Always check the amount and the receiving address before sending coins.</source>
+        <source>These are your Avian addresses for sending payments. Always check the amount and the receiving address before sending coins.</source>
         <translation>Estes são os seus endereços para enviar pagamentos. Sempre cheque a quantia e o endereço do destinatário antes de enviar moedas.</translation>
     </message>
     <message>
-        <source>These are your Raven addresses for receiving payments. It is recommended to use a new receiving address for each transaction.</source>
+        <source>These are your Avian addresses for receiving payments. It is recommended to use a new receiving address for each transaction.</source>
         <translation>Estes são os seus endereços para receber pagamentos. É recomendado usar um novo para cada transação.</translation>
     </message>
     <message>
@@ -334,7 +334,7 @@
         <translation>Reindexando blocos no disco...</translation>
     </message>
     <message>
-        <source>Send coins to a Raven address</source>
+        <source>Send coins to a Avian address</source>
         <translation>Enviar moedas para um endereço raven</translation>
     </message>
     <message>
@@ -386,11 +386,11 @@
         <translation>Criptografar as chaves privadas que pertencem à sua carteira</translation>
     </message>
     <message>
-        <source>Sign messages with your Raven addresses to prove you own them</source>
+        <source>Sign messages with your Avian addresses to prove you own them</source>
         <translation>Assine mensagens com seus endereços Raven para provar que você é dono delas</translation>
     </message>
     <message>
-        <source>Verify messages to ensure they were signed with specified Raven addresses</source>
+        <source>Verify messages to ensure they were signed with specified Avian addresses</source>
         <translation>Verificar mensagens para se assegurar que elas foram assinadas pelo dono de Endereços Raven específicos</translation>
     </message>
     <message>
@@ -738,7 +738,7 @@
         <translation>Editar endereço de envio</translation>
     </message>
     <message>
-        <source>The entered address "%1" is not a valid Raven address.</source>
+        <source>The entered address "%1" is not a valid Avian address.</source>
         <translation>O endereço digitado "%1" não é um endereço válido.</translation>
     </message>
     <message>
@@ -1282,7 +1282,7 @@
         <translation>Endereço de pagamento %1 inválido</translation>
     </message>
     <message>
-        <source>URI cannot be parsed! This can be caused by an invalid Raven address or malformed URI parameters.</source>
+        <source>URI cannot be parsed! This can be caused by an invalid Avian address or malformed URI parameters.</source>
         <translation>URI não pode ser analisado! Isto pode ser causado por um endereço inválido ou parâmetros URI informados incorretamente.</translation>
     </message>
     <message>
@@ -1376,7 +1376,7 @@
         <translation>Quantidade</translation>
     </message>
     <message>
-        <source>Enter a Raven address (e.g. %1)</source>
+        <source>Enter a Avian address (e.g. %1)</source>
         <translation>Informe um endereço Raven (ex: %1)</translation>
     </message>
     <message>
@@ -2197,7 +2197,7 @@
         <translation><numerusform>Confirmação em %n bloco.</numerusform><numerusform>Confirmação em %n blocos.</numerusform></translation>
     </message>
     <message>
-        <source>Warning: Invalid Raven address</source>
+        <source>Warning: Invalid Avian address</source>
         <translation>Aviso: Endereço inválido</translation>
     </message>
     <message>
@@ -2240,7 +2240,7 @@
         <translation>Este é um pagamento normal.</translation>
     </message>
     <message>
-        <source>The Raven address to send the payment to</source>
+        <source>The Avian address to send the payment to</source>
         <translation>Endereço que enviará o pagamento</translation>
     </message>
     <message>
@@ -2333,7 +2333,7 @@
         <translation>Você pode assinar mensagens com seus endereços para provar que você pode receber avians enviados por alguém. Cuidado para não assinar nada vago ou aleatório, pois ataques phishing podem tentar te enganar para assinar coisas para eles como se fosse você. Somente assine termos bem detalhados que você concorde.</translation>
     </message>
     <message>
-        <source>The Raven address to sign the message with</source>
+        <source>The Avian address to sign the message with</source>
         <translation>O enderesso Raven que assinará a mensagem</translation>
     </message>
     <message>
@@ -2365,7 +2365,7 @@
         <translation>Copiar a assinatura para a área de transferência do sistema</translation>
     </message>
     <message>
-        <source>Sign the message to prove you own this Raven address</source>
+        <source>Sign the message to prove you own this Avian address</source>
         <translation>Assinar mensagem para provar que você é dono deste endereço Raven</translation>
     </message>
     <message>
@@ -2389,11 +2389,11 @@
         <translation>Coloque o endereço do autor, a mensagem (certifique-se de copiar toda a mensagem, incluindo quebras de linha, espaços, tabulações, etc.) e a assinatura embaixo para verificar a mensagem. Cuidado para não ler mais da assinatura do que está assinado na mensagem, para evitar ser enganado pelo ataque man-in-the-middle. Note que isso somente prova a propriedade de um endereço, e não o remetende de qualquer transação.</translation>
     </message>
     <message>
-        <source>The Raven address the message was signed with</source>
+        <source>The Avian address the message was signed with</source>
         <translation>O enderesso Raven que assionou a mesnagem</translation>
     </message>
     <message>
-        <source>Verify the message to ensure it was signed with the specified Raven address</source>
+        <source>Verify the message to ensure it was signed with the specified Avian address</source>
         <translation>Verificar mensagem para se assegurar que ela foi assinada pelo dono de um endereço Raven específico.</translation>
     </message>
     <message>

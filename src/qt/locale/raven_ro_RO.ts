@@ -154,7 +154,7 @@
         <translation>Se reindexează blocurile pe disc...</translation>
     </message>
     <message>
-        <source>Send coins to a Raven address</source>
+        <source>Send coins to a Avian address</source>
         <translation>Trimite monede către o adresă Raven</translation>
     </message>
     <message>
@@ -206,11 +206,11 @@
         <translation>Criptează cheile private ale portofelului dvs.</translation>
     </message>
     <message>
-        <source>Sign messages with your Raven addresses to prove you own them</source>
+        <source>Sign messages with your Avian addresses to prove you own them</source>
         <translation>Semnaţi mesaje cu adresa dvs. Raven pentru a dovedi că vă aparţin</translation>
     </message>
     <message>
-        <source>Verify messages to ensure they were signed with specified Raven addresses</source>
+        <source>Verify messages to ensure they were signed with specified Avian addresses</source>
         <translation>Verificaţi mesaje pentru a vă asigura că au fost semnate cu adresa Raven specificată</translation>
     </message>
     <message>
@@ -864,7 +864,7 @@
         <translation>Cantitate</translation>
     </message>
     <message>
-        <source>Enter a Raven address (e.g. %1)</source>
+        <source>Enter a Avian address (e.g. %1)</source>
         <translation>Introduceţi o adresă Raven (de exemplu %1)</translation>
     </message>
     <message>
@@ -1384,7 +1384,7 @@
         <translation>Aceasta este o tranzacţie normală.</translation>
     </message>
     <message>
-        <source>The Raven address to send the payment to</source>
+        <source>The Avian address to send the payment to</source>
         <translation>Adresa raven către care se face plata</translation>
     </message>
     <message>
@@ -1449,7 +1449,7 @@
         <translation>&amp;Semnează mesaj</translation>
     </message>
     <message>
-        <source>The Raven address to sign the message with</source>
+        <source>The Avian address to sign the message with</source>
         <translation>Adresa cu care semnaţi mesajul</translation>
     </message>
     <message>
@@ -1481,7 +1481,7 @@
         <translation>Copiază semnatura curentă în clipboard-ul sistemului</translation>
     </message>
     <message>
-        <source>Sign the message to prove you own this Raven address</source>
+        <source>Sign the message to prove you own this Avian address</source>
         <translation>Semnează mesajul pentru a dovedi ca deţineţi acestă adresă Raven</translation>
     </message>
     <message>
@@ -1501,11 +1501,11 @@
         <translation>&amp;Verifică mesaj</translation>
     </message>
     <message>
-        <source>The Raven address the message was signed with</source>
+        <source>The Avian address the message was signed with</source>
         <translation>Introduceţi o adresă Raven</translation>
     </message>
     <message>
-        <source>Verify the message to ensure it was signed with the specified Raven address</source>
+        <source>Verify the message to ensure it was signed with the specified Avian address</source>
         <translation>Verificaţi mesajul pentru a vă asigura că a fost semnat cu adresa Raven specificată</translation>
     </message>
     <message>

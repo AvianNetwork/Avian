@@ -62,11 +62,11 @@
         <translation>Mottagaradresser</translation>
     </message>
     <message>
-        <source>These are your Raven addresses for sending payments. Always check the amount and the receiving address before sending coins.</source>
+        <source>These are your Avian addresses for sending payments. Always check the amount and the receiving address before sending coins.</source>
         <translation>Detta är dina Raven adresser för att skicka betalningar. Kolla alltid summan och den mottagande adressen innan du skickar Avians.</translation>
     </message>
     <message>
-        <source>These are your Raven addresses for receiving payments. It is recommended to use a new receiving address for each transaction.</source>
+        <source>These are your Avian addresses for receiving payments. It is recommended to use a new receiving address for each transaction.</source>
         <translation>Detta är dina Raven adresser för att ta emot betalningar. Det rekommenderas att använda en ny mottagningsadress för varje transaktion.</translation>
     </message>
     <message>
@@ -339,7 +339,7 @@ Var vänlig och försök igen.</translation>
         <translation>Återindexerar block på disken...</translation>
     </message>
     <message>
-        <source>Send coins to a Raven address</source>
+        <source>Send coins to a Avian address</source>
         <translation>Skicka avians till en Raven-adress</translation>
     </message>
     <message>
@@ -391,11 +391,11 @@ Var vänlig och försök igen.</translation>
         <translation>Kryptera de privata nycklar som tillhör din plånbok</translation>
     </message>
     <message>
-        <source>Sign messages with your Raven addresses to prove you own them</source>
+        <source>Sign messages with your Avian addresses to prove you own them</source>
         <translation>Signera meddelanden med din Raven-adress för att bevisa att du äger dem</translation>
     </message>
     <message>
-        <source>Verify messages to ensure they were signed with specified Raven addresses</source>
+        <source>Verify messages to ensure they were signed with specified Avian addresses</source>
         <translation>Verifiera meddelanden för att vara säker på att de var signerade med specificerade Raven-adresser</translation>
     </message>
     <message>
@@ -743,7 +743,7 @@ Var vänlig och försök igen.</translation>
         <translation>Redigera avsändaradress</translation>
     </message>
     <message>
-        <source>The entered address "%1" is not a valid Raven address.</source>
+        <source>The entered address "%1" is not a valid Avian address.</source>
         <translation>Den angivna adressen "%1" är inte en giltig Raven-adress.</translation>
     </message>
     <message>
@@ -1283,7 +1283,7 @@ Var vänlig och försök igen.</translation>
         <translation>Ogiltig betalningsadress %1</translation>
     </message>
     <message>
-        <source>URI cannot be parsed! This can be caused by an invalid Raven address or malformed URI parameters.</source>
+        <source>URI cannot be parsed! This can be caused by an invalid Avian address or malformed URI parameters.</source>
         <translation>URI kan inte tolkas! Detta kan orsakas av en ogiltig Raven-adress eller felaktiga URI parametrar.</translation>
     </message>
     <message>
@@ -1373,7 +1373,7 @@ Var vänlig och försök igen.</translation>
         <translation>Mängd</translation>
     </message>
     <message>
-        <source>Enter a Raven address (e.g. %1)</source>
+        <source>Enter a Avian address (e.g. %1)</source>
         <translation>Ange en Raven-adress (t.ex. %1)</translation>
     </message>
     <message>
@@ -2182,7 +2182,7 @@ Var vänlig och försök igen.</translation>
         <translation>Betala endast den nödvändiga avgiften på %1</translation>
     </message>
     <message>
-        <source>Warning: Invalid Raven address</source>
+        <source>Warning: Invalid Avian address</source>
         <translation>Varning: Felaktig Ravenadress</translation>
     </message>
     <message>
@@ -2225,7 +2225,7 @@ Var vänlig och försök igen.</translation>
         <translation>Detta är en normal betalning.</translation>
     </message>
     <message>
-        <source>The Raven address to send the payment to</source>
+        <source>The Avian address to send the payment to</source>
         <translation>Ravenadress att sända betalning till</translation>
     </message>
     <message>
@@ -2318,7 +2318,7 @@ Var vänlig och försök igen.</translation>
         <translation>Du kan underteckna meddelanden/avtal med dina adresser för att bevisa att du kan ta emot avians som skickats till dem. Var försiktig så du inte undertecknar något oklart eller konstigt, eftersom phishing-angrepp kan försöka få dig att underteckna din identitet till dem. Underteckna endast väldetaljerade meddelanden som du godkänner.</translation>
     </message>
     <message>
-        <source>The Raven address to sign the message with</source>
+        <source>The Avian address to sign the message with</source>
         <translation>Ravenadress att signera meddelandet med</translation>
     </message>
     <message>
@@ -2350,7 +2350,7 @@ Var vänlig och försök igen.</translation>
         <translation>Kopiera signaturen till systemets Urklipp</translation>
     </message>
     <message>
-        <source>Sign the message to prove you own this Raven address</source>
+        <source>Sign the message to prove you own this Avian address</source>
         <translation>Signera meddelandet för att bevisa att du äger denna adress</translation>
     </message>
     <message>
@@ -2374,11 +2374,11 @@ Var vänlig och försök igen.</translation>
         <translation>Ange mottagarens adress, meddelande (kopiera radbrytningar, mellanrum, flikar, etc. exakt) och signatur nedan för att verifiera meddelandet. Undvik att läsa in mera information i signaturen än vad som stod i själva undertecknade meddelandet, för att undvika ett man-in-the-middle-angrepp. Notera att detta endast bevisar att undertecknad tar emot med adressen, det bevisar inte vem som skickat transaktionen!</translation>
     </message>
     <message>
-        <source>The Raven address the message was signed with</source>
+        <source>The Avian address the message was signed with</source>
         <translation>Ravenadressen som meddelandet signerades med</translation>
     </message>
     <message>
-        <source>Verify the message to ensure it was signed with the specified Raven address</source>
+        <source>Verify the message to ensure it was signed with the specified Avian address</source>
         <translation>Verifiera meddelandet för att vara säker på att den var signerad med den angivna Raven-adressen</translation>
     </message>
     <message>

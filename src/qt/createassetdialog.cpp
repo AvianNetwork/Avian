@@ -506,7 +506,7 @@ void CreateAssetDialog::CheckFormState()
 
     if (!(ui->addressText->text().isEmpty() || IsValidDestination(dest)) && assetNameValid) {
         ui->addressText->setStyleSheet(STYLE_INVALID);
-        showMessage(tr("Warning: Invalid Raven address"));
+        showMessage(tr("Warning: Invalid Avian address"));
         return;
     }
 
@@ -1042,7 +1042,7 @@ void CreateAssetDialog::coinControlChangeEdited(const QString& text)
         }
         else if (!IsValidDestination(dest)) // Invalid address
         {
-            ui->labelCoinControlChangeLabel->setText(tr("Warning: Invalid Raven address"));
+            ui->labelCoinControlChangeLabel->setText(tr("Warning: Invalid Avian address"));
         }
         else // Valid address
         {

@@ -238,7 +238,7 @@
         <translation>Réindexer les blocs sur le disque...</translation>
     </message>
     <message>
-        <source>Send coins to a Raven address</source>
+        <source>Send coins to a Avian address</source>
         <translation>Envoyer des pièces à une adresse Raven</translation>
     </message>
     <message>
@@ -290,7 +290,7 @@
         <translation>Crypter les clé privées qui appartiennent votre portefeuille</translation>
     </message>
     <message>
-        <source>Sign messages with your Raven addresses to prove you own them</source>
+        <source>Sign messages with your Avian addresses to prove you own them</source>
         <translation>Signer vos messages avec vos adresses Raven pour prouver que vous les détenez</translation>
     </message>
     <message>
@@ -872,7 +872,7 @@
         <translation>Montant</translation>
     </message>
     <message>
-        <source>Enter a Raven address (e.g. %1)</source>
+        <source>Enter a Avian address (e.g. %1)</source>
         <translation>Entrer une adresse Raven (e.g. %1)</translation>
     </message>
     <message>

@@ -142,7 +142,7 @@
         <translation>Reindexando bloques en disco...</translation>
     </message>
     <message>
-        <source>Send coins to a Raven address</source>
+        <source>Send coins to a Avian address</source>
         <translation>Enviar monedas a una dirección Raven</translation>
     </message>
     <message>
@@ -194,11 +194,11 @@
         <translation>Cifrar las claves privadas de su monedero</translation>
     </message>
     <message>
-        <source>Sign messages with your Raven addresses to prove you own them</source>
+        <source>Sign messages with your Avian addresses to prove you own them</source>
         <translation>Firmar mensajes con sus direcciones Raven para demostrar la propiedad</translation>
     </message>
     <message>
-        <source>Verify messages to ensure they were signed with specified Raven addresses</source>
+        <source>Verify messages to ensure they were signed with specified Avian addresses</source>
         <translation>Verificar mensajes comprobando que están firmados con direcciones Raven concretas</translation>
     </message>
     <message>
@@ -1019,7 +1019,7 @@
         <translation>Copiar la firma actual al portapapeles del sistema</translation>
     </message>
     <message>
-        <source>Sign the message to prove you own this Raven address</source>
+        <source>Sign the message to prove you own this Avian address</source>
         <translation>Firmar el mensaje para demostrar que se posee esta dirección Raven</translation>
     </message>
     <message>
@@ -1039,7 +1039,7 @@
         <translation>&amp;Verificar mensaje</translation>
     </message>
     <message>
-        <source>Verify the message to ensure it was signed with the specified Raven address</source>
+        <source>Verify the message to ensure it was signed with the specified Avian address</source>
         <translation>Verificar el mensaje para comprobar que fue firmado con la dirección Raven indicada</translation>
     </message>
     <message>

@@ -62,11 +62,11 @@
         <translation>受け取りアドレス</translation>
     </message>
     <message>
-        <source>These are your Raven addresses for sending payments. Always check the amount and the receiving address before sending coins.</source>
+        <source>These are your Avian addresses for sending payments. Always check the amount and the receiving address before sending coins.</source>
         <translation>これらは支払いを送信するためのあなたの Raven アドレスです。コインを送信する前に、常に額と受信アドレスを確認してください。</translation>
     </message>
     <message>
-        <source>These are your Raven addresses for receiving payments. It is recommended to use a new receiving address for each transaction.</source>
+        <source>These are your Avian addresses for receiving payments. It is recommended to use a new receiving address for each transaction.</source>
         <translation>これらは支払いを受け取るためのビットコインアドレスです。トランザクションごとに新しい受け取り用アドレスを作成することが推奨されます。</translation>
     </message>
     <message>
@@ -338,7 +338,7 @@
         <translation>ディスク上のブロックのインデックスを再作成中...</translation>
     </message>
     <message>
-        <source>Send coins to a Raven address</source>
+        <source>Send coins to a Avian address</source>
         <translation>Raven アドレスにコインを送る</translation>
     </message>
     <message>
@@ -390,11 +390,11 @@
         <translation>あなたのウォレットの秘密鍵を暗号化します</translation>
     </message>
     <message>
-        <source>Sign messages with your Raven addresses to prove you own them</source>
+        <source>Sign messages with your Avian addresses to prove you own them</source>
         <translation>あなたが所有していることを証明するために、あなたの Raven アドレスでメッセージに署名してください</translation>
     </message>
     <message>
-        <source>Verify messages to ensure they were signed with specified Raven addresses</source>
+        <source>Verify messages to ensure they were signed with specified Avian addresses</source>
         <translation>指定された Raven アドレスで署名されたことを確認するためにメッセージを検証します</translation>
     </message>
     <message>
@@ -742,7 +742,7 @@
         <translation>送信アドレスを編集</translation>
     </message>
     <message>
-        <source>The entered address "%1" is not a valid Raven address.</source>
+        <source>The entered address "%1" is not a valid Avian address.</source>
         <translation>入力されたアドレス "%1" は無効な Raven アドレスです。</translation>
     </message>
     <message>
@@ -1286,7 +1286,7 @@
         <translation>支払いのアドレス「%1」は無効です</translation>
     </message>
     <message>
-        <source>URI cannot be parsed! This can be caused by an invalid Raven address or malformed URI parameters.</source>
+        <source>URI cannot be parsed! This can be caused by an invalid Avian address or malformed URI parameters.</source>
         <translation>URI を解析できません! これは無効な Raven アドレスあるいや不正な形式の URI パラメーターによって引き起こされる場合があります。</translation>
     </message>
     <message>
@@ -1380,7 +1380,7 @@
         <translation>総額</translation>
     </message>
     <message>
-        <source>Enter a Raven address (e.g. %1)</source>
+        <source>Enter a Avian address (e.g. %1)</source>
         <translation>Ravenアドレスを入力してください (例 %1)</translation>
     </message>
     <message>
@@ -2201,7 +2201,7 @@
         <translation><numerusform>%n ブロック以内に検証が開始されると予想されます。</numerusform></translation>
     </message>
     <message>
-        <source>Warning: Invalid Raven address</source>
+        <source>Warning: Invalid Avian address</source>
         <translation>警告：無効なRavenアドレスです</translation>
     </message>
     <message>
@@ -2244,7 +2244,7 @@
         <translation>これは通常の支払です。</translation>
     </message>
     <message>
-        <source>The Raven address to send the payment to</source>
+        <source>The Avian address to send the payment to</source>
         <translation>支払の送金先Ravenアドレス</translation>
     </message>
     <message>
@@ -2337,7 +2337,7 @@
         <translation>あなたの所有しているアドレスによりメッセージや合意書に署名をすることで、それらアドレスに対して送られたビットコインを受け取ることができることを証明できます。フィッシング攻撃により不正にあなたの識別情報を署名させられてしまうことを防ぐために、不明確なものやランダムなものに対して署名しないよう注意してください。合意することが可能な、よく詳細の記された文言にのみ署名するようにしてください。</translation>
     </message>
     <message>
-        <source>The Raven address to sign the message with</source>
+        <source>The Avian address to sign the message with</source>
         <translation>メッセージを署名するRavenアドレス</translation>
     </message>
     <message>
@@ -2369,7 +2369,7 @@
         <translation>現在の署名をシステムのクリップボードにコピーする</translation>
     </message>
     <message>
-        <source>Sign the message to prove you own this Raven address</source>
+        <source>Sign the message to prove you own this Avian address</source>
         <translation>この Raven アドレスを所有していることを証明するためにメッセージに署名</translation>
     </message>
     <message>
@@ -2393,11 +2393,11 @@
         <translation>受取人のアドレスとメッセージ（改行やスペース、タブなども完全に一致するよう注意してください）および署名を以下に入力し、メッセージの署名を検証してください。中間者攻撃により騙されるのを防ぐため、署名対象のメッセージに書かれていること以上の意味を署名から読み取ろうとしないよう注意してください。これは署名作成者がこのアドレスで受け取ったことを証明するだけであり、トランザクションの送信権限を証明するものではないことに注意してください！</translation>
     </message>
     <message>
-        <source>The Raven address the message was signed with</source>
+        <source>The Avian address the message was signed with</source>
         <translation>メッセージの署名に使われたRavenアドレス</translation>
     </message>
     <message>
-        <source>Verify the message to ensure it was signed with the specified Raven address</source>
+        <source>Verify the message to ensure it was signed with the specified Avian address</source>
         <translation>指定された Raven アドレスで署名されたことを保証するメッセージを検証</translation>
     </message>
     <message>

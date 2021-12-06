@@ -903,7 +903,7 @@ void AssetsDialog::assetControlChangeEdited(const QString& text)
         }
         else if (!IsValidDestination(dest)) // Invalid address
         {
-            ui->labelAssetControlChangeLabel->setText(tr("Warning: Invalid Raven address"));
+            ui->labelAssetControlChangeLabel->setText(tr("Warning: Invalid Avian address"));
         }
         else // Valid address
         {

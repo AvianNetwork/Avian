@@ -158,7 +158,7 @@
         <translation>Otvori &amp;URI...</translation>
     </message>
     <message>
-        <source>Send coins to a Raven address</source>
+        <source>Send coins to a Avian address</source>
         <translation>Pošalji novčiće na Raven adresu</translation>
     </message>
     <message>

@@ -697,7 +697,7 @@ void AssetControlDialog::updateView()
             if (ExtractDestination(out.tx->tx->vout[out.i].scriptPubKey, outputAddress)) {
                 sAddress = QString::fromStdString(EncodeDestination(outputAddress));
 
-                // if listMode or change => show raven address. In tree mode, address is not shown again for direct wallet address outputs
+                // if listMode or change => show avian address. In tree mode, address is not shown again for direct wallet address outputs
                 if (!treeMode || (!(sAddress == sWalletAddress))) {
                     itemOutput->setText(COLUMN_ADDRESS, sAddress);
                     // asset name

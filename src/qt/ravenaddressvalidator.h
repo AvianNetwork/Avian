@@ -21,7 +21,7 @@ public:
     State validate(QString &input, int &pos) const;
 };
 
-/** Raven address widget validator, checks for a valid raven address.
+/** Avian address widget validator, checks for a valid avian address.
  */
 class RavenAddressCheckValidator : public QValidator
 {

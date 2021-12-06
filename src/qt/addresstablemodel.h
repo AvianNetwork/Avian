@@ -27,7 +27,7 @@ public:
 
     enum ColumnIndex {
         Label = 0,   /**< User specified label */
-        Address = 1  /**< Raven address */
+        Address = 1  /**< Avian address */
     };
 
     enum RoleIndex {

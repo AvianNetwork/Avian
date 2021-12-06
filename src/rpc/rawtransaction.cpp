@@ -164,7 +164,7 @@ UniValue getrawtransaction(const JSONRPCRequest& request)
             "         \"reqSigs\" : n,            (numeric) The required sigs\n"
             "         \"type\" : \"pubkeyhash\",  (string) The type, eg 'pubkeyhash'\n"
             "         \"addresses\" : [           (json array of string)\n"
-            "           \"address\"        (string) raven address\n"
+            "           \"address\"        (string) avian address\n"
             "           ,...\n"
             "         ]\n"
             "       }\n"
@@ -385,7 +385,7 @@ UniValue createrawtransaction(const JSONRPCRequest& request)
             "     ]\n"
             "2. \"outputs\"                               (object, required) a json object with outputs\n"
             "     {\n"
-            "       \"address\":                          (string, required) The destination raven address.  Each output must have a different address.\n"
+            "       \"address\":                          (string, required) The destination avian address.  Each output must have a different address.\n"
             "         x.xxx                             (numeric or string, required) The RVN amount\n"
             "           or\n"
             "         {                                 (object) A json object of assets to send\n"
@@ -524,7 +524,7 @@ UniValue createrawtransaction(const JSONRPCRequest& request)
         } else {
             CTxDestination destination = DecodeDestination(name_);
             if (!IsValidDestination(destination)) {
-                throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, std::string("Invalid Raven address: ") + name_);
+                throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, std::string("Invalid Avian address: ") + name_);
             }
 
             if (!destinations.insert(destination).second) {
@@ -840,7 +840,7 @@ UniValue decoderawtransaction(const JSONRPCRequest& request)
             "         \"reqSigs\" : n,            (numeric) The required sigs\n"
             "         \"type\" : \"pubkeyhash\",  (string) The type, eg 'pubkeyhash'\n"
             "         \"addresses\" : [           (json array of string)\n"
-            "           \"12tvKAXCxZjSmdNbao16dKXC8tRWfcF5oc\"   (string) raven address\n"
+            "           \"12tvKAXCxZjSmdNbao16dKXC8tRWfcF5oc\"   (string) avian address\n"
             "           ,...\n"
             "         ]\n"
             "       }\n"
@@ -883,7 +883,7 @@ UniValue decodescript(const JSONRPCRequest& request)
             "  \"type\":\"type\", (string) The output type\n"
             "  \"reqSigs\": n,    (numeric) The required signatures\n"
             "  \"addresses\": [   (json array of string)\n"
-            "     \"address\"     (string) raven address\n"
+            "     \"address\"     (string) avian address\n"
             "     ,...\n"
             "  ],\n"
             "  \"p2sh\":\"address\",       (string) address of P2SH script wrapping this redeem script (not returned if the script is already a P2SH).\n"

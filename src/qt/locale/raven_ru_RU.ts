@@ -522,7 +522,7 @@
 <context>
     <name>QObject</name>
     <message>
-        <source>Enter a Raven address (e.g. %1)</source>
+        <source>Enter a Avian address (e.g. %1)</source>
         <translation>Введите Raven-адрес (напр. %1)</translation>
     </message>
     <message numerus="yes">
