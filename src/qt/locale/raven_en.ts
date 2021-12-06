@@ -3990,7 +3990,7 @@
 <context>
     <name>raven-core</name>
     <message>
-        <location filename="../ravenstrings.cpp" line="+343"/>
+        <location filename="../avianstrings.cpp" line="+343"/>
         <source>Options:</source>
         <translation>Options:</translation>
     </message>
