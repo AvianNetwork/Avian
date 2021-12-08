@@ -283,7 +283,7 @@ public:
         consensus.vDeployments[Consensus::DEPLOYMENT_CROW].nTimeout = std::numeric_limits<int64_t>::max();
 
         // Crow Algo consensus
-        consensus.powForkTime = 1639003805;                 // Time of PoW hash method change 
+        consensus.powForkTime = 1639005225;                 // Time of PoW hash method change 
         consensus.lwmaAveragingWindow = 45;                 // Averaging window size for LWMA diff adjust
         //consensus.powTypeLimits.emplace_back(uint256S("0x00000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"));   // x16rt limit
         //consensus.powTypeLimits.emplace_back(uint256S("0x000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"));   // Crow limit
