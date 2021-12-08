@@ -145,7 +145,7 @@ public:
 
         // Crow Algo consensus
         consensus.powForkTime = 1638847407;                 // Time of PoW hash method change (Dec 06 2021)
-        consensus.lwmaAveragingWindow = 90;                 // Averaging window size for LWMA diff adjust
+        consensus.lwmaAveragingWindow = 45;                 // Averaging window size for LWMA diff adjust
         consensus.powTypeLimits.emplace_back(uint256S("00000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"));   // x16rt limit
         consensus.powTypeLimits.emplace_back(uint256S("00000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"));   // Crow limit
 
@@ -284,7 +284,7 @@ public:
 
         // Crow Algo consensus
         consensus.powForkTime = 1635847608;                 // Time of PoW hash method change 
-        consensus.lwmaAveragingWindow = 90;                 // Averaging window size for LWMA diff adjust
+        consensus.lwmaAveragingWindow = 45;                 // Averaging window size for LWMA diff adjust
         //consensus.powTypeLimits.emplace_back(uint256S("0x00000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"));   // x16rt limit
         //consensus.powTypeLimits.emplace_back(uint256S("0x000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"));   // Crow limit
         consensus.powTypeLimits.emplace_back(uint256S("00000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"));   // x16rt limit

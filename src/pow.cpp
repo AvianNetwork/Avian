@@ -146,103 +146,174 @@ bool IsTransitioningToX16rt(const CBlockIndex* pindexLast, const CBlockHeader *p
 // Algorithm by Zawy, a modification of WT-144 by Tom Harding
 // For updates see
 // https://github.com/zawy12/difficulty-algorithms/issues/3#issuecomment-442129791
-unsigned int GetNextWorkRequiredLWMA(const CBlockIndex* pindexLast, const CBlockHeader *pblock, const Consensus::ConsensusParams& params, const POW_TYPE powType) {
+// unsigned int GetNextWorkRequiredLWMA(const CBlockIndex* pindexLast, const CBlockHeader *pblock, const Consensus::ConsensusParams& params, const POW_TYPE powType) {
+//     const bool verbose = LogAcceptCategory(BCLog::CROW);
+//     const arith_uint256 powLimit = UintToArith256(params.powTypeLimits[powType]);   // Max target limit (easiest diff)
+//     const int64_t T = params.nPowTargetSpacing * 2;                                 // Target freq
+//     const int64_t N = params.lwmaAveragingWindow;                                   // Window size
+//     const int64_t k = N * (N + 1) * T / 2;                                          // Constant for proper averaging after weighting solvetimes
+//     const int64_t height = pindexLast->nHeight;                                     // Block height
+
+//     // TESTNET ONLY: Allow minimum difficulty blocks if we haven't seen a block for ostensibly 10 blocks worth of time.
+//     // ***** THIS IS NOT SAFE TO DO ON YOUR MAINNET! *****
+//     if (params.fPowAllowMinDifficultyBlocks && pblock->GetBlockTime() > pindexLast->GetBlockTime() + T * 10) {
+//         if (verbose) LogPrintf("* GetNextWorkRequiredLWMA: Allowing %s pow limit (apparent testnet stall)\n", POW_TYPE_NAMES[powType]);
+//         return powLimit.GetCompact();
+//     }
+
+//     // Not enough blocks on chain? Return limit
+//     if (height < N) {
+//         if (verbose) LogPrintf("* GetNextWorkRequiredLWMA: Allowing %s pow limit (short chain)\n", POW_TYPE_NAMES[powType]);
+//         return powLimit.GetCompact();
+//     }
+
+//     arith_uint256 avgTarget, nextTarget;
+//     int64_t thisTimestamp, previousTimestamp;
+//     int64_t sumWeightedSolvetimes = 0, j = 0, blocksFound = 0;
+
+//     // Find previousTimestamp (N blocks of this blocktype back) 
+//     const CBlockIndex* blockPreviousTimestamp = pindexLast;
+//     while (blocksFound < N) {
+//         // Reached forkpoint before finding N blocks of correct powtype? Return min
+//         if (blockPreviousTimestamp->GetBlockHeader().nTime < params.powForkTime) {
+//             if (verbose) LogPrintf("* GetNextWorkRequiredLWMA: Allowing %s pow limit (previousTime calc reached forkpoint at height %i)\n", POW_TYPE_NAMES[powType], blockPreviousTimestamp->nHeight);
+//             return powLimit.GetCompact();
+//         }
+        
+//         // Wrong block type? Skip
+//         if (blockPreviousTimestamp->GetBlockHeader().GetPoWType() != powType) {
+//             assert (blockPreviousTimestamp->pprev);
+//             blockPreviousTimestamp = blockPreviousTimestamp->pprev;
+//             continue;
+//         }
+
+//         blocksFound++;
+//         if (blocksFound == N)   // Don't step to next one if we're at the one we want
+//             break;
+
+//         assert (blockPreviousTimestamp->pprev);
+//         blockPreviousTimestamp = blockPreviousTimestamp->pprev;
+//     }
+//     previousTimestamp = blockPreviousTimestamp->GetBlockTime();
+//     if (verbose) LogPrintf("* GetNextWorkRequiredLWMA: previousTime: First in period is %s at height %i\n", blockPreviousTimestamp->GetBlockHeader().GetHash().ToString().c_str(), blockPreviousTimestamp->nHeight);
+
+//     // Find N most recent blocks of wanted type
+//     blocksFound = 0;
+//     while (blocksFound < N) {
+//         // Wrong block type? Skip
+//         if (pindexLast->GetBlockHeader().GetPoWType() != powType) {
+//             //if (verbose) LogPrintf("* GetNextWorkRequiredLWMA: Height %i: Skipping %s (wrong blocktype)\n", pindexLast->nHeight, pindexLast->GetBlockHeader().GetHash().ToString().c_str());
+//             assert (pindexLast->pprev);
+//             pindexLast = pindexLast->pprev;
+//             continue;
+//         }
+
+//         const CBlockIndex* block = pindexLast;
+//         blocksFound++;
+//         //if (verbose) LogPrintf("* GetNextWorkRequiredLWMA: Height %i: Counting %s. Total %s blocks found now: %i.\n", pindexLast->nHeight, pindexLast->GetBlockHeader().GetHash().ToString().c_str(), POW_TYPE_NAMES[powType], blocksFound);
+
+//         // Prevent solvetimes from being negative in a safe way. It must be done like this. 
+//         // Do not attempt anything like  if (solvetime < 1) {solvetime=1;}
+//         // The +1 ensures short chains do not calculate nextTarget = 0.
+//         thisTimestamp = (block->GetBlockTime() > previousTimestamp) ? block->GetBlockTime() : previousTimestamp + 1;
+
+//         // 6*T limit prevents large drops in diff from long solvetimes which would cause oscillations.
+//         int64_t solvetime = std::min(6 * T, thisTimestamp - previousTimestamp);
+
+//         // The following is part of "preventing negative solvetimes". 
+//         previousTimestamp = thisTimestamp;
+
+//         // Give linearly higher weight to more recent solvetimes.
+//         j++;
+//         sumWeightedSolvetimes += solvetime * j; 
+
+//         // Target sum divided by a factor, (k N^2).
+//         // The factor is a part of the final equation. However we divide sum_target here to avoid
+//         // potential overflow.
+//         arith_uint256 target;
+//         target.SetCompact(block->nBits);
+//         avgTarget += target / (k * N * N);
+
+//         // Now step!
+//         assert (pindexLast->pprev);
+//         pindexLast = pindexLast->pprev;            
+//     }
+
+//     // Keep sumWeightedSolvetimes reasonable in case strange solvetimes occurred.
+//     if (sumWeightedSolvetimes < N * k / 3) {
+//         sumWeightedSolvetimes = N * k / 3;
+//     }
+
+//     nextTarget = avgTarget * sumWeightedSolvetimes; 
+
+//     if (nextTarget > powLimit) {
+//         if (verbose) LogPrintf("* GetNextWorkRequiredLWMA: Allowing %s pow limit (target too high)\n", POW_TYPE_NAMES[powType]);
+//         return powLimit.GetCompact();
+//     }
+
+//     return nextTarget.GetCompact();
+// }
+
+unsigned int GetNextWorkRequiredLWMA(const CBlockIndex* pindexLast, const CBlockHeader *pblock, const Consensus::ConsensusParams& params, const POW_TYPE powType)
+{
     const bool verbose = LogAcceptCategory(BCLog::CROW);
-    const arith_uint256 powLimit = UintToArith256(params.powTypeLimits[powType]);   // Max target limit (easiest diff)
-    const int64_t T = params.nPowTargetSpacing * 2;                                 // Target freq
     const int64_t N = params.lwmaAveragingWindow;                                   // Window size
-    const int64_t k = N * (N + 1) * T / 2;                                          // Constant for proper averaging after weighting solvetimes
-    const int64_t height = pindexLast->nHeight;                                     // Block height
+    const int64_t k = 1277;                                                         // Constant for proper averaging after weighting solvetimes (k=(N+1)/2*TargetSolvetime*0.998)
+    const arith_uint256 powLimit = UintToArith256(params.powTypeLimits[powType]);   // Max target limit (easiest diff)
+    const int height = pindexLast->nHeight + 1;                                     // Block height
+    assert(height > N);
 
     // TESTNET ONLY: Allow minimum difficulty blocks if we haven't seen a block for ostensibly 10 blocks worth of time.
     // ***** THIS IS NOT SAFE TO DO ON YOUR MAINNET! *****
-    if (params.fPowAllowMinDifficultyBlocks && pblock->GetBlockTime() > pindexLast->GetBlockTime() + T * 10) {
+    if (params.fPowAllowMinDifficultyBlocks &&
+        pblock->GetBlockTime() > pindexLast->GetBlockTime() + params.nPowTargetSpacing * 2) {
         if (verbose) LogPrintf("* GetNextWorkRequiredLWMA: Allowing %s pow limit (apparent testnet stall)\n", POW_TYPE_NAMES[powType]);
         return powLimit.GetCompact();
     }
 
-    // Not enough blocks on chain? Return limit
-    if (height < N) {
-        if (verbose) LogPrintf("* GetNextWorkRequiredLWMA: Allowing %s pow limit (short chain)\n", POW_TYPE_NAMES[powType]);
-        return powLimit.GetCompact();
+    if (params.fPowNoRetargeting) {
+        return pindexLast->nBits;
     }
 
-    arith_uint256 avgTarget, nextTarget;
-    int64_t thisTimestamp, previousTimestamp;
-    int64_t sumWeightedSolvetimes = 0, j = 0, blocksFound = 0;
+    arith_uint256 sum_target;
+    int t = 0, j = 0;
 
-    // Find previousTimestamp (N blocks of this blocktype back) 
-    const CBlockIndex* blockPreviousTimestamp = pindexLast;
-    while (blocksFound < N) {
-        // Reached forkpoint before finding N blocks of correct powtype? Return min
-        if (blockPreviousTimestamp->GetBlockHeader().nTime < params.powForkTime) {
-            if (verbose) LogPrintf("* GetNextWorkRequiredLWMA: Allowing %s pow limit (previousTime calc reached forkpoint at height %i)\n", POW_TYPE_NAMES[powType], blockPreviousTimestamp->nHeight);
-            return powLimit.GetCompact();
-        }
-        
-        // Wrong block type? Skip
-        if (blockPreviousTimestamp->GetBlockHeader().GetPoWType() != powType) {
-            assert (blockPreviousTimestamp->pprev);
-            blockPreviousTimestamp = blockPreviousTimestamp->pprev;
-            continue;
-        }
+    // Loop through N most recent blocks.
+    for (int i = height - N; i < height; i++) {
 
-        blocksFound++;
-        if (blocksFound == N)   // Don't step to next one if we're at the one we want
-            break;
-
-        assert (blockPreviousTimestamp->pprev);
-        blockPreviousTimestamp = blockPreviousTimestamp->pprev;
-    }
-    previousTimestamp = blockPreviousTimestamp->GetBlockTime();
-    if (verbose) LogPrintf("* GetNextWorkRequiredLWMA: previousTime: First in period is %s at height %i\n", blockPreviousTimestamp->GetBlockHeader().GetHash().ToString().c_str(), blockPreviousTimestamp->nHeight);
-
-    // Find N most recent blocks of wanted type
-    blocksFound = 0;
-    while (blocksFound < N) {
-        // Wrong block type? Skip
         if (pindexLast->GetBlockHeader().GetPoWType() != powType) {
-            //if (verbose) LogPrintf("* GetNextWorkRequiredLWMA: Height %i: Skipping %s (wrong blocktype)\n", pindexLast->nHeight, pindexLast->GetBlockHeader().GetHash().ToString().c_str());
+            if (verbose) LogPrintf("* GetNextWorkRequiredLWMA: Height %i: Skipping %s (wrong blocktype)\n", pindexLast->nHeight, pindexLast->GetBlockHeader().GetHash().ToString().c_str());
             assert (pindexLast->pprev);
             pindexLast = pindexLast->pprev;
             continue;
         }
 
-        const CBlockIndex* block = pindexLast;
-        blocksFound++;
-        //if (verbose) LogPrintf("* GetNextWorkRequiredLWMA: Height %i: Counting %s. Total %s blocks found now: %i.\n", pindexLast->nHeight, pindexLast->GetBlockHeader().GetHash().ToString().c_str(), POW_TYPE_NAMES[powType], blocksFound);
+        const CBlockIndex* block = pindexLast->GetAncestor(i);
+        const CBlockIndex* block_Prev = block->GetAncestor(i - 1);
+        int64_t solvetime = block->GetBlockTime() - block_Prev->GetBlockTime();
 
-        // Prevent solvetimes from being negative in a safe way. It must be done like this. 
-        // Do not attempt anything like  if (solvetime < 1) {solvetime=1;}
-        // The +1 ensures short chains do not calculate nextTarget = 0.
-        thisTimestamp = (block->GetBlockTime() > previousTimestamp) ? block->GetBlockTime() : previousTimestamp + 1;
-
-        // 6*T limit prevents large drops in diff from long solvetimes which would cause oscillations.
-        int64_t solvetime = std::min(6 * T, thisTimestamp - previousTimestamp);
-
-        // The following is part of "preventing negative solvetimes". 
-        previousTimestamp = thisTimestamp;
-
-        // Give linearly higher weight to more recent solvetimes.
         j++;
-        sumWeightedSolvetimes += solvetime * j; 
+        t += solvetime * j; // Weighted solvetime sum.
 
+        // Target sum divided by a factor, (k N^2).
+        // The factor is a part of the final equation. However we divide sum_target here to avoid
+        // potential overflow.
         arith_uint256 target;
         target.SetCompact(block->nBits);
-        avgTarget += target / N / k; // Dividing by k here prevents an overflow below.
-
-        // Now step!
-        assert (pindexLast->pprev);
-        pindexLast = pindexLast->pprev;            
-    }
-    nextTarget = avgTarget * sumWeightedSolvetimes; 
-
-    if (nextTarget > powLimit) {
-        if (verbose) LogPrintf("* GetNextWorkRequiredLWMA: Allowing %s pow limit (target too high)\n", POW_TYPE_NAMES[powType]);
-        return powLimit.GetCompact();
+        sum_target += target / (k * N * N);
     }
 
-    return nextTarget.GetCompact();
+    // Keep t reasonable in case strange solvetimes occurred.
+    if (t < N * k / 3) {
+        t = N * k / 3;
+    }
+
+    arith_uint256 next_target = t * sum_target;
+    if (next_target > powLimit) {
+        next_target = powLimit;
+    }
+
+    return next_target.GetCompact();
 }
 
 // Call correct diff adjust for blocks prior to Crow Algo
