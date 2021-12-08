@@ -261,7 +261,12 @@ unsigned int GetNextWorkRequiredLWMA(const CBlockIndex* pindexLast, const CBlock
     const int64_t k = 1277;                                                         // Constant for proper averaging after weighting solvetimes (k=(N+1)/2*TargetSolvetime*0.998)
     const arith_uint256 powLimit = UintToArith256(params.powTypeLimits[powType]);   // Max target limit (easiest diff)
     const int height = pindexLast->nHeight + 1;                                     // Block height
-    assert(height > N);
+
+    // Not enough blocks on chain? Return limit
+    if (height < N) {
+        if (verbose) LogPrintf("* GetNextWorkRequiredLWMA: Allowing %s pow limit (short chain)\n", POW_TYPE_NAMES[powType]);
+        return powLimit.GetCompact();
+    }
 
     // TESTNET ONLY: Allow minimum difficulty blocks if we haven't seen a block for ostensibly 10 blocks worth of time.
     // ***** THIS IS NOT SAFE TO DO ON YOUR MAINNET! *****
