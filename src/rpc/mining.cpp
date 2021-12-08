@@ -278,7 +278,9 @@ UniValue getmininginfo(const JSONRPCRequest& request)
     obj.push_back(Pair("difficulty",       (double)GetDifficulty()));
     if (IsCrowEnabled(chainActive.Tip(), Params().GetConsensus()))
         obj.push_back(Pair("crowdifficulty", GetDifficulty(nullptr, POW_TYPE_CROW)));  
-    obj.push_back(Pair("networkhashps",    getnetworkhashps(request)));
+    obj.push_back(Pair("networkhashps", GetNetworkHashPS(5, -1, POW_TYPE_X16RT)));
+    if (IsCrowEnabled(chainActive.Tip(), Params().GetConsensus()))
+        obj.push_back(Pair("crownetworkhashps", GetNetworkHashPS(5, -1, POW_TYPE_CROW)));
     obj.push_back(Pair("hashespersec",     (uint64_t)nHashesPerSec));
     obj.push_back(Pair("pooledtx",         (uint64_t)mempool.size()));
     obj.push_back(Pair("chain",            Params().NetworkIDString()));
