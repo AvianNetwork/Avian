@@ -260,7 +260,7 @@ unsigned int GetNextWorkRequiredLWMA(const CBlockIndex* pindexLast, const CBlock
     const int64_t N = params.lwmaAveragingWindow;                                   // Window size
     const int64_t k = 1277;                                                         // Constant for proper averaging after weighting solvetimes (k=(N+1)/2*TargetSolvetime*0.998)
     const arith_uint256 powLimit = UintToArith256(params.powTypeLimits[powType]);   // Max target limit (easiest diff)
-    const int height = pindexLast->nHeight + 1;                                     // Block height
+    const int height = pindexLast->nHeight;                                         // Block height
 
     // Not enough blocks on chain? Return limit
     if (height < N) {
