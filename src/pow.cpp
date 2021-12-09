@@ -149,9 +149,9 @@ bool IsTransitioningToX16rt(const CBlockIndex* pindexLast, const CBlockHeader *p
 
 unsigned int GetNextWorkRequiredLWMA(const CBlockIndex* pindexLast, const CBlockHeader *pblock, const Consensus::ConsensusParams& params, const POW_TYPE powType)
 {
-    if (!pindexLast || pindexLast->GetBlockHeader().nTime < params.diffRetargetFix)
+    if (!pindexLast || pindexLast->nHeight < params.diffRetargetFix)
         return GetNextWorkRequiredLWMA1(pindexLast, pblock, params, powType);
-    else if ( pindexLast->GetBlockHeader().nTime > params.diffRetargetFix)
+    else if (pindexLast->nHeight < params.diffRetargetFix)
         return GetNextWorkRequiredLWMA3(pindexLast, pblock, params, powType);
     else
         return GetNextWorkRequiredLWMA3(pindexLast, pblock, params, powType);
@@ -161,7 +161,7 @@ unsigned int GetNextWorkRequiredLWMA1(const CBlockIndex* pindexLast, const CBloc
     const bool verbose = LogAcceptCategory(BCLog::CROW);
     const arith_uint256 powLimit = UintToArith256(params.powTypeLimits[powType]);   // Max target limit (easiest diff)
     const int64_t T = params.nPowTargetSpacing * 2;                                 // Target freq
-    const int64_t N = params.lwmaAveragingWindow;                                   // Window size
+    const int64_t N = 90;                                                           // Window size
     const int64_t k = N * (N + 1) * T / 2;                                          // Constant for proper averaging after weighting solvetimes
     const int64_t height = pindexLast->nHeight;                                     // Block height
 
