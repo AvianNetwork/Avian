@@ -145,7 +145,7 @@ public:
 
         // Crow Algo consensus
         consensus.powForkTime = 1638847407;                 // Time of PoW hash method change (Dec 06 2021)
-        consensus.diffRetargetFix = 275106;                 // Time of diff algo change
+        consensus.diffRetargetFix = 275109;                 // Time of diff algo change
         consensus.lwmaAveragingWindow = 45;                 // Averaging window size for LWMA diff adjust
         consensus.powTypeLimits.emplace_back(uint256S("00000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"));   // x16rt limit
         consensus.powTypeLimits.emplace_back(uint256S("00000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"));   // Crow limit
