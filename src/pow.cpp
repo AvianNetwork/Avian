@@ -278,8 +278,8 @@ unsigned int GetNextWorkRequiredLWMA3(const CBlockIndex* pindexLast, const CBloc
     }
 
     arith_uint256 sum_target;
-    int t = 0, j = 0;
-
+    int t = 0, j = 0, blocksFound = 0;
+    
     // Loop through N most recent blocks.
     for (int i = height - N; i < height; i++) {
 
@@ -288,6 +288,8 @@ unsigned int GetNextWorkRequiredLWMA3(const CBlockIndex* pindexLast, const CBloc
             assert (pindexLast->pprev);
             pindexLast = pindexLast->pprev;
             continue;
+        } else {
+            blocksFound++;
         }
 
         const CBlockIndex* block = pindexLast->GetAncestor(i);
@@ -305,14 +307,23 @@ unsigned int GetNextWorkRequiredLWMA3(const CBlockIndex* pindexLast, const CBloc
         sum_target += target / (k * N * N);
     }
 
+
     // Keep t reasonable in case strange solvetimes occurred.
     if (t < N * k / 3) {
         t = N * k / 3;
     }
 
+
     arith_uint256 next_target = t * sum_target;
     if (next_target > powLimit) {
+        if (verbose) LogPrintf("* GetNextWorkRequiredLWMA3: Allowing %s pow limit (target too high)\n", POW_TYPE_NAMES[powType]);
         next_target = powLimit;
+    }
+
+    // If no blocks of correct POW_TYPE was found within the block window then return powLimit
+    if(blocksFound == 0){
+        if (verbose) LogPrintf("* GetNextWorkRequiredLWMA3: Allowing %s pow limit (blocksFound returned 0)\n", POW_TYPE_NAMES[powType]);
+        return powLimit.GetCompact();
     }
 
     return next_target.GetCompact();
