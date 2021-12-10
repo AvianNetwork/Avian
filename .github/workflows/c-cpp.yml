@@ -124,14 +124,11 @@ jobs:
           path: ~/.ccache
           key: ${{ matrix.name }}-${{ env.cache-name }}-${{ hashFiles('**/configure.ac') }}
 
-      - name: Update Minor Version
-        run: |
-          ./build_version_update.sh ${GITHUB_RUN_NUMBER}
-
       - name: Build Ravencoin Lite
         run: |
           depends/${{ matrix.host }}/native/bin/ccache --max-size=$CCACHE_SIZE
           ./autogen.sh
+          ./build_version_update.sh ${GITHUB_RUN_NUMBER}
           ./configure --prefix=`pwd`/depends/${{ matrix.host }} ${{ matrix.config-opts }} || ( cat config.log && false)
           make $MAKEJOBS ${{ matrix.goal }} || ( echo "Build failure. Verbose build follows." && make ${{ matrix.goal }} V=1 ; false )
           
