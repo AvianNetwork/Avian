@@ -21,7 +21,7 @@
 #define CLIENT_VERSION_MINOR 0
 
 /* Build revision */
-#define CLIENT_VERSION_REVISION 1
+#define CLIENT_VERSION_REVISION 3
 
 /* Copyright holder(s) before %s replacement */
 #define COPYRIGHT_HOLDERS "The %s developers"
@@ -63,7 +63,7 @@
 #define HAVE_BOOST_THREAD /**/
 
 /* define if the Boost::Unit_Test_Framework library is available */
-#define HAVE_BOOST_UNIT_TEST_FRAMEWORK /**/
+/* #undef HAVE_BOOST_UNIT_TEST_FRAMEWORK */
 
 /* Define to 1 if you have the <byteswap.h> header file. */
 #define HAVE_BYTESWAP_H 1
@@ -347,7 +347,7 @@
 #define PACKAGE_NAME "Avian Core"
 
 /* Define to the full name and version of this package. */
-#define PACKAGE_STRING "Avian Core 3.0.1"
+#define PACKAGE_STRING "Avian Core 3.0.3"
 
 /* Define to the one symbol short name of this package. */
 #define PACKAGE_TARNAME "avian"
@@ -356,7 +356,7 @@
 #define PACKAGE_URL "https://avian.org/"
 
 /* Define to the version of this package. */
-#define PACKAGE_VERSION "3.0.1"
+#define PACKAGE_VERSION "3.0.3"
 
 /* Define to necessary symbol if this constant uses a non-standard name on
    your system. */
