@@ -347,7 +347,7 @@
 #define PACKAGE_NAME "Avian Core"
 
 /* Define to the full name and version of this package. */
-#define PACKAGE_STRING "Avian Core 3.0.3"
+#define PACKAGE_STRING "Avian Core 3.0.INSERTVERSIONHERE"
 
 /* Define to the one symbol short name of this package. */
 #define PACKAGE_TARNAME "avian"
@@ -356,7 +356,7 @@
 #define PACKAGE_URL "https://avian.org/"
 
 /* Define to the version of this package. */
-#define PACKAGE_VERSION "3.0.3"
+#define PACKAGE_VERSION "3.0.INSERTVERSIONHERE"
 
 /* Define to necessary symbol if this constant uses a non-standard name on
    your system. */
