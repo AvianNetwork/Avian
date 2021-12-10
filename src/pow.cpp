@@ -294,6 +294,13 @@ unsigned int GetNextWorkRequiredLWMA3(const CBlockIndex* pindexLast, const CBloc
 
         const CBlockIndex* block = pindexLast->GetAncestor(i);
         const CBlockIndex* block_Prev = block->GetAncestor(i - 1);
+
+        if(block == nullptr || block_Prev == nullptr) {
+            assert (pindexLast->pprev);
+            pindexLast = pindexLast->pprev;
+            continue;   
+        }
+
         int64_t solvetime = block->GetBlockTime() - block_Prev->GetBlockTime();
 
         j++;
