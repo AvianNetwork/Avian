@@ -77,7 +77,7 @@ jobs:
       - name: Install packages
         run: |
           sudo apt-get update
-          sudo apt-get install build-essential libtool autotools-dev automake pkg-config bsdmainutils curl ca-certificates ccache python3 rsync git procps bison
+          sudo apt-get install build-essential libtool autotools-dev automake pkg-config bsdmainutils curl ca-certificates ccache python3 rsync git procps bison sed
           sudo apt-get install ${{ matrix.packages }}
 
       - name: Post install
@@ -123,6 +123,10 @@ jobs:
         with:
           path: ~/.ccache
           key: ${{ matrix.name }}-${{ env.cache-name }}-${{ hashFiles('**/configure.ac') }}
+
+      - name: Update Minor Version
+        run: |
+          ./build_version_update.sh ${GITHUB_RUN_NUMBER}
 
       - name: Build Ravencoin Lite
         run: |
