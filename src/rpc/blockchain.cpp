@@ -54,33 +54,27 @@ static CUpdatedBlock latestblock;
 
 extern void TxToJSON(const CTransaction& tx, const uint256 hashBlock, UniValue& entry);
 
+// XVG
+CBlockIndex* GetLastBlockIndex4Algo(CBlockIndex* pindex, POW_TYPE powType)
+{
+    while (pindex && pindex->pprev && pindex->GetBlockHeader().GetPoWType() != powType)
+        pindex = pindex->pprev;
+    return pindex;
+}
+
+double GetDifficulty(POW_TYPE powType){
+    return GetDifficulty(GetLastBlockIndex4Algo(chainActive.Tip(), powType));
+}
+
 /* Calculate the difficulty for a given block index,
  * or the block index of the given chain.
  */
-// Crow: Add powType param
-double GetDifficulty(const CChain& chain, const CBlockIndex* blockindex, POW_TYPE powType = POW_TYPE_X16RT)
+double GetDifficulty(const CBlockIndex* blockindex)
 {
     if (blockindex == nullptr)
     {
-        if (chain.Tip() == nullptr)
-            return 1.0;
-        else
-            blockindex = chain.Tip();
+        return 1.0;
     }
-
-    const Consensus::ConsensusParams& consensusParams = Params().GetConsensus();
-
-    // Crow: Skip over incorrect powTypes
-    if (IsCrowEnabled(blockindex, consensusParams)) {
-        while (blockindex->GetBlockHeader().GetPoWType() != powType) {
-            assert(blockindex->pprev);
-            blockindex = blockindex->pprev;
-            if (!IsCrowEnabled(blockindex, consensusParams)) {
-                return 0;
-            }
-        }
-    }
-
 
     int nShift = (blockindex->nBits >> 24) & 0xff;
     double dDiff =
@@ -100,42 +94,6 @@ double GetDifficulty(const CChain& chain, const CBlockIndex* blockindex, POW_TYP
     return dDiff;
 }
 
-// Crow
-double GetDifficulty(const CBlockIndex* blockindex, POW_TYPE powType)
-{
-    return GetDifficulty(chainActive, blockindex, powType);
-}
-
-
-// double GetDifficulty(const CBlockIndex* blockindex)
-// {
-//     if (blockindex == nullptr)
-//     {
-//         if (chainActive.Tip() == nullptr)
-//             return 1.0;
-//         else
-//             blockindex = chainActive.Tip();
-//     }
-
-//     int nShift = (blockindex->nBits >> 24) & 0xff;
-
-//     double dDiff =
-//         (double)0x0000ffff / (double)(blockindex->nBits & 0x00ffffff);
-
-//     while (nShift < 29)
-//     {
-//         dDiff *= 256.0;
-//         nShift++;
-//     }
-//     while (nShift > 29)
-//     {
-//         dDiff /= 256.0;
-//         nShift--;
-//     }
-
-//     return dDiff;
-// }
-
 UniValue blockheaderToJSON(const CBlockIndex* blockindex)
 {
     UniValue result(UniValue::VOBJ);
@@ -154,8 +112,6 @@ UniValue blockheaderToJSON(const CBlockIndex* blockindex)
     result.push_back(Pair("nonce", (uint64_t)blockindex->nNonce));
     result.push_back(Pair("bits", strprintf("%08x", blockindex->nBits)));
     result.push_back(Pair("difficulty", GetDifficulty(blockindex)));
-    if (IsCrowEnabled(blockindex, Params().GetConsensus()))
-        result.push_back(Pair("crowdifficulty", GetDifficulty(blockindex,POW_TYPE_CROW))); 
     result.push_back(Pair("chainwork", blockindex->nChainWork.GetHex()));
     result.push_back(Pair("nTx", (uint64_t)blockindex->nTx));
 
@@ -263,8 +219,10 @@ UniValue blockToDeltasJSON(const CBlock& block, const CBlockIndex* blockindex)
     result.push_back(Pair("nonce", (uint64_t)block.nNonce));
     result.push_back(Pair("bits", strprintf("%08x", block.nBits)));
     result.push_back(Pair("difficulty", GetDifficulty(blockindex)));
-    if (IsCrowEnabled(blockindex, Params().GetConsensus()))
-        result.push_back(Pair("crowdifficulty", GetDifficulty(blockindex,POW_TYPE_CROW))); 
+    if (IsCrowEnabled(blockindex, Params().GetConsensus())) {
+        result.push_back(Pair("difficulty_minotaurx", GetDifficulty(POW_TYPE_CROW)));
+        result.push_back(Pair("difficulty_x16rt", GetDifficulty(POW_TYPE_X16RT)));
+    }
     result.push_back(Pair("chainwork", blockindex->nChainWork.GetHex()));
 
     if (blockindex->pprev)
@@ -311,8 +269,10 @@ UniValue blockToJSON(const CBlock& block, const CBlockIndex* blockindex, bool tx
     result.push_back(Pair("nonce", (uint64_t)block.nNonce));
     result.push_back(Pair("bits", strprintf("%08x", block.nBits)));
     result.push_back(Pair("difficulty", GetDifficulty(blockindex)));
-    if (IsCrowEnabled(blockindex, consensusParams))
-        result.push_back(Pair("crowdifficulty", GetDifficulty(blockindex,POW_TYPE_CROW))); 
+    if (IsCrowEnabled(blockindex, Params().GetConsensus())) {
+        result.push_back(Pair("difficulty_minotaurx", GetDifficulty(POW_TYPE_CROW)));
+        result.push_back(Pair("difficulty_x16rt", GetDifficulty(POW_TYPE_X16RT)));
+    }
     result.push_back(Pair("chainwork", blockindex->nChainWork.GetHex()));
 
     if (blockindex->pprev)
@@ -524,7 +484,7 @@ UniValue getdifficulty(const JSONRPCRequest& request)
         throw JSONRPCError(RPC_INVALID_PARAMETER, "Non x16rt algo requested but Crow not enabled");
 
     LOCK(cs_main);
-    return GetDifficulty(nullptr, powType);
+    return GetDifficulty(powType);
 }
 
 std::string EntryDescriptionString()
@@ -934,7 +894,7 @@ UniValue getblockheader(const JSONRPCRequest& request)
             "\nResult (for verbose = true):\n"
             "{\n"
             "  \"hash\" : \"hash\",     (string) the block hash (same as provided)\n"
-            "  \"powtype\" : \"x16rt\"|\"crow\"|\"unrecognised\", (string) Indicates the pow mining type of the block\n" 
+            "  \"powtype\" : \"x16rt\"|\"minotaurx\"|\"unrecognised\", (string) Indicates the pow mining type of the block\n" 
             "  \"confirmations\" : n,   (numeric) The number of confirmations, or -1 if the block is not on the main chain\n"
             "  \"height\" : n,          (numeric) The block height or index\n"
             "  \"version\" : n,         (numeric) The block version\n"
@@ -944,8 +904,7 @@ UniValue getblockheader(const JSONRPCRequest& request)
             "  \"mediantime\" : ttt,    (numeric) The median block time in seconds since epoch (Jan 1 1970 GMT)\n"
             "  \"nonce\" : n,           (numeric) The nonce\n"
             "  \"bits\" : \"1d00ffff\", (string) The bits\n"
-            "  \"difficulty\" : x.xxx,  (numeric) The difficulty for x16rt\n"
-            "  \"crowdifficulty\" : x.xxx,  (numeric) The pow difficulty for Crow (once activated)\n" // Crow
+            "  \"difficulty\" : x.xxx,  (numeric) The difficulty\n"
             "  \"nTx\", : \"x\",        (string) The number of transactions in the block\n"
             "  \"chainwork\" : \"0000...1f3\"     (string) Expected number of hashes required to produce the current chain (in hex)\n"
             "  \"previousblockhash\" : \"hash\",  (string) The hash of the previous block\n"
@@ -999,7 +958,7 @@ UniValue getblock(const JSONRPCRequest& request)
             "\nResult (for verbosity = 1):\n"
             "{\n"
             "  \"hash\" : \"hash\",     (string) the block hash (same as provided)\n"
-            "  \"powtype\" : \"x16rt\"|\"crow\"|\"unrecognised\", (string) Indicates the pow mining type of the block\n" 
+            "  \"powtype\" : \"x16rt\"|\"minotaurx\"|\"unrecognised\", (string) Indicates the pow mining type of the block\n" 
             "  \"confirmations\" : n,   (numeric) The number of confirmations, or -1 if the block is not on the main chain\n"
             "  \"size\" : n,            (numeric) The block size\n"
             "  \"strippedsize\" : n,    (numeric) The block size excluding witness data\n"
@@ -1016,8 +975,7 @@ UniValue getblock(const JSONRPCRequest& request)
             "  \"mediantime\" : ttt,    (numeric) The median block time in seconds since epoch (Jan 1 1970 GMT)\n"
             "  \"nonce\" : n,           (numeric) The nonce\n"
             "  \"bits\" : \"1d00ffff\", (string) The bits\n"
-            "  \"difficulty\" : x.xxx,  (numeric) The difficulty for x16rt\n"
-            "  \"crowdifficulty\" : x.xxx,  (numeric) The pow difficulty for Crow (once activated)\n" // Crow            
+            "  \"difficulty\" : x.xxx,  (numeric) The difficulty\n"
             "  \"chainwork\" : \"xxxx\",  (string) Expected number of hashes required to produce the chain up to this block (in hex)\n"
             "  \"nTx\", : \"x\",        (string) The number of transactions in the block\n"
             "  \"previousblockhash\" : \"hash\",  (string) The hash of the previous block\n"
@@ -1431,6 +1389,7 @@ UniValue getblockchaininfo(const JSONRPCRequest& request)
             "  \"headers\": xxxxxx,        (numeric) the current number of headers we have validated\n"
             "  \"bestblockhash\": \"...\", (string) the hash of the currently best block\n"
             "  \"difficulty\": xxxxxx,     (numeric) the current difficulty\n"
+            "  \"difficulty_algoname\": x  (string) difficulty per algorithm after crow activation\n"
             "  \"mediantime\": xxxxxx,     (numeric) median time for the current best block\n"
             "  \"verificationprogress\": xxxx, (numeric) estimate of verification progress [0..1]\n"
             "  \"chainwork\": \"xxxx\"     (string) total amount of work in active chain, in hexadecimal\n"
@@ -1478,9 +1437,10 @@ UniValue getblockchaininfo(const JSONRPCRequest& request)
     obj.push_back(Pair("blocks",                (int)chainActive.Height()));
     obj.push_back(Pair("headers",               pindexBestHeader ? pindexBestHeader->nHeight : -1));
     obj.push_back(Pair("bestblockhash",         chainActive.Tip()->GetBlockHash().GetHex()));
-    obj.push_back(Pair("difficulty",            (double)GetDifficulty()));
+    obj.push_back(Pair("difficulty",            (double)GetDifficulty(chainActive.Tip())));
     if (IsCrowEnabled(chainActive.Tip(), Params().GetConsensus())){
-        obj.push_back(Pair("crowdifficulty", GetDifficulty(nullptr, POW_TYPE_CROW)));
+        obj.push_back(Pair("difficulty_minotaurx", GetDifficulty(POW_TYPE_CROW)));
+        obj.push_back(Pair("difficulty_x16rt", GetDifficulty(POW_TYPE_X16RT)));
         obj.push_back(Pair("difficulty_algorithm", "LWMA-3"));
     } else {
         obj.push_back(Pair("difficulty_algorithm", "DGW-180"));

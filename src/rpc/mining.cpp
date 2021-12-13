@@ -170,7 +170,7 @@ UniValue generateBlocks(std::shared_ptr<CReserveScript> coinbaseScript, int nGen
             LOCK(cs_main);
             IncrementExtraNonce(pblock, chainActive.Tip(), nExtraNonce);
         }
-        while (nMaxTries > 0 && pblock->nNonce < nInnerLoopCount && !CheckProofOfWork(pblock->GetHash(), pblock->nBits, Params().GetConsensus())) {
+        while (nMaxTries > 0 && pblock->nNonce < nInnerLoopCount && !CheckProofOfWork(pblock->GetBlockHeader(), Params().GetConsensus())) {
             ++pblock->nNonce;
             --nMaxTries;
         }
@@ -256,7 +256,7 @@ UniValue getmininginfo(const JSONRPCRequest& request)
             "  \"currentblockweight\": nnn, (numeric) The last block weight\n"
             "  \"currentblocktx\": nnn,     (numeric) The last block transaction\n"
             "  \"difficulty\": xxx.xxxxx    (numeric) The current difficulty for pre-Crow\n"
-            "  \"crowdifficulty\": x.x (numeric) the current difficulty for Crow once activated\n"  // Crow
+            "  \"difficulty_algorithm\": x.x (numeric) the current difficulty for Crow once activated per algorithm\n"  // Crow
             "  \"networkhashps\": nnn,      (numeric) The network hashes per second\n"
             "  \"hashespersec\": nnn,       (numeric) The hashes per second of built-in miner\n"
             "  \"pooledtx\": n              (numeric) The size of the mempool\n"
@@ -271,16 +271,34 @@ UniValue getmininginfo(const JSONRPCRequest& request)
 
     LOCK(cs_main);
 
+    std::string strAlgo = gArgs.GetArg("-powalgo", DEFAULT_POW_TYPE);
+
+    bool algoFound = false;
+    POW_TYPE powType;
+    for (unsigned int i = 0; i < NUM_BLOCK_TYPES; i++) {
+        if (strAlgo == POW_TYPE_NAMES[i]) {
+            powType = (POW_TYPE)i;
+            algoFound = true;
+            break;
+        }
+    }
+    if (!algoFound)
+        throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid pow algorithm requested");
+
     UniValue obj(UniValue::VOBJ);
     obj.push_back(Pair("blocks",           (int)chainActive.Height()));
     obj.push_back(Pair("currentblockweight", (uint64_t)nLastBlockWeight));
     obj.push_back(Pair("currentblocktx",   (uint64_t)nLastBlockTx));
-    obj.push_back(Pair("difficulty",       (double)GetDifficulty()));
-    if (IsCrowEnabled(chainActive.Tip(), Params().GetConsensus()))
-        obj.push_back(Pair("crowdifficulty", GetDifficulty(nullptr, POW_TYPE_CROW)));  
-    obj.push_back(Pair("networkhashps", GetNetworkHashPS(5, -1, POW_TYPE_X16RT)));
-    if (IsCrowEnabled(chainActive.Tip(), Params().GetConsensus()))
-        obj.push_back(Pair("crownetworkhashps", GetNetworkHashPS(5, -1, POW_TYPE_CROW)));
+    obj.push_back(Pair("difficulty",       (double)GetDifficulty(powType)));
+    if (IsCrowEnabled(chainActive.Tip(), Params().GetConsensus())) {
+        obj.push_back(Pair("difficulty_minotaurx", GetDifficulty(POW_TYPE_CROW)));
+        obj.push_back(Pair("difficulty_x16rt", GetDifficulty(POW_TYPE_X16RT)));
+    }
+    obj.push_back(Pair("networkhashps", GetNetworkHashPS(5, -1, powType)));
+    if (IsCrowEnabled(chainActive.Tip(), Params().GetConsensus())) {
+        obj.push_back(Pair("networkhashps_minotaurx", GetNetworkHashPS(5, -1, POW_TYPE_CROW)));
+        obj.push_back(Pair("networkhashps_x16rt", GetNetworkHashPS(5, -1, POW_TYPE_X16RT)));
+    }
     obj.push_back(Pair("hashespersec",     (uint64_t)nHashesPerSec));
     obj.push_back(Pair("pooledtx",         (uint64_t)mempool.size()));
     obj.push_back(Pair("chain",            Params().NetworkIDString()));

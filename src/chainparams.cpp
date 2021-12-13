@@ -145,10 +145,13 @@ public:
 
         // Crow Algo consensus
         consensus.powForkTime = 1638847407;                 // Time of PoW hash method change (Dec 06 2021)
-        consensus.diffRetargetFix = 275109;                 // Time of diff algo change
+        consensus.diffRetargetFix = 275109;                 // Block for diff algo fix
+        consensus.diffRetargetTake2 = 1639269000;           // Third iteration of diff retargetter fix
         consensus.lwmaAveragingWindow = 45;                 // Averaging window size for LWMA diff adjust
+
+	// until "LWMA3" retarget algo, only "00000fff..." was used. these will apply once LWMA3 goes live
         consensus.powTypeLimits.emplace_back(uint256S("00000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"));   // x16rt limit
-        consensus.powTypeLimits.emplace_back(uint256S("00000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"));   // Crow limit
+        consensus.powTypeLimits.emplace_back(uint256S("000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"));   // Crow limit
 
         // x16rt switch
         consensus.nX16rtTimestamp = 1638748799;
@@ -214,8 +217,7 @@ public:
         checkpointData = (CCheckpointData) {
             {
                 { 0, uint256S("0x000000cdb10fc01df7fba251f2168ef7cd7854b571049db4902c315694461dd0")},
-                { 276000, uint256S("0x0000000000102e5645e146cd04348971f030f6e04a81b81b7981d3a3c86ce22d")},
-                { 276234, uint256S("0x00000000015461ef69ba7b4c5a07a17a847b39bb6b8d91a54002d2784a88b749")}     
+                { 275972, uint256S("0x0000004ac340f01da45c151990567a90a3c65010511ba7a05f3439a83c878efb")}
             }
         };
 
@@ -285,11 +287,11 @@ public:
         consensus.vDeployments[Consensus::DEPLOYMENT_CROW].nTimeout = std::numeric_limits<int64_t>::max();
 
         // Crow Algo consensus
-        consensus.powForkTime = 1639005225;                 // Time of PoW hash method change 
-        consensus.diffRetargetFix = 45;                     // Time of diff algo change
+        consensus.powForkTime = 1639005225;                 // Time of PoW hash method change
+        consensus.diffRetargetFix = 0;                      // Block of diff algo change
         consensus.lwmaAveragingWindow = 45;                 // Averaging window size for LWMA diff adjust
-        //consensus.powTypeLimits.emplace_back(uint256S("0x00000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"));   // x16rt limit
-        //consensus.powTypeLimits.emplace_back(uint256S("0x000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"));   // Crow limit
+        consensus.diffRetargetTake2 = 1639269000;           // Third iteration of LWMA retarget activation timestamp
+
         consensus.powTypeLimits.emplace_back(uint256S("00000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"));   // x16rt limit
         consensus.powTypeLimits.emplace_back(uint256S("000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"));   // Crow limit
 
@@ -310,12 +312,7 @@ public:
         nDefaultPort = 18770;
         nPruneAfterHeight = 1000;
 
-         
-	    
-	    
         genesis = CreateGenesisBlock(1630065295, 24922064, 0x1e00ffff, 4, 10 * COIN);
-      
-
 
         consensus.hashGenesisBlock = genesis.GetHash();
         assert(consensus.hashGenesisBlock == uint256S("0x00000084af22998d2aed78cc29f1fa587f854150ccd2991dfc82241c8f049219"));
