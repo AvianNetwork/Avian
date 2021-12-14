@@ -80,7 +80,7 @@ void OptionsModel::Init(bool resetSettings)
     nDisplayCurrencyIndex = settings.value("nDisplayCurrencyIndex", 0).toInt();
 
     if (!settings.contains("strThirdPartyTxUrls"))
-        settings.setValue("strThirdPartyTxUrls", DEFAULT_THIRD_PARTY_BROWSERS);
+        settings.setValue("strThirdPartyTxUrls",   "https://explorer-eu.avn.network/tx/%s|https://explorer-us.avn.network/tx/%s");
     strThirdPartyTxUrls = settings.value("strThirdPartyTxUrls", "").toString();
 
     if (!settings.contains("strIpfsUrl"))
