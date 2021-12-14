@@ -1,8 +1,8 @@
 <!--- Remove sections that do not apply -->
 
-This issue tracker is only for technical issues related to bitcoin-core.
+This issue tracker is only for technical issues related to Avian.
 
-General ravencoin questions and/or support requests and are best directed to the [Ravencoin Discord](https://discord.gg/GwtXdyc).
+General ravencoin questions and/or support requests and are best directed to the [Avian Discord](https://discord.gg/xDDMYA2SqV).
 
 For reporting security issues, please direct message one of the core developers in discord.
 
