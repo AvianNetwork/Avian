@@ -246,7 +246,7 @@ bool CheckSignatureEncoding(const std::vector<unsigned char> &vchSig, unsigned i
 
         bool usesForkId = GetHashType(vchSig) & SIGHASH_FORKID;
         bool forkIdEnabled = flags & SCRIPT_ENABLE_SIGHASH_FORKID;
-        std::cout << forkIdEnabled << "#" << "#" << flags << std::endl;
+//        std::cout << forkIdEnabled << "#" << "#" << flags << std::endl;
         if (!forkIdEnabled && usesForkId) {
             return set_error(serror, SCRIPT_ERR_ILLEGAL_FORKID);
         }
