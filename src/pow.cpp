@@ -81,7 +81,7 @@ unsigned int static DarkGravityWave(const CBlockIndex* pindexLast, const CBlockH
         bnNew = bnPowLimit;
     }
 
-    LogPrintf("--- diff --- %d: %d\n", pindexLast->nHeight, bnNew.GetCompact());
+//    LogPrintf("--- diff --- %d: %d\n", pindexLast->nHeight, bnNew.GetCompact());
 
     return bnNew.GetCompact();
 }
