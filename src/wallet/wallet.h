@@ -335,7 +335,7 @@ public:
      * on this avian node, and set to 0 for transactions that were created
      * externally and came in through the network or sendrawtransaction RPC.
      */
-    char fFromMe;
+    bool fFromMe;
     std::string strFromAccount;
     int64_t nOrderPos; //!< position in ordered transaction list
 
@@ -406,7 +406,7 @@ public:
     inline void SerializationOp(Stream& s, Operation ser_action) {
         if (ser_action.ForRead())
             Init(nullptr);
-        char fSpent = false;
+        bool fSpent = false;
 
         if (!ser_action.ForRead())
         {
