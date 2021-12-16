@@ -701,7 +701,7 @@ void RavenGUI::createToolBars()
         labelCurrentMarket->setContentsMargins(50,0,0,0);
         labelCurrentMarket->setFixedHeight(75);
         labelCurrentMarket->setAlignment(Qt::AlignVCenter);
-        labelCurrentMarket->setStyleSheet(STRING_LABEL_COLOR);
+        labelCurrentMarket->setStyleSheet(platformStyle->TextColor().name());
         labelCurrentMarket->setFont(currentMarketFont);
         labelCurrentMarket->setText(tr("Avian (AVN) Market Price"));
 
@@ -709,7 +709,7 @@ void RavenGUI::createToolBars()
         labelCurrentPrice->setContentsMargins(25,0,0,0);
         labelCurrentPrice->setFixedHeight(75);
         labelCurrentPrice->setAlignment(Qt::AlignVCenter);
-        labelCurrentPrice->setStyleSheet(currentPriceStyleSheet.arg(COLOR_BLACK.name()));
+        labelCurrentPrice->setStyleSheet(platformStyle->TextColor().name());
         labelCurrentPrice->setFont(currentMarketFont);
 
         QLabel* labelBtcRvn = new QLabel();
@@ -717,7 +717,7 @@ void RavenGUI::createToolBars()
         labelBtcRvn->setContentsMargins(15,0,0,0);
         labelBtcRvn->setFixedHeight(75);
         labelBtcRvn->setAlignment(Qt::AlignVCenter);
-        labelBtcRvn->setStyleSheet(STRING_LABEL_COLOR);
+        labelBtcRvn->setStyleSheet(platformStyle->TextColor().name());
         labelBtcRvn->setFont(currentMarketFont);
 
         priceLayout->setGeometry(headerWidget->rect());
