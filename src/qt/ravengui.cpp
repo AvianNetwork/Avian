@@ -709,7 +709,7 @@ void RavenGUI::createToolBars()
         labelCurrentPrice->setContentsMargins(25,0,0,0);
         labelCurrentPrice->setFixedHeight(75);
         labelCurrentPrice->setAlignment(Qt::AlignVCenter);
-        labelCurrentPrice->setStyleSheet(currentPriceStyleSheet.arg(COLOR_LABELS.name()));
+        labelCurrentPrice->setStyleSheet(currentPriceStyleSheet.arg(COLOR_BLACK.name()));
         labelCurrentPrice->setFont(currentMarketFont);
 
         QLabel* labelBtcRvn = new QLabel();
@@ -803,7 +803,7 @@ void RavenGUI::createToolBars()
 
         // Create the timer
         connect(pricingTimer, SIGNAL(timeout()), this, SLOT(getPriceInfo()));
-        pricingTimer->start(10000);
+        pricingTimer->start(30000);
         getPriceInfo();
         /** AVN END */
     }
