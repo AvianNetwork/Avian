@@ -766,6 +766,7 @@ void RavenGUI::createToolBars()
 
                     labelCurrentPrice->setText(QString("%1").arg(QString().setNum(num, 'f', 8)));
 			        labelCurrentPrice->setToolTip(tr("Brought to you by exbitron.com"));
+                    labelCurrentPrice->setStyleSheet(currentPriceStyleSheet.arg(COLOR_PRICING_WIDGET.name()));
 
             //         // Create regex expression to find the value with 8 decimals
 		    // QRegExp rx("0\\.0\\d\\d\\d\\d");
@@ -803,7 +804,7 @@ void RavenGUI::createToolBars()
 
         // Create the timer
         connect(pricingTimer, SIGNAL(timeout()), this, SLOT(getPriceInfo()));
-        pricingTimer->start(10000);
+        pricingTimer->start(30000);
         getPriceInfo();
         /** AVN END */
     }
