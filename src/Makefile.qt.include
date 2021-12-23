@@ -122,7 +122,8 @@ QT_FORMS_UI = \
   qt/forms/createassetdialog.ui \
   qt/forms/reissueassetdialog.ui \
   qt/forms/sendassetsentry.ui \
-  qt/forms/mnemonicdialog.ui
+  qt/forms/mnemonicdialog.ui \
+  qt/forms/poolpicker.ui
 
 QT_MOC_CPP = \
   qt/moc_addressbookpage.cpp \
@@ -163,6 +164,7 @@ QT_MOC_CPP = \
   qt/moc_receiverequestdialog.cpp \
   qt/moc_recentrequeststablemodel.cpp \
   qt/moc_rpcconsole.cpp \
+  qt/moc_poolpicker.cpp \
   qt/moc_sendcoinsdialog.cpp \
   qt/moc_sendcoinsentry.cpp \
   qt/moc_signverifymessagedialog.cpp \
@@ -196,7 +198,8 @@ QT_MOC = \
   qt/intro.moc \
   qt/overviewpage.moc \
   qt/importkeysdialog.moc \
-  qt/rpcconsole.moc
+  qt/rpcconsole.moc \
+  qt/poolpicker.moc
 
 QT_QRC_CPP = qt/qrc_raven.cpp
 QT_QRC = qt/raven.qrc
@@ -254,6 +257,7 @@ RAVEN_QT_H = \
   qt/recentrequeststablemodel.h \
   qt/reissueassetdialog.h \
   qt/rpcconsole.h \
+  qt/poolpicker.h \
   qt/sendassetsentry.h \
   qt/sendcoinsdialog.h \
   qt/sendcoinsentry.h \
@@ -407,6 +411,7 @@ RAVEN_QT_BASE_CPP = \
   qt/qvalidatedlineedit.cpp \
   qt/qvaluecombobox.cpp \
   qt/rpcconsole.cpp \
+  qt/poolpicker.cpp \
   qt/splashscreen.cpp \
   qt/trafficgraphwidget.cpp \
   qt/utilitydialog.cpp \

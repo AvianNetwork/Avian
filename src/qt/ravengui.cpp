@@ -21,6 +21,7 @@
 #include "optionsmodel.h"
 #include "platformstyle.h"
 #include "rpcconsole.h"
+#include "poolpicker.h"
 #include "utilitydialog.h"
 #include "validation.h"
 
@@ -136,6 +137,7 @@ RavenGUI::RavenGUI(const PlatformStyle *_platformStyle, const NetworkStyle *netw
     changePassphraseAction(0),
     aboutQtAction(0),
     openRPCConsoleAction(0),
+    openPoolPicker(0),
     openAction(0),
     showHelpMessageAction(0),
     transferAssetAction(0),
@@ -505,6 +507,9 @@ void RavenGUI::createActions()
     // initially disable the debug window menu item
     openRPCConsoleAction->setEnabled(false);
 
+    openPoolPicker = new QAction(platformStyle->TextColorIcon(":/icons/debugwindow"), tr("&Pool Picker"), this);
+    openPoolPicker->setStatusTip(tr("Open pool picker"));
+
     usedSendingAddressesAction = new QAction(platformStyle->TextColorIcon(":/icons/address-book"), tr("&Sending addresses..."), this);
     usedSendingAddressesAction->setStatusTip(tr("Show the list of used sending addresses and labels"));
     usedReceivingAddressesAction = new QAction(platformStyle->TextColorIcon(":/icons/address-book"), tr("&Receiving addresses..."), this);
@@ -527,6 +532,7 @@ void RavenGUI::createActions()
     connect(toggleHideAction, SIGNAL(triggered()), this, SLOT(toggleHidden()));
     connect(showHelpMessageAction, SIGNAL(triggered()), this, SLOT(showHelpMessageClicked()));
     connect(openRPCConsoleAction, SIGNAL(triggered()), this, SLOT(showDebugWindow()));
+    connect(openPoolPicker, SIGNAL(triggered()), this, SLOT(showPoolPicker()));
     // prevents an open debug window from becoming stuck/unusable on client shutdown
     connect(quitAction, SIGNAL(triggered()), rpcConsole, SLOT(hide()));
 
@@ -591,6 +597,8 @@ void RavenGUI::createMenuBar()
     {
         help->addAction(openRPCConsoleAction);
     }
+    /* Pool picker action */
+    help->addAction(openPoolPicker);
     help->addAction(showHelpMessageAction);
     help->addSeparator();
     help->addAction(aboutAction);
@@ -1008,6 +1016,12 @@ void RavenGUI::showDebugWindow()
     rpcConsole->show();
     rpcConsole->raise();
     rpcConsole->activateWindow();
+}
+
+void RavenGUI::showPoolPicker()
+{
+    PoolPicker poolPicker(this);
+    poolPicker.exec();
 }
 
 void RavenGUI::showDebugWindowActivateConsole()
