@@ -130,8 +130,8 @@
         <translation>Kõvakettal olevate plokkide reindekseerimine...</translation>
     </message>
     <message>
-        <source>Raven</source>
-        <translation>Raven</translation>
+        <source>Avian</source>
+        <translation>Avian</translation>
     </message>
     <message>
         <source>Wallet</source>
@@ -760,8 +760,8 @@
         <translation>Valikud:</translation>
     </message>
     <message>
-        <source>Raven Core</source>
-        <translation>Raven Core</translation>
+        <source>Avian Core</source>
+        <translation>Avian Core</translation>
     </message>
     <message>
         <source>Information</source>

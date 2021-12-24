@@ -362,7 +362,7 @@
         <translation>메시지 확인(&amp;V)...</translation>
     </message>
     <message>
-        <source>Raven</source>
+        <source>Avian</source>
         <translation>비트코인</translation>
     </message>
     <message>
@@ -478,7 +478,7 @@
         <translation>현재까지</translation>
     </message>
     <message>
-        <source>Show the %1 help message to get a list with possible Raven command-line options</source>
+        <source>Show the %1 help message to get a list with possible Avian command-line options</source>
         <translation>사용할 수 있는 비트코인 명령줄 옵션 목록을 가져오기 위해 %1 도움말 메시지를 표시합니다.</translation>
     </message>
     <message>
@@ -548,7 +548,7 @@
         <translation>지갑이 &lt;b&gt;암호화&lt;/b&gt; 되었고 현재 &lt;b&gt;잠겨져&lt;/b&gt; 있습니다</translation>
     </message>
     <message>
-        <source>A fatal error occurred. Raven can no longer continue safely and will quit.</source>
+        <source>A fatal error occurred. Avian can no longer continue safely and will quit.</source>
         <translation>치명적인 오류가 발생했습니다. 비트코인을 더이상 안전하게 진행할 수 없어 곧 종료합니다.</translation>
     </message>
 </context>
@@ -851,7 +851,7 @@
         <translation>프로그램이 처음으로 실행되고 있습니다. %1가 어디에 데이터를 저장할지 선택할 수 있습니다. </translation>
     </message>
     <message>
-        <source>%1 will download and store a copy of the Raven block chain. At least %2GB of data will be stored in this directory, and it will grow over time. The wallet will also be stored in this directory.</source>
+        <source>%1 will download and store a copy of the Avian block chain. At least %2GB of data will be stored in this directory, and it will grow over time. The wallet will also be stored in this directory.</source>
         <translation>%1가 블록체인의 복사본을 다운로드 저장합니다. 적어도 %2GB의 데이터가 이 폴더에 저장되며 시간이 경과할수록 점차 증가합니다. 그리고 지갑 또한 이 폴더에 저장됩니다. </translation>
     </message>
     <message>
@@ -1048,8 +1048,8 @@
         <translation>검증되지 않은 잔돈 쓰기 (&amp;S)</translation>
     </message>
     <message>
-        <source>Automatically open the Raven client port on the router. This only works when your router supports UPnP and it is enabled.</source>
-        <translation>라우터에서 Raven 클라이언트 포트를 자동적으로 엽니다. 라우터에서 UPnP를 지원하고 활성화 했을 경우에만 동작합니다.</translation>
+        <source>Automatically open the Avian client port on the router. This only works when your router supports UPnP and it is enabled.</source>
+        <translation>라우터에서 Avian 클라이언트 포트를 자동적으로 엽니다. 라우터에서 UPnP를 지원하고 활성화 했을 경우에만 동작합니다.</translation>
     </message>
     <message>
         <source>Map port using &amp;UPnP</source>
@@ -3058,7 +3058,7 @@
         <translation>HTTP 서버를 시작할 수 없습니다. 자세한 사항은 디버그 로그를 확인 하세요.</translation>
     </message>
     <message>
-        <source>Raven Core</source>
+        <source>Avian Core</source>
         <translation>비트코인 코어</translation>
     </message>
     <message>

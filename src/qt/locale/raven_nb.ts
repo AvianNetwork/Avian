@@ -63,11 +63,11 @@
     </message>
     <message>
         <source>These are your Avian addresses for sending payments. Always check the amount and the receiving address before sending coins.</source>
-        <translation>Dette er dine Raven-adresser for sending av betalinger. Sjekk alltid beløpet og mottakeradressen før sending av mynter.</translation>
+        <translation>Dette er dine Avian-adresser for sending av betalinger. Sjekk alltid beløpet og mottakeradressen før sending av mynter.</translation>
     </message>
     <message>
         <source>These are your Avian addresses for receiving payments. It is recommended to use a new receiving address for each transaction.</source>
-        <translation>Dette er dine Raven-adresser for å sende betalinger med. Det er anbefalt å bruke en ny mottaksadresse for hver transaksjon.</translation>
+        <translation>Dette er dine Avian-adresser for å sende betalinger med. Det er anbefalt å bruke en ny mottaksadresse for hver transaksjon.</translation>
     </message>
     <message>
         <source>&amp;Copy Address</source>
@@ -335,7 +335,7 @@
     </message>
     <message>
         <source>Send coins to a Avian address</source>
-        <translation>Send til en Raven-adresse</translation>
+        <translation>Send til en Avian-adresse</translation>
     </message>
     <message>
         <source>Backup wallet to another location</source>
@@ -358,8 +358,8 @@
         <translation>&amp;Verifiser melding...</translation>
     </message>
     <message>
-        <source>Raven</source>
-        <translation>Raven</translation>
+        <source>Avian</source>
+        <translation>Avian</translation>
     </message>
     <message>
         <source>Wallet</source>
@@ -387,11 +387,11 @@
     </message>
     <message>
         <source>Sign messages with your Avian addresses to prove you own them</source>
-        <translation>Signer en melding med Raven-adressene dine for å bevise at du eier dem</translation>
+        <translation>Signer en melding med Avian-adressene dine for å bevise at du eier dem</translation>
     </message>
     <message>
         <source>Verify messages to ensure they were signed with specified Avian addresses</source>
-        <translation>Bekreft meldinger for å være sikker på at de ble signert av en angitt Raven-adresse</translation>
+        <translation>Bekreft meldinger for å være sikker på at de ble signert av en angitt Avian-adresse</translation>
     </message>
     <message>
         <source>&amp;File</source>
@@ -431,7 +431,7 @@
     </message>
     <message numerus="yes">
         <source>%n active connection(s) to Avian network</source>
-        <translation><numerusform>%n aktiv forbindelse til Raven-nettverket</numerusform><numerusform>%n aktive forbindelser til Raven-nettverket</numerusform></translation>
+        <translation><numerusform>%n aktiv forbindelse til Avian-nettverket</numerusform><numerusform>%n aktive forbindelser til Avian-nettverket</numerusform></translation>
     </message>
     <message numerus="yes">
         <source>Processed %n block(s) of transaction history.</source>
@@ -524,8 +524,8 @@
         <translation>Lommeboken er &lt;b&gt;kryptert&lt;/b&gt; og for tiden &lt;b&gt;låst&lt;/b&gt;</translation>
     </message>
     <message>
-        <source>A fatal error occurred. Raven can no longer continue safely and will quit.</source>
-        <translation>En fatal feil har inntruffet. Raven kan ikke lenger trygt fortsette, og må derfor avslutte.</translation>
+        <source>A fatal error occurred. Avian can no longer continue safely and will quit.</source>
+        <translation>En fatal feil har inntruffet. Avian kan ikke lenger trygt fortsette, og må derfor avslutte.</translation>
     </message>
 </context>
 <context>
@@ -952,8 +952,8 @@
         <translation>&amp;Bruk ubekreftet veksel</translation>
     </message>
     <message>
-        <source>Automatically open the Raven client port on the router. This only works when your router supports UPnP and it is enabled.</source>
-        <translation>Åpne automatisk Raven klientporten på ruteren. Dette virker kun om din ruter støtter UPnP og dette er påslått.</translation>
+        <source>Automatically open the Avian client port on the router. This only works when your router supports UPnP and it is enabled.</source>
+        <translation>Åpne automatisk Avian klientporten på ruteren. Dette virker kun om din ruter støtter UPnP og dette er påslått.</translation>
     </message>
     <message>
         <source>Map port using &amp;UPnP</source>
@@ -961,7 +961,7 @@
     </message>
     <message>
         <source>Connect to the Avian network through a SOCKS5 proxy.</source>
-        <translation>Koble til Raven-nettverket gjennom en SOCKS5 proxy.</translation>
+        <translation>Koble til Avian-nettverket gjennom en SOCKS5 proxy.</translation>
     </message>
     <message>
         <source>&amp;Connect through SOCKS5 proxy (default proxy):</source>
@@ -1001,7 +1001,7 @@
     </message>
     <message>
         <source>Connect to the Avian network through a separate SOCKS5 proxy for Tor hidden services.</source>
-        <translation>Koble til Raven-nettverket gjennom en separat SOCKS5 mellomtjener for Tor skjulte tjenester.</translation>
+        <translation>Koble til Avian-nettverket gjennom en separat SOCKS5 mellomtjener for Tor skjulte tjenester.</translation>
     </message>
     <message>
         <source>Use separate SOCKS5 proxy to reach peers via Tor hidden services:</source>
@@ -1096,7 +1096,7 @@
     </message>
     <message>
         <source>The displayed information may be out of date. Your wallet automatically synchronizes with the Avian network after a connection is established, but this process has not completed yet.</source>
-        <translation>Informasjonen som vises kan være foreldet. Din lommebok synkroniseres automatisk med Raven-nettverket etter at tilkobling er opprettet, men denne prosessen er ikke ferdig enda.</translation>
+        <translation>Informasjonen som vises kan være foreldet. Din lommebok synkroniseres automatisk med Avian-nettverket etter at tilkobling er opprettet, men denne prosessen er ikke ferdig enda.</translation>
     </message>
     <message>
         <source>Watch-only:</source>
@@ -1185,7 +1185,7 @@
     </message>
     <message>
         <source>Enter a Avian address (e.g. %1)</source>
-        <translation>Oppgi en Raven-adresse (f.eks. %1)</translation>
+        <translation>Oppgi en Avian-adresse (f.eks. %1)</translation>
     </message>
     <message>
         <source>%1 d</source>
@@ -1561,7 +1561,7 @@
     </message>
     <message>
         <source>An optional message to attach to the payment request, which will be displayed when the request is opened. Note: The message will not be sent with the payment over the Avian network.</source>
-        <translation>En valgfri melding å tilknytte betalingsetterspørringen, som vil bli vist når forespørselen er åpnet. Meldingen vil ikke bli sendt med betalingen over Raven-nettverket.</translation>
+        <translation>En valgfri melding å tilknytte betalingsetterspørringen, som vil bli vist når forespørselen er åpnet. Meldingen vil ikke bli sendt med betalingen over Avian-nettverket.</translation>
     </message>
     <message>
         <source>An optional label to associate with the new receiving address.</source>
@@ -1746,7 +1746,7 @@
     </message>
     <message>
         <source>Paying only the minimum fee is just fine as long as there is less transaction volume than space in the blocks. But be aware that this can end up in a never confirming transaction once there is more demand for raven transactions than the network can process.</source>
-        <translation>Betaling av bare minimumsavgiften går helt fint så lenge det er mindre transaksjonsvolum enn plass i blokkene. Men vær klar over at dette kan ende opp i en transaksjon som aldri blir bekreftet når det er mer etterspørsel etter Raven-transaksjoner enn nettverket kan behandle.</translation>
+        <translation>Betaling av bare minimumsavgiften går helt fint så lenge det er mindre transaksjonsvolum enn plass i blokkene. Men vær klar over at dette kan ende opp i en transaksjon som aldri blir bekreftet når det er mer etterspørsel etter Avian-transaksjoner enn nettverket kan behandle.</translation>
     </message>
     <message>
         <source>(read the tooltip)</source>
@@ -1853,7 +1853,7 @@
     </message>
     <message>
         <source>The Avian address to send the payment to</source>
-        <translation>Raven-adressen betalingen skal sendes til</translation>
+        <translation>Avian-adressen betalingen skal sendes til</translation>
     </message>
     <message>
         <source>Alt+A</source>
@@ -1897,7 +1897,7 @@
     </message>
     <message>
         <source>A message that was attached to the avian: URI which will be stored with the transaction for your reference. Note: This message will not be sent over the Avian network.</source>
-        <translation>En melding som var tilknyttet ravenen: URI vil bli lagret med transaksjonen for din oversikt. Denne meldingen vil ikke bli sendt over Raven-nettverket.</translation>
+        <translation>En melding som var tilknyttet ravenen: URI vil bli lagret med transaksjonen for din oversikt. Denne meldingen vil ikke bli sendt over Avian-nettverket.</translation>
     </message>
     <message>
         <source>Pay To:</source>
@@ -1942,7 +1942,7 @@
     </message>
     <message>
         <source>The Avian address to sign the message with</source>
-        <translation>Raven-adressen meldingen skal signeres med</translation>
+        <translation>Avian-adressen meldingen skal signeres med</translation>
     </message>
     <message>
         <source>Choose previously used address</source>
@@ -1974,7 +1974,7 @@
     </message>
     <message>
         <source>Sign the message to prove you own this Avian address</source>
-        <translation>Signer meldingen for å bevise at du eier denne Raven-adressen</translation>
+        <translation>Signer meldingen for å bevise at du eier denne Avian-adressen</translation>
     </message>
     <message>
         <source>Sign &amp;Message</source>
@@ -1998,11 +1998,11 @@
     </message>
     <message>
         <source>The Avian address the message was signed with</source>
-        <translation>Raven-adressen meldingen ble signert med</translation>
+        <translation>Avian-adressen meldingen ble signert med</translation>
     </message>
     <message>
         <source>Verify the message to ensure it was signed with the specified Avian address</source>
-        <translation>Verifiser meldingen for å være sikker på at den ble signert av den angitte Raven-adressen</translation>
+        <translation>Verifiser meldingen for å være sikker på at den ble signert av den angitte Avian-adressen</translation>
     </message>
     <message>
         <source>Verify &amp;Message</source>
@@ -2246,8 +2246,8 @@
         <translation>Kunne ikke starte HTTP server. Se debug logg for detaljer.</translation>
     </message>
     <message>
-        <source>Raven Core</source>
-        <translation>Raven Core</translation>
+        <source>Avian Core</source>
+        <translation>Avian Core</translation>
     </message>
     <message>
         <source>Bind to given address and always listen on it. Use [host]:port notation for IPv6</source>

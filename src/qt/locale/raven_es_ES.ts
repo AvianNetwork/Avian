@@ -63,11 +63,11 @@
     </message>
     <message>
         <source>These are your Avian addresses for sending payments. Always check the amount and the receiving address before sending coins.</source>
-        <translation>Estas son sus direcciones Raven para enviar pagos. Verifique siempre la cantidad y la dirección de recibimiento antes de enviar monedas.</translation>
+        <translation>Estas son sus direcciones Avian para enviar pagos. Verifique siempre la cantidad y la dirección de recibimiento antes de enviar monedas.</translation>
     </message>
     <message>
         <source>These are your Avian addresses for receiving payments. It is recommended to use a new receiving address for each transaction.</source>
-        <translation>Estas son sus direcciones Raven para recibir pagos. Se recomienda utilizar una nueva dirección de recibimiento para cada transacción</translation>
+        <translation>Estas son sus direcciones Avian para recibir pagos. Se recomienda utilizar una nueva dirección de recibimiento para cada transacción</translation>
     </message>
     <message>
         <source>&amp;Copy Address</source>
@@ -339,7 +339,7 @@
     </message>
     <message>
         <source>Send coins to a Avian address</source>
-        <translation>Enviar avians a una dirección Raven</translation>
+        <translation>Enviar avians a una dirección Avian</translation>
     </message>
     <message>
         <source>Backup wallet to another location</source>
@@ -362,8 +362,8 @@
         <translation>&amp;Verificar mensaje...</translation>
     </message>
     <message>
-        <source>Raven</source>
-        <translation>Raven</translation>
+        <source>Avian</source>
+        <translation>Avian</translation>
     </message>
     <message>
         <source>Wallet</source>
@@ -391,11 +391,11 @@
     </message>
     <message>
         <source>Sign messages with your Avian addresses to prove you own them</source>
-        <translation>Firmar mensajes con sus direcciones Raven para demostrar la propiedad</translation>
+        <translation>Firmar mensajes con sus direcciones Avian para demostrar la propiedad</translation>
     </message>
     <message>
         <source>Verify messages to ensure they were signed with specified Avian addresses</source>
-        <translation>Verificar mensajes comprobando que están firmados con direcciones Raven concretas</translation>
+        <translation>Verificar mensajes comprobando que están firmados con direcciones Avian concretas</translation>
     </message>
     <message>
         <source>&amp;File</source>
@@ -435,7 +435,7 @@
     </message>
     <message numerus="yes">
         <source>%n active connection(s) to Avian network</source>
-        <translation><numerusform>%n conexión activa hacia la red Raven</numerusform><numerusform>%n conexiones activas hacia la red Raven</numerusform></translation>
+        <translation><numerusform>%n conexión activa hacia la red Avian</numerusform><numerusform>%n conexiones activas hacia la red Avian</numerusform></translation>
     </message>
     <message>
         <source>Indexing blocks on disk...</source>
@@ -478,8 +478,8 @@
         <translation>Actualizado</translation>
     </message>
     <message>
-        <source>Show the %1 help message to get a list with possible Raven command-line options</source>
-        <translation>Mostrar el mensaje de ayuda %1 para obtener una lista de los posibles comandos de linea de comandos de Raven</translation>
+        <source>Show the %1 help message to get a list with possible Avian command-line options</source>
+        <translation>Mostrar el mensaje de ayuda %1 para obtener una lista de los posibles comandos de linea de comandos de Avian</translation>
     </message>
     <message>
         <source>%1 client</source>
@@ -540,8 +540,8 @@
         <translation>El monedero está &lt;b&gt;cifrado&lt;/b&gt; y actualmente &lt;b&gt;bloqueado&lt;/b&gt;</translation>
     </message>
     <message>
-        <source>A fatal error occurred. Raven can no longer continue safely and will quit.</source>
-        <translation>Ha ocurrido un error fatal. Raven no puede continuar de manera segura y se cerrará.</translation>
+        <source>A fatal error occurred. Avian can no longer continue safely and will quit.</source>
+        <translation>Ha ocurrido un error fatal. Avian no puede continuar de manera segura y se cerrará.</translation>
     </message>
 </context>
 <context>
@@ -735,7 +735,7 @@
     </message>
     <message>
         <source>The entered address "%1" is not a valid Avian address.</source>
-        <translation>La dirección introducida "%1" no es una dirección Raven válida.</translation>
+        <translation>La dirección introducida "%1" no es una dirección Avian válida.</translation>
     </message>
     <message>
         <source>The entered address "%1" is already in the address book.</source>
@@ -843,8 +843,8 @@
         <translation>Al ser la primera vez que se ejecuta el programa, puede elegir donde %1 almacenara sus datos</translation>
     </message>
     <message>
-        <source>%1 will download and store a copy of the Raven block chain. At least %2GB of data will be stored in this directory, and it will grow over time. The wallet will also be stored in this directory.</source>
-        <translation>%1 va a descargar y almacenar una copia de la cadena de bloques de Raven. Al menos %2GB de datos seran almacenados en este directorio, que ira creciendo con el tiempo. El monedero se guardara tambien en ese directorio. </translation>
+        <source>%1 will download and store a copy of the Avian block chain. At least %2GB of data will be stored in this directory, and it will grow over time. The wallet will also be stored in this directory.</source>
+        <translation>%1 va a descargar y almacenar una copia de la cadena de bloques de Avian. Al menos %2GB de datos seran almacenados en este directorio, que ira creciendo con el tiempo. El monedero se guardara tambien en ese directorio. </translation>
     </message>
     <message>
         <source>Use the default data directory</source>
@@ -1032,8 +1032,8 @@
         <translation>&amp;Gastar cambio no confirmado</translation>
     </message>
     <message>
-        <source>Automatically open the Raven client port on the router. This only works when your router supports UPnP and it is enabled.</source>
-        <translation>Abrir automáticamente el puerto del cliente Raven en el router. Esta opción solo funciona si el router admite UPnP y está activado.</translation>
+        <source>Automatically open the Avian client port on the router. This only works when your router supports UPnP and it is enabled.</source>
+        <translation>Abrir automáticamente el puerto del cliente Avian en el router. Esta opción solo funciona si el router admite UPnP y está activado.</translation>
     </message>
     <message>
         <source>Map port using &amp;UPnP</source>
@@ -1041,7 +1041,7 @@
     </message>
     <message>
         <source>Connect to the Avian network through a SOCKS5 proxy.</source>
-        <translation>Conectarse a la red Raven a través de un proxy SOCKS5.</translation>
+        <translation>Conectarse a la red Avian a través de un proxy SOCKS5.</translation>
     </message>
     <message>
         <source>&amp;Connect through SOCKS5 proxy (default proxy):</source>
@@ -1081,7 +1081,7 @@
     </message>
     <message>
         <source>Connect to the Avian network through a separate SOCKS5 proxy for Tor hidden services.</source>
-        <translation>Conectar a la red Raven mediante un proxy SOCKS5 por separado para los servicios ocultos de Tor.</translation>
+        <translation>Conectar a la red Avian mediante un proxy SOCKS5 por separado para los servicios ocultos de Tor.</translation>
     </message>
     <message>
         <source>Use separate SOCKS5 proxy to reach peers via Tor hidden services:</source>
@@ -1180,7 +1180,7 @@
     </message>
     <message>
         <source>The displayed information may be out of date. Your wallet automatically synchronizes with the Avian network after a connection is established, but this process has not completed yet.</source>
-        <translation>La información mostrada puede estar desactualizada. Su monedero se sincroniza automáticamente con la red Raven después de que se haya establecido una conexión, pero este proceso aún no se ha completado.</translation>
+        <translation>La información mostrada puede estar desactualizada. Su monedero se sincroniza automáticamente con la red Avian después de que se haya establecido una conexión, pero este proceso aún no se ha completado.</translation>
     </message>
     <message>
         <source>Watch-only:</source>
@@ -1271,7 +1271,7 @@
     </message>
     <message>
         <source>URI cannot be parsed! This can be caused by an invalid Avian address or malformed URI parameters.</source>
-        <translation>URI no puede ser analizado! Esto puede ser causado por una dirección Raven inválida o parametros URI mal formados.</translation>
+        <translation>URI no puede ser analizado! Esto puede ser causado por una dirección Avian inválida o parametros URI mal formados.</translation>
     </message>
     <message>
         <source>Payment request file handling</source>
@@ -1365,7 +1365,7 @@
     </message>
     <message>
         <source>Enter a Avian address (e.g. %1)</source>
-        <translation>Introducir una dirección Raven (p. ej. %1)</translation>
+        <translation>Introducir una dirección Avian (p. ej. %1)</translation>
     </message>
     <message>
         <source>%1 d</source>
@@ -1733,7 +1733,7 @@
     </message>
     <message>
         <source>An optional message to attach to the payment request, which will be displayed when the request is opened. Note: The message will not be sent with the payment over the Avian network.</source>
-        <translation>Un mensaje opcional para adjuntar a la solicitud de pago, que se muestra cuando se abre la solicitud. Nota: El mensaje no se enviará con el pago por la red Raven.</translation>
+        <translation>Un mensaje opcional para adjuntar a la solicitud de pago, que se muestra cuando se abre la solicitud. Nota: El mensaje no se enviará con el pago por la red Avian.</translation>
     </message>
     <message>
         <source>An optional label to associate with the new receiving address.</source>
@@ -1966,7 +1966,7 @@
     </message>
     <message>
         <source>Paying only the minimum fee is just fine as long as there is less transaction volume than space in the blocks. But be aware that this can end up in a never confirming transaction once there is more demand for raven transactions than the network can process.</source>
-        <translation>Pagando solamente la cuota mínima es correcto, siempre y cuando haya menos volumen de transacciones que el espacio en los bloques. Pero tenga en cuenta que esto puede terminar en una transacción nunca confirmada, una vez que haya más demanda para transacciones Raven que la red pueda procesar.</translation>
+        <translation>Pagando solamente la cuota mínima es correcto, siempre y cuando haya menos volumen de transacciones que el espacio en los bloques. Pero tenga en cuenta que esto puede terminar en una transacción nunca confirmada, una vez que haya más demanda para transacciones Avian que la red pueda procesar.</translation>
     </message>
     <message>
         <source>(read the tooltip)</source>
@@ -2118,7 +2118,7 @@
     </message>
     <message>
         <source>Warning: Invalid Avian address</source>
-        <translation>Alerta: dirección Raven inválida</translation>
+        <translation>Alerta: dirección Avian inválida</translation>
     </message>
     <message>
         <source>Warning: Unknown change address</source>
@@ -2153,7 +2153,7 @@
     </message>
     <message>
         <source>The Avian address to send the payment to</source>
-        <translation>Dirección Raven a la que enviar el pago</translation>
+        <translation>Dirección Avian a la que enviar el pago</translation>
     </message>
     <message>
         <source>Alt+A</source>
@@ -2197,7 +2197,7 @@
     </message>
     <message>
         <source>A message that was attached to the avian: URI which will be stored with the transaction for your reference. Note: This message will not be sent over the Avian network.</source>
-        <translation>Un mensaje que se adjuntó a la avian: URL que será almacenada con la transacción para su referencia. Nota: Este mensaje no se envía a través de la red Raven.</translation>
+        <translation>Un mensaje que se adjuntó a la avian: URL que será almacenada con la transacción para su referencia. Nota: Este mensaje no se envía a través de la red Avian.</translation>
     </message>
     <message>
         <source>Pay To:</source>
@@ -2246,7 +2246,7 @@
     </message>
     <message>
         <source>The Avian address to sign the message with</source>
-        <translation>Dirección Raven con la que firmar el mensaje</translation>
+        <translation>Dirección Avian con la que firmar el mensaje</translation>
     </message>
     <message>
         <source>Choose previously used address</source>
@@ -2278,7 +2278,7 @@
     </message>
     <message>
         <source>Sign the message to prove you own this Avian address</source>
-        <translation>Firmar el mensaje para demostrar que se posee esta dirección Raven</translation>
+        <translation>Firmar el mensaje para demostrar que se posee esta dirección Avian</translation>
     </message>
     <message>
         <source>Sign &amp;Message</source>
@@ -2302,11 +2302,11 @@
     </message>
     <message>
         <source>The Avian address the message was signed with</source>
-        <translation>La dirección Raven con la que se firmó el mensaje</translation>
+        <translation>La dirección Avian con la que se firmó el mensaje</translation>
     </message>
     <message>
         <source>Verify the message to ensure it was signed with the specified Avian address</source>
-        <translation>Verificar el mensaje para comprobar que fue firmado con la dirección Raven indicada</translation>
+        <translation>Verificar el mensaje para comprobar que fue firmado con la dirección Avian indicada</translation>
     </message>
     <message>
         <source>Verify &amp;Message</source>
@@ -2937,8 +2937,8 @@
         <translation>No se ha podido comenzar el servidor HTTP. Ver debug log para detalles.</translation>
     </message>
     <message>
-        <source>Raven Core</source>
-        <translation>Raven Core</translation>
+        <source>Avian Core</source>
+        <translation>Avian Core</translation>
     </message>
     <message>
         <source>The %s developers</source>

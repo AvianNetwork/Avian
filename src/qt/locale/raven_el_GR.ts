@@ -246,8 +246,8 @@
         <translation>&amp;Επιβεβαίωση μηνύματος</translation>
     </message>
     <message>
-        <source>Raven</source>
-        <translation>Raven</translation>
+        <source>Avian</source>
+        <translation>Avian</translation>
     </message>
     <message>
         <source>Wallet</source>
@@ -279,7 +279,7 @@
     </message>
     <message>
         <source>Verify messages to ensure they were signed with specified Avian addresses</source>
-        <translation>Υπογράψτε ένα μήνυμα για ν' αποδείξετε πως ανήκει μια συγκεκριμένη διεύθυνση Raven</translation>
+        <translation>Υπογράψτε ένα μήνυμα για ν' αποδείξετε πως ανήκει μια συγκεκριμένη διεύθυνση Avian</translation>
     </message>
     <message>
         <source>&amp;File</source>
@@ -720,8 +720,8 @@
         <translation>&amp;Ξόδεμα μη επικυρωμένων ρέστων</translation>
     </message>
     <message>
-        <source>Automatically open the Raven client port on the router. This only works when your router supports UPnP and it is enabled.</source>
-        <translation>Αυτόματο άνοιγμα των θυρών Raven στον δρομολογητή. Λειτουργεί μόνο αν ο δρομολογητής σας υποστηρίζει τη λειτουργία UPnP.</translation>
+        <source>Automatically open the Avian client port on the router. This only works when your router supports UPnP and it is enabled.</source>
+        <translation>Αυτόματο άνοιγμα των θυρών Avian στον δρομολογητή. Λειτουργεί μόνο αν ο δρομολογητής σας υποστηρίζει τη λειτουργία UPnP.</translation>
     </message>
     <message>
         <source>Map port using &amp;UPnP</source>
@@ -729,7 +729,7 @@
     </message>
     <message>
         <source>Connect to the Avian network through a SOCKS5 proxy.</source>
-        <translation>Σύνδεση στο Raven δίκτυο μέσω διαμεσολαβητή SOCKS5 (π.χ. για σύνδεση μέσω Tor)</translation>
+        <translation>Σύνδεση στο Avian δίκτυο μέσω διαμεσολαβητή SOCKS5 (π.χ. για σύνδεση μέσω Tor)</translation>
     </message>
     <message>
         <source>&amp;Connect through SOCKS5 proxy (default proxy):</source>
@@ -825,7 +825,7 @@
     </message>
     <message>
         <source>The displayed information may be out of date. Your wallet automatically synchronizes with the Avian network after a connection is established, but this process has not completed yet.</source>
-        <translation>Οι πληροφορίες που εμφανίζονται μπορεί να είναι ξεπερασμένες. Το πορτοφόλι σας συγχρονίζεται αυτόματα με το δίκτυο Raven μετά από μια σύνδεση, αλλά αυτή η διαδικασία δεν έχει ακόμη ολοκληρωθεί. </translation>
+        <translation>Οι πληροφορίες που εμφανίζονται μπορεί να είναι ξεπερασμένες. Το πορτοφόλι σας συγχρονίζεται αυτόματα με το δίκτυο Avian μετά από μια σύνδεση, αλλά αυτή η διαδικασία δεν έχει ακόμη ολοκληρωθεί. </translation>
     </message>
     <message>
         <source>Watch-only:</source>
@@ -906,7 +906,7 @@
     </message>
     <message>
         <source>Enter a Avian address (e.g. %1)</source>
-        <translation>Εισάγετε μια διεύθυνση Raven (π.χ. %1)</translation>
+        <translation>Εισάγετε μια διεύθυνση Avian (π.χ. %1)</translation>
     </message>
     <message>
         <source>%1 d</source>
@@ -1374,7 +1374,7 @@
     </message>
     <message>
         <source>The Avian address to send the payment to</source>
-        <translation>Η διεύθυνση Raven που θα σταλεί η πληρωμή</translation>
+        <translation>Η διεύθυνση Avian που θα σταλεί η πληρωμή</translation>
     </message>
     <message>
         <source>Alt+A</source>
@@ -1431,7 +1431,7 @@
     </message>
     <message>
         <source>The Avian address to sign the message with</source>
-        <translation>Διεύθυνση Raven που θα σταλεί το μήνυμα</translation>
+        <translation>Διεύθυνση Avian που θα σταλεί το μήνυμα</translation>
     </message>
     <message>
         <source>Choose previously used address</source>
@@ -1463,7 +1463,7 @@
     </message>
     <message>
         <source>Sign the message to prove you own this Avian address</source>
-        <translation>Υπογράψτε ένα μήνυμα για ν' αποδείξετε πως σας ανήκει μια συγκεκριμένη διεύθυνση Raven</translation>
+        <translation>Υπογράψτε ένα μήνυμα για ν' αποδείξετε πως σας ανήκει μια συγκεκριμένη διεύθυνση Avian</translation>
     </message>
     <message>
         <source>Sign &amp;Message</source>
@@ -1483,11 +1483,11 @@
     </message>
     <message>
         <source>The Avian address the message was signed with</source>
-        <translation>Διεύθυνση Raven η οποία το μήνυμα έχει υπογραφεί</translation>
+        <translation>Διεύθυνση Avian η οποία το μήνυμα έχει υπογραφεί</translation>
     </message>
     <message>
         <source>Verify the message to ensure it was signed with the specified Avian address</source>
-        <translation>Υπογράψτε ένα μήνυμα για ν' αποδείξετε πως υπογραφθηκε απο μια συγκεκριμένη διεύθυνση Raven</translation>
+        <translation>Υπογράψτε ένα μήνυμα για ν' αποδείξετε πως υπογραφθηκε απο μια συγκεκριμένη διεύθυνση Avian</translation>
     </message>
     <message>
         <source>Verify &amp;Message</source>
@@ -1699,8 +1699,8 @@
         <translation>Εκτέλεση στο παρασκήνιο κι αποδοχή εντολών</translation>
     </message>
     <message>
-        <source>Raven Core</source>
-        <translation>Raven Core</translation>
+        <source>Avian Core</source>
+        <translation>Avian Core</translation>
     </message>
     <message>
         <source>Bind to given address and always listen on it. Use [host]:port notation for IPv6</source>

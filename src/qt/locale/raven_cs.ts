@@ -362,8 +362,8 @@
         <translation>&amp;Ověř zprávu...</translation>
     </message>
     <message>
-        <source>Raven</source>
-        <translation>Raven</translation>
+        <source>Avian</source>
+        <translation>Avian</translation>
     </message>
     <message>
         <source>Wallet</source>
@@ -478,8 +478,8 @@
         <translation>Aktuální</translation>
     </message>
     <message>
-        <source>Show the %1 help message to get a list with possible Raven command-line options</source>
-        <translation>Seznam argumentů Ravenu pro příkazovou řádku získáš v nápovědě %1</translation>
+        <source>Show the %1 help message to get a list with possible Avian command-line options</source>
+        <translation>Seznam argumentů Avianu pro příkazovou řádku získáš v nápovědě %1</translation>
     </message>
     <message>
         <source>%1 client</source>
@@ -548,8 +548,8 @@
         <translation>Peněženka je &lt;b&gt;zašifrovaná&lt;/b&gt; a momentálně &lt;b&gt;zamčená&lt;/b&gt;</translation>
     </message>
     <message>
-        <source>A fatal error occurred. Raven can no longer continue safely and will quit.</source>
-        <translation>Stala se fatální chyba. Raven nemůže bezpečně pokračovat v činnosti, a proto skončí.</translation>
+        <source>A fatal error occurred. Avian can no longer continue safely and will quit.</source>
+        <translation>Stala se fatální chyba. Avian nemůže bezpečně pokračovat v činnosti, a proto skončí.</translation>
     </message>
 </context>
 <context>
@@ -851,7 +851,7 @@
         <translation>Tohle je poprvé, co spouštíš %1, takže si můžeš zvolit, kam bude ukládat svá data.</translation>
     </message>
     <message>
-        <source>%1 will download and store a copy of the Raven block chain. At least %2GB of data will be stored in this directory, and it will grow over time. The wallet will also be stored in this directory.</source>
+        <source>%1 will download and store a copy of the Avian block chain. At least %2GB of data will be stored in this directory, and it will grow over time. The wallet will also be stored in this directory.</source>
         <translation>%1 bude stahovat kopii řetězce bloků. Proto bude potřeba do tohoto adresáře uložit nejméně %2 GB dat – toto číslo bude navíc v průběhu času růst. Tvá peněženka bude rovněž uložena v tomto adresáři.</translation>
     </message>
     <message>
@@ -1048,7 +1048,7 @@
         <translation>&amp;Utrácet i ještě nepotvrzené drobné</translation>
     </message>
     <message>
-        <source>Automatically open the Raven client port on the router. This only works when your router supports UPnP and it is enabled.</source>
+        <source>Automatically open the Avian client port on the router. This only works when your router supports UPnP and it is enabled.</source>
         <translation>Automaticky otevře potřebný port na routeru. Tohle funguje jen za předpokladu, že tvůj router podporuje UPnP a že je UPnP povolené.</translation>
     </message>
     <message>
@@ -2245,7 +2245,7 @@
     </message>
     <message>
         <source>The Avian address to send the payment to</source>
-        <translation>Ravenová adresa příjemce</translation>
+        <translation>Avianová adresa příjemce</translation>
     </message>
     <message>
         <source>Alt+A</source>
@@ -2338,7 +2338,7 @@
     </message>
     <message>
         <source>The Avian address to sign the message with</source>
-        <translation>Ravenová adresa, kterou se zpráva podepíše</translation>
+        <translation>Avianová adresa, kterou se zpráva podepíše</translation>
     </message>
     <message>
         <source>Choose previously used address</source>
@@ -2394,7 +2394,7 @@
     </message>
     <message>
         <source>The Avian address the message was signed with</source>
-        <translation>Ravenová adresa, kterou je zpráva podepsána</translation>
+        <translation>Avianová adresa, kterou je zpráva podepsána</translation>
     </message>
     <message>
         <source>Verify the message to ensure it was signed with the specified Avian address</source>
@@ -3058,8 +3058,8 @@
         <translation>Nemohu spustit HTTP server. Detaily viz v debug.log.</translation>
     </message>
     <message>
-        <source>Raven Core</source>
-        <translation>Raven Core</translation>
+        <source>Avian Core</source>
+        <translation>Avian Core</translation>
     </message>
     <message>
         <source>The %s developers</source>

@@ -63,7 +63,7 @@
     </message>
     <message>
         <source>These are your Avian addresses for sending payments. Always check the amount and the receiving address before sending coins.</source>
-        <translation>Hierdie is die adresse vanwaar u Raven betalings stuur. U moet altyd die bedrag en die adres van die ontvanger nagaan voordat u enige munte stuur.</translation>
+        <translation>Hierdie is die adresse vanwaar u Avian betalings stuur. U moet altyd die bedrag en die adres van die ontvanger nagaan voordat u enige munte stuur.</translation>
     </message>
     <message>
         <source>These are your Avian addresses for receiving payments. It is recommended to use a new receiving address for each transaction.</source>
@@ -331,7 +331,7 @@
     </message>
     <message>
         <source>Send coins to a Avian address</source>
-        <translation>Stuur munte na 'n Raven adres</translation>
+        <translation>Stuur munte na 'n Avian adres</translation>
     </message>
     <message>
         <source>Backup wallet to another location</source>
@@ -350,8 +350,8 @@
         <translation>Maak ontfouting en diagnostiese konsole oop</translation>
     </message>
     <message>
-        <source>Raven</source>
-        <translation>Raven</translation>
+        <source>Avian</source>
+        <translation>Avian</translation>
     </message>
     <message>
         <source>Wallet</source>
@@ -379,11 +379,11 @@
     </message>
     <message>
         <source>Sign messages with your Avian addresses to prove you own them</source>
-        <translation>Onderteken boodskappe met u Raven adresse om u eienaarskap te bewys</translation>
+        <translation>Onderteken boodskappe met u Avian adresse om u eienaarskap te bewys</translation>
     </message>
     <message>
         <source>Verify messages to ensure they were signed with specified Avian addresses</source>
-        <translation>Verifieër boodskappe om seker te maak dat dit met die gespesifiseerde Raven adresse</translation>
+        <translation>Verifieër boodskappe om seker te maak dat dit met die gespesifiseerde Avian adresse</translation>
     </message>
     <message>
         <source>&amp;File</source>
@@ -1012,8 +1012,8 @@
 <context>
     <name>raven-core</name>
     <message>
-        <source>Raven Core</source>
-        <translation>Raven Kern</translation>
+        <source>Avian Core</source>
+        <translation>Avian Kern</translation>
     </message>
     <message>
         <source>Information</source>

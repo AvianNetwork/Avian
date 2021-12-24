@@ -146,7 +146,7 @@
         <translation>&amp;Потврди порака...</translation>
     </message>
     <message>
-        <source>Raven</source>
+        <source>Avian</source>
         <translation>Биткоин</translation>
     </message>
     <message>
@@ -578,7 +578,7 @@
         <translation>Опции:</translation>
     </message>
     <message>
-        <source>Raven Core</source>
+        <source>Avian Core</source>
         <translation>Биткоин Core</translation>
     </message>
     <message>

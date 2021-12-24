@@ -322,7 +322,7 @@
         <translation>Праверыць паведамленне...</translation>
     </message>
     <message>
-        <source>Raven</source>
+        <source>Avian</source>
         <translation>Біткойн</translation>
     </message>
     <message>
@@ -1258,8 +1258,8 @@
         <translation>Запусціць у фоне як дэман і прымаць каманды</translation>
     </message>
     <message>
-        <source>Raven Core</source>
-        <translation>Raven Core</translation>
+        <source>Avian Core</source>
+        <translation>Avian Core</translation>
     </message>
     <message>
         <source>Do you want to rebuild the block database now?</source>

@@ -226,7 +226,7 @@
         <translation>تایید پیام</translation>
     </message>
     <message>
-        <source>Raven</source>
+        <source>Avian</source>
         <translation>بیت کوین</translation>
     </message>
     <message>

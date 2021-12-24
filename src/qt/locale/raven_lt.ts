@@ -155,7 +155,7 @@
     </message>
     <message>
         <source>Send coins to a Avian address</source>
-        <translation>Siųsti monetas Raven adresui</translation>
+        <translation>Siųsti monetas Avian adresui</translation>
     </message>
     <message>
         <source>Backup wallet to another location</source>
@@ -178,8 +178,8 @@
         <translation>&amp;Tikrinti žinutę...</translation>
     </message>
     <message>
-        <source>Raven</source>
-        <translation>Raven</translation>
+        <source>Avian</source>
+        <translation>Avian</translation>
     </message>
     <message>
         <source>Wallet</source>
@@ -418,8 +418,8 @@
         <translation>Piniginė</translation>
     </message>
     <message>
-        <source>Automatically open the Raven client port on the router. This only works when your router supports UPnP and it is enabled.</source>
-        <translation>Automatiškai atidaryti Raven kliento prievadą maršrutizatoriuje. Tai veikia tik tada, kai jūsų maršrutizatorius palaiko UPnP ir ji įjungta.</translation>
+        <source>Automatically open the Avian client port on the router. This only works when your router supports UPnP and it is enabled.</source>
+        <translation>Automatiškai atidaryti Avian kliento prievadą maršrutizatoriuje. Tai veikia tik tada, kai jūsų maršrutizatorius palaiko UPnP ir ji įjungta.</translation>
     </message>
     <message>
         <source>Map port using &amp;UPnP</source>
@@ -864,7 +864,7 @@
     </message>
     <message>
         <source>Verify the message to ensure it was signed with the specified Avian address</source>
-        <translation>Patikrinkite žinutę, jog įsitikintumėte, kad ją pasirašė nurodytas Raven adresas</translation>
+        <translation>Patikrinkite žinutę, jog įsitikintumėte, kad ją pasirašė nurodytas Avian adresas</translation>
     </message>
     <message>
         <source>Verify &amp;Message</source>
@@ -936,8 +936,8 @@
         <translation>Dirbti fone kaip šešėlyje ir priimti komandas</translation>
     </message>
     <message>
-        <source>Raven Core</source>
-        <translation>Raven branduolys</translation>
+        <source>Avian Core</source>
+        <translation>Avian branduolys</translation>
     </message>
     <message>
         <source>Error opening block database</source>
