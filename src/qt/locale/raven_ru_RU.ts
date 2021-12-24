@@ -230,8 +230,8 @@
         <translation>&amp;Проверить сообщение...</translation>
     </message>
     <message>
-        <source>Raven</source>
-        <translation>Raven Core</translation>
+        <source>Avian</source>
+        <translation>Avian Core</translation>
     </message>
     <message>
         <source>Wallet</source>
@@ -443,7 +443,7 @@
     </message>
     <message>
         <source>Connect to the Avian network through a SOCKS5 proxy.</source>
-        <translation>Подключится к сети Raven через SOCKS5 прокси.</translation>
+        <translation>Подключится к сети Avian через SOCKS5 прокси.</translation>
     </message>
     <message>
         <source>Proxy &amp;IP:</source>
@@ -523,7 +523,7 @@
     <name>QObject</name>
     <message>
         <source>Enter a Avian address (e.g. %1)</source>
-        <translation>Введите Raven-адрес (напр. %1)</translation>
+        <translation>Введите Avian-адрес (напр. %1)</translation>
     </message>
     <message numerus="yes">
         <source>%n hour(s)</source>
@@ -832,8 +832,8 @@
 <context>
     <name>raven-core</name>
     <message>
-        <source>Raven Core</source>
-        <translation>Raven Core</translation>
+        <source>Avian Core</source>
+        <translation>Avian Core</translation>
     </message>
     <message>
         <source>Whitelisted peers cannot be DoS banned and their transactions are always relayed, even if they are already in the mempool, useful e.g. for a gateway</source>

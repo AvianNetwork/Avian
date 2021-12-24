@@ -143,7 +143,7 @@
     </message>
     <message>
         <source>Send coins to a Avian address</source>
-        <translation>Enviar monedas a una dirección Raven</translation>
+        <translation>Enviar monedas a una dirección Avian</translation>
     </message>
     <message>
         <source>Backup wallet to another location</source>
@@ -166,8 +166,8 @@
         <translation>&amp;Verificar mensaje...</translation>
     </message>
     <message>
-        <source>Raven</source>
-        <translation>Raven</translation>
+        <source>Avian</source>
+        <translation>Avian</translation>
     </message>
     <message>
         <source>Wallet</source>
@@ -195,11 +195,11 @@
     </message>
     <message>
         <source>Sign messages with your Avian addresses to prove you own them</source>
-        <translation>Firmar mensajes con sus direcciones Raven para demostrar la propiedad</translation>
+        <translation>Firmar mensajes con sus direcciones Avian para demostrar la propiedad</translation>
     </message>
     <message>
         <source>Verify messages to ensure they were signed with specified Avian addresses</source>
-        <translation>Verificar mensajes comprobando que están firmados con direcciones Raven concretas</translation>
+        <translation>Verificar mensajes comprobando que están firmados con direcciones Avian concretas</translation>
     </message>
     <message>
         <source>&amp;File</source>
@@ -219,7 +219,7 @@
     </message>
     <message>
         <source>Request payments (generates QR codes and avian: URIs)</source>
-        <translation>Solicitar pagos (genera codigo QR y URL's de Raven)</translation>
+        <translation>Solicitar pagos (genera codigo QR y URL's de Avian)</translation>
     </message>
     <message>
         <source>Show the list of used sending addresses and labels</source>
@@ -494,8 +494,8 @@
         <translation>Experto</translation>
     </message>
     <message>
-        <source>Automatically open the Raven client port on the router. This only works when your router supports UPnP and it is enabled.</source>
-        <translation>Abrir automáticamente el puerto del cliente Raven en el router. Esta opción solo funciona si el router admite UPnP y está activado.</translation>
+        <source>Automatically open the Avian client port on the router. This only works when your router supports UPnP and it is enabled.</source>
+        <translation>Abrir automáticamente el puerto del cliente Avian en el router. Esta opción solo funciona si el router admite UPnP y está activado.</translation>
     </message>
     <message>
         <source>Map port using &amp;UPnP</source>
@@ -590,7 +590,7 @@
     </message>
     <message>
         <source>The displayed information may be out of date. Your wallet automatically synchronizes with the Avian network after a connection is established, but this process has not completed yet.</source>
-        <translation>La información mostrada puede estar desactualizada. Su monedero se sincroniza automáticamente con la red Raven después de que se haya establecido una conexión, pero este proceso aún no se ha completado.</translation>
+        <translation>La información mostrada puede estar desactualizada. Su monedero se sincroniza automáticamente con la red Avian después de que se haya establecido una conexión, pero este proceso aún no se ha completado.</translation>
     </message>
     <message>
         <source>Your current spendable balance</source>
@@ -1020,7 +1020,7 @@
     </message>
     <message>
         <source>Sign the message to prove you own this Avian address</source>
-        <translation>Firmar el mensaje para demostrar que se posee esta dirección Raven</translation>
+        <translation>Firmar el mensaje para demostrar que se posee esta dirección Avian</translation>
     </message>
     <message>
         <source>Sign &amp;Message</source>
@@ -1040,7 +1040,7 @@
     </message>
     <message>
         <source>Verify the message to ensure it was signed with the specified Avian address</source>
-        <translation>Verificar el mensaje para comprobar que fue firmado con la dirección Raven indicada</translation>
+        <translation>Verificar el mensaje para comprobar que fue firmado con la dirección Avian indicada</translation>
     </message>
     <message>
         <source>Verify &amp;Message</source>
@@ -1123,8 +1123,8 @@
 </translation>
     </message>
     <message>
-        <source>Raven Core</source>
-        <translation>Núcleo de Raven</translation>
+        <source>Avian Core</source>
+        <translation>Núcleo de Avian</translation>
     </message>
     <message>
         <source>Bind to given address and always listen on it. Use [host]:port notation for IPv6</source>

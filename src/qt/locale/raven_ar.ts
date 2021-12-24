@@ -354,7 +354,7 @@
         <translation>&amp;التحقق من الرسالة...</translation>
     </message>
     <message>
-        <source>Raven</source>
+        <source>Avian</source>
         <translation>بت كوين</translation>
     </message>
     <message>
@@ -383,11 +383,11 @@
     </message>
     <message>
         <source>Sign messages with your Avian addresses to prove you own them</source>
-        <translation>وقَع الرسائل بواسطة ال: Raven الخاص بك لإثبات امتلاكك لهم</translation>
+        <translation>وقَع الرسائل بواسطة ال: Avian الخاص بك لإثبات امتلاكك لهم</translation>
     </message>
     <message>
         <source>Verify messages to ensure they were signed with specified Avian addresses</source>
-        <translation>تحقق من الرسائل للتأكد من أنَها وُقعت برسائل Raven محدَدة</translation>
+        <translation>تحقق من الرسائل للتأكد من أنَها وُقعت برسائل Avian محدَدة</translation>
     </message>
     <message>
         <source>&amp;File</source>
@@ -419,7 +419,7 @@
     </message>
     <message>
         <source>Open a avian: URI or payment request</source>
-        <translation>فتح URI : Raven أو طلب دفع</translation>
+        <translation>فتح URI : Avian أو طلب دفع</translation>
     </message>
     <message>
         <source>&amp;Command-line options</source>
@@ -462,7 +462,7 @@
         <translation>محدث</translation>
     </message>
     <message>
-        <source>Show the %1 help message to get a list with possible Raven command-line options</source>
+        <source>Show the %1 help message to get a list with possible Avian command-line options</source>
         <translation>بين اشارة المساعدة %1 للحصول على قائمة من خيارات اوامر البت كوين المحتملة </translation>
     </message>
     <message>
@@ -522,7 +522,7 @@
         <translation>المحفظة &lt;b&gt;مشفرة&lt;/b&gt; و &lt;b&gt;مقفلة&lt;/b&gt; حاليا</translation>
     </message>
     <message>
-        <source>A fatal error occurred. Raven can no longer continue safely and will quit.</source>
+        <source>A fatal error occurred. Avian can no longer continue safely and will quit.</source>
         <translation>خطأ فادح حدث . لا يمكن اتمام بيتكوين بامان سيتم الخروج</translation>
     </message>
 </context>
@@ -1960,7 +1960,7 @@
         <translation>حدد مجلد المعلومات</translation>
     </message>
     <message>
-        <source>Raven Core</source>
+        <source>Avian Core</source>
         <translation>جوهر البيت كوين</translation>
     </message>
     <message>

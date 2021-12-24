@@ -63,11 +63,11 @@
     </message>
     <message>
         <source>These are your Avian addresses for sending payments. Always check the amount and the receiving address before sending coins.</source>
-        <translation>Toto sú Vaše Raven adresy pre posielanie platieb. Vždy skontrolujte sumu a prijímaciu adresu pred poslaním mincí.</translation>
+        <translation>Toto sú Vaše Avian adresy pre posielanie platieb. Vždy skontrolujte sumu a prijímaciu adresu pred poslaním mincí.</translation>
     </message>
     <message>
         <source>These are your Avian addresses for receiving payments. It is recommended to use a new receiving address for each transaction.</source>
-        <translation>Toto sú vaše Raven adresy pre prijímanie platieb. Odporúča sa použiť vždy novú prijímaciu adresu pre každú transakciu.</translation>
+        <translation>Toto sú vaše Avian adresy pre prijímanie platieb. Odporúča sa použiť vždy novú prijímaciu adresu pre každú transakciu.</translation>
     </message>
     <message>
         <source>&amp;Copy Address</source>
@@ -362,8 +362,8 @@
         <translation>O&amp;veriť správu...</translation>
     </message>
     <message>
-        <source>Raven</source>
-        <translation>Raven</translation>
+        <source>Avian</source>
+        <translation>Avian</translation>
     </message>
     <message>
         <source>Wallet</source>
@@ -391,11 +391,11 @@
     </message>
     <message>
         <source>Sign messages with your Avian addresses to prove you own them</source>
-        <translation>Podpísať správu s vašou adresou Raven aby ste preukázali že ju vlastníte</translation>
+        <translation>Podpísať správu s vašou adresou Avian aby ste preukázali že ju vlastníte</translation>
     </message>
     <message>
         <source>Verify messages to ensure they were signed with specified Avian addresses</source>
-        <translation>Overiť či správa bola podpísaná uvedenou Raven adresou</translation>
+        <translation>Overiť či správa bola podpísaná uvedenou Avian adresou</translation>
     </message>
     <message>
         <source>&amp;File</source>
@@ -435,7 +435,7 @@
     </message>
     <message numerus="yes">
         <source>%n active connection(s) to Avian network</source>
-        <translation><numerusform>%n aktívne pripojenie do siete Raven</numerusform><numerusform>%n aktívne pripojenia do siete Raven</numerusform><numerusform>%n aktívnych pripojení do siete Raven</numerusform></translation>
+        <translation><numerusform>%n aktívne pripojenie do siete Avian</numerusform><numerusform>%n aktívne pripojenia do siete Avian</numerusform><numerusform>%n aktívnych pripojení do siete Avian</numerusform></translation>
     </message>
     <message>
         <source>Indexing blocks on disk...</source>
@@ -478,8 +478,8 @@
         <translation>Aktualizovaný</translation>
     </message>
     <message>
-        <source>Show the %1 help message to get a list with possible Raven command-line options</source>
-        <translation>Ukáž %1 zoznam možných nastavení Ravenu pomocou príkazového riadku</translation>
+        <source>Show the %1 help message to get a list with possible Avian command-line options</source>
+        <translation>Ukáž %1 zoznam možných nastavení Avianu pomocou príkazového riadku</translation>
     </message>
     <message>
         <source>%1 client</source>
@@ -548,8 +548,8 @@
         <translation>Peňaženka je &lt;b&gt;zašifrovaná&lt;/b&gt; a momentálne &lt;b&gt;zamknutá&lt;/b&gt;</translation>
     </message>
     <message>
-        <source>A fatal error occurred. Raven can no longer continue safely and will quit.</source>
-        <translation>Vyskytla sa kritická chyba. Raven nemôže ďalej bezpečne pokračovať a ukončí sa.</translation>
+        <source>A fatal error occurred. Avian can no longer continue safely and will quit.</source>
+        <translation>Vyskytla sa kritická chyba. Avian nemôže ďalej bezpečne pokračovať a ukončí sa.</translation>
     </message>
 </context>
 <context>
@@ -743,7 +743,7 @@
     </message>
     <message>
         <source>The entered address "%1" is not a valid Avian address.</source>
-        <translation>Vložená adresa "%1" nieje platnou adresou Raven.</translation>
+        <translation>Vložená adresa "%1" nieje platnou adresou Avian.</translation>
     </message>
     <message>
         <source>The entered address "%1" is already in the address book.</source>
@@ -851,8 +851,8 @@
         <translation>Keďže toto je prvé spustenie programu, môžete si vybrať, kam %1 bude ukladať vaše údaje.</translation>
     </message>
     <message>
-        <source>%1 will download and store a copy of the Raven block chain. At least %2GB of data will be stored in this directory, and it will grow over time. The wallet will also be stored in this directory.</source>
-        <translation>%1 stiahne a uloží kópiu Raven block chain. Minimálne %2GB dát bude uložených v tejto zložke, a bude sa zväčšovať postupom času. Peňaženka bude taktiež uložená v tejto zložke.</translation>
+        <source>%1 will download and store a copy of the Avian block chain. At least %2GB of data will be stored in this directory, and it will grow over time. The wallet will also be stored in this directory.</source>
+        <translation>%1 stiahne a uloží kópiu Avian block chain. Minimálne %2GB dát bude uložených v tejto zložke, a bude sa zväčšovať postupom času. Peňaženka bude taktiež uložená v tejto zložke.</translation>
     </message>
     <message>
         <source>Use the default data directory</source>
@@ -1048,8 +1048,8 @@
         <translation>Minúť nepotvrdený výdavok</translation>
     </message>
     <message>
-        <source>Automatically open the Raven client port on the router. This only works when your router supports UPnP and it is enabled.</source>
-        <translation>Automaticky otvorit port pre Raven na routeri. Toto funguje len ak router podporuje UPnP a je táto podpora aktivovaná.</translation>
+        <source>Automatically open the Avian client port on the router. This only works when your router supports UPnP and it is enabled.</source>
+        <translation>Automaticky otvorit port pre Avian na routeri. Toto funguje len ak router podporuje UPnP a je táto podpora aktivovaná.</translation>
     </message>
     <message>
         <source>Map port using &amp;UPnP</source>
@@ -1057,7 +1057,7 @@
     </message>
     <message>
         <source>Connect to the Avian network through a SOCKS5 proxy.</source>
-        <translation>Pripojiť do siete Raven cez proxy server SOCKS5.</translation>
+        <translation>Pripojiť do siete Avian cez proxy server SOCKS5.</translation>
     </message>
     <message>
         <source>&amp;Connect through SOCKS5 proxy (default proxy):</source>
@@ -1097,7 +1097,7 @@
     </message>
     <message>
         <source>Connect to the Avian network through a separate SOCKS5 proxy for Tor hidden services.</source>
-        <translation>Pripojiť k Ravenovej sieti cez separované SOCKS5 proxy pre skrytú službu Tor.</translation>
+        <translation>Pripojiť k Avianovej sieti cez separované SOCKS5 proxy pre skrytú službu Tor.</translation>
     </message>
     <message>
         <source>Use separate SOCKS5 proxy to reach peers via Tor hidden services:</source>
@@ -1196,7 +1196,7 @@
     </message>
     <message>
         <source>The displayed information may be out of date. Your wallet automatically synchronizes with the Avian network after a connection is established, but this process has not completed yet.</source>
-        <translation>Zobrazené informácie môžu byť neaktuálne. Vaša peňaženka sa automaticky synchronizuje so sieťou Raven po nadviazaní spojenia, ale tento proces ešte nie je ukončený.</translation>
+        <translation>Zobrazené informácie môžu byť neaktuálne. Vaša peňaženka sa automaticky synchronizuje so sieťou Avian po nadviazaní spojenia, ale tento proces ešte nie je ukončený.</translation>
     </message>
     <message>
         <source>Watch-only:</source>
@@ -1283,7 +1283,7 @@
     </message>
     <message>
         <source>URI cannot be parsed! This can be caused by an invalid Avian address or malformed URI parameters.</source>
-        <translation>URI sa nedá analyzovať! To môže byť spôsobené neplatnou Raven adresou alebo zle nastavenými vlastnosťami URI.</translation>
+        <translation>URI sa nedá analyzovať! To môže byť spôsobené neplatnou Avian adresou alebo zle nastavenými vlastnosťami URI.</translation>
     </message>
     <message>
         <source>Payment request file handling</source>
@@ -1794,7 +1794,7 @@
     </message>
     <message>
         <source>An optional message to attach to the payment request, which will be displayed when the request is opened. Note: The message will not be sent with the payment over the Avian network.</source>
-        <translation>Pridať voliteľnú správu k výzve na zaplatenie, ktorá sa zobrazí keď bude výzva otvorená. Poznámka: Správa nebude poslaná s platbou cez sieť Raven.</translation>
+        <translation>Pridať voliteľnú správu k výzve na zaplatenie, ktorá sa zobrazí keď bude výzva otvorená. Poznámka: Správa nebude poslaná s platbou cez sieť Avian.</translation>
     </message>
     <message>
         <source>An optional label to associate with the new receiving address.</source>
@@ -2191,7 +2191,7 @@
     </message>
     <message>
         <source>Warning: Invalid Avian address</source>
-        <translation>Varovanie: Neplatná Raven adresa</translation>
+        <translation>Varovanie: Neplatná Avian adresa</translation>
     </message>
     <message>
         <source>Warning: Unknown change address</source>
@@ -2278,7 +2278,7 @@
     </message>
     <message>
         <source>A message that was attached to the avian: URI which will be stored with the transaction for your reference. Note: This message will not be sent over the Avian network.</source>
-        <translation>Správa ktorá bola pripojená k avian: URI a ktorá bude uložená s transakcou pre Vaše potreby. Poznámka: Táto správa nebude poslaná cez sieť Raven.</translation>
+        <translation>Správa ktorá bola pripojená k avian: URI a ktorá bude uložená s transakcou pre Vaše potreby. Poznámka: Táto správa nebude poslaná cez sieť Avian.</translation>
     </message>
     <message>
         <source>Pay To:</source>
@@ -2327,7 +2327,7 @@
     </message>
     <message>
         <source>The Avian address to sign the message with</source>
-        <translation>Raven adresa pre podpísanie správy s</translation>
+        <translation>Avian adresa pre podpísanie správy s</translation>
     </message>
     <message>
         <source>Choose previously used address</source>
@@ -2383,11 +2383,11 @@
     </message>
     <message>
         <source>The Avian address the message was signed with</source>
-        <translation>Adresa Raven, ktorou bola podpísaná správa</translation>
+        <translation>Adresa Avian, ktorou bola podpísaná správa</translation>
     </message>
     <message>
         <source>Verify the message to ensure it was signed with the specified Avian address</source>
-        <translation>Overím správy sa uistiť že bola podpísaná označenou Raven adresou</translation>
+        <translation>Overím správy sa uistiť že bola podpísaná označenou Avian adresou</translation>
     </message>
     <message>
         <source>Verify &amp;Message</source>
@@ -2987,8 +2987,8 @@
         <translation>Nepodarilo sa spustiť HTTP server. Pre viac detailov zobrazte debug log.</translation>
     </message>
     <message>
-        <source>Raven Core</source>
-        <translation>Raven Core</translation>
+        <source>Avian Core</source>
+        <translation>Avian Core</translation>
     </message>
     <message>
         <source>The %s developers</source>

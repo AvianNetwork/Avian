@@ -115,7 +115,7 @@
     </message>
     <message>
         <source>Send coins to a Avian address</source>
-        <translation>Mitte nummos ad inscriptionem Raven</translation>
+        <translation>Mitte nummos ad inscriptionem Avian</translation>
     </message>
     <message>
         <source>Backup wallet to another location</source>
@@ -138,8 +138,8 @@
         <translation>&amp;Verifica nuntium...</translation>
     </message>
     <message>
-        <source>Raven</source>
-        <translation>Raven</translation>
+        <source>Avian</source>
+        <translation>Avian</translation>
     </message>
     <message>
         <source>Wallet</source>
@@ -167,11 +167,11 @@
     </message>
     <message>
         <source>Sign messages with your Avian addresses to prove you own them</source>
-        <translation>Signa nuntios cum tuis inscriptionibus Raven ut demonstres te eas possidere</translation>
+        <translation>Signa nuntios cum tuis inscriptionibus Avian ut demonstres te eas possidere</translation>
     </message>
     <message>
         <source>Verify messages to ensure they were signed with specified Avian addresses</source>
-        <translation>Verifica nuntios ut certus sis eos signatos esse cum specificatis inscriptionibus Raven</translation>
+        <translation>Verifica nuntios ut certus sis eos signatos esse cum specificatis inscriptionibus Avian</translation>
     </message>
     <message>
         <source>&amp;File</source>
@@ -346,8 +346,8 @@
         <translation>Cassidile</translation>
     </message>
     <message>
-        <source>Automatically open the Raven client port on the router. This only works when your router supports UPnP and it is enabled.</source>
-        <translation>Aperi per se portam clientis Raven in itineratore.  Hoc tantum effectivum est si itineratrum tuum supportat UPnP et id activum est.</translation>
+        <source>Automatically open the Avian client port on the router. This only works when your router supports UPnP and it is enabled.</source>
+        <translation>Aperi per se portam clientis Avian in itineratore.  Hoc tantum effectivum est si itineratrum tuum supportat UPnP et id activum est.</translation>
     </message>
     <message>
         <source>Map port using &amp;UPnP</source>
@@ -426,7 +426,7 @@
     </message>
     <message>
         <source>The displayed information may be out of date. Your wallet automatically synchronizes with the Avian network after a connection is established, but this process has not completed yet.</source>
-        <translation>Monstrata informatio fortasse non recentissima est.  Tuum cassidile per se synchronizat cum rete Raven postquam conexio constabilita est, sed hoc actio nondum perfecta est.</translation>
+        <translation>Monstrata informatio fortasse non recentissima est.  Tuum cassidile per se synchronizat cum rete Avian postquam conexio constabilita est, sed hoc actio nondum perfecta est.</translation>
     </message>
     <message>
         <source>Immature:</source>
@@ -672,7 +672,7 @@
     </message>
     <message>
         <source>Sign the message to prove you own this Avian address</source>
-        <translation>Signa nuntium ut demonstres hanc inscriptionem Raven a te possessa esse</translation>
+        <translation>Signa nuntium ut demonstres hanc inscriptionem Avian a te possessa esse</translation>
     </message>
     <message>
         <source>Sign &amp;Message</source>
@@ -692,7 +692,7 @@
     </message>
     <message>
         <source>Verify the message to ensure it was signed with the specified Avian address</source>
-        <translation>Verifica nuntium ut cures signatum esse cum specifica inscriptione Raven</translation>
+        <translation>Verifica nuntium ut cures signatum esse cum specifica inscriptione Avian</translation>
     </message>
     <message>
         <source>Verify &amp;Message</source>
@@ -768,8 +768,8 @@
         <translation>Operare infere sicut daemon et mandata accipe</translation>
     </message>
     <message>
-        <source>Raven Core</source>
-        <translation>Raven Nucleus</translation>
+        <source>Avian Core</source>
+        <translation>Avian Nucleus</translation>
     </message>
     <message>
         <source>Bind to given address and always listen on it. Use [host]:port notation for IPv6</source>

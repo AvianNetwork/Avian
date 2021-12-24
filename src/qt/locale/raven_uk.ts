@@ -63,11 +63,11 @@
     </message>
     <message>
         <source>These are your Avian addresses for sending payments. Always check the amount and the receiving address before sending coins.</source>
-        <translation>Це ваші адреси Raven для надсилання платежів. Завжди перевіряйте суму та адресу одержувача перед відправленням монет.</translation>
+        <translation>Це ваші адреси Avian для надсилання платежів. Завжди перевіряйте суму та адресу одержувача перед відправленням монет.</translation>
     </message>
     <message>
         <source>These are your Avian addresses for receiving payments. It is recommended to use a new receiving address for each transaction.</source>
-        <translation>Це ваші адреси Raven для отримання платежів. Для кожної транзакції рекомендується використовувати нову адресу одержувача.</translation>
+        <translation>Це ваші адреси Avian для отримання платежів. Для кожної транзакції рекомендується використовувати нову адресу одержувача.</translation>
     </message>
     <message>
         <source>&amp;Copy Address</source>
@@ -362,8 +362,8 @@
         <translation>П&amp;еревірити повідомлення...</translation>
     </message>
     <message>
-        <source>Raven</source>
-        <translation>Raven</translation>
+        <source>Avian</source>
+        <translation>Avian</translation>
     </message>
     <message>
         <source>Wallet</source>
@@ -391,11 +391,11 @@
     </message>
     <message>
         <source>Sign messages with your Avian addresses to prove you own them</source>
-        <translation>Підтвердіть, що Ви є власником повідомлення підписавши його Вашою Raven-адресою </translation>
+        <translation>Підтвердіть, що Ви є власником повідомлення підписавши його Вашою Avian-адресою </translation>
     </message>
     <message>
         <source>Verify messages to ensure they were signed with specified Avian addresses</source>
-        <translation>Перевірте повідомлення для впевненості, що воно підписано вказаною Raven-адресою</translation>
+        <translation>Перевірте повідомлення для впевненості, що воно підписано вказаною Avian-адресою</translation>
     </message>
     <message>
         <source>&amp;File</source>
@@ -435,7 +435,7 @@
     </message>
     <message numerus="yes">
         <source>%n active connection(s) to Avian network</source>
-        <translation><numerusform>%n активне з'єднання з мережею Raven</numerusform><numerusform>%n активні з'єднання з мережею Raven</numerusform><numerusform>%n активних з'єднань з мережею Raven</numerusform></translation>
+        <translation><numerusform>%n активне з'єднання з мережею Avian</numerusform><numerusform>%n активні з'єднання з мережею Avian</numerusform><numerusform>%n активних з'єднань з мережею Avian</numerusform></translation>
     </message>
     <message>
         <source>Indexing blocks on disk...</source>
@@ -478,7 +478,7 @@
         <translation>Синхронізовано</translation>
     </message>
     <message>
-        <source>Show the %1 help message to get a list with possible Raven command-line options</source>
+        <source>Show the %1 help message to get a list with possible Avian command-line options</source>
         <translation>Показати довідку %1 для отримання переліку можливих параметрів командного рядка.</translation>
     </message>
     <message>
@@ -548,7 +548,7 @@
         <translation>&lt;b&gt;Зашифрований&lt;/b&gt; гаманець &lt;b&gt;заблоковано&lt;/b&gt;</translation>
     </message>
     <message>
-        <source>A fatal error occurred. Raven can no longer continue safely and will quit.</source>
+        <source>A fatal error occurred. Avian can no longer continue safely and will quit.</source>
         <translation>Сталася фатальна помилка. Помилки не сумісні з подальщою роботою. Гаманець буде закрито.</translation>
     </message>
 </context>
@@ -739,7 +739,7 @@
     </message>
     <message>
         <source>The entered address "%1" is not a valid Avian address.</source>
-        <translation>Введена адреса "%1" не є адресою в мережі Raven.</translation>
+        <translation>Введена адреса "%1" не є адресою в мережі Avian.</translation>
     </message>
     <message>
         <source>The entered address "%1" is already in the address book.</source>
@@ -1036,7 +1036,7 @@
         <translation>&amp;Витрачати непідтверджену решту</translation>
     </message>
     <message>
-        <source>Automatically open the Raven client port on the router. This only works when your router supports UPnP and it is enabled.</source>
+        <source>Automatically open the Avian client port on the router. This only works when your router supports UPnP and it is enabled.</source>
         <translation>Автоматично відкривати порт для клієнту біткоін на роутері. Працює лише якщо ваш роутер підтримує UPnP і ця функція увімкнена.</translation>
     </message>
     <message>
@@ -1045,7 +1045,7 @@
     </message>
     <message>
         <source>Connect to the Avian network through a SOCKS5 proxy.</source>
-        <translation>Підключення до мережі Raven через SOCKS5 проксі.</translation>
+        <translation>Підключення до мережі Avian через SOCKS5 проксі.</translation>
     </message>
     <message>
         <source>&amp;Connect through SOCKS5 proxy (default proxy):</source>
@@ -1085,7 +1085,7 @@
     </message>
     <message>
         <source>Connect to the Avian network through a separate SOCKS5 proxy for Tor hidden services.</source>
-        <translation>Підключатися до мережі Raven через окремий SOCKS5 проксі для прихованих сервісів Tor.</translation>
+        <translation>Підключатися до мережі Avian через окремий SOCKS5 проксі для прихованих сервісів Tor.</translation>
     </message>
     <message>
         <source>Use separate SOCKS5 proxy to reach peers via Tor hidden services:</source>
@@ -1176,7 +1176,7 @@
     </message>
     <message>
         <source>The displayed information may be out of date. Your wallet automatically synchronizes with the Avian network after a connection is established, but this process has not completed yet.</source>
-        <translation>Показана інформація вже може бути застарілою. Ваш гаманець буде автоматично синхронізовано з мережею Raven після встановлення підключення, але цей процес ще не завершено.</translation>
+        <translation>Показана інформація вже може бути застарілою. Ваш гаманець буде автоматично синхронізовано з мережею Avian після встановлення підключення, але цей процес ще не завершено.</translation>
     </message>
     <message>
         <source>Watch-only:</source>
@@ -1277,7 +1277,7 @@
     </message>
     <message>
         <source>Enter a Avian address (e.g. %1)</source>
-        <translation>Введіть адресу Raven (наприклад %1)</translation>
+        <translation>Введіть адресу Avian (наприклад %1)</translation>
     </message>
     <message>
         <source>%1 d</source>
@@ -1633,7 +1633,7 @@
     </message>
     <message>
         <source>An optional message to attach to the payment request, which will be displayed when the request is opened. Note: The message will not be sent with the payment over the Avian network.</source>
-        <translation>Необов'язкове повідомлення на додаток до запиту платежу, котре буде показане під час відкриття запиту. Примітка: Це повідомлення не буде відправлено з платежем через мережу Raven.</translation>
+        <translation>Необов'язкове повідомлення на додаток до запиту платежу, котре буде показане під час відкриття запиту. Примітка: Це повідомлення не буде відправлено з платежем через мережу Avian.</translation>
     </message>
     <message>
         <source>An optional label to associate with the new receiving address.</source>
@@ -1850,7 +1850,7 @@
     </message>
     <message>
         <source>Paying only the minimum fee is just fine as long as there is less transaction volume than space in the blocks. But be aware that this can end up in a never confirming transaction once there is more demand for raven transactions than the network can process.</source>
-        <translation>Оплата тільки мінімальної комісії є прийнятною, допоки обсяг транзакцій є меншим простору в блоках. Але майте на увазі, що це може анулювати транзакцію, якщо попит на Raven транзакції стане більшим, ніж мережа зможе обробити.</translation>
+        <translation>Оплата тільки мінімальної комісії є прийнятною, допоки обсяг транзакцій є меншим простору в блоках. Але майте на увазі, що це може анулювати транзакцію, якщо попит на Avian транзакції стане більшим, ніж мережа зможе обробити.</translation>
     </message>
     <message>
         <source>(read the tooltip)</source>
@@ -1969,7 +1969,7 @@
     </message>
     <message>
         <source>The Avian address to send the payment to</source>
-        <translation>Адреса Raven для відправлення платежу</translation>
+        <translation>Адреса Avian для відправлення платежу</translation>
     </message>
     <message>
         <source>Alt+A</source>
@@ -2013,7 +2013,7 @@
     </message>
     <message>
         <source>A message that was attached to the avian: URI which will be stored with the transaction for your reference. Note: This message will not be sent over the Avian network.</source>
-        <translation>Повідомлення, що було додане до avian:URI та буде збережено разом з транзакцією для довідки. Примітка: Це повідомлення не буде відправлено в мережу Raven.</translation>
+        <translation>Повідомлення, що було додане до avian:URI та буде збережено разом з транзакцією для довідки. Примітка: Це повідомлення не буде відправлено в мережу Avian.</translation>
     </message>
     <message>
         <source>Pay To:</source>
@@ -2058,7 +2058,7 @@
     </message>
     <message>
         <source>The Avian address to sign the message with</source>
-        <translation>Адреса Raven для підпису цього повідомлення</translation>
+        <translation>Адреса Avian для підпису цього повідомлення</translation>
     </message>
     <message>
         <source>Choose previously used address</source>
@@ -2114,11 +2114,11 @@
     </message>
     <message>
         <source>The Avian address the message was signed with</source>
-        <translation>Адреса Raven, якою було підписано це повідомлення</translation>
+        <translation>Адреса Avian, якою було підписано це повідомлення</translation>
     </message>
     <message>
         <source>Verify the message to ensure it was signed with the specified Avian address</source>
-        <translation>Перевірте повідомлення для впевненості, що воно підписано вказаною Raven-адресою</translation>
+        <translation>Перевірте повідомлення для впевненості, що воно підписано вказаною Avian-адресою</translation>
     </message>
     <message>
         <source>Verify &amp;Message</source>
@@ -2654,8 +2654,8 @@
         <translation>Неможливо запустити HTTP-сервер. Детальніший опис наведено в журналі зневадження.</translation>
     </message>
     <message>
-        <source>Raven Core</source>
-        <translation>Raven Core</translation>
+        <source>Avian Core</source>
+        <translation>Avian Core</translation>
     </message>
     <message>
         <source>Bind to given address and always listen on it. Use [host]:port notation for IPv6</source>

@@ -203,7 +203,7 @@
     </message>
     <message>
         <source>Send coins to a Avian address</source>
-        <translation>Izvedite plačilo na naslov Raven</translation>
+        <translation>Izvedite plačilo na naslov Avian</translation>
     </message>
     <message>
         <source>Backup wallet to another location</source>
@@ -226,8 +226,8 @@
         <translation>&amp;Preveri sporočilo ...</translation>
     </message>
     <message>
-        <source>Raven</source>
-        <translation>Raven</translation>
+        <source>Avian</source>
+        <translation>Avian</translation>
     </message>
     <message>
         <source>Wallet</source>
@@ -255,11 +255,11 @@
     </message>
     <message>
         <source>Sign messages with your Avian addresses to prove you own them</source>
-        <translation>Podpišite poljubno sporočilo z enim svojih naslovov Raven, da prejemniku sporočila dokažete, da je ta naslov v vaši lasti.</translation>
+        <translation>Podpišite poljubno sporočilo z enim svojih naslovov Avian, da prejemniku sporočila dokažete, da je ta naslov v vaši lasti.</translation>
     </message>
     <message>
         <source>Verify messages to ensure they were signed with specified Avian addresses</source>
-        <translation>Preverite, če je bilo prejeto sporočilo podpisano z določenim naslovom Raven</translation>
+        <translation>Preverite, če je bilo prejeto sporočilo podpisano z določenim naslovom Avian</translation>
     </message>
     <message>
         <source>&amp;File</source>
@@ -299,7 +299,7 @@
     </message>
     <message numerus="yes">
         <source>%n active connection(s) to Avian network</source>
-        <translation><numerusform>%n aktivna povezava v omrežje Raven</numerusform><numerusform>%n aktivni povezavi v omrežje Raven</numerusform><numerusform>%n aktivne povezave v omrežje Raven</numerusform><numerusform>%n aktivnih povezav v omrežje Raven</numerusform></translation>
+        <translation><numerusform>%n aktivna povezava v omrežje Avian</numerusform><numerusform>%n aktivni povezavi v omrežje Avian</numerusform><numerusform>%n aktivne povezave v omrežje Avian</numerusform><numerusform>%n aktivnih povezav v omrežje Avian</numerusform></translation>
     </message>
     <message>
         <source>Indexing blocks on disk...</source>
@@ -712,7 +712,7 @@
         <translation>Omogoči &amp;trošenje drobiža iz še nepotrjenih plačil</translation>
     </message>
     <message>
-        <source>Automatically open the Raven client port on the router. This only works when your router supports UPnP and it is enabled.</source>
+        <source>Automatically open the Avian client port on the router. This only works when your router supports UPnP and it is enabled.</source>
         <translation>Program samodejno odpre ustrezna vrata na usmerjevalniku. To deluje samo, če vaš usmerjevalnik podpira in ima omogočen UPnP.</translation>
     </message>
     <message>
@@ -721,7 +721,7 @@
     </message>
     <message>
         <source>Connect to the Avian network through a SOCKS5 proxy.</source>
-        <translation>Poveži se v omrežje Raven preko posredniškega strežnika SOCKS5.</translation>
+        <translation>Poveži se v omrežje Avian preko posredniškega strežnika SOCKS5.</translation>
     </message>
     <message>
         <source>&amp;Connect through SOCKS5 proxy (default proxy):</source>
@@ -824,7 +824,7 @@
     </message>
     <message>
         <source>The displayed information may be out of date. Your wallet automatically synchronizes with the Avian network after a connection is established, but this process has not completed yet.</source>
-        <translation>Prikazani podatki so morda zastareli. Program ob vzpostavitvi povezave samodejno sinhronizira denarnico z omrežjem Raven, a trenutno ta proces še ni zaključen.</translation>
+        <translation>Prikazani podatki so morda zastareli. Program ob vzpostavitvi povezave samodejno sinhronizira denarnico z omrežjem Avian, a trenutno ta proces še ni zaključen.</translation>
     </message>
     <message>
         <source>Watch-only:</source>
@@ -913,7 +913,7 @@
     </message>
     <message>
         <source>Enter a Avian address (e.g. %1)</source>
-        <translation>Vnesite naslov Raven (npr. %1):</translation>
+        <translation>Vnesite naslov Avian (npr. %1):</translation>
     </message>
     <message>
         <source>%1 d</source>
@@ -1177,7 +1177,7 @@
     </message>
     <message>
         <source>An optional message to attach to the payment request, which will be displayed when the request is opened. Note: The message will not be sent with the payment over the Avian network.</source>
-        <translation>Neobvezno sporočilo kot priponka zahtevku za plačilo, ki bo prikazano, ko bo zahtevek odprt. Opomba: Opravljeno plačilo.prek omrežja Raven tega sporočila ne bo vsebovalo.</translation>
+        <translation>Neobvezno sporočilo kot priponka zahtevku za plačilo, ki bo prikazano, ko bo zahtevek odprt. Opomba: Opravljeno plačilo.prek omrežja Avian tega sporočila ne bo vsebovalo.</translation>
     </message>
     <message>
         <source>An optional label to associate with the new receiving address.</source>
@@ -1433,7 +1433,7 @@
     </message>
     <message>
         <source>The Avian address to send the payment to</source>
-        <translation>Naslov Raven, na katerega bo plačilo poslano</translation>
+        <translation>Naslov Avian, na katerega bo plačilo poslano</translation>
     </message>
     <message>
         <source>Alt+A</source>
@@ -1477,7 +1477,7 @@
     </message>
     <message>
         <source>A message that was attached to the avian: URI which will be stored with the transaction for your reference. Note: This message will not be sent over the Avian network.</source>
-        <translation>Sporočilo, ki ste ga pripeli na URI tipa avian:. Shranjeno bo skupaj s podatki o transakciji. Opomba: Sporočilo ne bo poslano preko omrežja Raven.</translation>
+        <translation>Sporočilo, ki ste ga pripeli na URI tipa avian:. Shranjeno bo skupaj s podatki o transakciji. Opomba: Sporočilo ne bo poslano preko omrežja Avian.</translation>
     </message>
     <message>
         <source>Pay To:</source>
@@ -1514,7 +1514,7 @@
     </message>
     <message>
         <source>The Avian address to sign the message with</source>
-        <translation>Naslov Raven, s katerim podpisujete sporočilo</translation>
+        <translation>Naslov Avian, s katerim podpisujete sporočilo</translation>
     </message>
     <message>
         <source>Choose previously used address</source>
@@ -1570,11 +1570,11 @@
     </message>
     <message>
         <source>The Avian address the message was signed with</source>
-        <translation>Naslov Raven, s katerim je bilo sporočilo podpisano</translation>
+        <translation>Naslov Avian, s katerim je bilo sporočilo podpisano</translation>
     </message>
     <message>
         <source>Verify the message to ensure it was signed with the specified Avian address</source>
-        <translation>Preverite, ali je bilo sporočilo v resnici podpisano z navedenim naslovom Raven.</translation>
+        <translation>Preverite, ali je bilo sporočilo v resnici podpisano z navedenim naslovom Avian.</translation>
     </message>
     <message>
         <source>Verify &amp;Message</source>
@@ -1682,8 +1682,8 @@
         <translation>Teci v ozadju in sprejemaj ukaze</translation>
     </message>
     <message>
-        <source>Raven Core</source>
-        <translation>Raven Core</translation>
+        <source>Avian Core</source>
+        <translation>Avian Core</translation>
     </message>
     <message>
         <source>Bind to given address and always listen on it. Use [host]:port notation for IPv6</source>
