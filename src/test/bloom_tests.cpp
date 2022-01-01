@@ -1,5 +1,5 @@
 // Copyright (c) 2012-2016 The Bitcoin Core developers
-// Copyright (c) 2017 The Raven Core developers
+// Copyright (c) 2017-2019 The Raven Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -16,7 +16,7 @@
 #include "uint256.h"
 #include "util.h"
 #include "utilstrencodings.h"
-#include "test/test_raven.h"
+#include "test/test_avian.h"
 
 #include <vector>
 
@@ -92,7 +92,7 @@ BOOST_FIXTURE_TEST_SUITE(bloom_tests, BasicTestingSetup)
         BOOST_TEST_MESSAGE("Running Bloom Create Insert Key Test");
 
         std::string strSecret = std::string("5Kg1gnAjaLfKiwhhPpGS3QfRg2m6awQvaj98JCZBZQ5SuS2F15C");
-        CRavenSecret vchSecret;
+        CAvianSecret vchSecret;
         BOOST_CHECK(vchSecret.SetString(strSecret));
 
         CKey key = vchSecret.GetKey();
@@ -199,7 +199,7 @@ BOOST_FIXTURE_TEST_SUITE(bloom_tests, BasicTestingSetup)
         CMerkleBlock merkleBlock(block, filter);
         BOOST_CHECK_EQUAL(merkleBlock.header.GetHash().GetHex(), block.GetHash().GetHex());
 
-        BOOST_CHECK_EQUAL(merkleBlock.vMatchedTxn.size(), 1);
+        BOOST_CHECK_EQUAL(merkleBlock.vMatchedTxn.size(), (uint64_t)1);
         std::pair<unsigned int, uint256> pair = merkleBlock.vMatchedTxn[0];
 
         BOOST_CHECK(merkleBlock.vMatchedTxn[0].second == uint256S("0x74d681e0e03bafa802c8aa084379aa98d9fcd632ddc2ed9782b586ec87451f20"));
@@ -517,7 +517,7 @@ BOOST_FIXTURE_TEST_SUITE(bloom_tests, BasicTestingSetup)
                 ++nHits;
         }
 
-        // Run test_raven with --log_level=message to see BOOST_TEST_MESSAGEs:
+        // Run test_avian with --log_level=message to see BOOST_TEST_MESSAGEs:
         BOOST_TEST_MESSAGE("RollingBloomFilter got " << nHits << " false positives (~100 expected)");
 
         // Insanely unlikely to get a fp count outside this range:

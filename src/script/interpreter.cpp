@@ -1,6 +1,6 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
 // Copyright (c) 2009-2016 The Bitcoin Core developers
-// Copyright (c) 2017 The Raven Core developers
+// Copyright (c) 2017-2019 The Raven Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -114,8 +114,8 @@ bool static IsCompressedPubKey(const valtype &vchPubKey)
  * Where R and S are not negative (their first byte has its highest bit not set), and not
  * excessively padded (do not start with a 0 byte, unless an otherwise negative number follows,
  * in which case a single 0 byte is necessary and even required).
- * 
- * See https://raventalk.org/index.php?topic=8392.msg127623#msg127623
+ *
+ * See https://bitcointalk.org/index.php?topic=8392.msg127623#msg127623
  *
  * This function is consensus-critical since BIP66.
  */
@@ -199,22 +199,13 @@ bool static IsLowDERSignature(const valtype &vchSig, ScriptError *serror)
     return true;
 }
 
-
-static uint32_t GetHashType(const valtype &vchSig) {
-    if (vchSig.size() == 0) {
-        return 0;
-    }
-
-    return vchSig[vchSig.size() - 1];
-}
-
 bool static IsDefinedHashtypeSignature(const valtype &vchSig)
 {
     if (vchSig.size() == 0)
     {
         return false;
     }
-    unsigned char nHashType = vchSig[vchSig.size() - 1] & (~(SIGHASH_ANYONECANPAY | SIGHASH_FORKID));
+    unsigned char nHashType = vchSig[vchSig.size() - 1] & (~(SIGHASH_ANYONECANPAY));
     if (nHashType < SIGHASH_ALL || nHashType > SIGHASH_SINGLE)
         return false;
 
@@ -238,21 +229,9 @@ bool CheckSignatureEncoding(const std::vector<unsigned char> &vchSig, unsigned i
         // serror is set
         return false;
     }
-    else if ((flags & SCRIPT_VERIFY_STRICTENC) != 0 )
+    else if ((flags & SCRIPT_VERIFY_STRICTENC) != 0 && !IsDefinedHashtypeSignature(vchSig))
     {
-        if (!IsDefinedHashtypeSignature(vchSig)) {
-            return set_error(serror, SCRIPT_ERR_SIG_HASHTYPE);
-        }
-
-        bool usesForkId = GetHashType(vchSig) & SIGHASH_FORKID;
-        bool forkIdEnabled = flags & SCRIPT_ENABLE_SIGHASH_FORKID;
-//        std::cout << forkIdEnabled << "#" << "#" << flags << std::endl;
-        if (!forkIdEnabled && usesForkId) {
-            return set_error(serror, SCRIPT_ERR_ILLEGAL_FORKID);
-        }
-        if (forkIdEnabled && !usesForkId) {
-            return set_error(serror, SCRIPT_ERR_MUST_USE_FORKID);
-        }
+        return set_error(serror, SCRIPT_ERR_SIG_HASHTYPE);
     }
     return true;
 }
@@ -1060,18 +1039,9 @@ bool EvalScript(std::vector<std::vector<unsigned char> > &stack, const CScript &
                         for (int k = 0; k < nSigsCount; k++)
                         {
                             valtype &vchSig = stacktop(-isig - k);
-                            uint32_t nHashType = GetHashType(vchSig);
                             if (sigversion == SIGVERSION_BASE)
                             {
-                                if (nHashType & SIGHASH_FORKID) {
-                                    if (!(flags & SCRIPT_ENABLE_SIGHASH_FORKID))
-                                std::cout << "check hashtype" << std::endl;
-                                return set_error(serror,
-                                                 SCRIPT_ERR_ILLEGAL_FORKID);
-                                }
-                                else {
-                                    scriptCode.FindAndDelete(CScript(vchSig));
-                                }
+                                scriptCode.FindAndDelete(CScript(vchSig));
                             }
                         }
 
@@ -1144,10 +1114,10 @@ bool EvalScript(std::vector<std::vector<unsigned char> > &stack, const CScript &
                     }
                         break;
 
-                        /** RVN START */
-                    case OP_RVN_ASSET:
+                        /** AVN START */
+                    case OP_AVN_ASSET:
                         break;
-                        /** RVN END */
+                        /** AVN END */
 
 
                     default:
@@ -1580,11 +1550,6 @@ bool VerifyScript(const CScript &scriptSig, const CScript &scriptPubKey, const C
         witness = &emptyWitness;
     }
     bool hadWitness = false;
-
-    // If FORKID is enabled, we also ensure strict encoding.
-    if (flags & SCRIPT_ENABLE_SIGHASH_FORKID) {
-        flags |= SCRIPT_VERIFY_STRICTENC;
-    }
 
     set_error(serror, SCRIPT_ERR_UNKNOWN_ERROR);
 

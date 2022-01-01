@@ -1,4 +1,6 @@
-<TS language="af_ZA" version="2.1">
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE TS>
+<TS version="2.1" language="af_ZA">
 <context>
     <name>AddressBookPage</name>
     <message>
@@ -176,7 +178,7 @@
     <name>BanTableModel</name>
     </context>
 <context>
-    <name>RavenGUI</name>
+    <name>AvianGUI</name>
     <message>
         <source>Synchronizing with network...</source>
         <translation>Sinchroniseer met die netwerk ...</translation>
@@ -214,8 +216,8 @@
         <translation>&amp;Opsies</translation>
     </message>
     <message>
-        <source>Raven</source>
-        <translation>Raven</translation>
+        <source>Avian</source>
+        <translation>Avian</translation>
     </message>
     <message>
         <source>Wallet</source>
@@ -770,7 +772,7 @@
     </message>
     </context>
 <context>
-    <name>raven-core</name>
+    <name>avian-core</name>
     <message>
         <source>Options:</source>
         <translation>Opsies:</translation>

@@ -1,6 +1,6 @@
 [Protocol]
 exec=avian-qt '%u'
-protocol=raven
+protocol=avian
 input=none
 output=none
 helper=true

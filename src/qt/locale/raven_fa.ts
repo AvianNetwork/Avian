@@ -1,4 +1,6 @@
-<TS language="fa" version="2.1">
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE TS>
+<TS version="2.1" language="fa">
 <context>
     <name>AddressBookPage</name>
     <message>
@@ -196,7 +198,7 @@
     </message>
 </context>
 <context>
-    <name>RavenGUI</name>
+    <name>AvianGUI</name>
     <message>
         <source>Sign &amp;message...</source>
         <translation>&amp;امضای پیام...</translation>
@@ -322,7 +324,7 @@
         <translation>با&amp;زبینی پیام...</translation>
     </message>
     <message>
-        <source>Raven</source>
+        <source>Avian</source>
         <translation>بیت‌کوین</translation>
     </message>
     <message>
@@ -852,7 +854,7 @@
         <translation>استخراج</translation>
     </message>
     <message>
-        <source>Automatically open the Raven client port on the router. This only works when your router supports UPnP and it is enabled.</source>
+        <source>Automatically open the Avian client port on the router. This only works when your router supports UPnP and it is enabled.</source>
         <translation>باز کردن خودکار درگاه شبکهٔ بیت‌کوین روی روترها. تنها زمانی کار می‌کند که روتر از پروتکل UPnP پشتیبانی کند و این پروتکل فعال باشد.</translation>
     </message>
     <message>
@@ -1676,7 +1678,7 @@
     <name>WalletView</name>
     </context>
 <context>
-    <name>raven-core</name>
+    <name>avian-core</name>
     <message>
         <source>Options:</source>
         <translation>گزینه‌ها:</translation>
@@ -1702,8 +1704,8 @@
         <translation>اجرا در پشت زمینه به‌صورت یک سرویس و پذیرش دستورات</translation>
     </message>
     <message>
-        <source>Raven Core</source>
-        <translation> هسته Raven </translation>
+        <source>Avian Core</source>
+        <translation> هسته Avian </translation>
     </message>
     <message>
         <source>Bind to given address and always listen on it. Use [host]:port notation for IPv6</source>

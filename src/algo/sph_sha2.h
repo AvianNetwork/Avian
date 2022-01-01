@@ -37,14 +37,14 @@
  * @author   Thomas Pornin <thomas.pornin@cryptolog.com>
  */
 
-#ifndef AVN_POW_SPH_SHA2_H
-#define AVN_POW_SPH_SHA2_H
+#ifndef SPH_SHA2_H__
+#define SPH_SHA2_H__
 
 #include <stddef.h>
 #include "sph_types.h"
 
 #ifdef __cplusplus
-extern "C"{
+extern "C" {
 #endif
 
 /**
@@ -371,8 +371,9 @@ void sph_sha512_comp(const sph_u64 msg[16], sph_u64 val[8]);
 
 #endif
 
-
+#endif
 #ifdef __cplusplus
 }
 #endif
-#endif // AVN_POW_SPH_SHA2_H
+
+

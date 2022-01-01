@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 # Copyright 2014 BitPay Inc.
 # Copyright 2016-2017 The Bitcoin Core developers
-# Copyright (c) 2017 The Raven Core developers
+# Copyright (c) 2017-2020 The Raven Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
-"""Test framework for raven utils.
+"""Test framework for avian utils.
 
 Runs automatically during `make check`.
 
@@ -49,7 +49,7 @@ def main():
     # Add the format/level to the logger
     logging.basicConfig(format=formatter, level=level)
 
-    bctester(os.path.join(env_conf["SRCDIR"], "test/util/data"), "raven-util-test.json", env_conf)
+    bctester(os.path.join(env_conf["SRCDIR"], "test/util/data"), "avian-util-test.json", env_conf)
 
 
 def bctester(testDir, input_basename, buildenv):

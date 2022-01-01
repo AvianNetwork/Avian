@@ -1,5 +1,5 @@
 // Copyright (c) 2011-2016 The Bitcoin Core developers
-// Copyright (c) 2017 The Raven Core developers
+// Copyright (c) 2017-2019 The Raven Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -13,11 +13,11 @@
 #include "script/sign.h"
 #include "util.h"
 #include "utilstrencodings.h"
-#include "test/test_raven.h"
+#include "test/test_avian.h"
 #include "rpc/server.h"
 
 #if defined(HAVE_CONSENSUS_LIB)
-#include "script/ravenconsensus.h"
+#include "script/avianconsensus.h"
 #endif
 
 #include <fstream>
@@ -172,13 +172,13 @@ BOOST_FIXTURE_TEST_SUITE(script_tests, BasicTestingSetup)
 #if defined(HAVE_CONSENSUS_LIB)
         CDataStream stream(SER_NETWORK, PROTOCOL_VERSION);
         stream << tx2;
-        int libconsensus_flags = flags & ravenconsensus_SCRIPT_FLAGS_VERIFY_ALL;
+        int libconsensus_flags = flags & avianconsensus_SCRIPT_FLAGS_VERIFY_ALL;
         if (libconsensus_flags == flags) {
-            if (flags & ravenconsensus_SCRIPT_FLAGS_VERIFY_WITNESS) {
-                BOOST_CHECK_MESSAGE(ravenconsensus_verify_script_with_amount(scriptPubKey.data(), scriptPubKey.size(), txCredit.vout[0].nValue, (const unsigned char*)&stream[0], stream.size(), 0, libconsensus_flags, nullptr) == expect, message);
+            if (flags & avianconsensus_SCRIPT_FLAGS_VERIFY_WITNESS) {
+                BOOST_CHECK_MESSAGE(avianconsensus_verify_script_with_amount(scriptPubKey.data(), scriptPubKey.size(), txCredit.vout[0].nValue, (const unsigned char*)&stream[0], stream.size(), 0, libconsensus_flags, nullptr) == expect, message);
             } else {
-                BOOST_CHECK_MESSAGE(ravenconsensus_verify_script_with_amount(scriptPubKey.data(), scriptPubKey.size(), 0, (const unsigned char*)&stream[0], stream.size(), 0, libconsensus_flags, nullptr) == expect, message);
-                BOOST_CHECK_MESSAGE(ravenconsensus_verify_script(scriptPubKey.data(), scriptPubKey.size(), (const unsigned char*)&stream[0], stream.size(), 0, libconsensus_flags, nullptr) == expect,message);
+                BOOST_CHECK_MESSAGE(avianconsensus_verify_script_with_amount(scriptPubKey.data(), scriptPubKey.size(), 0, (const unsigned char*)&stream[0], stream.size(), 0, libconsensus_flags, nullptr) == expect, message);
+                BOOST_CHECK_MESSAGE(avianconsensus_verify_script(scriptPubKey.data(), scriptPubKey.size(), (const unsigned char*)&stream[0], stream.size(), 0, libconsensus_flags, nullptr) == expect,message);
             }
         }
 #endif
@@ -1502,9 +1502,9 @@ BOOST_FIXTURE_TEST_SUITE(script_tests, BasicTestingSetup)
 
     BOOST_AUTO_TEST_CASE(script_FindAndDelete_test)
     {
-        BOOST_TEST_MESSAGE("Running script FindAndDelete Test");
+        BOOST_TEST_MESSAGE("Running script find_and_delete Test");
 
-        // Exercise the FindAndDelete functionality
+        // Exercise the find_and_delete functionality
         CScript s;
         CScript d;
         CScript expect;
@@ -1541,7 +1541,7 @@ BOOST_FIXTURE_TEST_SUITE(script_tests, BasicTestingSetup)
 
         s = ScriptFromHex("0302ff030302ff03");
         d = ScriptFromHex("02");
-        expect = s; // FindAndDelete matches entire opcodes
+        expect = s; // find_and_delete matches entire opcodes
         BOOST_CHECK_EQUAL(s.FindAndDelete(d), 0);
         BOOST_CHECK(s == expect);
 
@@ -1586,13 +1586,13 @@ BOOST_FIXTURE_TEST_SUITE(script_tests, BasicTestingSetup)
 
         s = CScript() << OP_0 << OP_0 << OP_1 << OP_1;
         d = CScript() << OP_0 << OP_1;
-        expect = CScript() << OP_0 << OP_1; // FindAndDelete is single-pass
+        expect = CScript() << OP_0 << OP_1; // find_and_delete is single-pass
         BOOST_CHECK_EQUAL(s.FindAndDelete(d), 1);
         BOOST_CHECK(s == expect);
 
         s = CScript() << OP_0 << OP_0 << OP_1 << OP_0 << OP_1 << OP_1;
         d = CScript() << OP_0 << OP_1;
-        expect = CScript() << OP_0 << OP_1; // FindAndDelete is single-pass
+        expect = CScript() << OP_0 << OP_1; // find_and_delete is single-pass
         BOOST_CHECK_EQUAL(s.FindAndDelete(d), 2);
         BOOST_CHECK(s == expect);
 

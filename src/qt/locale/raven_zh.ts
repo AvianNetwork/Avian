@@ -1,4 +1,6 @@
-<TS language="zh" version="2.1">
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE TS>
+<TS version="2.1" language="zh">
 <context>
     <name>AddressBookPage</name>
     </context>
@@ -12,7 +14,7 @@
     <name>BanTableModel</name>
     </context>
 <context>
-    <name>RavenGUI</name>
+    <name>AvianGUI</name>
     <message>
         <source>Error</source>
         <translation>错误</translation>
@@ -166,7 +168,7 @@
     <name>WalletView</name>
     </context>
 <context>
-    <name>raven-core</name>
+    <name>avian-core</name>
     <message>
         <source>Transaction too large for fee policy</source>
         <translation>根据费率标准，本次转账超额</translation>

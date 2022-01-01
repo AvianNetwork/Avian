@@ -1,4 +1,6 @@
-<TS language="ta" version="2.1">
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE TS>
+<TS version="2.1" language="ta">
 <context>
     <name>AddressBookPage</name>
     <message>
@@ -52,7 +54,7 @@
     </message>
     </context>
 <context>
-    <name>RavenGUI</name>
+    <name>AvianGUI</name>
     <message>
         <source>&amp;Overview</source>
         <translation>&amp;கண்ணோட்டம்</translation>
@@ -90,8 +92,8 @@
         <translation>&amp;செய்தியை சரிசெய்...</translation>
     </message>
     <message>
-        <source>Raven</source>
-        <translation>Raven</translation>
+        <source>Avian</source>
+        <translation>Avian</translation>
     </message>
     <message>
         <source>Wallet</source>
@@ -706,10 +708,10 @@
     <name>WalletView</name>
     </context>
 <context>
-    <name>raven-core</name>
+    <name>avian-core</name>
     <message>
-        <source>Raven Core</source>
-        <translation>Raven மையம்</translation>
+        <source>Avian Core</source>
+        <translation>Avian மையம்</translation>
     </message>
     <message>
         <source>(default: %u)</source>

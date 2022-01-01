@@ -1,4 +1,6 @@
-<TS language="es_CL" version="2.1">
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE TS>
+<TS version="2.1" language="es_CL">
 <context>
     <name>AddressBookPage</name>
     <message>
@@ -64,7 +66,7 @@
     <name>BanTableModel</name>
     </context>
 <context>
-    <name>RavenGUI</name>
+    <name>AvianGUI</name>
     <message>
         <source>Sign &amp;message...</source>
         <translation>Firmar &amp;Mensaje...</translation>
@@ -143,7 +145,7 @@
     </message>
     <message>
         <source>Send coins to a Avian address</source>
-        <translation>Enviar monedas a una dirección raven</translation>
+        <translation>Enviar monedas a una dirección avian</translation>
     </message>
     <message>
         <source>Backup wallet to another location</source>
@@ -166,8 +168,8 @@
         <translation>Verificar mensaje....</translation>
     </message>
     <message>
-        <source>Raven</source>
-        <translation>Raven</translation>
+        <source>Avian</source>
+        <translation>Avian</translation>
     </message>
     <message>
         <source>Wallet</source>
@@ -363,8 +365,8 @@
         <translation>experto</translation>
     </message>
     <message>
-        <source>Automatically open the Raven client port on the router. This only works when your router supports UPnP and it is enabled.</source>
-        <translation>Abre automáticamente el puerto del cliente Raven en el router. Esto funciona solo cuando tu router es compatible con UPnP y está habilitado.</translation>
+        <source>Automatically open the Avian client port on the router. This only works when your router supports UPnP and it is enabled.</source>
+        <translation>Abre automáticamente el puerto del cliente Avian en el router. Esto funciona solo cuando tu router es compatible con UPnP y está habilitado.</translation>
     </message>
     <message>
         <source>Map port using &amp;UPnP</source>
@@ -750,7 +752,7 @@
     <name>WalletView</name>
     </context>
 <context>
-    <name>raven-core</name>
+    <name>avian-core</name>
     <message>
         <source>Options:</source>
         <translation>Opciones:
@@ -772,8 +774,8 @@
 </translation>
     </message>
     <message>
-        <source>Raven Core</source>
-        <translation>raven core</translation>
+        <source>Avian Core</source>
+        <translation>avian core</translation>
     </message>
     <message>
         <source>Error loading block database</source>

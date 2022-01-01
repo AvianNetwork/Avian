@@ -1,9 +1,9 @@
 // Copyright (c) 2011-2016 The Bitcoin Core developers
-// Copyright (c) 2017-2018 The Raven Core developers
+// Copyright (c) 2017-2020 The Raven Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include "test_raven.h"
+#include "test_avian.h"
 #include "chainparams.h"
 #include "consensus/consensus.h"
 #include "consensus/validation.h"
@@ -55,12 +55,12 @@ BasicTestingSetup::~BasicTestingSetup()
 
 TestingSetup::TestingSetup(const std::string &chainName) : BasicTestingSetup(chainName)
 {
-    const CChainParams &chainparams = Params();
+    const CChainParams &chainparams = GetParams();
     // Ideally we'd move all the RPC tests to the functional testing framework
     // instead of unit tests, but for now we need these here.
     RegisterAllCoreRPCCommands(tableRPC);
     ClearDatadirCache();
-    pathTemp = fs::temp_directory_path() / strprintf("test_raven_%lu_%i", (unsigned long) GetTime(), (int) (InsecureRandRange(100000)));
+    pathTemp = fs::temp_directory_path() / strprintf("test_avian_%lu_%i", (unsigned long) GetTime(), (int) (InsecureRandRange(100000)));
     fs::create_directories(pathTemp);
     gArgs.ForceSetArg("-datadir", pathTemp.string());
 
@@ -130,7 +130,7 @@ TestChain100Setup::TestChain100Setup() : TestingSetup(CBaseChainParams::REGTEST)
 CBlock
 TestChain100Setup::CreateAndProcessBlock(const std::vector<CMutableTransaction> &txns, const CScript &scriptPubKey)
 {
-    const CChainParams &chainparams = Params();
+    const CChainParams &chainparams = GetParams();
     std::unique_ptr<CBlockTemplate> pblocktemplate = BlockAssembler(chainparams).CreateNewBlock(scriptPubKey);
     CBlock &block = pblocktemplate->block;
 
@@ -142,7 +142,9 @@ TestChain100Setup::CreateAndProcessBlock(const std::vector<CMutableTransaction> 
     unsigned int extraNonce = 0;
     IncrementExtraNonce(&block, chainActive.Tip(), extraNonce);
 
-    while (!CheckProofOfWork(block.GetBlockHeader(), chainparams.GetConsensus())) ++block.nNonce;
+    uint256 mix_hash;
+    while (!CheckProofOfWork(block.GetHashFull(mix_hash), block.nBits, chainparams.GetConsensus())) { ++block.nNonce64; ++block.nNonce;};
+    block.mix_hash = mix_hash;
 
     std::shared_ptr<const CBlock> shared_pblock = std::make_shared<const CBlock>(block);
     ProcessNewBlock(chainparams, shared_pblock, true, nullptr);

@@ -13,31 +13,31 @@
 %endif
 %endif
 
-Name:		raven
+Name:		avian
 Version:	0.12.0
 Release:	2%{?dist}
 Summary:	Peer to Peer Cryptographic Currency
 
 Group:		Applications/System
 License:	MIT
-URL:		https://raven.org/
-Source0:	https://raven.org/bin/raven-core-%{version}/raven-%{version}.tar.gz
+URL:		https://avn.network/
+Source0:	https://avn.network/bin/avian-core-%{version}/avian-%{version}.tar.gz
 Source1:	http://download.oracle.com/berkeley-db/db-%{bdbv}.NC.tar.gz
 
-Source10:	https://raw.githubusercontent.com/raven/raven/v%{version}/contrib/debian/examples/avian.conf
+Source10:	https://raw.githubusercontent.com/avian/avian/v%{version}/contrib/debian/examples/avian.conf
 
 #man pages
-Source20:	https://raw.githubusercontent.com/raven/raven/v%{version}/doc/man/aviand.1
-Source21:	https://raw.githubusercontent.com/raven/raven/v%{version}/doc/man/avian-cli.1
-Source22:	https://raw.githubusercontent.com/raven/raven/v%{version}/doc/man/avian-qt.1
+Source20:	https://raw.githubusercontent.com/avian/avian/v%{version}/doc/man/aviand.1
+Source21:	https://raw.githubusercontent.com/avian/avian/v%{version}/doc/man/avian-cli.1
+Source22:	https://raw.githubusercontent.com/avian/avian/v%{version}/doc/man/avian-qt.1
 
 #selinux
-Source30:	https://raw.githubusercontent.com/raven/raven/v%{version}/contrib/rpm/raven.te
-# Source31 - what about avian-tx and bench_raven ???
-Source31:	https://raw.githubusercontent.com/raven/raven/v%{version}/contrib/rpm/raven.fc
-Source32:	https://raw.githubusercontent.com/raven/raven/v%{version}/contrib/rpm/raven.if
+Source30:	https://raw.githubusercontent.com/avian/avian/v%{version}/contrib/rpm/avian.te
+# Source31 - what about avian-tx and bench_avian ???
+Source31:	https://raw.githubusercontent.com/avian/avian/v%{version}/contrib/rpm/avian.fc
+Source32:	https://raw.githubusercontent.com/avian/avian/v%{version}/contrib/rpm/avian.if
 
-Source100:	https://upload.wikimedia.org/wikipedia/commons/4/46/Raven.svg
+Source100:	https://upload.wikimedia.org/wikipedia/commons/4/46/Avian.svg
 
 %if 0%{?_use_libressl:1}
 BuildRequires:	libressl-devel
@@ -50,13 +50,13 @@ BuildRequires:	autoconf automake libtool
 BuildRequires:	libevent-devel
 
 
-Patch0:		raven-0.12.0-libressl.patch
+Patch0:		avian-0.12.0-libressl.patch
 
 
 %description
-Raven is a digital cryptographic currency that uses peer-to-peer technology to
+Avian is a digital cryptographic currency that uses peer-to-peer technology to
 operate with no central authority or banks; managing transactions and the
-issuing of ravens is carried out collectively by the network.
+issuing of avians is carried out collectively by the network.
 
 %if %{_buildqt}
 %package core
@@ -79,42 +79,42 @@ BuildRequires:	%{_bindir}/inkscape
 BuildRequires:	%{_bindir}/convert
 
 %description core
-Raven is a digital cryptographic currency that uses peer-to-peer technology to
+Avian is a digital cryptographic currency that uses peer-to-peer technology to
 operate with no central authority or banks; managing transactions and the
-issuing of ravens is carried out collectively by the network.
+issuing of avians is carried out collectively by the network.
 
 This package contains the Qt based graphical client and node. If you are looking
-to run a Raven wallet, this is probably the package you want.
+to run a Avian wallet, this is probably the package you want.
 %endif
 
 
 %package libs
-Summary:	Raven shared libraries
+Summary:	Avian shared libraries
 Group:		System Environment/Libraries
 
 %description libs
-This package provides the ravenconsensus shared libraries. These libraries
+This package provides the avianconsensus shared libraries. These libraries
 may be used by third party software to provide consensus verification
 functionality.
 
 Unless you know need this package, you probably do not.
 
 %package devel
-Summary:	Development files for raven
+Summary:	Development files for avian
 Group:		Development/Libraries
 Requires:	%{name}-libs = %{version}-%{release}
 
 %description devel
 This package contains the header files and static library for the
-ravenconsensus shared library. If you are developing or compiling software
+avianconsensus shared library. If you are developing or compiling software
 that wants to link against that library, then you need this package installed.
 
 Most people do not need this package installed.
 
 %package server
-Summary:	The raven daemon
+Summary:	The avian daemon
 Group:		System Environment/Daemons
-Requires:	raven-utils = %{version}-%{release}
+Requires:	avian-utils = %{version}-%{release}
 Requires:	selinux-policy policycoreutils-python
 Requires(pre):	shadow-utils
 Requires(post):	%{_sbindir}/semodule %{_sbindir}/restorecon %{_sbindir}/fixfiles %{_sbindir}/sestatus
@@ -124,28 +124,28 @@ BuildRequires:	checkpolicy
 BuildRequires:	%{_datadir}/selinux/devel/Makefile
 
 %description server
-This package provides a stand-alone raven-core daemon. For most users, this
+This package provides a stand-alone avian-core daemon. For most users, this
 package is only needed if they need a full-node without the graphical client.
 
 Some third party wallet software will want this package to provide the actual
-raven-core node they use to connect to the network.
+avian-core node they use to connect to the network.
 
-If you use the graphical raven-core client then you almost certainly do not
+If you use the graphical avian-core client then you almost certainly do not
 need this package.
 
 %package utils
-Summary:	Raven utilities
+Summary:	Avian utilities
 Group:		Applications/System
 
 %description utils
 This package provides several command line utilities for interacting with a
-raven-core daemon.
+avian-core daemon.
 
-The avian-cli utility allows you to communicate and control a raven daemon
+The avian-cli utility allows you to communicate and control a avian daemon
 over RPC, the avian-tx utility allows you to create a custom transaction, and
-the bench_raven utility can be used to perform some benchmarks.
+the bench_avian utility can be used to perform some benchmarks.
 
-This package contains utilities needed by the raven-server package.
+This package contains utilities needed by the avian-server package.
 
 
 %prep
@@ -172,7 +172,7 @@ make %{?_smp_mflags}
 pushd SELinux
 for selinuxvariant in %{selinux_variants}; do
 	make NAME=${selinuxvariant} -f %{_datadir}/selinux/devel/Makefile
-	mv raven.pp raven.pp.${selinuxvariant}
+	mv avian.pp avian.pp.${selinuxvariant}
 	make NAME=${selinuxvariant} -f %{_datadir}/selinux/devel/Makefile clean
 done
 popd
@@ -187,37 +187,37 @@ mv %{buildroot}%{_bindir}/aviand %{buildroot}%{_sbindir}/aviand
 # systemd stuff
 mkdir -p %{buildroot}%{_tmpfilesdir}
 cat <<EOF > %{buildroot}%{_tmpfilesdir}/avian.conf
-d /run/aviand 0750 raven raven -
+d /run/aviand 0750 avian avian -
 EOF
 touch -a -m -t 201504280000 %{buildroot}%{_tmpfilesdir}/avian.conf
 
 mkdir -p %{buildroot}%{_sysconfdir}/sysconfig
-cat <<EOF > %{buildroot}%{_sysconfdir}/sysconfig/raven
-# Provide options to the raven daemon here, for example
+cat <<EOF > %{buildroot}%{_sysconfdir}/sysconfig/avian
+# Provide options to the avian daemon here, for example
 # OPTIONS="-testnet -disable-wallet"
 
 OPTIONS=""
 
 # System service defaults.
 # Don't change these unless you know what you're doing.
-CONFIG_FILE="%{_sysconfdir}/raven/avian.conf"
-DATA_DIR="%{_localstatedir}/lib/raven"
+CONFIG_FILE="%{_sysconfdir}/avian/avian.conf"
+DATA_DIR="%{_localstatedir}/lib/avian"
 PID_FILE="/run/aviand/aviand.pid"
 EOF
-touch -a -m -t 201504280000 %{buildroot}%{_sysconfdir}/sysconfig/raven
+touch -a -m -t 201504280000 %{buildroot}%{_sysconfdir}/sysconfig/avian
 
 mkdir -p %{buildroot}%{_unitdir}
-cat <<EOF > %{buildroot}%{_unitdir}/raven.service
+cat <<EOF > %{buildroot}%{_unitdir}/avian.service
 [Unit]
-Description=Raven daemon
+Description=Avian daemon
 After=syslog.target network.target
 
 [Service]
 Type=forking
 ExecStart=%{_sbindir}/aviand -daemon -conf=\${CONFIG_FILE} -datadir=\${DATA_DIR} -pid=\${PID_FILE} \$OPTIONS
-EnvironmentFile=%{_sysconfdir}/sysconfig/raven
-User=raven
-Group=raven
+EnvironmentFile=%{_sysconfdir}/sysconfig/avian
+User=avian
+Group=avian
 
 Restart=on-failure
 PrivateTmp=true
@@ -229,63 +229,63 @@ StartLimitBurst=5
 [Install]
 WantedBy=multi-user.target
 EOF
-touch -a -m -t 201504280000 %{buildroot}%{_unitdir}/raven.service
+touch -a -m -t 201504280000 %{buildroot}%{_unitdir}/avian.service
 #end systemd stuff
 
-mkdir %{buildroot}%{_sysconfdir}/raven
-mkdir -p %{buildroot}%{_localstatedir}/lib/raven
+mkdir %{buildroot}%{_sysconfdir}/avian
+mkdir -p %{buildroot}%{_localstatedir}/lib/avian
 
 #SELinux
 for selinuxvariant in %{selinux_variants}; do
 	install -d %{buildroot}%{_datadir}/selinux/${selinuxvariant}
-	install -p -m 644 SELinux/raven.pp.${selinuxvariant} %{buildroot}%{_datadir}/selinux/${selinuxvariant}/raven.pp
+	install -p -m 644 SELinux/avian.pp.${selinuxvariant} %{buildroot}%{_datadir}/selinux/${selinuxvariant}/avian.pp
 done
 
 %if %{_buildqt}
 # qt icons
-install -D -p share/pixmaps/raven.ico %{buildroot}%{_datadir}/pixmaps/raven.ico
+install -D -p share/pixmaps/avian.ico %{buildroot}%{_datadir}/pixmaps/avian.ico
 install -p share/pixmaps/nsis-header.bmp %{buildroot}%{_datadir}/pixmaps/
 install -p share/pixmaps/nsis-wizard.bmp %{buildroot}%{_datadir}/pixmaps/
-install -p %{SOURCE100} %{buildroot}%{_datadir}/pixmaps/raven.svg
-%{_bindir}/inkscape %{SOURCE100} --export-png=%{buildroot}%{_datadir}/pixmaps/raven16.png -w16 -h16
-%{_bindir}/inkscape %{SOURCE100} --export-png=%{buildroot}%{_datadir}/pixmaps/raven32.png -w32 -h32
-%{_bindir}/inkscape %{SOURCE100} --export-png=%{buildroot}%{_datadir}/pixmaps/raven64.png -w64 -h64
-%{_bindir}/inkscape %{SOURCE100} --export-png=%{buildroot}%{_datadir}/pixmaps/raven128.png -w128 -h128
-%{_bindir}/inkscape %{SOURCE100} --export-png=%{buildroot}%{_datadir}/pixmaps/raven256.png -w256 -h256
-%{_bindir}/convert -resize 16x16 %{buildroot}%{_datadir}/pixmaps/raven256.png %{buildroot}%{_datadir}/pixmaps/raven16.xpm
-%{_bindir}/convert -resize 32x32 %{buildroot}%{_datadir}/pixmaps/raven256.png %{buildroot}%{_datadir}/pixmaps/raven32.xpm
-%{_bindir}/convert -resize 64x64 %{buildroot}%{_datadir}/pixmaps/raven256.png %{buildroot}%{_datadir}/pixmaps/raven64.xpm
-%{_bindir}/convert -resize 128x128 %{buildroot}%{_datadir}/pixmaps/raven256.png %{buildroot}%{_datadir}/pixmaps/raven128.xpm
-%{_bindir}/convert %{buildroot}%{_datadir}/pixmaps/raven256.png %{buildroot}%{_datadir}/pixmaps/raven256.xpm
+install -p %{SOURCE100} %{buildroot}%{_datadir}/pixmaps/avian.svg
+%{_bindir}/inkscape %{SOURCE100} --export-png=%{buildroot}%{_datadir}/pixmaps/avian16.png -w16 -h16
+%{_bindir}/inkscape %{SOURCE100} --export-png=%{buildroot}%{_datadir}/pixmaps/avian32.png -w32 -h32
+%{_bindir}/inkscape %{SOURCE100} --export-png=%{buildroot}%{_datadir}/pixmaps/avian64.png -w64 -h64
+%{_bindir}/inkscape %{SOURCE100} --export-png=%{buildroot}%{_datadir}/pixmaps/avian128.png -w128 -h128
+%{_bindir}/inkscape %{SOURCE100} --export-png=%{buildroot}%{_datadir}/pixmaps/avian256.png -w256 -h256
+%{_bindir}/convert -resize 16x16 %{buildroot}%{_datadir}/pixmaps/avian256.png %{buildroot}%{_datadir}/pixmaps/avian16.xpm
+%{_bindir}/convert -resize 32x32 %{buildroot}%{_datadir}/pixmaps/avian256.png %{buildroot}%{_datadir}/pixmaps/avian32.xpm
+%{_bindir}/convert -resize 64x64 %{buildroot}%{_datadir}/pixmaps/avian256.png %{buildroot}%{_datadir}/pixmaps/avian64.xpm
+%{_bindir}/convert -resize 128x128 %{buildroot}%{_datadir}/pixmaps/avian256.png %{buildroot}%{_datadir}/pixmaps/avian128.xpm
+%{_bindir}/convert %{buildroot}%{_datadir}/pixmaps/avian256.png %{buildroot}%{_datadir}/pixmaps/avian256.xpm
 touch %{buildroot}%{_datadir}/pixmaps/*.png -r %{SOURCE100}
 touch %{buildroot}%{_datadir}/pixmaps/*.xpm -r %{SOURCE100}
 
 # Desktop File - change the touch timestamp if modifying
 mkdir -p %{buildroot}%{_datadir}/applications
-cat <<EOF > %{buildroot}%{_datadir}/applications/raven-core.desktop
+cat <<EOF > %{buildroot}%{_datadir}/applications/avian-core.desktop
 [Desktop Entry]
 Encoding=UTF-8
-Name=Raven
-Comment=Raven P2P Cryptocurrency
-Comment[fr]=Raven, monnaie virtuelle cryptographique pair à pair
-Comment[tr]=Raven, eşten eşe kriptografik sanal para birimi
+Name=Avian
+Comment=Avian P2P Cryptocurrency
+Comment[fr]=Avian, monnaie virtuelle cryptographique pair à pair
+Comment[tr]=Avian, eşten eşe kriptografik sanal para birimi
 Exec=avian-qt %u
 Terminal=false
 Type=Application
-Icon=raven128
-MimeType=x-scheme-handler/raven;
+Icon=avian128
+MimeType=x-scheme-handler/avian;
 Categories=Office;Finance;
 EOF
 # change touch date when modifying desktop
-touch -a -m -t 201511100546 %{buildroot}%{_datadir}/applications/raven-core.desktop
-%{_bindir}/desktop-file-validate %{buildroot}%{_datadir}/applications/raven-core.desktop
+touch -a -m -t 201511100546 %{buildroot}%{_datadir}/applications/avian-core.desktop
+%{_bindir}/desktop-file-validate %{buildroot}%{_datadir}/applications/avian-core.desktop
 
 # KDE protocol - change the touch timestamp if modifying
 mkdir -p %{buildroot}%{_datadir}/kde4/services
-cat <<EOF > %{buildroot}%{_datadir}/kde4/services/raven-core.protocol
+cat <<EOF > %{buildroot}%{_datadir}/kde4/services/avian-core.protocol
 [Protocol]
 exec=avian-qt '%u'
-protocol=raven
+protocol=avian
 input=none
 output=none
 helper=true
@@ -296,7 +296,7 @@ makedir=false
 deleting=false
 EOF
 # change touch date when modifying protocol
-touch -a -m -t 201511100546 %{buildroot}%{_datadir}/kde4/services/raven-core.protocol
+touch -a -m -t 201511100546 %{buildroot}%{_datadir}/kde4/services/avian-core.protocol
 %endif
 
 # man pages
@@ -311,7 +311,7 @@ rm -f %{buildroot}%{_bindir}/test_*
 
 %check
 make check
-srcdir=src test/raven-util-test.py
+srcdir=src test/avian-util-test.py
 test/functional/test_runner.py --extended
 
 %post libs -p /sbin/ldconfig
@@ -319,37 +319,37 @@ test/functional/test_runner.py --extended
 %postun libs -p /sbin/ldconfig
 
 %pre server
-getent group raven >/dev/null || groupadd -r raven
-getent passwd raven >/dev/null ||
-	useradd -r -g raven -d /var/lib/raven -s /sbin/nologin \
-	-c "Raven wallet server" raven
+getent group avian >/dev/null || groupadd -r avian
+getent passwd avian >/dev/null ||
+	useradd -r -g avian -d /var/lib/avian -s /sbin/nologin \
+	-c "Avian wallet server" avian
 exit 0
 
 %post server
-%systemd_post raven.service
+%systemd_post avian.service
 # SELinux
 if [ `%{_sbindir}/sestatus |grep -c "disabled"` -eq 0 ]; then
 for selinuxvariant in %{selinux_variants}; do
-	%{_sbindir}/semodule -s ${selinuxvariant} -i %{_datadir}/selinux/${selinuxvariant}/raven.pp &> /dev/null || :
+	%{_sbindir}/semodule -s ${selinuxvariant} -i %{_datadir}/selinux/${selinuxvariant}/avian.pp &> /dev/null || :
 done
-%{_sbindir}/semanage port -a -t raven_port_t -p tcp 8766
-%{_sbindir}/semanage port -a -t raven_port_t -p tcp 8767
-%{_sbindir}/semanage port -a -t raven_port_t -p tcp 18766
-%{_sbindir}/semanage port -a -t raven_port_t -p tcp 18767
-%{_sbindir}/semanage port -a -t raven_port_t -p tcp 18443
-%{_sbindir}/semanage port -a -t raven_port_t -p tcp 18444
-%{_sbindir}/fixfiles -R raven-server restore &> /dev/null || :
-%{_sbindir}/restorecon -R %{_localstatedir}/lib/raven || :
+%{_sbindir}/semanage port -a -t avian_port_t -p tcp 8766
+%{_sbindir}/semanage port -a -t avian_port_t -p tcp 8767
+%{_sbindir}/semanage port -a -t avian_port_t -p tcp 18766
+%{_sbindir}/semanage port -a -t avian_port_t -p tcp 18767
+%{_sbindir}/semanage port -a -t avian_port_t -p tcp 18443
+%{_sbindir}/semanage port -a -t avian_port_t -p tcp 18444
+%{_sbindir}/fixfiles -R avian-server restore &> /dev/null || :
+%{_sbindir}/restorecon -R %{_localstatedir}/lib/avian || :
 fi
 
 %posttrans server
 %{_bindir}/systemd-tmpfiles --create
 
 %preun server
-%systemd_preun raven.service
+%systemd_preun avian.service
 
 %postun server
-%systemd_postun raven.service
+%systemd_postun avian.service
 # SELinux
 if [ $1 -eq 0 ]; then
 	if [ `%{_sbindir}/sestatus |grep -c "disabled"` -eq 0 ]; then
@@ -360,11 +360,11 @@ if [ $1 -eq 0 ]; then
 	%{_sbindir}/semanage port -d -p tcp 18443
 	%{_sbindir}/semanage port -d -p tcp 18444
 	for selinuxvariant in %{selinux_variants}; do
-		%{_sbindir}/semodule -s ${selinuxvariant} -r raven &> /dev/null || :
+		%{_sbindir}/semodule -s ${selinuxvariant} -r avian &> /dev/null || :
 	done
-	%{_sbindir}/fixfiles -R raven-server restore &> /dev/null || :
-	[ -d %{_localstatedir}/lib/raven ] && \
-		%{_sbindir}/restorecon -R %{_localstatedir}/lib/raven &> /dev/null || :
+	%{_sbindir}/fixfiles -R avian-server restore &> /dev/null || :
+	[ -d %{_localstatedir}/lib/avian ] && \
+		%{_sbindir}/restorecon -R %{_localstatedir}/lib/avian &> /dev/null || :
 	fi
 fi
 
@@ -377,8 +377,8 @@ rm -rf %{buildroot}
 %license COPYING db-%{bdbv}.NC-LICENSE
 %doc COPYING avian.conf.example doc/README.md doc/bips.md doc/files.md doc/multiwallet-qt.md doc/reduce-traffic.md doc/release-notes.md doc/tor.md
 %attr(0755,root,root) %{_bindir}/avian-qt
-%attr(0644,root,root) %{_datadir}/applications/raven-core.desktop
-%attr(0644,root,root) %{_datadir}/kde4/services/raven-core.protocol
+%attr(0644,root,root) %{_datadir}/applications/avian-core.desktop
+%attr(0644,root,root) %{_datadir}/kde4/services/avian-core.protocol
 %attr(0644,root,root) %{_datadir}/pixmaps/*.ico
 %attr(0644,root,root) %{_datadir}/pixmaps/*.bmp
 %attr(0644,root,root) %{_datadir}/pixmaps/*.svg
@@ -409,10 +409,10 @@ rm -rf %{buildroot}
 %doc COPYING avian.conf.example doc/README.md doc/REST-interface.md doc/bips.md doc/dnsseed-policy.md doc/files.md doc/reduce-traffic.md doc/release-notes.md doc/tor.md
 %attr(0755,root,root) %{_sbindir}/aviand
 %attr(0644,root,root) %{_tmpfilesdir}/avian.conf
-%attr(0644,root,root) %{_unitdir}/raven.service
-%dir %attr(0750,raven,raven) %{_sysconfdir}/raven
-%dir %attr(0750,raven,raven) %{_localstatedir}/lib/raven
-%config(noreplace) %attr(0600,root,root) %{_sysconfdir}/sysconfig/raven
+%attr(0644,root,root) %{_unitdir}/avian.service
+%dir %attr(0750,avian,avian) %{_sysconfdir}/avian
+%dir %attr(0750,avian,avian) %{_localstatedir}/lib/avian
+%config(noreplace) %attr(0600,root,root) %{_sysconfdir}/sysconfig/avian
 %attr(0644,root,root) %{_datadir}/selinux/*/*.pp
 %attr(0644,root,root) %{_mandir}/man1/aviand.1*
 
@@ -422,14 +422,14 @@ rm -rf %{buildroot}
 %doc COPYING avian.conf.example doc/README.md
 %attr(0755,root,root) %{_bindir}/avian-cli
 %attr(0755,root,root) %{_bindir}/avian-tx
-%attr(0755,root,root) %{_bindir}/bench_raven
+%attr(0755,root,root) %{_bindir}/bench_avian
 %attr(0644,root,root) %{_mandir}/man1/avian-cli.1*
 
 
 
 %changelog
 * Fri Feb 26 2016 Alice Wonder <buildmaster@librelamp.com> - 0.12.0-2
-- Rename Qt package from raven to raven-core
+- Rename Qt package from avian to avian-core
 - Make building of the Qt package optional
 - When building the Qt package, default to Qt5 but allow building
 -  against Qt4
@@ -439,4 +439,4 @@ rm -rf %{buildroot}
 - Initial spec file for 0.12.0 release
 
 # This spec file is written from scratch but a lot of the packaging decisions are directly
-# based upon the 0.11.2 package spec file from https://www.ringingliberty.com/raven/
+# based upon the 0.11.2 package spec file from https://www.ringingliberty.com/avian/

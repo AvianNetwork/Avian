@@ -1,4 +1,6 @@
-<TS language="ne" version="2.1">
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE TS>
+<TS version="2.1" language="ne">
 <context>
     <name>AddressBookPage</name>
     <message>
@@ -93,7 +95,7 @@
     </message>
 </context>
 <context>
-    <name>RavenGUI</name>
+    <name>AvianGUI</name>
     <message>
         <source>Sign &amp;message...</source>
         <translation>सन्देशमा &amp;amp;हस्ताक्षर  गर्नुहोस्...</translation>
@@ -227,7 +229,7 @@
 <context>
     <name>Intro</name>
     <message>
-        <source>%1 will download and store a copy of the Raven block chain. At least %2GB of data will be stored in this directory, and it will grow over time. The wallet will also be stored in this directory.</source>
+        <source>%1 will download and store a copy of the Avian block chain. At least %2GB of data will be stored in this directory, and it will grow over time. The wallet will also be stored in this directory.</source>
         <translation>%1 ले बिटकोइन ब्लक चेनको एउटा प्रतिलिपि डाउनलोड र भण्डारण गर्नेछ । यो निर्देशिकामा कम्तिमा पनि %2GB डाटा भण्डारण गरिनेछ, र यो समयसँगै बढ्नेछ । वालेटलाई पनि यो निर्देशिकामा भण्डारण गरिनेछ ।</translation>
     </message>
     </context>
@@ -438,7 +440,7 @@
     </message>
     </context>
 <context>
-    <name>raven-core</name>
+    <name>avian-core</name>
     <message>
         <source>Delete all wallet transactions and only recover those parts of the blockchain through -rescan on startup</source>
         <translation>वालेटको सबै कारोबार मेटाउनुहोस् र -स्टार्टअपको पुनः स्क्यान मार्फत ब्लकचेनका ती भागहरूलाई मात्र पुनः प्राप्त गर्नुहोस्</translation>

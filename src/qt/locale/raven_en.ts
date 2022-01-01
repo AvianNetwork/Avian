@@ -297,9 +297,9 @@
     </message>
 </context>
 <context>
-    <name>RavenGUI</name>
+    <name>AvianGUI</name>
     <message>
-        <location filename="../ravengui.cpp" line="+357"/>
+        <location filename="../aviangui.cpp" line="+357"/>
         <source>Sign &amp;message...</source>
         <translation>Sign &amp;message...</translation>
     </message>
@@ -690,7 +690,7 @@
         <translation>Wallet is &lt;b&gt;encrypted&lt;/b&gt; and currently &lt;b&gt;locked&lt;/b&gt;</translation>
     </message>
     <message>
-        <location filename="../raven.cpp" line="+534"/>
+        <location filename="../avian.cpp" line="+534"/>
         <source>A fatal error occurred. Avian can no longer continue safely and will quit.</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1815,7 +1815,7 @@
 <context>
     <name>QObject</name>
     <message>
-        <location filename="../ravenunits.cpp" line="+176"/>
+        <location filename="../avianunits.cpp" line="+176"/>
         <source>Amount</source>
         <translation type="unfinished">Amount</translation>
     </message>
@@ -1915,7 +1915,7 @@
         </translation>
     </message>
     <message>
-        <location filename="../raven.cpp" line="+178"/>
+        <location filename="../avian.cpp" line="+178"/>
         <source>%1 didn&apos;t yet exit safely...</source>
         <translation type="unfinished"></translation>
     </message>
@@ -3876,7 +3876,7 @@
 <context>
     <name>UnitDisplayStatusBarControl</name>
     <message>
-        <location filename="../ravengui.cpp" line="+129"/>
+        <location filename="../aviangui.cpp" line="+129"/>
         <source>Unit to show amounts in. Click to select another unit.</source>
         <translation type="unfinished"></translation>
     </message>
@@ -3988,7 +3988,7 @@
     </message>
 </context>
 <context>
-    <name>raven-core</name>
+    <name>avian-core</name>
     <message>
         <location filename="../avianstrings.cpp" line="+343"/>
         <source>Options:</source>
@@ -4066,8 +4066,8 @@
     </message>
     <message>
         <location line="-386"/>
-        <source>Raven Core</source>
-        <translation type="unfinished">Raven Core</translation>
+        <source>Avian Core</source>
+        <translation type="unfinished">Avian Core</translation>
     </message>
     <message>
         <location line="+1"/>

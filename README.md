@@ -1,7 +1,7 @@
 <h1 align="center">
 Avian Network [AVN]  
 <br/><br/>
-<img src="./src/qt/res/icons/raven.png" alt="Avian" width="300"/>
+<img src="./src/qt/res/icons/avian.png" alt="Avian" width="300"/>
 </h1>
 
 <div align="center">
@@ -125,9 +125,9 @@ make -j8
 
 A digital peer to peer network for the facilitation of asset transfer.
 
-Having started development on August 12th of 2021, and active on mainnet since September 1st, Ravencoin Lite (RVL) is a fork of Ravencoin Classic (RVC), aimed primarily at bringing the means of development back into the hands of the community after RVC has been abandoned by its creators. With the RVC github locked, and software in disrepair, RVL seeks to improve upon the existing foundations by implementing the necessary updates and bug fixes need to bring the original x16r fork of Ravencoin up to par with modern cryptocurrencies. 
+Having started development on August 12th of 2021, and active on mainnet since September 1st, Avian Lite (RVL) is a fork of Avian Classic (RVC), aimed primarily at bringing the means of development back into the hands of the community after RVC has been abandoned by its creators. With the RVC github locked, and software in disrepair, RVL seeks to improve upon the existing foundations by implementing the necessary updates and bug fixes need to bring the original x16r fork of Avian up to par with modern cryptocurrencies. 
 
-This project is being spearheaded by a small group of enthusiasts, representing the interests of the actual RVC community, as opposed to the original fork, which was created and maintained by Chinese ASIC manufacturers looking to make a return on their machines after RVN switched to the x16rv2 algorithm. As such, we are always seeking for people wishing to contribute their experience and knowhow to the development of Ravencoin Lite.
+This project is being spearheaded by a small group of enthusiasts, representing the interests of the actual RVC community, as opposed to the original fork, which was created and maintained by Chinese ASIC manufacturers looking to make a return on their machines after AVN switched to the x16rv2 algorithm. As such, we are always seeking for people wishing to contribute their experience and knowhow to the development of Avian Lite.
 
 Our goal is to stick to the x16r algorithm as previously declared by the RVC project, however, we are aware of the potential threat that ASICs pose to the network, and are looking to mitigate it while staying true to our roots. Once all existing bugs have been fixed, and asset functionality restored, we aim to implement a secondary CPU algorithm, somewhat akin to Myriad (XMY), in order to help decentralize the mining of RVL without resorting to replacing the primary algo.
 

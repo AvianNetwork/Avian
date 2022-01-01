@@ -1,15 +1,16 @@
 // Copyright (c) 2015 The Bitcoin Core developers
-// Copyright (c) 2017 The Raven Core developers
+// Copyright (c) 2017-2019 The Raven Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef RAVEN_ZMQ_ZMQABSTRACTNOTIFIER_H
-#define RAVEN_ZMQ_ZMQABSTRACTNOTIFIER_H
+#ifndef AVIAN_ZMQ_ZMQABSTRACTNOTIFIER_H
+#define AVIAN_ZMQ_ZMQABSTRACTNOTIFIER_H
 
 #include "zmqconfig.h"
 
 class CBlockIndex;
 class CZMQAbstractNotifier;
+class CMessage;
 
 typedef CZMQAbstractNotifier* (*CZMQNotifierFactory)();
 
@@ -35,6 +36,7 @@ public:
 
     virtual bool NotifyBlock(const CBlockIndex *pindex);
     virtual bool NotifyTransaction(const CTransaction &transaction);
+    virtual bool NotifyMessage(const CMessage& message);
 
 protected:
     void *psocket;
@@ -42,4 +44,4 @@ protected:
     std::string address;
 };
 
-#endif // RAVEN_ZMQ_ZMQABSTRACTNOTIFIER_H
+#endif // AVIAN_ZMQ_ZMQABSTRACTNOTIFIER_H

@@ -1,4 +1,6 @@
-<TS language="et" version="2.1">
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE TS>
+<TS version="2.1" language="et">
 <context>
     <name>AddressBookPage</name>
     <message>
@@ -63,11 +65,11 @@
     </message>
     <message>
         <source>These are your Avian addresses for sending payments. Always check the amount and the receiving address before sending coins.</source>
-        <translation>Need on sinu Raven aadressid maksete saatmiseks. Ennem müntide saatmist kontrolli alati summat ja makse saaja aadressi.</translation>
+        <translation>Need on sinu Avian aadressid maksete saatmiseks. Ennem müntide saatmist kontrolli alati summat ja makse saaja aadressi.</translation>
     </message>
     <message>
         <source>These are your Avian addresses for receiving payments. It is recommended to use a new receiving address for each transaction.</source>
-        <translation>Need on sinu Raven aadressid sisenevate maksete vastu võtmiseks. Soovitav on iga tehingu tarbeks kasutada uut aadressi.</translation>
+        <translation>Need on sinu Avian aadressid sisenevate maksete vastu võtmiseks. Soovitav on iga tehingu tarbeks kasutada uut aadressi.</translation>
     </message>
     <message>
         <source>&amp;Copy Address</source>
@@ -169,7 +171,7 @@
     </message>
     <message>
         <source>Warning: If you encrypt your wallet and lose your passphrase, you will &lt;b&gt;LOSE ALL OF YOUR AVIANS&lt;/b&gt;!</source>
-        <translation>Hoiatus:Kui sa krüpteerid oma rahakoti ja kaotad salafraasi, siis sa&lt;b&gt;KAOTAD OMA RAVENID&lt;/b&gt;!</translation>
+        <translation>Hoiatus:Kui sa krüpteerid oma rahakoti ja kaotad salafraasi, siis sa&lt;b&gt;KAOTAD OMA AVIANID&lt;/b&gt;!</translation>
     </message>
     <message>
         <source>Are you sure you wish to encrypt your wallet?</source>
@@ -220,7 +222,7 @@
     </message>
     </context>
 <context>
-    <name>RavenGUI</name>
+    <name>AvianGUI</name>
     <message>
         <source>Sign &amp;message...</source>
         <translation>Signeeri &amp;sõnum</translation>
@@ -291,7 +293,7 @@
     </message>
     <message>
         <source>Send coins to a Avian address</source>
-        <translation>Saada münte Raveni aadressile</translation>
+        <translation>Saada münte Aviani aadressile</translation>
     </message>
     <message>
         <source>Backup wallet to another location</source>
@@ -314,8 +316,8 @@
         <translation>&amp;Kontrolli sõnumit...</translation>
     </message>
     <message>
-        <source>Raven</source>
-        <translation>Raven</translation>
+        <source>Avian</source>
+        <translation>Avian</translation>
     </message>
     <message>
         <source>Wallet</source>
@@ -343,11 +345,11 @@
     </message>
     <message>
         <source>Sign messages with your Avian addresses to prove you own them</source>
-        <translation>Omandi tõestamiseks allkirjasta sõnumid oma Raveni aadressiga</translation>
+        <translation>Omandi tõestamiseks allkirjasta sõnumid oma Aviani aadressiga</translation>
     </message>
     <message>
         <source>Verify messages to ensure they were signed with specified Avian addresses</source>
-        <translation>Kinnita sõnumid kindlustamaks et need allkirjastati määratud Raveni aadressiga</translation>
+        <translation>Kinnita sõnumid kindlustamaks et need allkirjastati määratud Aviani aadressiga</translation>
     </message>
     <message>
         <source>&amp;File</source>
@@ -367,11 +369,11 @@
     </message>
     <message>
         <source>Request payments (generates QR codes and avian: URIs)</source>
-        <translation>Loo maksepäring (genereerib QR koodid ja raveni: URId)</translation>
+        <translation>Loo maksepäring (genereerib QR koodid ja aviani: URId)</translation>
     </message>
     <message>
         <source>Open a avian: URI or payment request</source>
-        <translation>Ava raveni: URI või maksepäring</translation>
+        <translation>Ava aviani: URI või maksepäring</translation>
     </message>
     <message>
         <source>&amp;Command-line options</source>
@@ -379,7 +381,7 @@
     </message>
     <message numerus="yes">
         <source>%n active connection(s) to Avian network</source>
-        <translation><numerusform>%n aktiivne ühendus Raveni võrku</numerusform><numerusform>%n aktiivset ühendust Raveni võrku</numerusform></translation>
+        <translation><numerusform>%n aktiivne ühendus Aviani võrku</numerusform><numerusform>%n aktiivset ühendust Aviani võrku</numerusform></translation>
     </message>
     <message>
         <source>Indexing blocks on disk...</source>
@@ -627,7 +629,7 @@
     </message>
     <message>
         <source>The entered address "%1" is not a valid Avian address.</source>
-        <translation>Sisestatud aadress "%1" ei ole korrektne Raven aadress.</translation>
+        <translation>Sisestatud aadress "%1" ei ole korrektne Avian aadress.</translation>
     </message>
     <message>
         <source>The entered address "%1" is already in the address book.</source>
@@ -756,8 +758,8 @@
         <translation>Ekspert</translation>
     </message>
     <message>
-        <source>Automatically open the Raven client port on the router. This only works when your router supports UPnP and it is enabled.</source>
-        <translation>Raveni kliendi pordi automaatne avamine ruuteris. Toimib, kui sinu ruuter aktsepteerib UPnP ühendust.</translation>
+        <source>Automatically open the Avian client port on the router. This only works when your router supports UPnP and it is enabled.</source>
+        <translation>Aviani kliendi pordi automaatne avamine ruuteris. Toimib, kui sinu ruuter aktsepteerib UPnP ühendust.</translation>
     </message>
     <message>
         <source>Map port using &amp;UPnP</source>
@@ -1338,7 +1340,7 @@
     </message>
     <message>
         <source>Warning: Invalid Avian address</source>
-        <translation>Hoiatus: Ebakorrektne Raven aadress</translation>
+        <translation>Hoiatus: Ebakorrektne Avian aadress</translation>
     </message>
     <message>
         <source>(no label)</source>
@@ -1418,7 +1420,7 @@
     </message>
     <message>
         <source>The Avian address to sign the message with</source>
-        <translation>Raven aadress millega sõnum allkirjastada</translation>
+        <translation>Avian aadress millega sõnum allkirjastada</translation>
     </message>
     <message>
         <source>Choose previously used address</source>
@@ -1450,7 +1452,7 @@
     </message>
     <message>
         <source>Sign the message to prove you own this Avian address</source>
-        <translation>Allkirjasta sõnum Raveni aadressi sulle kuulumise tõestamiseks</translation>
+        <translation>Allkirjasta sõnum Aviani aadressi sulle kuulumise tõestamiseks</translation>
     </message>
     <message>
         <source>Sign &amp;Message</source>
@@ -1470,11 +1472,11 @@
     </message>
     <message>
         <source>The Avian address the message was signed with</source>
-        <translation>Raven aadress millega sõnum on allkirjastatud</translation>
+        <translation>Avian aadress millega sõnum on allkirjastatud</translation>
     </message>
     <message>
         <source>Verify the message to ensure it was signed with the specified Avian address</source>
-        <translation>Kinnita sõnum tõestamaks selle allkirjastatust määratud Raveni aadressiga.</translation>
+        <translation>Kinnita sõnum tõestamaks selle allkirjastatust määratud Aviani aadressiga.</translation>
     </message>
     <message>
         <source>Verify &amp;Message</source>
@@ -1732,7 +1734,7 @@
     <name>WalletView</name>
     </context>
 <context>
-    <name>raven-core</name>
+    <name>avian-core</name>
     <message>
         <source>Options:</source>
         <translation>Valikud:</translation>
@@ -1758,8 +1760,8 @@
         <translation>Tööta taustal ning aktsepteeri käsklusi</translation>
     </message>
     <message>
-        <source>Raven Core</source>
-        <translation>Raveni tuumik</translation>
+        <source>Avian Core</source>
+        <translation>Aviani tuumik</translation>
     </message>
     <message>
         <source>Bind to given address and always listen on it. Use [host]:port notation for IPv6</source>

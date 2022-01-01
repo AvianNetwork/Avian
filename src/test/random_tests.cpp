@@ -1,11 +1,11 @@
 // Copyright (c) 2017 The Bitcoin Core developers
-// Copyright (c) 2017 The Raven Core developers
+// Copyright (c) 2017-2019 The Raven Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include "random.h"
 
-#include "test/test_raven.h"
+#include "test/test_avian.h"
 
 #include <boost/test/unit_test.hpp>
 
@@ -57,42 +57,12 @@ BOOST_FIXTURE_TEST_SUITE(random_tests, BasicTestingSetup)
             for (int j = 0; j < 1000; ++j)
             {
                 uint64_t rangebits = ctx1.randbits(bits);
-                BOOST_CHECK_EQUAL(rangebits >> bits, 0);
+                BOOST_CHECK_EQUAL(rangebits >> bits, (uint64_t)0);
                 uint64_t range = ((uint64_t) 1) << bits | rangebits;
                 uint64_t rand = ctx2.randrange(range);
                 BOOST_CHECK(rand < range);
             }
         }
     }
-
-    /** Test that Shuffle reaches every permutation with equal probability. */
-    BOOST_AUTO_TEST_CASE(shuffle_stat_test)
-    {
-        FastRandomContext ctx(true);
-        uint32_t counts[5 * 5 * 5 * 5 * 5] = {0};
-        for (int i = 0; i < 12000; ++i) {
-            int data[5] = {0, 1, 2, 3, 4};
-            Shuffle(std::begin(data), std::end(data), ctx);
-            int pos = data[0] + data[1] * 5 + data[2] * 25 + data[3] * 125 + data[4] * 625;
-            ++counts[pos];
-        }
-        unsigned int sum = 0;
-        double chi_score = 0.0;
-        for (int i = 0; i < 5 * 5 * 5 * 5 * 5; ++i) {
-            int i1 = i % 5, i2 = (i / 5) % 5, i3 = (i / 25) % 5, i4 = (i / 125) % 5, i5 = i / 625;
-            uint32_t count = counts[i];
-            if (i1 == i2 || i1 == i3 || i1 == i4 || i1 == i5 || i2 == i3 || i2 == i4 || i2 == i5 || i3 == i4 || i3 == i5 || i4 == i5) {
-                BOOST_CHECK(count == 0);
-        } else {
-            chi_score += ((count - 100.0) * (count - 100.0)) / 100.0;
-            BOOST_CHECK(count > 50);
-            BOOST_CHECK(count < 150);
-            sum += count;
-        }
-    }
-    BOOST_CHECK(chi_score > 58.1411); // 99.9999% confidence interval
-    BOOST_CHECK(chi_score < 210.275);
-    BOOST_CHECK_EQUAL(sum, 12000);
-}
 
 BOOST_AUTO_TEST_SUITE_END()

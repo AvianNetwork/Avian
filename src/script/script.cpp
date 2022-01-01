@@ -1,6 +1,6 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
 // Copyright (c) 2009-2016 The Bitcoin Core developers
-// Copyright (c) 2017 The Raven Core developers
+// Copyright (c) 2017-2019 The Raven Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 #include "streams.h"
@@ -143,9 +143,9 @@ const char* GetOpName(opcodetype opcode)
     case OP_NOP9                   : return "OP_NOP9";
     case OP_NOP10                  : return "OP_NOP10";
 
-    /** RVN START */
-    case OP_RVN_ASSET              : return "OP_RVN_ASSET";
-    /** RVN END */
+    /** AVN START */
+    case OP_AVN_ASSET              : return "OP_AVN_ASSET";
+    /** AVN END */
 
     case OP_INVALIDOPCODE          : return "OP_INVALIDOPCODE";
 
@@ -227,7 +227,7 @@ bool CScript::IsPayToScriptHash() const
             (*this)[22] == OP_EQUAL);
 }
 
-/** RVN START */
+/** AVN START */
 bool CScript::IsAssetScript() const
 {
     int nType = 0;
@@ -244,34 +244,34 @@ bool CScript::IsAssetScript(int& nType, bool& isOwner) const
 
 bool CScript::IsAssetScript(int& nType, bool& fIsOwner, int& nStartingIndex) const
 {
-    if (this->size() > 30) {
-        if ((*this)[25] == OP_RVN_ASSET) { // OP_RVN_ASSET is always in the 25 index of the script if it exists
+    if (this->size() > 31) {
+        if ((*this)[25] == OP_AVN_ASSET) { // OP_AVN_ASSET is always in the 25 index of the script if it exists
             int index = -1;
-            if ((*this)[27] == RVN_R) { // Check to see if RVN starts at 27 ( this->size() < 105)
-                if ((*this)[28] == RVN_V)
-                    if ((*this)[29] == RVN_N)
+            if ((*this)[27] == AVN_R) { // Check to see if AVN starts at 27 ( this->size() < 105)
+                if ((*this)[28] == AVN_V)
+                    if ((*this)[29] == AVN_N)
                         index = 30;
             } else {
-                if ((*this)[28] == RVN_R) // Check to see if RVN starts at 28 ( this->size() >= 105)
-                    if ((*this)[29] == RVN_V)
-                        if ((*this)[30] == RVN_N)
+                if ((*this)[28] == AVN_R) // Check to see if AVN starts at 28 ( this->size() >= 105)
+                    if ((*this)[29] == AVN_V)
+                        if ((*this)[30] == AVN_N)
                             index = 31;
             }
 
             if (index > 0) {
                 nStartingIndex = index + 1; // Set the index where the asset data begins. Use to serialize the asset data into asset objects
-                if ((*this)[index] == RVN_T) { // Transfer first anticipating more transfers than other assets operations
+                if ((*this)[index] == AVN_T) { // Transfer first anticipating more transfers than other assets operations
                     nType = TX_TRANSFER_ASSET;
                     return true;
-                } else if ((*this)[index] == RVN_Q && this->size() > 39) {
+                } else if ((*this)[index] == AVN_Q && this->size() > 39) {
                     nType = TX_NEW_ASSET;
                     fIsOwner = false;
                     return true;
-                } else if ((*this)[index] == RVN_O) {
+                } else if ((*this)[index] == AVN_O) {
                     nType = TX_NEW_ASSET;
                     fIsOwner = true;
                     return true;
-                } else if ((*this)[index] == RVN_R) {
+                } else if ((*this)[index] == AVN_R) {
                     nType = TX_REISSUE_ASSET;
                     return true;
                 }
@@ -322,7 +322,38 @@ bool CScript::IsTransferAsset() const
 
     return false;
 }
-/** RVN END */
+
+bool CScript::IsNullAsset() const
+{
+    return IsNullAssetTxDataScript() || IsNullGlobalRestrictionAssetTxDataScript() || IsNullAssetVerifierTxDataScript();
+}
+
+bool CScript::IsNullAssetTxDataScript() const
+{
+    return (this->size() > 23 &&
+            (*this)[0] == OP_AVN_ASSET &&
+            (*this)[1] == 0x14);
+}
+
+bool CScript::IsNullGlobalRestrictionAssetTxDataScript() const
+{
+    // 1 OP_AVN_ASSET followed by two OP_RESERVED + atleast 4 characters for the restricted name $ABC
+    return (this->size() > 6 &&
+            (*this)[0] == OP_AVN_ASSET &&
+            (*this)[1] == OP_RESERVED &&
+            (*this)[2] == OP_RESERVED);
+}
+
+
+bool CScript::IsNullAssetVerifierTxDataScript() const
+{
+    // 1 OP_AVN_ASSET followed by one OP_RESERVED
+    return (this->size() > 3 &&
+            (*this)[0] == OP_AVN_ASSET &&
+            (*this)[1] == OP_RESERVED &&
+            (*this)[2] != OP_RESERVED);
+}
+/** AVN END */
 
 bool CScript::IsPayToWitnessScriptHash() const
 {
@@ -349,6 +380,7 @@ bool CScript::IsWitnessProgram(int& version, std::vector<unsigned char>& program
     }
     return false;
 }
+
 bool CScript::IsPayToPublicKey() const
 {
     // Test for pay-to-pubkey CScript with both
@@ -372,12 +404,14 @@ bool CScript::IsPushOnly(const_iterator pc) const
         opcodetype opcode;
         if (!GetOp(pc, opcode))
             return false;
+
         // Note that IsPushOnly() *does* consider OP_RESERVED to be a
         // push-type opcode, however execution of OP_RESERVED fails, so
         // it's not relevant to P2SH/BIP62 as the scriptSig would fail prior to
         // the P2SH special validation code being executed.
         if (opcode > OP_16)
             return false;
+
     }
     return true;
 }
@@ -415,7 +449,7 @@ bool CScript::HasValidOps() const
 bool CScript::IsUnspendable() const
 {
     CAmount nAmount;
-    return (size() > 0 && *begin() == OP_RETURN) || (size() > MAX_SCRIPT_SIZE) || (GetAssetAmountFromScript(*this, nAmount) && nAmount == 0);
+    return (size() > 0 && *begin() == OP_RETURN) || (size() > 0 && *begin() == OP_AVN_ASSET) || (size() > MAX_SCRIPT_SIZE) || (GetAssetAmountFromScript(*this, nAmount) && nAmount == 0);
 }
 
 //!--------------------------------------------------------------------------------------------------------------------------!//

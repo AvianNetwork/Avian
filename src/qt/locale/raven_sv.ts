@@ -1,4 +1,6 @@
-<TS language="sv" version="2.1">
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE TS>
+<TS version="2.1" language="sv">
 <context>
     <name>AddressBookPage</name>
     <message>
@@ -63,11 +65,11 @@
     </message>
     <message>
         <source>These are your Avian addresses for sending payments. Always check the amount and the receiving address before sending coins.</source>
-        <translation>Detta är dina Raven adresser för att skicka betalningar. Kolla alltid summan och den mottagande adressen innan du skickar Avians.</translation>
+        <translation>Detta är dina Avian adresser för att skicka betalningar. Kolla alltid summan och den mottagande adressen innan du skickar Avians.</translation>
     </message>
     <message>
         <source>These are your Avian addresses for receiving payments. It is recommended to use a new receiving address for each transaction.</source>
-        <translation>Detta är dina Raven adresser för att ta emot betalningar. Det rekommenderas att använda en ny mottagningsadress för varje transaktion.</translation>
+        <translation>Detta är dina Avian adresser för att ta emot betalningar. Det rekommenderas att använda en ny mottagningsadress för varje transaktion.</translation>
     </message>
     <message>
         <source>&amp;Copy Address</source>
@@ -170,7 +172,7 @@ Var vänlig och försök igen.</translation>
     </message>
     <message>
         <source>Warning: If you encrypt your wallet and lose your passphrase, you will &lt;b&gt;LOSE ALL OF YOUR AVIANS&lt;/b&gt;!</source>
-        <translation>VARNING: Om du krypterar din plånbok och glömmer ditt lösenord, kommer du att &lt;b&gt;FÖRLORA ALLA DINA RAVEN&lt;/b&gt;!</translation>
+        <translation>VARNING: Om du krypterar din plånbok och glömmer ditt lösenord, kommer du att &lt;b&gt;FÖRLORA ALLA DINA AVIAN&lt;/b&gt;!</translation>
     </message>
     <message>
         <source>Are you sure you wish to encrypt your wallet?</source>
@@ -233,7 +235,7 @@ Var vänlig och försök igen.</translation>
     </message>
 </context>
 <context>
-    <name>RavenGUI</name>
+    <name>AvianGUI</name>
     <message>
         <source>Sign &amp;message...</source>
         <translation>Signera &amp;meddelande...</translation>
@@ -340,7 +342,7 @@ Var vänlig och försök igen.</translation>
     </message>
     <message>
         <source>Send coins to a Avian address</source>
-        <translation>Skicka avians till en Raven-adress</translation>
+        <translation>Skicka avians till en Avian-adress</translation>
     </message>
     <message>
         <source>Backup wallet to another location</source>
@@ -363,8 +365,8 @@ Var vänlig och försök igen.</translation>
         <translation>&amp;Verifiera meddelande...</translation>
     </message>
     <message>
-        <source>Raven</source>
-        <translation>Raven</translation>
+        <source>Avian</source>
+        <translation>Avian</translation>
     </message>
     <message>
         <source>Wallet</source>
@@ -392,11 +394,11 @@ Var vänlig och försök igen.</translation>
     </message>
     <message>
         <source>Sign messages with your Avian addresses to prove you own them</source>
-        <translation>Signera meddelanden med din Raven-adress för att bevisa att du äger dem</translation>
+        <translation>Signera meddelanden med din Avian-adress för att bevisa att du äger dem</translation>
     </message>
     <message>
         <source>Verify messages to ensure they were signed with specified Avian addresses</source>
-        <translation>Verifiera meddelanden för att vara säker på att de var signerade med specificerade Raven-adresser</translation>
+        <translation>Verifiera meddelanden för att vara säker på att de var signerade med specificerade Avian-adresser</translation>
     </message>
     <message>
         <source>&amp;File</source>
@@ -416,7 +418,7 @@ Var vänlig och försök igen.</translation>
     </message>
     <message>
         <source>Request payments (generates QR codes and avian: URIs)</source>
-        <translation>Begär betalning (genererar QR-koder och raven-URI)</translation>
+        <translation>Begär betalning (genererar QR-koder och avian-URI)</translation>
     </message>
     <message>
         <source>Show the list of used sending addresses and labels</source>
@@ -436,7 +438,7 @@ Var vänlig och försök igen.</translation>
     </message>
     <message numerus="yes">
         <source>%n active connection(s) to Avian network</source>
-        <translation><numerusform>%n aktiva anslutningar till Raven-nätverket.</numerusform><numerusform>%n aktiva anslutningar till Raven-nätverket.</numerusform></translation>
+        <translation><numerusform>%n aktiva anslutningar till Avian-nätverket.</numerusform><numerusform>%n aktiva anslutningar till Avian-nätverket.</numerusform></translation>
     </message>
     <message>
         <source>Indexing blocks on disk...</source>
@@ -479,8 +481,8 @@ Var vänlig och försök igen.</translation>
         <translation>Uppdaterad</translation>
     </message>
     <message>
-        <source>Show the %1 help message to get a list with possible Raven command-line options</source>
-        <translation>Visa %1 hjälpmeddelande för att få en lista med möjliga Raven kommandoradsalternativ.</translation>
+        <source>Show the %1 help message to get a list with possible Avian command-line options</source>
+        <translation>Visa %1 hjälpmeddelande för att få en lista med möjliga Avian kommandoradsalternativ.</translation>
     </message>
     <message>
         <source>%1 client</source>
@@ -549,8 +551,8 @@ Var vänlig och försök igen.</translation>
         <translation>Denna plånbok är &lt;b&gt;krypterad&lt;/b&gt; och för närvarande &lt;b&gt;låst&lt;/b&gt;</translation>
     </message>
     <message>
-        <source>A fatal error occurred. Raven can no longer continue safely and will quit.</source>
-        <translation>Ett kritiskt fel uppstod. Raven kan inte fortsätta att köra säkert och kommer att avslutas.</translation>
+        <source>A fatal error occurred. Avian can no longer continue safely and will quit.</source>
+        <translation>Ett kritiskt fel uppstod. Avian kan inte fortsätta att köra säkert och kommer att avslutas.</translation>
     </message>
 </context>
 <context>
@@ -744,7 +746,7 @@ Var vänlig och försök igen.</translation>
     </message>
     <message>
         <source>The entered address "%1" is not a valid Avian address.</source>
-        <translation>Den angivna adressen "%1" är inte en giltig Raven-adress.</translation>
+        <translation>Den angivna adressen "%1" är inte en giltig Avian-adress.</translation>
     </message>
     <message>
         <source>The entered address "%1" is already in the address book.</source>
@@ -852,8 +854,8 @@ Var vänlig och försök igen.</translation>
         <translation>Eftersom detta är första gången programmet startas får du välja var %1 skall lagra sitt data.</translation>
     </message>
     <message>
-        <source>%1 will download and store a copy of the Raven block chain. At least %2GB of data will be stored in this directory, and it will grow over time. The wallet will also be stored in this directory.</source>
-        <translation>%1 kommer att ladda ner och spara en kopia av Raven blockkedjan. Åtminstone %2GB av data kommer att sparas i denna katalog, och den kommer att växa över tiden. Plånboken kommer också att sparas i denna katalog.</translation>
+        <source>%1 will download and store a copy of the Avian block chain. At least %2GB of data will be stored in this directory, and it will grow over time. The wallet will also be stored in this directory.</source>
+        <translation>%1 kommer att ladda ner och spara en kopia av Avian blockkedjan. Åtminstone %2GB av data kommer att sparas i denna katalog, och den kommer att växa över tiden. Plånboken kommer också att sparas i denna katalog.</translation>
     </message>
     <message>
         <source>Use the default data directory</source>
@@ -888,7 +890,7 @@ Var vänlig och försök igen.</translation>
     </message>
     <message>
         <source>Recent transactions may not yet be visible, and therefore your wallet's balance might be incorrect. This information will be correct once your wallet has finished synchronizing with the avian network, as detailed below.</source>
-        <translation>Nyligen gjorda transaktioner visas inte korrekt och därför kan ditt din plånboks saldo visas felaktigt. Denna information kommer att visas korrekt så snart din plånbok har synkroniserat klart med raven nätverket, enligt detaljer nedan.</translation>
+        <translation>Nyligen gjorda transaktioner visas inte korrekt och därför kan ditt din plånboks saldo visas felaktigt. Denna information kommer att visas korrekt så snart din plånbok har synkroniserat klart med avian nätverket, enligt detaljer nedan.</translation>
     </message>
     <message>
         <source>Number of blocks left</source>
@@ -1045,8 +1047,8 @@ Var vänlig och försök igen.</translation>
         <translation>&amp;Spendera obekräftad växel</translation>
     </message>
     <message>
-        <source>Automatically open the Raven client port on the router. This only works when your router supports UPnP and it is enabled.</source>
-        <translation>Öppna automatiskt Raven-klientens port på routern. Detta fungerar endast om din router har UPnP aktiverat.</translation>
+        <source>Automatically open the Avian client port on the router. This only works when your router supports UPnP and it is enabled.</source>
+        <translation>Öppna automatiskt Avian-klientens port på routern. Detta fungerar endast om din router har UPnP aktiverat.</translation>
     </message>
     <message>
         <source>Map port using &amp;UPnP</source>
@@ -1054,7 +1056,7 @@ Var vänlig och försök igen.</translation>
     </message>
     <message>
         <source>Connect to the Avian network through a SOCKS5 proxy.</source>
-        <translation>Anslut till Raven-nätverket genom en SOCKS5-proxy.</translation>
+        <translation>Anslut till Avian-nätverket genom en SOCKS5-proxy.</translation>
     </message>
     <message>
         <source>&amp;Connect through SOCKS5 proxy (default proxy):</source>
@@ -1094,7 +1096,7 @@ Var vänlig och försök igen.</translation>
     </message>
     <message>
         <source>Connect to the Avian network through a separate SOCKS5 proxy for Tor hidden services.</source>
-        <translation>Anslut till Raven-nätverket genom en separat SOCKS5-proxy för dolda tjänster i Tor.</translation>
+        <translation>Anslut till Avian-nätverket genom en separat SOCKS5-proxy för dolda tjänster i Tor.</translation>
     </message>
     <message>
         <source>Use separate SOCKS5 proxy to reach peers via Tor hidden services:</source>
@@ -1193,7 +1195,7 @@ Var vänlig och försök igen.</translation>
     </message>
     <message>
         <source>The displayed information may be out of date. Your wallet automatically synchronizes with the Avian network after a connection is established, but this process has not completed yet.</source>
-        <translation>Den visade informationen kan vara inaktuell. Plånboken synkroniseras automatiskt med Raven-nätverket efter att anslutningen är upprättad, men denna process har inte slutförts ännu.</translation>
+        <translation>Den visade informationen kan vara inaktuell. Plånboken synkroniseras automatiskt med Avian-nätverket efter att anslutningen är upprättad, men denna process har inte slutförts ännu.</translation>
     </message>
     <message>
         <source>Watch-only:</source>
@@ -1284,7 +1286,7 @@ Var vänlig och försök igen.</translation>
     </message>
     <message>
         <source>URI cannot be parsed! This can be caused by an invalid Avian address or malformed URI parameters.</source>
-        <translation>URI kan inte tolkas! Detta kan orsakas av en ogiltig Raven-adress eller felaktiga URI parametrar.</translation>
+        <translation>URI kan inte tolkas! Detta kan orsakas av en ogiltig Avian-adress eller felaktiga URI parametrar.</translation>
     </message>
     <message>
         <source>Payment request file handling</source>
@@ -1374,7 +1376,7 @@ Var vänlig och försök igen.</translation>
     </message>
     <message>
         <source>Enter a Avian address (e.g. %1)</source>
-        <translation>Ange en Raven-adress (t.ex. %1)</translation>
+        <translation>Ange en Avian-adress (t.ex. %1)</translation>
     </message>
     <message>
         <source>%1 d</source>
@@ -1790,7 +1792,7 @@ Var vänlig och försök igen.</translation>
     </message>
     <message>
         <source>An optional message to attach to the payment request, which will be displayed when the request is opened. Note: The message will not be sent with the payment over the Avian network.</source>
-        <translation>Ett frivilligt meddelande att bifoga betalningsbegäran, vilket visas när begäran öppnas. NB: Meddelandet kommer inte att sändas med betalningen över Ravennätverket.</translation>
+        <translation>Ett frivilligt meddelande att bifoga betalningsbegäran, vilket visas när begäran öppnas. NB: Meddelandet kommer inte att sändas med betalningen över Aviannätverket.</translation>
     </message>
     <message>
         <source>An optional label to associate with the new receiving address.</source>
@@ -2022,8 +2024,8 @@ Var vänlig och försök igen.</translation>
         <translation>totalt minst</translation>
     </message>
     <message>
-        <source>Paying only the minimum fee is just fine as long as there is less transaction volume than space in the blocks. But be aware that this can end up in a never confirming transaction once there is more demand for raven transactions than the network can process.</source>
-        <translation>Att betala endast den minsta avgiften är bara bra så länge det är mindre transaktionsvolym än utrymme i blocken. Men tänk på att det kan hamna i en aldrig bekräftar transaktion när det finns mer efterfrågan på raven transaktioner än nätverket kan bearbeta.</translation>
+        <source>Paying only the minimum fee is just fine as long as there is less transaction volume than space in the blocks. But be aware that this can end up in a never confirming transaction once there is more demand for avian transactions than the network can process.</source>
+        <translation>Att betala endast den minsta avgiften är bara bra så länge det är mindre transaktionsvolym än utrymme i blocken. Men tänk på att det kan hamna i en aldrig bekräftar transaktion när det finns mer efterfrågan på avian transaktioner än nätverket kan bearbeta.</translation>
     </message>
     <message>
         <source>(read the tooltip)</source>
@@ -2183,7 +2185,7 @@ Var vänlig och försök igen.</translation>
     </message>
     <message>
         <source>Warning: Invalid Avian address</source>
-        <translation>Varning: Felaktig Ravenadress</translation>
+        <translation>Varning: Felaktig Avianadress</translation>
     </message>
     <message>
         <source>Warning: Unknown change address</source>
@@ -2226,7 +2228,7 @@ Var vänlig och försök igen.</translation>
     </message>
     <message>
         <source>The Avian address to send the payment to</source>
-        <translation>Ravenadress att sända betalning till</translation>
+        <translation>Avianadress att sända betalning till</translation>
     </message>
     <message>
         <source>Alt+A</source>
@@ -2270,7 +2272,7 @@ Var vänlig och försök igen.</translation>
     </message>
     <message>
         <source>A message that was attached to the avian: URI which will be stored with the transaction for your reference. Note: This message will not be sent over the Avian network.</source>
-        <translation>Ett meddelande som bifogades raven-URI, vilket lagras med transaktionen som referens. NB: Meddelandet kommer inte att sändas över Ravennätverket.</translation>
+        <translation>Ett meddelande som bifogades avian-URI, vilket lagras med transaktionen som referens. NB: Meddelandet kommer inte att sändas över Aviannätverket.</translation>
     </message>
     <message>
         <source>Pay To:</source>
@@ -2319,7 +2321,7 @@ Var vänlig och försök igen.</translation>
     </message>
     <message>
         <source>The Avian address to sign the message with</source>
-        <translation>Ravenadress att signera meddelandet med</translation>
+        <translation>Avianadress att signera meddelandet med</translation>
     </message>
     <message>
         <source>Choose previously used address</source>
@@ -2375,11 +2377,11 @@ Var vänlig och försök igen.</translation>
     </message>
     <message>
         <source>The Avian address the message was signed with</source>
-        <translation>Ravenadressen som meddelandet signerades med</translation>
+        <translation>Avianadressen som meddelandet signerades med</translation>
     </message>
     <message>
         <source>Verify the message to ensure it was signed with the specified Avian address</source>
-        <translation>Verifiera meddelandet för att vara säker på att den var signerad med den angivna Raven-adressen</translation>
+        <translation>Verifiera meddelandet för att vara säker på att den var signerad med den angivna Avian-adressen</translation>
     </message>
     <message>
         <source>Verify &amp;Message</source>
@@ -2933,7 +2935,7 @@ Var vänlig och försök igen.</translation>
     </message>
 </context>
 <context>
-    <name>raven-core</name>
+    <name>avian-core</name>
     <message>
         <source>Options:</source>
         <translation>Inställningar:</translation>
@@ -3003,8 +3005,8 @@ Var vänlig och försök igen.</translation>
         <translation>Kunde inte starta HTTP-server. Se avlusningsloggen för detaljer.</translation>
     </message>
     <message>
-        <source>Raven Core</source>
-        <translation>Raven Core</translation>
+        <source>Avian Core</source>
+        <translation>Avian Core</translation>
     </message>
     <message>
         <source>The %s developers</source>

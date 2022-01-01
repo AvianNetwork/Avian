@@ -7,9 +7,9 @@
 #include "config/avian-config.h"
 #endif
 
-#include "ravengui.h"
+#include "aviangui.h"
 
-#include "ravenunits.h"
+#include "avianunits.h"
 #include "clientmodel.h"
 #include "guiconstants.h"
 #include "guiutil.h"
@@ -89,7 +89,7 @@
 
 #endif
 
-const std::string RavenGUI::DEFAULT_UIPLATFORM =
+const std::string AvianGUI::DEFAULT_UIPLATFORM =
 #if defined(Q_OS_MAC)
         "macosx"
 #elif defined(Q_OS_WIN)
@@ -101,9 +101,9 @@ const std::string RavenGUI::DEFAULT_UIPLATFORM =
 
 /** Display name for default wallet name. Uses tilde to avoid name
  * collisions in the future with additional wallets */
-const QString RavenGUI::DEFAULT_WALLET = "~Default";
+const QString AvianGUI::DEFAULT_WALLET = "~Default";
 
-RavenGUI::RavenGUI(const PlatformStyle *_platformStyle, const NetworkStyle *networkStyle, QWidget *parent) :
+AvianGUI::AvianGUI(const PlatformStyle *_platformStyle, const NetworkStyle *networkStyle, QWidget *parent) :
     QMainWindow(parent),
     enableWallet(false),
     clientModel(0),
@@ -318,7 +318,7 @@ RavenGUI::RavenGUI(const PlatformStyle *_platformStyle, const NetworkStyle *netw
 #endif
 }
 
-RavenGUI::~RavenGUI()
+AvianGUI::~AvianGUI()
 {
     // Unsubscribe from notifications from core
     unsubscribeFromCoreSignals();
@@ -335,7 +335,7 @@ RavenGUI::~RavenGUI()
     delete rpcConsole;
 }
 
-void RavenGUI::loadFonts()
+void AvianGUI::loadFonts()
 {
     QFontDatabase::addApplicationFont(":/fonts/opensans-bold");
     QFontDatabase::addApplicationFont(":/fonts/opensans-bolditalic");
@@ -350,7 +350,7 @@ void RavenGUI::loadFonts()
 }
 
 
-void RavenGUI::createActions()
+void AvianGUI::createActions()
 {
     QFont font = QFont();
     font.setPixelSize(22);
@@ -523,7 +523,7 @@ void RavenGUI::createActions()
 
     showHelpMessageAction = new QAction(platformStyle->TextColorIcon(":/icons/info"), tr("&Command-line options"), this);
     showHelpMessageAction->setMenuRole(QAction::NoRole);
-    showHelpMessageAction->setStatusTip(tr("Show the %1 help message to get a list with possible Raven command-line options").arg(tr(PACKAGE_NAME)));
+    showHelpMessageAction->setStatusTip(tr("Show the %1 help message to get a list with possible Avian command-line options").arg(tr(PACKAGE_NAME)));
 
     connect(quitAction, SIGNAL(triggered()), qApp, SLOT(quit()));
     connect(aboutAction, SIGNAL(triggered()), this, SLOT(aboutClicked()));
@@ -556,7 +556,7 @@ void RavenGUI::createActions()
     new QShortcut(QKeySequence(Qt::CTRL + Qt::SHIFT + Qt::Key_D), this, SLOT(showDebugWindow()));
 }
 
-void RavenGUI::createMenuBar()
+void AvianGUI::createMenuBar()
 {
 #ifdef Q_OS_MAC
     // Create a decoupled menu bar on Mac which stays even if the window is closed
@@ -605,7 +605,7 @@ void RavenGUI::createMenuBar()
     help->addAction(aboutQtAction);
 }
 
-void RavenGUI::createToolBars()
+void AvianGUI::createToolBars()
 {
     if(walletFrame)
     {
@@ -669,11 +669,11 @@ void RavenGUI::createToolBars()
 
         overviewAction->setChecked(true);
 
-        QVBoxLayout* ravenLabelLayout = new QVBoxLayout(toolbarWidget);
-        ravenLabelLayout->addWidget(label);
-        ravenLabelLayout->addWidget(toolbar);
-        ravenLabelLayout->setDirection(QBoxLayout::TopToBottom);
-        ravenLabelLayout->addStretch(1);
+        QVBoxLayout* avianLabelLayout = new QVBoxLayout(toolbarWidget);
+        avianLabelLayout->addWidget(label);
+        avianLabelLayout->addWidget(toolbar);
+        avianLabelLayout->setDirection(QBoxLayout::TopToBottom);
+        avianLabelLayout->addStretch(1);
 
         QString mainWalletWidgetStyle = QString(".QWidget{background-color: %1}").arg(platformStyle->MainBackGroundColor().name());
         QWidget* mainWalletWidget = new QWidget();
@@ -817,7 +817,7 @@ void RavenGUI::createToolBars()
     }
 }
 
-void RavenGUI::setClientModel(ClientModel *_clientModel)
+void AvianGUI::setClientModel(ClientModel *_clientModel)
 {
     this->clientModel = _clientModel;
     if(_clientModel)
@@ -880,7 +880,7 @@ void RavenGUI::setClientModel(ClientModel *_clientModel)
 }
 
 #ifdef ENABLE_WALLET
-bool RavenGUI::addWallet(const QString& name, WalletModel *walletModel)
+bool AvianGUI::addWallet(const QString& name, WalletModel *walletModel)
 {
     if(!walletFrame)
         return false;
@@ -888,14 +888,14 @@ bool RavenGUI::addWallet(const QString& name, WalletModel *walletModel)
     return walletFrame->addWallet(name, walletModel);
 }
 
-bool RavenGUI::setCurrentWallet(const QString& name)
+bool AvianGUI::setCurrentWallet(const QString& name)
 {
     if(!walletFrame)
         return false;
     return walletFrame->setCurrentWallet(name);
 }
 
-void RavenGUI::removeAllWallets()
+void AvianGUI::removeAllWallets()
 {
     if(!walletFrame)
         return;
@@ -904,7 +904,7 @@ void RavenGUI::removeAllWallets()
 }
 #endif // ENABLE_WALLET
 
-void RavenGUI::setWalletActionsEnabled(bool enabled)
+void AvianGUI::setWalletActionsEnabled(bool enabled)
 {
     overviewAction->setEnabled(enabled);
     sendCoinsAction->setEnabled(enabled);
@@ -931,7 +931,7 @@ void RavenGUI::setWalletActionsEnabled(bool enabled)
     /** AVN END */
 }
 
-void RavenGUI::createTrayIcon(const NetworkStyle *networkStyle)
+void AvianGUI::createTrayIcon(const NetworkStyle *networkStyle)
 {
 #ifndef Q_OS_MAC
     trayIcon = new QSystemTrayIcon(this);
@@ -944,7 +944,7 @@ void RavenGUI::createTrayIcon(const NetworkStyle *networkStyle)
     notificator = new Notificator(QApplication::applicationName(), trayIcon, this);
 }
 
-void RavenGUI::createTrayIconMenu()
+void AvianGUI::createTrayIconMenu()
 {
 #ifndef Q_OS_MAC
     // return if trayIcon is unset (only on non-Mac OSes)
@@ -981,7 +981,7 @@ void RavenGUI::createTrayIconMenu()
 }
 
 #ifndef Q_OS_MAC
-void RavenGUI::trayIconActivated(QSystemTrayIcon::ActivationReason reason)
+void AvianGUI::trayIconActivated(QSystemTrayIcon::ActivationReason reason)
 {
     if(reason == QSystemTrayIcon::Trigger)
     {
@@ -991,7 +991,7 @@ void RavenGUI::trayIconActivated(QSystemTrayIcon::ActivationReason reason)
 }
 #endif
 
-void RavenGUI::optionsClicked()
+void AvianGUI::optionsClicked()
 {
     if(!clientModel || !clientModel->getOptionsModel())
         return;
@@ -1001,7 +1001,7 @@ void RavenGUI::optionsClicked()
     dlg.exec();
 }
 
-void RavenGUI::aboutClicked()
+void AvianGUI::aboutClicked()
 {
     if(!clientModel)
         return;
@@ -1010,7 +1010,7 @@ void RavenGUI::aboutClicked()
     dlg.exec();
 }
 
-void RavenGUI::showDebugWindow()
+void AvianGUI::showDebugWindow()
 {
     rpcConsole->showNormal();
     rpcConsole->show();
@@ -1018,25 +1018,25 @@ void RavenGUI::showDebugWindow()
     rpcConsole->activateWindow();
 }
 
-void RavenGUI::showPoolPicker()
+void AvianGUI::showPoolPicker()
 {
     PoolPicker poolPicker(this);
     poolPicker.exec();
 }
 
-void RavenGUI::showDebugWindowActivateConsole()
+void AvianGUI::showDebugWindowActivateConsole()
 {
     rpcConsole->setTabFocus(RPCConsole::TAB_CONSOLE);
     showDebugWindow();
 }
 
-void RavenGUI::showHelpMessageClicked()
+void AvianGUI::showHelpMessageClicked()
 {
     helpMessageDialog->show();
 }
 
 #ifdef ENABLE_WALLET
-void RavenGUI::openClicked()
+void AvianGUI::openClicked()
 {
     OpenURIDialog dlg(this);
     if(dlg.exec())
@@ -1045,54 +1045,54 @@ void RavenGUI::openClicked()
     }
 }
 
-void RavenGUI::gotoOverviewPage()
+void AvianGUI::gotoOverviewPage()
 {
     overviewAction->setChecked(true);
     if (walletFrame) walletFrame->gotoOverviewPage();
 }
 
-void RavenGUI::gotoHistoryPage()
+void AvianGUI::gotoHistoryPage()
 {
     historyAction->setChecked(true);
     if (walletFrame) walletFrame->gotoHistoryPage();
 }
 
-void RavenGUI::gotoReceiveCoinsPage()
+void AvianGUI::gotoReceiveCoinsPage()
 {
     receiveCoinsAction->setChecked(true);
     if (walletFrame) walletFrame->gotoReceiveCoinsPage();
 }
 
-void RavenGUI::gotoSendCoinsPage(QString addr)
+void AvianGUI::gotoSendCoinsPage(QString addr)
 {
     sendCoinsAction->setChecked(true);
     if (walletFrame) walletFrame->gotoSendCoinsPage(addr);
 }
 
-void RavenGUI::gotoSignMessageTab(QString addr)
+void AvianGUI::gotoSignMessageTab(QString addr)
 {
     if (walletFrame) walletFrame->gotoSignMessageTab(addr);
 }
 
-void RavenGUI::gotoVerifyMessageTab(QString addr)
+void AvianGUI::gotoVerifyMessageTab(QString addr)
 {
     if (walletFrame) walletFrame->gotoVerifyMessageTab(addr);
 }
 
 /** RVN START */
-void RavenGUI::gotoAssetsPage()
+void AvianGUI::gotoAssetsPage()
 {
     transferAssetAction->setChecked(true);
     if (walletFrame) walletFrame->gotoAssetsPage();
 };
 
-void RavenGUI::gotoCreateAssetsPage()
+void AvianGUI::gotoCreateAssetsPage()
 {
     createAssetAction->setChecked(true);
     if (walletFrame) walletFrame->gotoCreateAssetsPage();
 };
 
-void RavenGUI::gotoManageAssetsPage()
+void AvianGUI::gotoManageAssetsPage()
 {
     manageAssetAction->setChecked(true);
     if (walletFrame) walletFrame->gotoManageAssetsPage();
@@ -1100,7 +1100,7 @@ void RavenGUI::gotoManageAssetsPage()
 /** RVN END */
 #endif // ENABLE_WALLET
 
-void RavenGUI::updateNetworkState()
+void AvianGUI::updateNetworkState()
 {
     int count = clientModel->getNumConnections();
     QString icon;
@@ -1129,17 +1129,17 @@ void RavenGUI::updateNetworkState()
     connectionsControl->setPixmap(platformStyle->SingleColorIcon(icon).pixmap(STATUSBAR_ICONSIZE,STATUSBAR_ICONSIZE));
 }
 
-void RavenGUI::setNumConnections(int count)
+void AvianGUI::setNumConnections(int count)
 {
     updateNetworkState();
 }
 
-void RavenGUI::setNetworkActive(bool networkActive)
+void AvianGUI::setNetworkActive(bool networkActive)
 {
     updateNetworkState();
 }
 
-void RavenGUI::updateHeadersSyncProgressLabel()
+void AvianGUI::updateHeadersSyncProgressLabel()
 {
     int64_t headersTipTime = clientModel->getHeaderTipTime();
     int headersTipHeight = clientModel->getHeaderTipHeight();
@@ -1148,7 +1148,7 @@ void RavenGUI::updateHeadersSyncProgressLabel()
         progressBarLabel->setText(tr("Syncing Headers (%1%)...").arg(QString::number(100.0 / (headersTipHeight+estHeadersLeft)*headersTipHeight, 'f', 1)));
 }
 
-void RavenGUI::setNumBlocks(int count, const QDateTime& blockDate, double nVerificationProgress, bool header)
+void AvianGUI::setNumBlocks(int count, const QDateTime& blockDate, double nVerificationProgress, bool header)
 {
     if (modalOverlay)
     {
@@ -1259,7 +1259,7 @@ void RavenGUI::setNumBlocks(int count, const QDateTime& blockDate, double nVerif
     progressBar->setToolTip(tooltip);
 }
 
-void RavenGUI::message(const QString &title, const QString &message, unsigned int style, bool *ret)
+void AvianGUI::message(const QString &title, const QString &message, unsigned int style, bool *ret)
 {
     QString strTitle = tr("Avian"); // default title
     // Default to information icon
@@ -1287,7 +1287,7 @@ void RavenGUI::message(const QString &title, const QString &message, unsigned in
             break;
         }
     }
-    // Append title to "Raven - "
+    // Append title to "Avian - "
     if (!msgType.isEmpty())
         strTitle += " - " + msgType;
 
@@ -1318,7 +1318,7 @@ void RavenGUI::message(const QString &title, const QString &message, unsigned in
         notificator->notify((Notificator::Class)nNotifyIcon, strTitle, message);
 }
 
-void RavenGUI::changeEvent(QEvent *e)
+void AvianGUI::changeEvent(QEvent *e)
 {
     QMainWindow::changeEvent(e);
 #ifndef Q_OS_MAC // Ignored on Mac
@@ -1337,7 +1337,7 @@ void RavenGUI::changeEvent(QEvent *e)
 #endif
 }
 
-void RavenGUI::closeEvent(QCloseEvent *event)
+void AvianGUI::closeEvent(QCloseEvent *event)
 {
 #ifndef Q_OS_MAC // Ignored on Mac
     if(clientModel && clientModel->getOptionsModel())
@@ -1360,7 +1360,7 @@ void RavenGUI::closeEvent(QCloseEvent *event)
 #endif
 }
 
-void RavenGUI::showEvent(QShowEvent *event)
+void AvianGUI::showEvent(QShowEvent *event)
 {
     // enable the debug window when the main window shows up
     openRPCConsoleAction->setEnabled(true);
@@ -1369,14 +1369,14 @@ void RavenGUI::showEvent(QShowEvent *event)
 }
 
 #ifdef ENABLE_WALLET
-void RavenGUI::incomingTransaction(const QString& date, int unit, const CAmount& amount, const QString& type, const QString& address, const QString& label, const QString& assetName)
+void AvianGUI::incomingTransaction(const QString& date, int unit, const CAmount& amount, const QString& type, const QString& address, const QString& label, const QString& assetName)
 {
     // On new transaction, make an info balloon
     QString msg = tr("Date: %1\n").arg(date);
     if (assetName == "RVN")
-        msg += tr("Amount: %1\n").arg(RavenUnits::formatWithUnit(unit, amount, true));
+        msg += tr("Amount: %1\n").arg(AvianUnits::formatWithUnit(unit, amount, true));
     else
-        msg += tr("Amount: %1\n").arg(RavenUnits::formatWithCustomName(assetName, amount, MAX_ASSET_UNITS, true));
+        msg += tr("Amount: %1\n").arg(AvianUnits::formatWithCustomName(assetName, amount, MAX_ASSET_UNITS, true));
 
     msg += tr("Type: %1\n").arg(type);
 
@@ -1388,7 +1388,7 @@ void RavenGUI::incomingTransaction(const QString& date, int unit, const CAmount&
              msg, CClientUIInterface::MSG_INFORMATION);
 }
 
-void RavenGUI::checkAssets()
+void AvianGUI::checkAssets()
 {
     // Check that status of RIP2 and activate the assets icon if it is active
     if(AreAssetsDeployed()) {
@@ -1408,14 +1408,14 @@ void RavenGUI::checkAssets()
 }
 #endif // ENABLE_WALLET
 
-void RavenGUI::dragEnterEvent(QDragEnterEvent *event)
+void AvianGUI::dragEnterEvent(QDragEnterEvent *event)
 {
     // Accept only URIs
     if(event->mimeData()->hasUrls())
         event->acceptProposedAction();
 }
 
-void RavenGUI::dropEvent(QDropEvent *event)
+void AvianGUI::dropEvent(QDropEvent *event)
 {
     if(event->mimeData()->hasUrls())
     {
@@ -1427,7 +1427,7 @@ void RavenGUI::dropEvent(QDropEvent *event)
     event->acceptProposedAction();
 }
 
-bool RavenGUI::eventFilter(QObject *object, QEvent *event)
+bool AvianGUI::eventFilter(QObject *object, QEvent *event)
 {
     // Catch status tip events
     if (event->type() == QEvent::StatusTip)
@@ -1440,7 +1440,7 @@ bool RavenGUI::eventFilter(QObject *object, QEvent *event)
 }
 
 #ifdef ENABLE_WALLET
-bool RavenGUI::handlePaymentRequest(const SendCoinsRecipient& recipient)
+bool AvianGUI::handlePaymentRequest(const SendCoinsRecipient& recipient)
 {
     // URI has to be valid
     if (walletFrame && walletFrame->handlePaymentRequest(recipient))
@@ -1452,7 +1452,7 @@ bool RavenGUI::handlePaymentRequest(const SendCoinsRecipient& recipient)
     return false;
 }
 
-void RavenGUI::setHDStatus(int hdEnabled)
+void AvianGUI::setHDStatus(int hdEnabled)
 {
     labelWalletHDStatusIcon->setPixmap(platformStyle->SingleColorIcon(hdEnabled ? ":/icons/hd_enabled" : ":/icons/hd_disabled").pixmap(STATUSBAR_ICONSIZE,STATUSBAR_ICONSIZE));
     labelWalletHDStatusIcon->setToolTip(hdEnabled ? tr("HD key generation is <b>enabled</b>") : tr("HD key generation is <b>disabled</b>"));
@@ -1461,7 +1461,7 @@ void RavenGUI::setHDStatus(int hdEnabled)
     labelWalletHDStatusIcon->setEnabled(hdEnabled);
 }
 
-void RavenGUI::setEncryptionStatus(int status)
+void AvianGUI::setEncryptionStatus(int status)
 {
     switch(status)
     {
@@ -1491,7 +1491,7 @@ void RavenGUI::setEncryptionStatus(int status)
 }
 #endif // ENABLE_WALLET
 
-void RavenGUI::showNormalIfMinimized(bool fToggleHidden)
+void AvianGUI::showNormalIfMinimized(bool fToggleHidden)
 {
     if(!clientModel)
         return;
@@ -1516,12 +1516,12 @@ void RavenGUI::showNormalIfMinimized(bool fToggleHidden)
         hide();
 }
 
-void RavenGUI::toggleHidden()
+void AvianGUI::toggleHidden()
 {
     showNormalIfMinimized(true);
 }
 
-void RavenGUI::detectShutdown()
+void AvianGUI::detectShutdown()
 {
     if (ShutdownRequested())
     {
@@ -1531,7 +1531,7 @@ void RavenGUI::detectShutdown()
     }
 }
 
-void RavenGUI::showProgress(const QString &title, int nProgress)
+void AvianGUI::showProgress(const QString &title, int nProgress)
 {
     if (nProgress == 0)
     {
@@ -1554,7 +1554,7 @@ void RavenGUI::showProgress(const QString &title, int nProgress)
         progressDialog->setValue(nProgress);
 }
 
-void RavenGUI::setTrayIconVisible(bool fHideTrayIcon)
+void AvianGUI::setTrayIconVisible(bool fHideTrayIcon)
 {
     if (trayIcon)
     {
@@ -1562,13 +1562,13 @@ void RavenGUI::setTrayIconVisible(bool fHideTrayIcon)
     }
 }
 
-void RavenGUI::showModalOverlay()
+void AvianGUI::showModalOverlay()
 {
     if (modalOverlay && (progressBar->isVisible() || modalOverlay->isLayerVisible()))
         modalOverlay->toggleVisibility();
 }
 
-static bool ThreadSafeMessageBox(RavenGUI *gui, const std::string& message, const std::string& caption, unsigned int style)
+static bool ThreadSafeMessageBox(AvianGUI *gui, const std::string& message, const std::string& caption, unsigned int style)
 {
     bool modal = (style & CClientUIInterface::MODAL);
     // The SECURE flag has no effect in the Qt GUI.
@@ -1585,7 +1585,7 @@ static bool ThreadSafeMessageBox(RavenGUI *gui, const std::string& message, cons
     return ret;
 }
 
-static bool ThreadSafeMnemonic(RavenGUI *gui, unsigned int style)
+static bool ThreadSafeMnemonic(AvianGUI *gui, unsigned int style)
 {
     bool modal = (style & CClientUIInterface::MODAL);
     // The SECURE flag has no effect in the Qt GUI.
@@ -1598,7 +1598,7 @@ static bool ThreadSafeMnemonic(RavenGUI *gui, unsigned int style)
     return ret;
 }
 
-void RavenGUI::subscribeToCoreSignals()
+void AvianGUI::subscribeToCoreSignals()
 {
     // Connect signals to client
     uiInterface.ThreadSafeMessageBox.connect(boost::bind(ThreadSafeMessageBox, this, boost::placeholders::_1, boost::placeholders::_2, boost::placeholders::_3));
@@ -1606,7 +1606,7 @@ void RavenGUI::subscribeToCoreSignals()
     uiInterface.ShowMnemonic.connect(boost::bind(ThreadSafeMnemonic, this, boost::placeholders::_1));
 }
 
-void RavenGUI::unsubscribeFromCoreSignals()
+void AvianGUI::unsubscribeFromCoreSignals()
 {
     // Disconnect signals from client
     uiInterface.ThreadSafeMessageBox.disconnect(boost::bind(ThreadSafeMessageBox, this, boost::placeholders::_1, boost::placeholders::_2, boost::placeholders::_3));
@@ -1614,7 +1614,7 @@ void RavenGUI::unsubscribeFromCoreSignals()
     uiInterface.ShowMnemonic.disconnect(boost::bind(ThreadSafeMnemonic, this, boost::placeholders::_1));
 }
 
-void RavenGUI::toggleNetworkActive()
+void AvianGUI::toggleNetworkActive()
 {
     if (clientModel) {
         clientModel->setNetworkActive(!clientModel->getNetworkActive());
@@ -1627,12 +1627,12 @@ UnitDisplayStatusBarControl::UnitDisplayStatusBarControl(const PlatformStyle *pl
 {
     createContextMenu(platformStyle);
     setToolTip(tr("Unit to show amounts in. Click to select another unit."));
-    QList<RavenUnits::Unit> units = RavenUnits::availableUnits();
+    QList<AvianUnits::Unit> units = AvianUnits::availableUnits();
     int max_width = 0;
     const QFontMetrics fm(font());
-    for (const RavenUnits::Unit unit : units)
+    for (const AvianUnits::Unit unit : units)
     {
-        max_width = qMax(max_width, fm.width(RavenUnits::name(unit)));
+        max_width = qMax(max_width, fm.width(AvianUnits::name(unit)));
     }
     setMinimumSize(max_width, 0);
     setAlignment(Qt::AlignRight | Qt::AlignVCenter);
@@ -1649,9 +1649,9 @@ void UnitDisplayStatusBarControl::mousePressEvent(QMouseEvent *event)
 void UnitDisplayStatusBarControl::createContextMenu(const PlatformStyle *platformStyle)
 {
     menu = new QMenu(this);
-    for (RavenUnits::Unit u : RavenUnits::availableUnits())
+    for (AvianUnits::Unit u : AvianUnits::availableUnits())
     {
-        QAction *menuAction = new QAction(QString(RavenUnits::name(u)), this);
+        QAction *menuAction = new QAction(QString(AvianUnits::name(u)), this);
         menuAction->setData(QVariant(u));
         menu->addAction(menuAction);
     }
@@ -1677,7 +1677,7 @@ void UnitDisplayStatusBarControl::setOptionsModel(OptionsModel *_optionsModel)
 /** When Display Units are changed on OptionsModel it will refresh the display text of the control on the status bar */
 void UnitDisplayStatusBarControl::updateDisplayUnit(int newUnits)
 {
-    setText(RavenUnits::name(newUnits));
+    setText(AvianUnits::name(newUnits));
 }
 
 /** Shows context menu with Display Unit options by the mouse coordinates */
@@ -1696,7 +1696,7 @@ void UnitDisplayStatusBarControl::onMenuSelection(QAction* action)
     }
 }
 
-void RavenGUI::getPriceInfo()
+void AvianGUI::getPriceInfo()
 {
     QString url;
     if(IsCrowEnabled(chainActive.Tip(), Params().GetConsensus()))
@@ -1708,7 +1708,7 @@ void RavenGUI::getPriceInfo()
     networkManager->get(*request);
 }
 
-void RavenGUI::mnemonic()
+void AvianGUI::mnemonic()
 {
         MnemonicDialog dlg(this);
         dlg.exec();

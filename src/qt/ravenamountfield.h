@@ -1,10 +1,10 @@
 // Copyright (c) 2011-2015 The Bitcoin Core developers
-// Copyright (c) 2017 The Raven Core developers
+// Copyright (c) 2017-2019 The Raven Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef RAVEN_QT_RAVENAMOUNTFIELD_H
-#define RAVEN_QT_RAVENAMOUNTFIELD_H
+#ifndef AVIAN_QT_AVIANAMOUNTFIELD_H
+#define AVIAN_QT_AVIANAMOUNTFIELD_H
 
 #include "amount.h"
 
@@ -16,18 +16,18 @@ QT_BEGIN_NAMESPACE
 class QValueComboBox;
 QT_END_NAMESPACE
 
-/** Widget for entering raven amounts.
+/** Widget for entering avian amounts.
   */
-class RavenAmountField: public QWidget
+class AvianAmountField: public QWidget
 {
     Q_OBJECT
 
     // ugly hack: for some unknown reason CAmount (instead of qint64) does not work here as expected
-    // discussion: https://github.com/RavenProject/Ravencoin/pull/5117
+    // discussion: https://github.com/bitcoin/bitcoin/pull/5117
     Q_PROPERTY(qint64 value READ value WRITE setValue NOTIFY valueChanged USER true)
 
 public:
-    explicit RavenAmountField(QWidget *parent = 0);
+    explicit AvianAmountField(QWidget *parent = 0);
 
     CAmount value(bool *value=0) const;
     void setValue(const CAmount& value);
@@ -81,7 +81,7 @@ class AssetAmountField: public QWidget
 Q_OBJECT
 
     // ugly hack: for some unknown reason CAmount (instead of qint64) does not work here as expected
-    // discussion: https://github.com/RavenProject/Ravencoin/pull/5117
+    // discussion: https://github.com/bitcoin/bitcoin/pull/5117
     Q_PROPERTY(qint64 value READ value WRITE setValue NOTIFY valueChanged USER true)
 
 public:
@@ -127,4 +127,4 @@ private:
 };
 
 
-#endif // RAVEN_QT_RAVENAMOUNTFIELD_H
+#endif // AVIAN_QT_AVIANAMOUNTFIELD_H

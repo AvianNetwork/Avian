@@ -4,8 +4,8 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef RAVEN_CONSENSUS_PARAMS_H
-#define RAVEN_CONSENSUS_PARAMS_H
+#ifndef AVIAN_CONSENSUS_PARAMS_H
+#define AVIAN_CONSENSUS_PARAMS_H
 
 #include "uint256.h"
 #include <cstdint>
@@ -82,4 +82,4 @@ struct ConsensusParams {
 };
 } // namespace Consensus
 
-#endif // RAVEN_CONSENSUS_PARAMS_H
+#endif // AVIAN_CONSENSUS_PARAMS_H

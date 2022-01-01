@@ -1,10 +1,10 @@
 ﻿// Copyright (c) 2011-2016 The Bitcoin Core developers
-// Copyright (c) 2017 The Raven Core developers
+// Copyright (c) 2017-2019 The Raven Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef RAVEN_QT_ASSETSDIALOG_H
-#define RAVEN_QT_ASSETSDIALOG_H
+#ifndef AVIAN_QT_ASSETSDIALOG_H
+#define AVIAN_QT_ASSETSDIALOG_H
 
 #include "walletmodel.h"
 
@@ -26,7 +26,7 @@ QT_BEGIN_NAMESPACE
 class QUrl;
 QT_END_NAMESPACE
 
-/** Dialog for sending ravens */
+/** Dialog for sending avians */
 class AssetsDialog : public QDialog
 {
     Q_OBJECT
@@ -108,14 +108,14 @@ private Q_SLOTS:
 
     void customFeeFeatureChanged(bool);
 
-    /** RVN START */
+    /** AVN START */
     void assetControlUpdateSendCoinsDialog();
     void focusAsset(const QModelIndex& index);
-    /** RVN END */
+    /** AVN END */
 
     Q_SIGNALS:
             // Fired when a message should be reported to the user
             void message(const QString &title, const QString &message, unsigned int style);
 };
 
-#endif // RAVEN_QT_ASSETSSDIALOG_H
+#endif // AVIAN_QT_ASSETSSDIALOG_H

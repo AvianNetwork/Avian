@@ -1,12 +1,12 @@
 // Copyright (c) 2011-2016 The Bitcoin Core developers
-// Copyright (c) 2017 The Raven Core developers
+// Copyright (c) 2017-2019 The Raven Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include "receiverequestdialog.h"
 #include "ui_receiverequestdialog.h"
 
-#include "ravenunits.h"
+#include "avianunits.h"
 #include "guiconstants.h"
 #include "guiutil.h"
 #include "optionsmodel.h"
@@ -44,14 +44,12 @@ QRImageWidget::QRImageWidget(QWidget *parent):
 
 QImage QRImageWidget::exportImage()
 {
-    if(!pixmap())
-        return QImage();
-    return pixmap()->toImage();
+    return GUIUtil::GetImage(this);
 }
 
 void QRImageWidget::mousePressEvent(QMouseEvent *event)
 {
-    if(event->button() == Qt::LeftButton && pixmap())
+    if(event->button() == Qt::LeftButton && GUIUtil::HasPixmap(this))
     {
         event->accept();
         QMimeData *mimeData = new QMimeData;
@@ -59,6 +57,7 @@ void QRImageWidget::mousePressEvent(QMouseEvent *event)
 
         QDrag *drag = new QDrag(this);
         drag->setMimeData(mimeData);
+        drag->setPixmap(QPixmap::fromImage(exportImage().scaled(100, 100, Qt::KeepAspectRatio)));
         drag->exec();
     } else {
         QLabel::mousePressEvent(event);
@@ -67,7 +66,7 @@ void QRImageWidget::mousePressEvent(QMouseEvent *event)
 
 void QRImageWidget::saveImage()
 {
-    if(!pixmap())
+    if(!GUIUtil::HasPixmap(this))
         return;
     QString fn = GUIUtil::getSaveFileName(this, tr("Save QR Code"), QString(), tr("PNG Image (*.png)"), nullptr);
     if (!fn.isEmpty())
@@ -78,14 +77,14 @@ void QRImageWidget::saveImage()
 
 void QRImageWidget::copyImage()
 {
-    if(!pixmap())
+    if(!GUIUtil::HasPixmap(this))
         return;
     QApplication::clipboard()->setImage(exportImage());
 }
 
 void QRImageWidget::contextMenuEvent(QContextMenuEvent *event)
 {
-    if(!pixmap())
+    if(!GUIUtil::HasPixmap(this))
         return;
     contextMenu->exec(event->globalPos());
 }
@@ -142,7 +141,7 @@ void ReceiveRequestDialog::update()
         target = info.address;
     setWindowTitle(tr("Request payment to %1").arg(target));
 
-    QString uri = GUIUtil::formatRavenURI(info);
+    QString uri = GUIUtil::formatAvianURI(info);
     ui->btnSaveAs->setEnabled(false);
     QString html;
     html += "<html><font face='verdana, arial, helvetica, sans-serif'>";
@@ -151,7 +150,7 @@ void ReceiveRequestDialog::update()
     html += "<a href=\""+uri+"\">" + GUIUtil::HtmlEscape(uri) + "</a><br>";
     html += "<b>"+tr("Address")+"</b>: " + GUIUtil::HtmlEscape(info.address) + "<br>";
     if(info.amount)
-        html += "<b>"+tr("Amount")+"</b>: " + RavenUnits::formatHtmlWithUnit(model->getDisplayUnit(), info.amount) + "<br>";
+        html += "<b>"+tr("Amount")+"</b>: " + AvianUnits::formatHtmlWithUnit(model->getDisplayUnit(), info.amount) + "<br>";
     if(!info.label.isEmpty())
         html += "<b>"+tr("Label")+"</b>: " + GUIUtil::HtmlEscape(info.label) + "<br>";
     if(!info.message.isEmpty())
@@ -207,7 +206,7 @@ void ReceiveRequestDialog::update()
 
 void ReceiveRequestDialog::on_btnCopyURI_clicked()
 {
-    GUIUtil::setClipboard(GUIUtil::formatRavenURI(info));
+    GUIUtil::setClipboard(GUIUtil::formatAvianURI(info));
 }
 
 void ReceiveRequestDialog::on_btnCopyAddress_clicked()

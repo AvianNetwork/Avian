@@ -1,11 +1,11 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
 // Copyright (c) 2009-2016 The Bitcoin Core developers
-// Copyright (c) 2017 The Raven Core developers
+// Copyright (c) 2017-2019 The Raven Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef RAVEN_MINER_H
-#define RAVEN_MINER_H
+#ifndef AVIAN_MINER_H
+#define AVIAN_MINER_H
 
 #include "primitives/block.h"
 #include "txmempool.h"
@@ -19,7 +19,7 @@ class CBlockIndex;
 class CChainParams;
 class CScript;
 
-namespace Consensus { struct ConsensusParams; };
+namespace Consensus { struct Params; };
 
 static const bool DEFAULT_PRINTPRIORITY = false;
 
@@ -166,7 +166,8 @@ public:
     BlockAssembler(const CChainParams& params, const Options& options);
 
     /** Construct a new block template with coinbase to scriptPubKeyIn */
-     std::unique_ptr<CBlockTemplate> CreateNewBlock(const CScript& scriptPubKeyIn, bool fMineWitnessTx=true, const POW_TYPE powType=POW_TYPE_X16RT);
+    std::unique_ptr<CBlockTemplate> CreateNewBlock(const CScript& scriptPubKeyIn, bool fMineWitnessTx=true);
+
 private:
     // utility functions
     /** Clear the block's state and prepare for assembling a new block */
@@ -203,7 +204,7 @@ private:
 
 /** Modify the extranonce in a block */
 void IncrementExtraNonce(CBlock* pblock, const CBlockIndex* pindexPrev, unsigned int& nExtraNonce);
-int64_t UpdateTime(CBlockHeader* pblock, const Consensus::ConsensusParams& consensusParams, const CBlockIndex* pindexPrev, const POW_TYPE powType);
+int64_t UpdateTime(CBlockHeader* pblock, const Consensus::Params& consensusParams, const CBlockIndex* pindexPrev);
 
-int GenerateRavens(bool fGenerate, int nThreads, const CChainParams& chainparams);
-#endif // RAVEN_MINER_H
+int GenerateAvians(bool fGenerate, int nThreads, const CChainParams& chainparams);
+#endif // AVIAN_MINER_H

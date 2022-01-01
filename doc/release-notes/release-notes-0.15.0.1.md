@@ -1,20 +1,20 @@
-Raven Core version *0.15.0.1* is now available from:
+Avian Core version *0.15.0.1* is now available from:
 
-  <https://raven.org/bin/raven-core-0.15.0.1/>
+  <https://avn.network/bin/avian-core-0.15.0.1/>
 
 and
 
-  <https://ravencoin.org/bin/raven-core-0.15.0.1/>
+  <https://avn.network/bin/avian-core-0.15.0.1/>
 
 This is a minor bug fix for 0.15.0.
 
 Please report bugs using the issue tracker at GitHub:
 
-  <https://github.com/RavenProject/Ravencoin/issues>
+  <https://github.com/AvianNetwork/Avian/issues>
 
 To receive security and update notifications, please subscribe to:
 
-  <https://ravencoin.org/en/list/announcements/join/>
+  <https://avn.network/en/list/announcements/join/>
 
 How to Upgrade
 ==============
@@ -51,10 +51,10 @@ processing the entire blockchain.
 Compatibility
 ==============
 
-Raven Core is extensively tested on multiple operating systems using
+Avian Core is extensively tested on multiple operating systems using
 the Linux kernel, macOS 10.8+, and Windows Vista and later. Windows XP is not supported.
 
-Raven Core should also work on most other Unix-like systems but is not
+Avian Core should also work on most other Unix-like systems but is not
 frequently tested on them.
 
 Notable changes
@@ -84,4 +84,4 @@ Thanks to everyone who directly contributed to this release:
 - Jonas Schnelli
 - Wladimir J. van der Laan
 
-As well as everyone that helped translating on [Transifex](https://www.transifex.com/projects/p/raven/).
+As well as everyone that helped translating on [Transifex](https://www.transifex.com/projects/p/avian/).

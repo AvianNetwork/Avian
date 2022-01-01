@@ -320,7 +320,7 @@
                     <enum>Qt::ActionsContextMenu</enum>
                    </property>
                    <property name="text">
-                    <string notr="true">0.00 RVN</string>
+                    <string notr="true">0.00 AVN</string>
                    </property>
                    <property name="textInteractionFlags">
                     <set>Qt::LinksAccessibleByMouse|Qt::TextSelectableByKeyboard|Qt::TextSelectableByMouse</set>
@@ -400,7 +400,7 @@
                     <enum>Qt::ActionsContextMenu</enum>
                    </property>
                    <property name="text">
-                    <string notr="true">0.00 RVN</string>
+                    <string notr="true">0.00 AVN</string>
                    </property>
                    <property name="textInteractionFlags">
                     <set>Qt::LinksAccessibleByMouse|Qt::TextSelectableByKeyboard|Qt::TextSelectableByMouse</set>
@@ -451,7 +451,7 @@
                     <enum>Qt::ActionsContextMenu</enum>
                    </property>
                    <property name="text">
-                    <string notr="true">0.00 RVN</string>
+                    <string notr="true">0.00 AVN</string>
                    </property>
                    <property name="textInteractionFlags">
                     <set>Qt::LinksAccessibleByMouse|Qt::TextSelectableByKeyboard|Qt::TextSelectableByMouse</set>
@@ -480,7 +480,7 @@
                     <enum>Qt::ActionsContextMenu</enum>
                    </property>
                    <property name="text">
-                    <string notr="true">0.00 RVN</string>
+                    <string notr="true">0.00 AVN</string>
                    </property>
                    <property name="textInteractionFlags">
                     <set>Qt::LinksAccessibleByMouse|Qt::TextSelectableByKeyboard|Qt::TextSelectableByMouse</set>
@@ -592,6 +592,44 @@
          <number>12</number>
         </property>
         <item>
+         <layout class="QHBoxLayout" name="horizontalLayoutReissueAsset">
+          <property name="bottomMargin">
+           <number>15</number>
+          </property>
+          <item>
+           <widget class="QLabel" name="labelReissueAsset">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="minimumSize">
+             <size>
+              <width>0</width>
+              <height>0</height>
+             </size>
+            </property>
+            <property name="font">
+             <font>
+              <weight>75</weight>
+              <bold>true</bold>
+             </font>
+            </property>
+            <property name="styleSheet">
+             <string notr="true">font-weight:bold;</string>
+            </property>
+            <property name="frameShape">
+             <enum>QFrame::NoFrame</enum>
+            </property>
+            <property name="text">
+             <string>Reissue Asset</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </item>
+        <item>
          <layout class="QVBoxLayout" name="verticalLayout_6">
           <property name="spacing">
            <number>1</number>
@@ -600,13 +638,48 @@
            <layout class="QHBoxLayout" name="horizontalLayout">
             <item>
              <widget class="QLabel" name="assetNameLabel">
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
               <property name="text">
                <string>Select an asset to reissue:</string>
               </property>
              </widget>
             </item>
             <item>
-             <widget class="QComboBox" name="comboBox"/>
+             <widget class="QComboBox" name="comboBox">
+              <property name="enabled">
+               <bool>true</bool>
+              </property>
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
+              <property name="minimumSize">
+               <size>
+                <width>250</width>
+                <height>0</height>
+               </size>
+              </property>
+              <property name="sizeAdjustPolicy">
+               <enum>QComboBox::AdjustToContentsOnFirstShow</enum>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QLabel" name="reissueCostLabel">
+              <property name="text">
+               <string/>
+              </property>
+              <property name="margin">
+               <number>5</number>
+              </property>
+             </widget>
             </item>
             <item>
              <spacer name="horizontalSpacer_4">
@@ -638,11 +711,36 @@
                <string/>
               </property>
               <property name="placeholderText">
-               <string>The RVN address that will hold this asset (You must own this address). Leave blank to create a new address.</string>
+               <string>The AVN address that will hold this asset (You must own this address). Leave blank to create a new address.</string>
               </property>
              </widget>
             </item>
            </layout>
+          </item>
+          <item>
+           <layout class="QHBoxLayout" name="horizontalLayout_15">
+            <item>
+             <widget class="QLabel" name="labelVerifierString">
+              <property name="text">
+               <string>Verifier String:</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QLineEdit" name="lineEditVerifierString">
+              <property name="placeholderText">
+               <string>Create a verifier string built from Qualifier names e.g (#KYC &amp; #VALID). Leave blank not change this</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </item>
+          <item>
+           <widget class="QLabel" name="labelReissueVerifierStringErrorMessage">
+            <property name="text">
+             <string>Warning:</string>
+            </property>
+           </widget>
           </item>
           <item>
            <layout class="QHBoxLayout" name="horizontalLayout_2">
@@ -761,7 +859,7 @@
                  <enum>Qt::LeftToRight</enum>
                 </property>
                 <property name="text">
-                 <string>Change IPFS Hash</string>
+                 <string>Change IPFS/Txid Hash</string>
                 </property>
                </widget>
               </item>
@@ -784,13 +882,13 @@
                  </sizepolicy>
                 </property>
                 <property name="toolTip">
-                 <string>The ipfs hash that contains information about the asset</string>
+                 <string>The ipfs/txid hash that contains information about the asset</string>
                 </property>
                 <property name="maxLength">
-                 <number>46</number>
+                 <number>64</number>
                 </property>
                 <property name="placeholderText">
-                 <string>The IPFS Hash that is associated with the asset being created (e.g. QmU4h365LYMHx...)</string>
+                 <string>The ipfs/txid hash that is associated with the asset being created (e.g. QmU4h365LYMHx...)</string>
                 </property>
                 <property name="clearButtonEnabled">
                  <bool>true</bool>
@@ -1198,7 +1296,7 @@
                     </widget>
                    </item>
                    <item>
-                    <widget class="RavenAmountField" name="customFee"/>
+                    <widget class="AvianAmountField" name="customFee"/>
                    </item>
                    <item>
                     <spacer name="horizontalSpacer_6">
@@ -1220,7 +1318,7 @@
                    <item>
                     <widget class="QCheckBox" name="checkBoxMinimumFee">
                      <property name="toolTip">
-                      <string>Paying only the minimum fee is just fine as long as there is less transaction volume than space in the blocks. But be aware that this can end up in a never confirming transaction once there is more demand for raven transactions than the network can process.</string>
+                      <string>Paying only the minimum fee is just fine as long as there is less transaction volume than space in the blocks. But be aware that this can end up in a never confirming transaction once there is more demand for avian transactions than the network can process.</string>
                      </property>
                      <property name="text">
                       <string/>
@@ -1233,7 +1331,7 @@
                       <bool>true</bool>
                      </property>
                      <property name="toolTip">
-                      <string>Paying only the minimum fee is just fine as long as there is less transaction volume than space in the blocks. But be aware that this can end up in a never confirming transaction once there is more demand for raven transactions than the network can process.</string>
+                      <string>Paying only the minimum fee is just fine as long as there is less transaction volume than space in the blocks. But be aware that this can end up in a never confirming transaction once there is more demand for avian transactions than the network can process.</string>
                      </property>
                      <property name="text">
                       <string>(read the tooltip)</string>
@@ -1295,7 +1393,7 @@
                  <item>
                   <widget class="QRadioButton" name="radioCustomFee">
                    <property name="text">
-                    <string>Custom:</string>
+                    <string>Cus&amp;tom:</string>
                    </property>
                    <attribute name="buttonGroup">
                     <string notr="true">groupFee</string>
@@ -1531,7 +1629,7 @@
          <item>
           <widget class="QLabel" name="labelBalance">
            <property name="text">
-            <string>123.456 RVN</string>
+            <string>123.456 AVN</string>
            </property>
           </widget>
          </item>
@@ -1550,9 +1648,9 @@
    <header>qvalidatedlineedit.h</header>
   </customwidget>
   <customwidget>
-   <class>RavenAmountField</class>
+   <class>AvianAmountField</class>
    <extends>QLineEdit</extends>
-   <header>ravenamountfield.h</header>
+   <header>avianamountfield.h</header>
    <container>1</container>
   </customwidget>
  </customwidgets>

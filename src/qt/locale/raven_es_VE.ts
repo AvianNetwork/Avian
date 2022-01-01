@@ -1,4 +1,6 @@
-<TS language="es_VE" version="2.1">
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE TS>
+<TS version="2.1" language="es_VE">
 <context>
     <name>AddressBookPage</name>
     <message>
@@ -68,7 +70,7 @@
     <name>BanTableModel</name>
     </context>
 <context>
-    <name>RavenGUI</name>
+    <name>AvianGUI</name>
     <message>
         <source>Sign &amp;message...</source>
         <translation>Firmar &amp;mensaje...</translation>
@@ -115,7 +117,7 @@
     </message>
     <message>
         <source>Send coins to a Avian address</source>
-        <translation>Enviar monedas a una dirección Raven</translation>
+        <translation>Enviar monedas a una dirección Avian</translation>
     </message>
     <message>
         <source>Backup wallet to another location</source>
@@ -130,8 +132,8 @@
         <translation>Abre la consola de depuración y diágnostico</translation>
     </message>
     <message>
-        <source>Raven</source>
-        <translation>Raven</translation>
+        <source>Avian</source>
+        <translation>Avian</translation>
     </message>
     <message>
         <source>Wallet</source>
@@ -159,11 +161,11 @@
     </message>
     <message>
         <source>Sign messages with your Avian addresses to prove you own them</source>
-        <translation>Firma mensajes con tus direcciones Raven para probar que eres dueño de ellas</translation>
+        <translation>Firma mensajes con tus direcciones Avian para probar que eres dueño de ellas</translation>
     </message>
     <message>
         <source>Verify messages to ensure they were signed with specified Avian addresses</source>
-        <translation>Verificar mensajes para asegurar que estaban firmados con direcciones Raven especificas</translation>
+        <translation>Verificar mensajes para asegurar que estaban firmados con direcciones Avian especificas</translation>
     </message>
     <message>
         <source>&amp;File</source>
@@ -582,7 +584,7 @@
     <name>WalletView</name>
     </context>
 <context>
-    <name>raven-core</name>
+    <name>avian-core</name>
     <message>
         <source>Options:</source>
         <translation>Opciones:</translation>
@@ -608,8 +610,8 @@
         <translation>Correr en segundo plano como daemon y aceptar comandos</translation>
     </message>
     <message>
-        <source>Raven Core</source>
-        <translation>Raven Core</translation>
+        <source>Avian Core</source>
+        <translation>Avian Core</translation>
     </message>
     <message>
         <source>Bind to given address and always listen on it. Use [host]:port notation for IPv6</source>

@@ -1,4 +1,4 @@
-// Copyright (c) 2021 The Avian Core developers
+// Copyright (c) 2021 The Raven Core developers
 // Copyright (c) 2021 The Dogecoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
@@ -92,7 +92,7 @@ bool ImportKeysDialog::importKey()
 
     resetDialogValues();
 
-    CRavenSecret vchSecret;
+    CAvianSecret vchSecret;
     bool fGood = vchSecret.SetString(privateKey.toStdString());
     if (!fGood) {
         vchSecret.SetString("");

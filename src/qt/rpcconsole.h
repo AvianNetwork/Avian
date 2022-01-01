@@ -1,11 +1,10 @@
 // Copyright (c) 2011-2016 The Bitcoin Core developers
-// Copyright (c) 2021 The Ravecoin Lite Core developers
-// Copyright (c) 2017 The Raven Core developers
+// Copyright (c) 2017-2019 The Raven Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef RAVEN_QT_RPCCONSOLE_H
-#define RAVEN_QT_RPCCONSOLE_H
+#ifndef AVIAN_QT_RPCCONSOLE_H
+#define AVIAN_QT_RPCCONSOLE_H
 
 #include "guiutil.h"
 #include "peertablemodel.h"
@@ -25,11 +24,12 @@ namespace Ui {
 }
 
 QT_BEGIN_NAMESPACE
+class QDateTime;
 class QMenu;
 class QItemSelection;
 QT_END_NAMESPACE
 
-/** Local Raven RPC console. */
+/** Local Avian RPC console. */
 class RPCConsole: public QWidget
 {
     Q_OBJECT
@@ -57,7 +57,8 @@ public:
         TAB_INFO = 0,
         TAB_CONSOLE = 1,
         TAB_GRAPH = 2,
-        TAB_PEERS = 3
+        TAB_PEERS = 3,
+        TAB_REPAIR = 4
     };
 
 protected:
@@ -69,12 +70,6 @@ private Q_SLOTS:
     void on_tabWidget_currentChanged(int index);
     /** open the debug.log from the current datadir */
     void on_openDebugLogfileButton_clicked();
-    /** open dialog to add new peer */
-    void on_addPeer_clicked();
-    /** open dialog to remove peer */
-    void on_removePeer_clicked();
-    /** open dialog to test peer */
-    void on_testPeer_clicked();
     /** change the time range of the network traffic graph */
     void on_sldGraphRange_valueChanged(int value);
     /** update traffic statistics */
@@ -96,6 +91,14 @@ public Q_SLOTS:
     void fontBigger();
     void fontSmaller();
     void setFontSize(int newSize);
+
+    /** Wallet repair options */
+#ifdef ENABLE_WALLET
+    void walletRescan();
+    void walletZaptxes1();
+    void walletReindex();
+#endif
+
     /** Append the message to the message widget */
     void message(int category, const QString &message, bool html = false);
     /** Set number of connections shown in the UI */
@@ -129,10 +132,14 @@ Q_SIGNALS:
     // For RPC command executor
     void stopExecutor();
     void cmdRequest(const QString &command);
+    /** Get restart command-line parameters and handle restart */
+    void handleRestart(QStringList args);
 
 private:
     void startExecutor();
     void setTrafficGraphRange(int mins);
+    /** Build parameter list for restart */
+    void buildParameterlist(QString arg);
     /** show detailed information on ui about selected node */
     void updateNodeDetail(const CNodeCombinedStats *stats);
 
@@ -164,4 +171,4 @@ private:
     void updateNetworkState();
 };
 
-#endif // RAVEN_QT_RPCCONSOLE_H
+#endif // AVIAN_QT_RPCCONSOLE_H

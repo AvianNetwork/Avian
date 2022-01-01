@@ -1,5 +1,5 @@
 // Copyright (c) 2011-2016 The Bitcoin Core developers
-// Copyright (c) 2017 The Raven Core developers
+// Copyright (c) 2017-2019 The Raven Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -7,7 +7,7 @@
 #include "config/avian-config.h"
 #endif
 
-#include "ravengui.h"
+#include "aviangui.h"
 
 #include "chainparams.h"
 #include "clientmodel.h"
@@ -15,6 +15,7 @@
 #include "guiconstants.h"
 #include "guiutil.h"
 #include "intro.h"
+#include "net.h"
 #include "networkstyle.h"
 #include "optionsmodel.h"
 #include "platformstyle.h"
@@ -48,6 +49,7 @@
 #include <QLibraryInfo>
 #include <QLocale>
 #include <QMessageBox>
+#include <QProcess>
 #include <QSettings>
 #include <QThread>
 #include <QTimer>
@@ -71,11 +73,10 @@ Q_IMPORT_PLUGIN(AccessibleFactory)
 #if defined(QT_QPA_PLATFORM_XCB)
 Q_IMPORT_PLUGIN(QXcbIntegrationPlugin);
 #elif defined(QT_QPA_PLATFORM_WINDOWS)
-Q_IMPORT_PLUGIN(QMinimalIntegrationPlugin);
 Q_IMPORT_PLUGIN(QWindowsIntegrationPlugin);
-Q_IMPORT_PLUGIN(QWindowsPrinterSupportPlugin);
 #elif defined(QT_QPA_PLATFORM_COCOA)
 Q_IMPORT_PLUGIN(QCocoaIntegrationPlugin);
+Q_IMPORT_PLUGIN(QMacStylePlugin);
 #endif
 #endif
 #endif
@@ -98,7 +99,7 @@ static void InitMessage(const std::string &message)
  */
 static std::string Translate(const char* psz)
 {
-    return QCoreApplication::translate("raven-core", psz).toStdString();
+    return QCoreApplication::translate("avian-core", psz).toStdString();
 }
 
 static QString GetLangTerritory()
@@ -145,11 +146,11 @@ static void initTranslations(QTranslator &qtTranslatorBase, QTranslator &qtTrans
     if (qtTranslator.load("qt_" + lang_territory, QLibraryInfo::location(QLibraryInfo::TranslationsPath)))
         QApplication::installTranslator(&qtTranslator);
 
-    // Load e.g. raven_de.qm (shortcut "de" needs to be defined in raven.qrc)
+    // Load e.g. avian_de.qm (shortcut "de" needs to be defined in avian.qrc)
     if (translatorBase.load(lang, ":/translations/"))
         QApplication::installTranslator(&translatorBase);
 
-    // Load e.g. raven_de_DE.qm (shortcut "de_DE" needs to be defined in raven.qrc)
+    // Load e.g. avian_de_DE.qm (shortcut "de_DE" needs to be defined in avian.qrc)
     if (translator.load(lang_territory, ":/translations/"))
         QApplication::installTranslator(&translator);
 }
@@ -176,14 +177,14 @@ void DebugMessageHandler(QtMsgType type, const QMessageLogContext& context, cons
 }
 #endif
 
-/** Class encapsulating Raven Core startup and shutdown.
+/** Class encapsulating Avian Core startup and shutdown.
  * Allows running startup and shutdown in a different thread from the UI thread.
  */
-class RavenCore: public QObject
+class AvianCore: public QObject
 {
     Q_OBJECT
 public:
-    explicit RavenCore();
+    explicit AvianCore();
     /** Basic initialization, before starting initialization/shutdown thread.
      * Return true on success.
      */
@@ -192,10 +193,11 @@ public:
 public Q_SLOTS:
     void initialize();
     void shutdown();
+    void restart(QStringList args);
 
 Q_SIGNALS:
     void initializeResult(bool success);
-    void shutdownResult();
+    void shutdownResult(bool success);
     void runawayException(const QString &message);
 
 private:
@@ -206,13 +208,13 @@ private:
     void handleRunawayException(const std::exception *e);
 };
 
-/** Main Raven application object */
-class RavenApplication: public QApplication
+/** Main Avian application object */
+class AvianApplication: public QApplication
 {
     Q_OBJECT
 public:
-    explicit RavenApplication();
-    ~RavenApplication();
+    explicit AvianApplication(int &argc, char **argv);
+    ~AvianApplication();
 
 #ifdef ENABLE_WALLET
     /// Create payment server
@@ -235,19 +237,20 @@ public:
     /// Get process return value
     int getReturnValue() const { return returnValue; }
 
-    /// Get window identifier of QMainWindow (RavenGUI)
+    /// Get window identifier of QMainWindow (AvianGUI)
     WId getMainWinId() const;
 
     OptionsModel* getOptionsModel() const { return optionsModel; }
 
 public Q_SLOTS:
     void initializeResult(bool success);
-    void shutdownResult();
+    void shutdownResult(bool success);
     /// Handle runaway exceptions. Shows a message box with the problem and quits the program.
     void handleRunawayException(const QString &message);
 
 Q_SIGNALS:
     void requestedInitialize();
+    void requestedRestart(QStringList args);
     void requestedShutdown();
     void stopThread();
     void splashFinished(QWidget *window);
@@ -256,7 +259,7 @@ private:
     QThread *coreThread;
     OptionsModel *optionsModel;
     ClientModel *clientModel;
-    RavenGUI *window;
+    AvianGUI *window;
     QTimer *pollShutdownTimer;
 #ifdef ENABLE_WALLET
     PaymentServer* paymentServer;
@@ -269,20 +272,20 @@ private:
     void startThread();
 };
 
-#include "raven.moc"
+#include "avian.moc"
 
-RavenCore::RavenCore():
+AvianCore::AvianCore():
     QObject()
 {
 }
 
-void RavenCore::handleRunawayException(const std::exception *e)
+void AvianCore::handleRunawayException(const std::exception *e)
 {
     PrintExceptionContinue(e, "Runaway exception");
     Q_EMIT runawayException(QString::fromStdString(GetWarnings("gui")));
 }
 
-bool RavenCore::baseInitialize()
+bool AvianCore::baseInitialize()
 {
     if (!AppInitBasicSetup())
     {
@@ -303,7 +306,7 @@ bool RavenCore::baseInitialize()
     return true;
 }
 
-void RavenCore::initialize()
+void AvianCore::initialize()
 {
     try
     {
@@ -317,7 +320,34 @@ void RavenCore::initialize()
     }
 }
 
-void RavenCore::shutdown()
+void AvianCore::restart(QStringList args)
+{
+    static bool executing_restart{false};
+
+    if(!executing_restart) { // Only restart 1x, no matter how often a user clicks on a restart-button
+        executing_restart = true;
+        try
+        {
+            qDebug() << __func__ << ": Running Restart in thread";
+            Interrupt(threadGroup);
+            threadGroup.join_all();
+            StartRestart();
+            PrepareShutdown();
+            qDebug() << __func__ << ": Shutdown finished";
+            Q_EMIT shutdownResult(true);
+            CExplicitNetCleanup::callCleanup();
+            QProcess::startDetached(QApplication::applicationFilePath(), args);
+            qDebug() << __func__ << ": Restart initiated...";
+            QApplication::quit();
+        } catch (std::exception& e) {
+            handleRunawayException(&e);
+        } catch (...) {
+            handleRunawayException(nullptr);
+        }
+    }
+}
+
+void AvianCore::shutdown()
 {
     try
     {
@@ -326,7 +356,7 @@ void RavenCore::shutdown()
         threadGroup.join_all();
         Shutdown();
         qDebug() << __func__ << ": Shutdown finished";
-        Q_EMIT shutdownResult();
+        Q_EMIT shutdownResult(true);
     } catch (const std::exception& e) {
         handleRunawayException(&e);
     } catch (...) {
@@ -334,11 +364,8 @@ void RavenCore::shutdown()
     }
 }
 
-static int qt_argc = 1;
-static const char* qt_argv = "avian-qt";
-
-RavenApplication::RavenApplication():
-    QApplication(qt_argc, const_cast<char **>(&qt_argv)),
+AvianApplication::AvianApplication(int &argc, char **argv):
+    QApplication(argc, argv),
     coreThread(0),
     optionsModel(0),
     clientModel(0),
@@ -353,17 +380,17 @@ RavenApplication::RavenApplication():
     setQuitOnLastWindowClosed(false);
 
     // UI per-platform customization
-    // This must be done inside the RavenApplication constructor, or after it, because
+    // This must be done inside the AvianApplication constructor, or after it, because
     // PlatformStyle::instantiate requires a QApplication
     std::string platformName;
-    platformName = gArgs.GetArg("-uiplatform", RavenGUI::DEFAULT_UIPLATFORM);
+    platformName = gArgs.GetArg("-uiplatform", AvianGUI::DEFAULT_UIPLATFORM);
     platformStyle = PlatformStyle::instantiate(QString::fromStdString(platformName));
     if (!platformStyle) // Fall back to "other" if specified name not found
         platformStyle = PlatformStyle::instantiate("other");
     assert(platformStyle);
 }
 
-RavenApplication::~RavenApplication()
+AvianApplication::~AvianApplication()
 {
     if(coreThread)
     {
@@ -386,20 +413,20 @@ RavenApplication::~RavenApplication()
 }
 
 #ifdef ENABLE_WALLET
-void RavenApplication::createPaymentServer()
+void AvianApplication::createPaymentServer()
 {
     paymentServer = new PaymentServer(this);
 }
 #endif
 
-void RavenApplication::createOptionsModel(bool resetSettings)
+void AvianApplication::createOptionsModel(bool resetSettings)
 {
     optionsModel = new OptionsModel(nullptr, resetSettings);
 }
 
-void RavenApplication::createWindow(const NetworkStyle *networkStyle)
+void AvianApplication::createWindow(const NetworkStyle *networkStyle)
 {
-    window = new RavenGUI(platformStyle, networkStyle, 0);
+    window = new AvianGUI(platformStyle, networkStyle, 0);
     window->setMinimumSize(200,200);
     window->setBaseSize(640,640);
 
@@ -408,9 +435,9 @@ void RavenApplication::createWindow(const NetworkStyle *networkStyle)
     pollShutdownTimer->start(200);
 }
 
-void RavenApplication::createSplashScreen(const NetworkStyle *networkStyle)
+void AvianApplication::createSplashScreen(const NetworkStyle *networkStyle)
 {
-    SplashScreen *splash = new SplashScreen(0, networkStyle);
+    SplashScreen *splash = new SplashScreen(networkStyle);
     // We don't hold a direct pointer to the splash screen after creation, but the splash
     // screen will take care of deleting itself when slotFinish happens.
     splash->show();
@@ -418,20 +445,21 @@ void RavenApplication::createSplashScreen(const NetworkStyle *networkStyle)
     connect(this, SIGNAL(requestedShutdown()), splash, SLOT(close()));
 }
 
-void RavenApplication::startThread()
+void AvianApplication::startThread()
 {
     if(coreThread)
         return;
     coreThread = new QThread(this);
-    RavenCore *executor = new RavenCore();
+    AvianCore *executor = new AvianCore();
     executor->moveToThread(coreThread);
 
     /*  communication to and from thread */
     connect(executor, SIGNAL(initializeResult(bool)), this, SLOT(initializeResult(bool)));
-    connect(executor, SIGNAL(shutdownResult()), this, SLOT(shutdownResult()));
+    connect(executor, SIGNAL(shutdownResult(bool)), this, SLOT(shutdownResult(bool)));
     connect(executor, SIGNAL(runawayException(QString)), this, SLOT(handleRunawayException(QString)));
     connect(this, SIGNAL(requestedInitialize()), executor, SLOT(initialize()));
     connect(this, SIGNAL(requestedShutdown()), executor, SLOT(shutdown()));
+    connect(window, SIGNAL(requestedRestart(QStringList)), executor, SLOT(restart(QStringList)));
     /*  make sure executor object is deleted in its own thread */
     connect(this, SIGNAL(stopThread()), executor, SLOT(deleteLater()));
     connect(this, SIGNAL(stopThread()), coreThread, SLOT(quit()));
@@ -439,20 +467,20 @@ void RavenApplication::startThread()
     coreThread->start();
 }
 
-void RavenApplication::parameterSetup()
+void AvianApplication::parameterSetup()
 {
     InitLogging();
     InitParameterInteraction();
 }
 
-void RavenApplication::requestInitialize()
+void AvianApplication::requestInitialize()
 {
     qDebug() << __func__ << ": Requesting initialize";
     startThread();
     Q_EMIT requestedInitialize();
 }
 
-void RavenApplication::requestShutdown()
+void AvianApplication::requestShutdown()
 {
     // Show a simple window indicating shutdown status
     // Do this first as some of the steps may take some time below,
@@ -479,7 +507,7 @@ void RavenApplication::requestShutdown()
     Q_EMIT requestedShutdown();
 }
 
-void RavenApplication::initializeResult(bool success)
+void AvianApplication::initializeResult(bool success)
 {
     qDebug() << __func__ << ": Initialization result: " << success;
     // Set exit result.
@@ -502,8 +530,8 @@ void RavenApplication::initializeResult(bool success)
         {
             walletModel = new WalletModel(platformStyle, vpwallets[0], optionsModel);
 
-            window->addWallet(RavenGUI::DEFAULT_WALLET, walletModel);
-            window->setCurrentWallet(RavenGUI::DEFAULT_WALLET);
+            window->addWallet(AvianGUI::DEFAULT_WALLET, walletModel);
+            window->setCurrentWallet(AvianGUI::DEFAULT_WALLET);
 
             connect(walletModel, SIGNAL(coinsSent(CWallet*,SendCoinsRecipient,QByteArray)),
                              paymentServer, SLOT(fetchPaymentACK(CWallet*,const SendCoinsRecipient&,QByteArray)));
@@ -537,18 +565,20 @@ void RavenApplication::initializeResult(bool success)
     }
 }
 
-void RavenApplication::shutdownResult()
+void AvianApplication::shutdownResult(bool success)
 {
+    returnValue = success ? EXIT_SUCCESS : EXIT_FAILURE;
+    qDebug() << __func__ << ": Shutdown result: " << returnValue;
     quit(); // Exit main loop after shutdown finished
 }
 
-void RavenApplication::handleRunawayException(const QString &message)
+void AvianApplication::handleRunawayException(const QString &message)
 {
-    QMessageBox::critical(0, "Runaway exception", RavenGUI::tr("A fatal error occurred. Raven can no longer continue safely and will quit.") + QString("\n\n") + message);
+    QMessageBox::critical(0, "Runaway exception", AvianGUI::tr("A fatal error occurred. Avian can no longer continue safely and will quit.") + QString("\n\n") + message);
     ::exit(EXIT_FAILURE);
 }
 
-WId RavenApplication::getMainWinId() const
+WId AvianApplication::getMainWinId() const
 {
     if (!window)
         return 0;
@@ -556,7 +586,7 @@ WId RavenApplication::getMainWinId() const
     return window->winId();
 }
 
-#ifndef RAVEN_QT_TEST
+#ifndef AVIAN_QT_TEST
 int main(int argc, char *argv[])
 {
     SetupEnvironment();
@@ -574,10 +604,9 @@ int main(int argc, char *argv[])
     QTextCodec::setCodecForCStrings(QTextCodec::codecForTr());
 #endif
 
-    Q_INIT_RESOURCE(raven);
-    Q_INIT_RESOURCE(raven_locale);
+    Q_INIT_RESOURCE(avian);
+    Q_INIT_RESOURCE(avian_locale);
 
-    RavenApplication app;
 #if QT_VERSION > 0x050100
     // Generate high-dpi pixmaps
     QApplication::setAttribute(Qt::AA_UseHighDpiPixmaps);
@@ -589,6 +618,10 @@ int main(int argc, char *argv[])
     QApplication::setAttribute(Qt::AA_DontShowIconsInMenus);
 #endif
 #if QT_VERSION >= 0x050500
+
+    // This should be after the attributes.
+    AvianApplication app(argc, argv);
+
     // Because of the POODLE attack it is recommended to disable SSLv3 (https://disablessl3.com/),
     // so set SSL protocols to TLS1.0+.
     QSslConfiguration sslconf = QSslConfiguration::defaultConfiguration();
@@ -640,7 +673,7 @@ int main(int argc, char *argv[])
         return EXIT_FAILURE;
     }
     try {
-        gArgs.ReadConfigFile(gArgs.GetArg("-conf", RAVEN_CONF_FILENAME));
+        gArgs.ReadConfigFile(gArgs.GetArg("-conf", AVIAN_CONF_FILENAME));
     } catch (const std::exception& e) {
         QMessageBox::critical(0, QObject::tr(PACKAGE_NAME),
                               QObject::tr("Error: Cannot parse configuration file: %1. Only use key=value syntax.").arg(e.what()));
@@ -648,12 +681,12 @@ int main(int argc, char *argv[])
     }
 
     /// 7. Determine network (and switch to network specific options)
-    // - Do not call ConsensusParams() before this step
+    // - Do not call GetParams() before this step
     // - Do this after parsing the configuration file, as the network can be switched there
     // - QSettings() will use the new application name after this, resulting in network-specific settings
     // - Needs to be done before createOptionsModel
 
-    // Check for -testnet or -regtest parameter (ConsensusParams() calls are only valid after this clause)
+    // Check for -testnet or -regtest parameter (GetParams() calls are only valid after this clause)
     try {
         SelectParams(ChainNameFromCommandLine(), true);
     } catch(std::exception &e) {
@@ -661,11 +694,11 @@ int main(int argc, char *argv[])
         return EXIT_FAILURE;
     }
 #ifdef ENABLE_WALLET
-    // Parse URIs on command line -- this can affect ConsensusParams()
+    // Parse URIs on command line -- this can affect GetParams()
     PaymentServer::ipcParseCommandLine(argc, argv);
 #endif
 
-    QScopedPointer<const NetworkStyle> networkStyle(NetworkStyle::instantiate(QString::fromStdString(Params().NetworkIDString())));
+    QScopedPointer<const NetworkStyle> networkStyle(NetworkStyle::instantiate(QString::fromStdString(GetParams().NetworkIDString())));
     assert(!networkStyle.isNull());
     // Allow for separate UI settings for testnets
     QApplication::setApplicationName(networkStyle->getAppName());
@@ -726,7 +759,7 @@ int main(int argc, char *argv[])
         // Perform base initialization before spinning up initialization/shutdown thread
         // This is acceptable because this function only contains steps that are quick to execute,
         // so the GUI thread won't be held up.
-        if (RavenCore::baseInitialize()) {
+        if (AvianCore::baseInitialize()) {
             app.requestInitialize();
 #if defined(Q_OS_WIN) && QT_VERSION >= 0x050000
             WinShutdownMonitor::registerShutdownBlockReason(QObject::tr("%1 didn't yet exit safely...").arg(QObject::tr(PACKAGE_NAME)), (HWND)app.getMainWinId());
@@ -748,4 +781,4 @@ int main(int argc, char *argv[])
     }
     return rv;
 }
-#endif // RAVEN_QT_TEST
+#endif // AVIAN_QT_TEST

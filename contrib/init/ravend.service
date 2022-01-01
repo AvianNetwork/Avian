@@ -1,15 +1,15 @@
 [Unit]
-Description=Raven's distributed currency daemon
+Description=Avian's distributed currency daemon
 After=network.target
 
 [Service]
-User=raven
-Group=raven
+User=avian
+Group=avian
 
 Type=forking
 PIDFile=/var/lib/aviand/aviand.pid
 ExecStart=/usr/bin/aviand -daemon -pid=/var/lib/aviand/aviand.pid \
--conf=/etc/raven/avian.conf -datadir=/var/lib/aviand -disablewallet
+-conf=/etc/avian/avian.conf -datadir=/var/lib/aviand -disablewallet
 
 Restart=always
 PrivateTmp=true

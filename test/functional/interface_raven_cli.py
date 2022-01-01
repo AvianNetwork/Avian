@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 # Copyright (c) 2017 The Bitcoin Core developers
-# Copyright (c) 2017-2018 The Raven Core developers
+# Copyright (c) 2017-2020 The Raven Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """Test avian-cli"""
-from test_framework.test_framework import RavenTestFramework
-from test_framework.util import assert_equal, assert_raises_process_error, get_auth_cookie
+from test_framework.test_framework import AvianTestFramework
+from test_framework.util import (assert_equal, assert_raises_process_error, get_auth_cookie)
 
-class TestRavenCli(RavenTestFramework):
+class TestAvianCli(AvianTestFramework):
 
     def set_test_params(self):
         self.setup_clean_chain = True
@@ -25,12 +25,12 @@ class TestRavenCli(RavenTestFramework):
         user, password = get_auth_cookie(self.nodes[0].datadir)
 
         self.log.info("Test -stdinrpcpass option")
-        assert_equal(0, self.nodes[0].cli('-rpcuser=%s' % user, '-stdinrpcpass', input=password).getblockcount())
-        assert_raises_process_error(1, "incorrect rpcuser or rpcpassword", self.nodes[0].cli('-rpcuser=%s' % user, '-stdinrpcpass', input="foo").echo)
+        assert_equal(0, self.nodes[0].cli('-rpcuser=%s' % user, '-stdinrpcpass', input_data=password).getblockcount())
+        assert_raises_process_error(1, "incorrect rpcuser or rpcpassword", self.nodes[0].cli('-rpcuser=%s' % user, '-stdinrpcpass', input_data="foo").echo)
 
         self.log.info("Test -stdin and -stdinrpcpass")
-        assert_equal(["foo", "bar"], self.nodes[0].cli('-rpcuser=%s' % user, '-stdin', '-stdinrpcpass', input=password + "\nfoo\nbar").echo())
-        assert_raises_process_error(1, "incorrect rpcuser or rpcpassword", self.nodes[0].cli('-rpcuser=%s' % user, '-stdin', '-stdinrpcpass', input="foo").echo)
+        assert_equal(["foo", "bar"], self.nodes[0].cli('-rpcuser=%s' % user, '-stdin', '-stdinrpcpass', input_data=password + "\nfoo\nbar").echo())
+        assert_raises_process_error(1, "incorrect rpcuser or rpcpassword", self.nodes[0].cli('-rpcuser=%s' % user, '-stdin', '-stdinrpcpass', input_data="foo").echo)
 
         self.log.info("Compare responses from `avian-cli -getinfo` and the RPCs data is retrieved from.")
         cli_get_info = self.nodes[0].cli('-getinfo').help()
@@ -56,4 +56,4 @@ class TestRavenCli(RavenTestFramework):
         # unlocked_until is not tested because the wallet is not encrypted
 
 if __name__ == '__main__':
-    TestRavenCli().main()
+    TestAvianCli().main()

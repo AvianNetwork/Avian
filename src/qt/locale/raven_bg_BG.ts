@@ -1,4 +1,6 @@
-<TS language="bg_BG" version="2.1">
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE TS>
+<TS version="2.1" language="bg_BG">
 <context>
     <name>AddressBookPage</name>
     <message>
@@ -172,7 +174,7 @@
     </message>
 </context>
 <context>
-    <name>RavenGUI</name>
+    <name>AvianGUI</name>
     <message>
         <source>Sign &amp;message...</source>
         <translation>Подпиши съобщение...</translation>
@@ -418,9 +420,9 @@
     </message>
     </context>
 <context>
-    <name>raven-core</name>
+    <name>avian-core</name>
     <message>
-        <source>Raven Core</source>
+        <source>Avian Core</source>
         <translation>Биткойн ядро</translation>
     </message>
     </context>

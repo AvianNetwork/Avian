@@ -1,4 +1,6 @@
-<TS language="ur_PK" version="2.1">
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE TS>
+<TS version="2.1" language="ur_PK">
 <context>
     <name>AddressBookPage</name>
     <message>
@@ -80,7 +82,7 @@
     <name>BanTableModel</name>
     </context>
 <context>
-    <name>RavenGUI</name>
+    <name>AvianGUI</name>
     <message>
         <source>Error</source>
         <translation>نقص</translation>
@@ -238,7 +240,7 @@
     <name>WalletView</name>
     </context>
 <context>
-    <name>raven-core</name>
+    <name>avian-core</name>
     <message>
         <source>Insufficient funds</source>
         <translation>ناکافی فنڈز</translation>

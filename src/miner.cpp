@@ -1,6 +1,6 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
 // Copyright (c) 2009-2016 The Bitcoin Core developers
-// Copyright (c) 2017 The Raven Core developers
+// Copyright (c) 2017-2020 The Raven Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -32,7 +32,6 @@
 //#include "wallet/rpcwallet.h"
 
 
-#include <boost/core/ref.hpp>
 #include <boost/thread.hpp>
 #include <algorithm>
 #include <queue>
@@ -58,7 +57,7 @@ uint64_t nHashesPerSec = 0;
 uint64_t nHashesDone = 0;
 
 
-int64_t UpdateTime(CBlockHeader* pblock, const Consensus::ConsensusParams& consensusParams, const CBlockIndex* pindexPrev, const POW_TYPE powType)
+int64_t UpdateTime(CBlockHeader* pblock, const Consensus::Params& consensusParams, const CBlockIndex* pindexPrev)
 {
     int64_t nOldTime = pblock->nTime;
     int64_t nNewTime = std::max(pindexPrev->GetMedianTimePast()+1, GetAdjustedTime());
@@ -66,13 +65,9 @@ int64_t UpdateTime(CBlockHeader* pblock, const Consensus::ConsensusParams& conse
     if (nOldTime < nNewTime)
         pblock->nTime = nNewTime;
 
-    if (IsCrowEnabled(pindexPrev, consensusParams)) {
-         if (consensusParams.fPowAllowMinDifficultyBlocks)
-            pblock->nBits = GetNextWorkRequiredLWMA(pindexPrev, pblock, consensusParams, powType);
-    } else {
-        if (consensusParams.fPowAllowMinDifficultyBlocks)
-            pblock->nBits = GetNextWorkRequired(pindexPrev, pblock, consensusParams);
-    }
+    // Updating time can change work required on testnet:
+    if (consensusParams.fPowAllowMinDifficultyBlocks)
+        pblock->nBits = GetNextWorkRequired(pindexPrev, pblock, consensusParams);
 
     return nNewTime - nOldTime;
 }
@@ -123,8 +118,7 @@ void BlockAssembler::resetBlock()
     nFees = 0;
 }
 
-// Crow: Accept POW_TYPE arg
-std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& scriptPubKeyIn, bool fMineWitnessTx, const POW_TYPE powType)
+std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& scriptPubKeyIn, bool fMineWitnessTx)
 {
     int64_t nTimeStart = GetTimeMicros();
 
@@ -147,18 +141,6 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     nHeight = pindexPrev->nHeight + 1;
 
     pblock->nVersion = ComputeBlockVersion(pindexPrev, chainparams.GetConsensus());
-
-    // Crow: Refuse to attempt to create a non-x16r block before activation
-    if (!IsCrowEnabled(pindexPrev, chainparams.GetConsensus()) && powType != 0)
-        throw std::runtime_error("Error: Won't attempt to create a non-x16r block before Crow activation");
-
-    // Crow: If Crow Algo is enabled, encode desired pow type.
-    if (IsCrowEnabled(pindexPrev, chainparams.GetConsensus())) {
-        if (powType >= NUM_BLOCK_TYPES)
-            throw std::runtime_error("Error: Unrecognised pow type requested");
-        pblock->nVersion |= powType << 16;
-    }
-
     // -regtest only: allow overriding block.nVersion with
     // -blockversion=N to test forking scenarios
     if (chainparams.MineBlocksOnDemand())
@@ -204,19 +186,38 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
 
     // Fill in header
     pblock->hashPrevBlock  = pindexPrev->GetBlockHash();
-    UpdateTime(pblock, chainparams.GetConsensus(), pindexPrev, powType);
-
-    if (IsCrowEnabled(pindexPrev, chainparams.GetConsensus())) {
-        pblock->nBits = GetNextWorkRequiredLWMA(pindexPrev, pblock, chainparams.GetConsensus(), powType);
-    } else {
-        pblock->nBits = GetNextWorkRequired(pindexPrev, pblock, chainparams.GetConsensus());
-    }
-
+    UpdateTime(pblock, chainparams.GetConsensus(), pindexPrev);
+    pblock->nBits          = GetNextWorkRequired(pindexPrev, pblock, chainparams.GetConsensus());
     pblock->nNonce         = 0;
+    pblock->nNonce64         = 0;
+    pblock->nHeight          = nHeight;
     pblocktemplate->vTxSigOpsCost[0] = WITNESS_SCALE_FACTOR * GetLegacySigOpCount(*pblock->vtx[0]);
 
     CValidationState state;
     if (!TestBlockValidity(state, chainparams, *pblock, pindexPrev, false, false)) {
+        if (state.IsTransactionError()) {
+            if (gArgs.GetBoolArg("-autofixmempool", false)) {
+                {
+                    TRY_LOCK(mempool.cs, fLockMempool);
+                    if (fLockMempool) {
+                        LogPrintf("%s failed because of a transaction %s. -autofixmempool is set to true. Clearing the mempool\n", __func__,
+                                  state.GetFailedTransaction().GetHex());
+                        mempool.clear();
+                    }
+                }
+            } else {
+                {
+                    TRY_LOCK(mempool.cs, fLockMempool);
+                    if (fLockMempool) {
+                        auto mempoolTx = mempool.get(state.GetFailedTransaction());
+                        if (mempoolTx) {
+                            LogPrintf("%s : Failed because of a transaction %s. Trying to remove the transaction from the mempool\n", __func__, state.GetFailedTransaction().GetHex());
+                            mempool.removeRecursive(*mempoolTx, MemPoolRemovalReason::CONFLICT);
+                        }
+                    }
+                }
+            }
+        }
         throw std::runtime_error(strprintf("%s: TestBlockValidity failed: %s", __func__, FormatStateMessage(state)));
     }
     int64_t nTime2 = GetTimeMicros();
@@ -522,6 +523,7 @@ static bool ProcessBlockFound(const CBlock* pblock, const CChainParams& chainpar
 }
 
 CWallet *GetFirstWallet() {
+#ifdef ENABLE_WALLET
     while(vpwallets.size() == 0){
         MilliSleep(100);
 
@@ -529,26 +531,29 @@ CWallet *GetFirstWallet() {
     if (vpwallets.size() == 0)
         return(NULL);
     return(vpwallets[0]);
+#endif
+    return(NULL);
 }
 
-void static AvianMiner(const CChainParams& chainparams, const POW_TYPE powType)
+void static AvianMiner(const CChainParams& chainparams)
 {
     LogPrintf("AvianMiner -- started\n");
     SetThreadPriority(THREAD_PRIORITY_LOWEST);
-    RenameThread("raven-miner");
+    RenameThread("avian-miner");
 
     unsigned int nExtraNonce = 0;
 
 
     CWallet * pWallet = NULL;
 
-    #ifdef ENABLE_WALLET
-        pWallet = GetFirstWallet();
-    #endif
+#ifdef ENABLE_WALLET
+    pWallet = GetFirstWallet();
+
 
     if (!EnsureWalletIsAvailable(pWallet, false)) {
         LogPrintf("AvianMiner -- Wallet not available\n");
     }
+#endif
 
     if (pWallet == NULL)
     {
@@ -585,6 +590,7 @@ void static AvianMiner(const CChainParams& chainparams, const POW_TYPE powType)
                 // Busy-wait for the network to come online so we don't waste time mining
                 // on an obsolete chain. In regtest mode we expect to fly solo.
                 do {
+                    break;
                     if ((g_connman->GetNodeCount(CConnman::CONNECTIONS_ALL) > 0) && !IsInitialBlockDownload()) {
                         break;
                     }
@@ -602,8 +608,8 @@ void static AvianMiner(const CChainParams& chainparams, const POW_TYPE powType)
             if(!pindexPrev) break;
 
 
-            // Build block with Crow algo powType
-            std::unique_ptr<CBlockTemplate> pblocktemplate(BlockAssembler(Params()).CreateNewBlock(coinbaseScript->reserveScript, true, powType));
+
+            std::unique_ptr<CBlockTemplate> pblocktemplate(BlockAssembler(GetParams()).CreateNewBlock(coinbaseScript->reserveScript));
 
             if (!pblocktemplate.get())
             {
@@ -625,11 +631,13 @@ void static AvianMiner(const CChainParams& chainparams, const POW_TYPE powType)
             {
 
                 uint256 hash;
+                uint256 mix_hash;
                 while (true)
                 {
-                    hash = pblock->GetHash();
+                    hash = pblock->GetHashFull(mix_hash);
                     if (UintToArith256(hash) <= hashTarget)
                     {
+                        pblock->mix_hash = mix_hash;
                         // Found a solution
                         SetThreadPriority(THREAD_PRIORITY_NORMAL);
                         LogPrintf("AvianMiner:\n  proof-of-work found\n  hash: %s\n  target: %s\n", hash.GetHex(), hashTarget.GetHex());
@@ -666,7 +674,7 @@ void static AvianMiner(const CChainParams& chainparams, const POW_TYPE powType)
                     break;
 
                 // Update nTime every few seconds
-                if (UpdateTime(pblock, chainparams.GetConsensus(), pindexPrev, powType) < 0)
+                if (UpdateTime(pblock, chainparams.GetConsensus(), pindexPrev) < 0)
                     break; // Recreate the block if the clock has run backwards,
                            // so that we can use the correct time.
                 if (chainparams.GetConsensus().fPowAllowMinDifficultyBlocks)
@@ -689,7 +697,7 @@ void static AvianMiner(const CChainParams& chainparams, const POW_TYPE powType)
     }
 }
 
-int GenerateRavens(bool fGenerate, int nThreads, const CChainParams& chainparams)
+int GenerateAvians(bool fGenerate, int nThreads, const CChainParams& chainparams)
 {
 
     static boost::thread_group* minerThreads = NULL;
@@ -709,28 +717,14 @@ int GenerateRavens(bool fGenerate, int nThreads, const CChainParams& chainparams
         return numCores;
 
     minerThreads = new boost::thread_group();
-
+    
     //Reset metrics
     nMiningTimeStart = GetTimeMicros();
     nHashesDone = 0;
     nHashesPerSec = 0;
 
-    std::string strAlgo = gArgs.GetArg("-powalgo", DEFAULT_POW_TYPE);
-
-    bool algoFound = false;
-    POW_TYPE powType;
-    for (unsigned int i = 0; i < NUM_BLOCK_TYPES; i++) {
-        if (strAlgo == POW_TYPE_NAMES[i]) {
-            powType = (POW_TYPE)i;
-            algoFound = true;
-            break;
-        }
-    }
-    if (!algoFound)
-        LogPrintf("AvianMiner -- Invalid pow algorithm requested");
-
     for (int i = 0; i < nThreads; i++){
-        minerThreads->create_thread(boost::bind(&AvianMiner, boost::cref(chainparams), boost::cref(powType)));
+        minerThreads->create_thread(boost::bind(&AvianMiner, boost::cref(chainparams)));
     }
 
     return(numCores);

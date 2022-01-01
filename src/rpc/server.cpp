@@ -1,6 +1,6 @@
 // Copyright (c) 2010 Satoshi Nakamoto
 // Copyright (c) 2009-2016 The Bitcoin Core developers
-// Copyright (c) 2017 The Raven Core developers
+// Copyright (c) 2017-2020 The Raven Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -16,9 +16,12 @@
 #include "utilstrencodings.h"
 #include "mining.h"
 
+#include <mutex>
 #include <univalue.h>
 
-#include <boost/bind.hpp>
+// Fixing Boost 1.73 compile errors
+#include <boost/bind/bind.hpp>
+using namespace boost::placeholders;
 #include <boost/signals2/signal.hpp>
 #include <boost/algorithm/string/case_conv.hpp> // for to_upper()
 #include <boost/algorithm/string/classification.hpp>
@@ -26,10 +29,11 @@
 
 #include <memory> // for unique_ptr
 #include <unordered_map>
+#include <validation.h>
 
 #include "assets/assets.h"
 
-static std::atomic<bool> g_rpc_running{false};
+static bool fRPCRunning = false;
 static bool fRPCInWarmup = true;
 static std::string rpcWarmupStatus("RPC server started");
 static CCriticalSection cs_rpcWarmup;
@@ -37,6 +41,37 @@ static CCriticalSection cs_rpcWarmup;
 static RPCTimerInterface* timerInterface = nullptr;
 /* Map of name to timer. */
 static std::map<std::string, std::unique_ptr<RPCTimerBase> > deadlineTimers;
+
+struct RPCCommandExecutionInfo
+{
+    std::string method;
+    int64_t start;
+};
+
+struct RPCServerInfo
+{
+    std::mutex mtx;
+    std::list<RPCCommandExecutionInfo> active_commands GUARDED_BY(mtx);
+};
+
+static RPCServerInfo g_rpc_server_info;
+
+struct RPCCommandExecution
+{
+    std::list<RPCCommandExecutionInfo>::iterator it;
+    explicit RPCCommandExecution(const std::string& method)
+    {
+        g_rpc_server_info.mtx.lock();
+        it = g_rpc_server_info.active_commands.insert(g_rpc_server_info.active_commands.end(), {method, GetTimeMicros()});
+        g_rpc_server_info.mtx.unlock();
+    }
+    ~RPCCommandExecution()
+    {
+        g_rpc_server_info.mtx.lock();
+        g_rpc_server_info.active_commands.erase(it);
+        g_rpc_server_info.mtx.unlock();
+    }
+};
 
 static struct CRPCSignals
 {
@@ -110,14 +145,14 @@ void RPCTypeCheckObj(const UniValue& o,
     }
 }
 
-CAmount AmountFromValue(const UniValue& value)
+CAmount AmountFromValue(const UniValue& value, bool p_isAVN)
 {
     if (!value.isNum() && !value.isStr())
         throw JSONRPCError(RPC_TYPE_ERROR, "Amount is not a number or string");
     CAmount amount;
     if (!ParseFixedPoint(value.getValStr(), 8, &amount))
         throw JSONRPCError(RPC_TYPE_ERROR, strprintf("Invalid amount (3): %s", value.getValStr()));
-    if (!MoneyRange(amount))
+    if (p_isAVN && !MoneyRange(amount))
         throw JSONRPCError(RPC_TYPE_ERROR, strprintf("Amount out of range: %s", amount));
     return amount;
 }
@@ -236,6 +271,9 @@ UniValue help(const JSONRPCRequest& jsonRequest)
 UniValue stop(const JSONRPCRequest& jsonRequest)
 {
     // Accept the deprecated and ignored 'detach' boolean argument
+    // Also accept the hidden 'wait' integer argument (milliseconds)
+    // For instance, 'stop 1000' makes the call wait 1 second before returning
+    // to the client (intended for testing)
     if (jsonRequest.fHelp || jsonRequest.params.size() > 1)
         throw std::runtime_error(
             "stop\n"
@@ -243,6 +281,9 @@ UniValue stop(const JSONRPCRequest& jsonRequest)
     // Event loop will exit after current HTTP requests have been handled, so
     // this reply will get back to the client.
     StartShutdown();
+    if (jsonRequest.params[0].isNum()) {
+        MilliSleep(jsonRequest.params[0].get_int());
+    }
     return "Avian server stopping";
 }
 
@@ -262,6 +303,44 @@ UniValue uptime(const JSONRPCRequest& jsonRequest)
     return GetTime() - GetStartupTime();
 }
 
+UniValue getrpcinfo(const JSONRPCRequest& jsonRequest)
+{
+
+    if (jsonRequest.fHelp || jsonRequest.params.size() > 0)
+        throw std::runtime_error(
+                "getrpcinfo\n"
+                "Returns details of the RPC server.\n"
+                "\nResult:\n"
+                "{\n"
+                " \"active_commands\" (array) All active commands\n"
+                "  [\n"
+                "   {               (object) Information about an active command\n"
+                "    \"method\"       (string)  The name of the RPC command \n"
+                "    \"duration\"     (numeric)  The running time in microseconds\n"
+                "   },...\n"
+                "  ],\n"
+                "}\n"
+                + HelpExampleCli("getrpcinfo", "")
+                + HelpExampleRpc("getrpcinfo", "")
+        );
+
+    g_rpc_server_info.mtx.lock();
+    UniValue active_commands(UniValue::VARR);
+    for (const RPCCommandExecutionInfo& info : g_rpc_server_info.active_commands) {
+        UniValue entry(UniValue::VOBJ);
+        entry.pushKV("method", info.method);
+        entry.pushKV("duration", GetTimeMicros() - info.start);
+        active_commands.push_back(entry);
+    }
+
+    UniValue result(UniValue::VOBJ);
+    result.pushKV("active_commands", active_commands);
+    g_rpc_server_info.mtx.unlock();
+
+    return result;
+}
+
+
 /**
  * Call Table
  */
@@ -269,8 +348,9 @@ static const CRPCCommand vRPCCommands[] =
 { //  category              name                      actor (function)         argNames
   //  --------------------- ------------------------  -----------------------  ----------
     /* Overall control/query calls */
+    { "control",            "getrpcinfo",             &getrpcinfo,             {}  },
     { "control",            "help",                   &help,                   {"command"}  },
-    { "control",            "stop",                   &stop,                   {}  },
+    { "control",            "stop",                   &stop,                   {"wait"}  },
     { "control",            "uptime",                 &uptime,                 {}  },
     
    
@@ -313,7 +393,7 @@ bool CRPCTable::appendCommand(const std::string& name, const CRPCCommand* pcmd)
 bool StartRPC()
 {
     LogPrint(BCLog::RPC, "Starting RPC\n");
-    g_rpc_running = true;
+    fRPCRunning = true;
     g_rpcSignals.Started();
     return true;
 }
@@ -322,7 +402,7 @@ void InterruptRPC()
 {
     LogPrint(BCLog::RPC, "Interrupting RPC\n");
     // Interrupt e.g. running longpolls
-    g_rpc_running = false;
+    fRPCRunning = false;
 }
 
 void StopRPC()
@@ -335,7 +415,7 @@ void StopRPC()
 
 bool IsRPCRunning()
 {
-    return g_rpc_running;
+    return fRPCRunning;
 }
 
 void SetRPCWarmupStatus(const std::string& newStatus)
@@ -385,7 +465,7 @@ void JSONRPCRequest::parse(const UniValue& valRequest)
     else if (valParams.isNull())
         params = UniValue(UniValue::VARR);
     else
-        throw JSONRPCError(RPC_INVALID_REQUEST, "ConsensusParams must be an array or object");
+        throw JSONRPCError(RPC_INVALID_REQUEST, "GetParams must be an array or object");
 }
 
 bool IsDeprecatedRPCEnabled(const std::string& method)
@@ -495,6 +575,7 @@ UniValue CRPCTable::execute(const JSONRPCRequest &request) const
 
     try
     {
+        RPCCommandExecution execution(request.strMethod);
         // Execute, convert arguments to array if necessary
         if (request.params.isObject()) {
             return pcmd->actor(transformNamedArguments(request, pcmd->argNames));
@@ -565,3 +646,29 @@ int RPCSerializationFlags()
 }
 
 CRPCTable tableRPC;
+
+void CheckIPFSTxidMessage(const std::string &message, int64_t expireTime)
+{
+    size_t msglen = message.length();
+    if (msglen == 46 || msglen == 64) {
+        if (msglen == 64 && !AreMessagesDeployed()) {
+            throw JSONRPCError(RPC_INVALID_PARAMS, std::string("Invalid txid hash, only ipfs hashes available until RIP5 is activated"));
+        }
+    } else {
+        if (msglen)
+            throw JSONRPCError(RPC_INVALID_PARAMS, std::string("Invalid IPFS hash (must be 46 characters), Txid hashes (must be 64 characters)"));
+    }
+
+    bool fNotIPFS = false;
+    if (message.substr(0, 2) != "Qm") {
+        fNotIPFS = true;
+        if (!AreMessagesDeployed())
+            throw JSONRPCError(RPC_INVALID_PARAMS, std::string("Invalid ipfs hash. Please use a valid ipfs hash. They usually start with Qm"));
+    }
+
+    if (fNotIPFS && !IsHex(message))
+        throw JSONRPCError(RPC_INVALID_PARAMS, std::string("Invalid IPFS/Txid hash"));
+
+    if (expireTime < 0)
+        throw JSONRPCError(RPC_INVALID_PARAMS, std::string("Expire time must be a positive number"));
+}

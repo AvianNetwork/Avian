@@ -1,5 +1,5 @@
 // Copyright (c) 2011-2016 The Bitcoin Core developers
-// Copyright (c) 2017 The Raven Core developers
+// Copyright (c) 2017-2020 The Raven Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -7,10 +7,9 @@
 
 #include "addressbookpage.h"
 #include "askpassphrasedialog.h"
-#include "ravengui.h"
+#include "aviangui.h"
 #include "clientmodel.h"
 #include "guiutil.h"
-#include "importkeysdialog.h"
 #include "optionsmodel.h"
 #include "overviewpage.h"
 #include "platformstyle.h"
@@ -21,10 +20,10 @@
 #include "assettablemodel.h"
 #include "transactionview.h"
 #include "walletmodel.h"
-#include "utilitydialog.h"
 #include "assetsdialog.h"
 #include "createassetdialog.h"
 #include "reissueassetdialog.h"
+#include "restrictedassetsdialog.h"
 #include <validation.h>
 
 #include "ui_interface.h"
@@ -67,7 +66,7 @@ WalletView::WalletView(const PlatformStyle *_platformStyle, QWidget *parent):
     assetsPage = new AssetsDialog(platformStyle);
     createAssetsPage = new CreateAssetDialog(platformStyle);
     manageAssetsPage = new ReissueAssetDialog(platformStyle);
-    importKeysDialog = new ImportKeysDialog(platformStyle);
+    restrictedAssetsPage = new RestrictedAssetsDialog(platformStyle);
 
     usedSendingAddressesPage = new AddressBookPage(platformStyle, AddressBookPage::ForEditing, AddressBookPage::SendingTab, this);
     usedReceivingAddressesPage = new AddressBookPage(platformStyle, AddressBookPage::ForEditing, AddressBookPage::ReceivingTab, this);
@@ -81,6 +80,7 @@ WalletView::WalletView(const PlatformStyle *_platformStyle, QWidget *parent):
     addWidget(assetsPage);
     addWidget(createAssetsPage);
     addWidget(manageAssetsPage);
+    addWidget(restrictedAssetsPage);
     /** AVN END */
 
     // Clicking on a transaction on the overview pre-selects the transaction on the transaction history page
@@ -98,10 +98,11 @@ WalletView::WalletView(const PlatformStyle *_platformStyle, QWidget *parent):
     // Pass through messages from transactionView
     connect(transactionView, SIGNAL(message(QString,QString,unsigned int)), this, SIGNAL(message(QString,QString,unsigned int)));
 
-    /** RVN START */
+    /** AVN START */
     connect(assetsPage, SIGNAL(message(QString,QString,unsigned int)), this, SIGNAL(message(QString,QString,unsigned int)));
     connect(createAssetsPage, SIGNAL(message(QString,QString,unsigned int)), this, SIGNAL(message(QString,QString,unsigned int)));
     connect(manageAssetsPage, SIGNAL(message(QString,QString,unsigned int)), this, SIGNAL(message(QString,QString,unsigned int)));
+    connect(restrictedAssetsPage, SIGNAL(message(QString,QString,unsigned int)), this, SIGNAL(message(QString,QString,unsigned int)));
     connect(overviewPage, SIGNAL(assetSendClicked(QModelIndex)), assetsPage, SLOT(focusAsset(QModelIndex)));
     connect(overviewPage, SIGNAL(assetIssueSubClicked(QModelIndex)), createAssetsPage, SLOT(focusSubAsset(QModelIndex)));
     connect(overviewPage, SIGNAL(assetIssueUniqueClicked(QModelIndex)), createAssetsPage, SLOT(focusUniqueAsset(QModelIndex)));
@@ -113,7 +114,7 @@ WalletView::~WalletView()
 {
 }
 
-void WalletView::setRavenGUI(RavenGUI *gui)
+void WalletView::setAvianGUI(AvianGUI *gui)
 {
     if (gui)
     {
@@ -169,10 +170,11 @@ void WalletView::setWalletModel(WalletModel *_walletModel)
     usedReceivingAddressesPage->setModel(_walletModel ? _walletModel->getAddressTableModel() : nullptr);
     usedSendingAddressesPage->setModel(_walletModel ? _walletModel->getAddressTableModel() : nullptr);
 
-    /** RVN START */
+    /** AVN START */
     assetsPage->setModel(_walletModel);
     createAssetsPage->setModel(_walletModel);
     manageAssetsPage->setModel(_walletModel);
+    restrictedAssetsPage->setModel(_walletModel);
 
     if (_walletModel)
     {
@@ -184,7 +186,7 @@ void WalletView::setWalletModel(WalletModel *_walletModel)
         updateEncryptionStatus();
 
         // update HD status
-        Q_EMIT hdEnabledStatusChanged(_walletModel->hdEnabled());
+        Q_EMIT hdEnabledStatusChanged(_walletModel->hd44Enabled() ? AvianGUI::HD44_ENABLED : _walletModel->hdEnabled() ? AvianGUI::HD_ENABLED : AvianGUI::HD_DISABLED);
 
         // Balloon pop-up for new transaction
         connect(_walletModel->getTransactionTableModel(), SIGNAL(rowsInserted(QModelIndex,int,int)),
@@ -208,7 +210,7 @@ void WalletView::processNewTransaction(const QModelIndex& parent, int start, int
     if (!ttm || ttm->processingQueuedTransactions())
         return;
 
-    /** RVN START */
+    /** AVN START */
     // With the addition of asset transactions, there can be multiple transaction that need notifications
     // so we need to loop through all new transaction that were added to the transaction table and display
     // notifications for each individual transaction
@@ -225,7 +227,7 @@ void WalletView::processNewTransaction(const QModelIndex& parent, int start, int
         Q_EMIT incomingTransaction(date, walletModel->getOptionsModel()->getDisplayUnit(), amount, type, address, label,
                                    assetName);
     }
-    /** RVN END */
+    /** AVN END */
 
     /** Everytime we get an new transaction. We should check to see if assets are enabled or not */
     overviewPage->showAssets();
@@ -284,11 +286,6 @@ void WalletView::gotoVerifyMessageTab(QString addr)
 
     if (!addr.isEmpty())
         signVerifyMessageDialog->setAddress_VM(addr);
-}
-
-void WalletView::gotoImportKeysDialog()
-{
-    // setCurrentWidget(importKeysDialog);
 }
 
 bool WalletView::handlePaymentRequest(const SendCoinsRecipient& recipient)
@@ -355,6 +352,28 @@ void WalletView::unlockWallet()
         dlg.exec();
     }
 }
+void WalletView::getMyWords()
+{
+    // Create the box and set the default text.
+    QMessageBox box;
+    box.setWindowTitle(tr("Recovery information"));
+    box.setText(tr("No words available."));
+
+    // Check for HD-wallet and set text if not HD-wallet.
+    if(!walletModel->hd44Enabled())
+        box.setText(tr("This wallet is not a HD wallet, words not supported."));
+
+    // Unlock wallet requested by wallet model
+    WalletView::unlockWallet();
+
+    // Make sure wallet is unlocked before trying to fetch the words.
+    // When unlocked, set the text to 12words and passphrase.
+    if (walletModel->getEncryptionStatus() != WalletModel::Locked)
+        box.setText(walletModel->getMyWords());
+
+    // Show the box
+    box.exec();
+}
 
 void WalletView::usedSendingAddresses()
 {
@@ -374,16 +393,6 @@ void WalletView::usedReceivingAddresses()
     usedReceivingAddressesPage->show();
     usedReceivingAddressesPage->raise();
     usedReceivingAddressesPage->activateWindow();
-}
-
-void WalletView::importPrivateKey()
-{
-    if(!walletModel)
-        return;
-
-    importKeysDialog->show();
-    importKeysDialog->raise();
-    importKeysDialog->activateWindow();
 }
 
 void WalletView::showProgress(const QString &title, int nProgress)
@@ -409,23 +418,13 @@ void WalletView::showProgress(const QString &title, int nProgress)
         progressDialog->setValue(nProgress);
 }
 
-void WalletView::printPaperWallets()
-{
-    if(!walletModel)
-        return;
-
-    PaperWalletDialog dlg(this);
-    dlg.setModel(walletModel);
-    dlg.exec();
-}
-
 void WalletView::requestedSyncWarningInfo()
 {
     Q_EMIT outOfSyncWarningClicked();
 }
 
 bool fFirstVisit = true;
-/** RVN START */
+/** AVN START */
 void WalletView::gotoAssetsPage()
 {
     if (fFirstVisit){
@@ -445,4 +444,9 @@ void WalletView::gotoManageAssetsPage()
 {
     setCurrentWidget(manageAssetsPage);
 }
-/** RVN END */
+
+void WalletView::gotoRestrictedAssetsPage()
+{
+    setCurrentWidget(restrictedAssetsPage);
+}
+/** AVN END */

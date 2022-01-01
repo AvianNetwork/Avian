@@ -1,15 +1,15 @@
 //
-// Simple Raven Payment Protocol messages
+// Simple Avian Payment Protocol messages
 //
 // Use fields 100+ for extensions;
 // to avoid conflicts, register extensions at:
-// https://en.raven.it/wiki/Payment_Request
+// https://en.bitcoin.it/wiki/Payment_Request
 //
 
 syntax = "proto2";
 
 package payments;
-option java_package = "org.raven.protocols.payments";
+option java_package = "org.avian.protocols.payments";
 option java_outer_classname = "Protos";
 
 // Generalized form of "send payment to this/these avian addresses"

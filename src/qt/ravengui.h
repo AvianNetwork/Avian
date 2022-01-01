@@ -3,8 +3,8 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef RAVEN_QT_RAVENGUI_H
-#define RAVEN_QT_RAVENGUI_H
+#ifndef AVIAN_QT_AVIANGUI_H
+#define AVIAN_QT_AVIANGUI_H
 
 #if defined(HAVE_CONFIG_H)
 #include "config/avian-config.h"
@@ -42,10 +42,10 @@ class QNetworkRequest;
 QT_END_NAMESPACE
 
 /**
-  Raven GUI main class. This class represents the main window of the Raven UI. It communicates with both the client and
+  Avian GUI main class. This class represents the main window of the Avian UI. It communicates with both the client and
   wallet models to give the user an up-to-date view of the current core state.
 */
-class RavenGUI : public QMainWindow
+class AvianGUI : public QMainWindow
 {
     Q_OBJECT
 
@@ -53,8 +53,8 @@ public:
     static const QString DEFAULT_WALLET;
     static const std::string DEFAULT_UIPLATFORM;
 
-    explicit RavenGUI(const PlatformStyle *platformStyle, const NetworkStyle *networkStyle, QWidget *parent = 0);
-    ~RavenGUI();
+    explicit AvianGUI(const PlatformStyle *platformStyle, const NetworkStyle *networkStyle, QWidget *parent = 0);
+    ~AvianGUI();
 
     /** Set the client model.
         The client model represents the part of the core that communicates with the P2P network, and is wallet-agnostic.
@@ -63,7 +63,7 @@ public:
 
 #ifdef ENABLE_WALLET
     /** Set the wallet model.
-        The wallet model represents a raven wallet, and offers access to the list of transactions, address book and sending
+        The wallet model represents a avian wallet, and offers access to the list of transactions, address book and sending
         functionality.
     */
     bool addWallet(const QString& name, WalletModel *walletModel);
@@ -312,4 +312,4 @@ private Q_SLOTS:
     void onMenuSelection(QAction* action);
 };
 
-#endif // RAVEN_QT_RAVENGUI_H
+#endif // AVIAN_QT_AVIANGUI_H

@@ -1,10 +1,10 @@
 
-## <summary>policy for raven</summary>
+## <summary>policy for avian</summary>
 
 
 ########################################
 ## <summary>
-##	Transition to raven.
+##	Transition to avian.
 ## </summary>
 ## <param name="domain">
 ## <summary>
@@ -12,19 +12,19 @@
 ## </summary>
 ## </param>
 #
-interface(`raven_domtrans',`
+interface(`avian_domtrans',`
 	gen_require(`
-		type raven_t, raven_exec_t;
+		type avian_t, avian_exec_t;
 	')
 
 	corecmd_search_bin($1)
-	domtrans_pattern($1, raven_exec_t, raven_t)
+	domtrans_pattern($1, avian_exec_t, avian_t)
 ')
 
 
 ########################################
 ## <summary>
-##	Execute raven server in the raven domain.
+##	Execute avian server in the avian domain.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -32,18 +32,18 @@ interface(`raven_domtrans',`
 ##	</summary>
 ## </param>
 #
-interface(`raven_initrc_domtrans',`
+interface(`avian_initrc_domtrans',`
 	gen_require(`
-		type raven_initrc_exec_t;
+		type avian_initrc_exec_t;
 	')
 
-	init_labeled_script_domtrans($1, raven_initrc_exec_t)
+	init_labeled_script_domtrans($1, avian_initrc_exec_t)
 ')
 
 
 ########################################
 ## <summary>
-##	Search raven lib directories.
+##	Search avian lib directories.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -51,18 +51,18 @@ interface(`raven_initrc_domtrans',`
 ##	</summary>
 ## </param>
 #
-interface(`raven_search_lib',`
+interface(`avian_search_lib',`
 	gen_require(`
-		type raven_var_lib_t;
+		type avian_var_lib_t;
 	')
 
-	allow $1 raven_var_lib_t:dir search_dir_perms;
+	allow $1 avian_var_lib_t:dir search_dir_perms;
 	files_search_var_lib($1)
 ')
 
 ########################################
 ## <summary>
-##	Read raven lib files.
+##	Read avian lib files.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -70,18 +70,18 @@ interface(`raven_search_lib',`
 ##	</summary>
 ## </param>
 #
-interface(`raven_read_lib_files',`
+interface(`avian_read_lib_files',`
 	gen_require(`
-		type raven_var_lib_t;
+		type avian_var_lib_t;
 	')
 
 	files_search_var_lib($1)
-	read_files_pattern($1, raven_var_lib_t, raven_var_lib_t)
+	read_files_pattern($1, avian_var_lib_t, avian_var_lib_t)
 ')
 
 ########################################
 ## <summary>
-##	Manage raven lib files.
+##	Manage avian lib files.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -89,18 +89,18 @@ interface(`raven_read_lib_files',`
 ##	</summary>
 ## </param>
 #
-interface(`raven_manage_lib_files',`
+interface(`avian_manage_lib_files',`
 	gen_require(`
-		type raven_var_lib_t;
+		type avian_var_lib_t;
 	')
 
 	files_search_var_lib($1)
-	manage_files_pattern($1, raven_var_lib_t, raven_var_lib_t)
+	manage_files_pattern($1, avian_var_lib_t, avian_var_lib_t)
 ')
 
 ########################################
 ## <summary>
-##	Manage raven lib directories.
+##	Manage avian lib directories.
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -108,20 +108,20 @@ interface(`raven_manage_lib_files',`
 ##	</summary>
 ## </param>
 #
-interface(`raven_manage_lib_dirs',`
+interface(`avian_manage_lib_dirs',`
 	gen_require(`
-		type raven_var_lib_t;
+		type avian_var_lib_t;
 	')
 
 	files_search_var_lib($1)
-	manage_dirs_pattern($1, raven_var_lib_t, raven_var_lib_t)
+	manage_dirs_pattern($1, avian_var_lib_t, avian_var_lib_t)
 ')
 
 
 ########################################
 ## <summary>
 ##	All of the rules required to administrate
-##	a raven environment
+##	a avian environment
 ## </summary>
 ## <param name="domain">
 ##	<summary>
@@ -135,23 +135,23 @@ interface(`raven_manage_lib_dirs',`
 ## </param>
 ## <rolecap/>
 #
-interface(`raven_admin',`
+interface(`avian_admin',`
 	gen_require(`
-		type raven_t;
-		type raven_initrc_exec_t;
-		type raven_var_lib_t;
+		type avian_t;
+		type avian_initrc_exec_t;
+		type avian_var_lib_t;
 	')
 
-	allow $1 raven_t:process { ptrace signal_perms };
-	ps_process_pattern($1, raven_t)
+	allow $1 avian_t:process { ptrace signal_perms };
+	ps_process_pattern($1, avian_t)
 
-	raven_initrc_domtrans($1)
+	avian_initrc_domtrans($1)
 	domain_system_change_exemption($1)
-	role_transition $2 raven_initrc_exec_t system_r;
+	role_transition $2 avian_initrc_exec_t system_r;
 	allow $2 system_r;
 
 	files_search_var_lib($1)
-	admin_pattern($1, raven_var_lib_t)
+	admin_pattern($1, avian_var_lib_t)
 
 ')
 

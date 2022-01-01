@@ -1,5 +1,5 @@
 // Copyright (c) 2012-2016 The Bitcoin Core developers
-// Copyright (c) 2017 The Raven Core developers
+// Copyright (c) 2017-2019 The Raven Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -10,7 +10,7 @@
 #include "script/script.h"
 #include "script/standard.h"
 #include "uint256.h"
-#include "test/test_raven.h"
+#include "test/test_avian.h"
 
 #include <vector>
 
@@ -28,9 +28,9 @@ BOOST_FIXTURE_TEST_SUITE(sigopcount_tests, BasicTestingSetup)
 
     BOOST_AUTO_TEST_CASE(GetSigOpCount_test)
     {
-        BOOST_TEST_MESSAGE("Running GetSigOpCount Test");
+        BOOST_TEST_MESSAGE("Running get_sig_op_count Test");
 
-        // Test CScript::GetSigOpCount()
+        // Test CScript::get_sig_op_count()
         CScript s1;
         BOOST_CHECK_EQUAL(s1.GetSigOpCount(false), 0U);
         BOOST_CHECK_EQUAL(s1.GetSigOpCount(true), 0U);

@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 # Copyright (c) 2017 The Bitcoin Core developers
-# Copyright (c) 2017 The Raven Core developers
+# Copyright (c) 2017-2020 The Raven Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
+
 """Class for aviand node under test"""
 
 import decimal
@@ -11,20 +12,17 @@ import http.client
 import json
 import logging
 import os
+import re
 import subprocess
 import time
 
-from .util import (
-    assert_equal,
-    get_rpc_proxy,
-    rpc_url,
-    wait_until,
-)
-from .authproxy import JSONRPCException
+from .util import assert_equal, get_rpc_proxy, rpc_url, wait_until
+from .authproxy import JSONRPCException, AuthServiceProxy
 
 AVIAND_PROC_WAIT_TIMEOUT = 60
 
-class TestNode():
+
+class TestNode:
     """A class for representing a aviand node under test.
 
     This class contains:
@@ -51,19 +49,21 @@ class TestNode():
             self.binary = binary
         self.stderr = stderr
         self.coverage_dir = coverage_dir
-        # Most callers will just need to add extra args to the standard list below. For those callers that need more flexibity, they can just set the args property directly.
+        # Most callers will just need to add extra args to the standard list below. For those callers that need more flexibility, they can just set the args property directly.
         self.extra_args = extra_args
-        self.args = [self.binary, "-datadir=" + self.datadir, "-server", "-keypool=1", "-discover=0", "-rest", "-logtimemicros", "-debug", "-debugexclude=libevent", "-debugexclude=leveldb", "-mocktime=" + str(mocktime), "-uacomment=testnode%d" % i]
+        self.args = [self.binary, "-datadir=" + self.datadir, "-server", "-keypool=2", "-discover=0", "-rest", "-logtimemicros", "-debug", "-debugexclude=libevent", "-debugexclude=leveldb", "-bip44=1", "-mocktime=" + str(mocktime), "-uacomment=testnode%d" % i]
 
-        self.cli = TestNodeCLI(os.getenv("RAVENCLI", "avian-cli"), self.datadir)
+        self.cli = TestNodeCLI(os.getenv("AVIANCLI", "avian-cli"), self.datadir)
 
         self.running = False
+        AuthServiceProxy.running = False
         self.process = None
         self.rpc_connected = False
         self.rpc = None
         self.url = None
         self.log = logging.getLogger('TestFramework.node%d' % i)
-        self.cleanup_on_exit = True # Whether to kill the node when this object goes away
+        self.cleanup_on_exit = True  # Whether to kill the node when this object goes away
+        self.p2ps = []
 
     def __del__(self):
         # Ensure that we don't leave any aviand processes lying around after
@@ -72,7 +72,7 @@ class TestNode():
             # Should only happen on test failure
             # Avoid using logger, as that may have already been shutdown when
             # this destructor is called.
-            print("Cleaning up leftover process")
+            self.log.info("Cleaning up leftover process")
             self.process.kill()
 
     def __getattr__(self, *args, **kwargs):
@@ -88,6 +88,7 @@ class TestNode():
             stderr = self.stderr
         self.process = subprocess.Popen(self.args + extra_args, stderr=stderr)
         self.running = True
+        AuthServiceProxy.running = True
         self.log.debug("aviand started, waiting for RPC to come up")
 
     def wait_for_rpc_connection(self):
@@ -97,7 +98,7 @@ class TestNode():
         for _ in range(poll_per_s * self.rpc_timeout):
             assert self.process.poll() is None, "aviand exited with status %i during initialization" % self.process.returncode
             try:
-                self.rpc = get_rpc_proxy(rpc_url(self.datadir, self.index, self.rpchost), self.index, timeout=self.rpc_timeout, coveragedir=self.coverage_dir)
+                self.rpc = get_rpc_proxy(rpc_url(self.datadir, self.index, self.rpchost), self.index, timeout=self.rpc_timeout, coverage_dir=self.coverage_dir)
                 self.rpc.getblockcount()
                 # If the call to getblockcount() succeeds then the RPC connection is up
                 self.rpc_connected = True
@@ -146,6 +147,7 @@ class TestNode():
         # process has stopped. Assert that it didn't return an error code.
         assert_equal(return_code, 0)
         self.running = False
+        AuthServiceProxy.running = False
         self.process = None
         self.rpc_connected = False
         self.rpc = None
@@ -153,7 +155,32 @@ class TestNode():
         return True
 
     def wait_until_stopped(self, timeout=AVIAND_PROC_WAIT_TIMEOUT):
-        wait_until(self.is_node_stopped, timeout=timeout)
+        wait_until(self.is_node_stopped, err_msg="Wait until Stopped", timeout=timeout)
+
+    def assert_debug_log(self, expected_msgs, timeout=2):
+        time_end = time.time() + timeout
+        debug_log = os.path.join(self.datadir, self.chain, 'debug.log')
+        with open(debug_log, encoding='utf-8') as dl:
+            dl.seek(0, 2)
+            prev_size = dl.tell()
+
+        yield
+
+        while True:
+            found = True
+            with open(debug_log, encoding='utf-8') as dl:
+                dl.seek(prev_size)
+                log = dl.read()
+            print_log = " - " + "\n - ".join(log.splitlines())
+            for expected_msg in expected_msgs:
+                if re.search(re.escape(expected_msg), log, flags=re.MULTILINE) is None:
+                    found = False
+            if found:
+                return
+            if time.time() >= time_end:
+                break
+            time.sleep(0.05)
+        self._raise_assertion_error('Expected messages "{}" does not partially match log:\n\n{}\n\n'.format(str(expected_msgs), print_log))
 
     def node_encrypt_wallet(self, passphrase):
         """"Encrypts the wallet.
@@ -163,7 +190,8 @@ class TestNode():
         self.encryptwallet(passphrase)
         self.wait_until_stopped()
 
-class TestNodeCLI():
+
+class TestNodeCLI:
     """Interface to avian-cli for an individual node"""
 
     def __init__(self, binary, datadir):
@@ -172,15 +200,16 @@ class TestNodeCLI():
         self.datadir = datadir
         self.input = None
 
-    def __call__(self, *args, input=None):
+    def __call__(self, *args, input_data=None):
         # TestNodeCLI is callable with avian-cli command-line args
         self.args = [str(arg) for arg in args]
-        self.input = input
+        self.input = input_data
         return self
 
     def __getattr__(self, command):
         def dispatcher(*args, **kwargs):
             return self.send_cli(command, *args, **kwargs)
+
         return dispatcher
 
     def send_cli(self, command, *args, **kwargs):

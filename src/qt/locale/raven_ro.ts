@@ -1,4 +1,6 @@
-<TS language="ro" version="2.1">
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE TS>
+<TS version="2.1" language="ro">
 <context>
     <name>AddressBookPage</name>
     <message>
@@ -76,7 +78,7 @@
     </message>
 </context>
 <context>
-    <name>RavenGUI</name>
+    <name>AvianGUI</name>
     <message>
         <source>Sign &amp;message...</source>
         <translation>Semnează &amp;mesajul...</translation>
@@ -143,7 +145,7 @@
     </message>
     <message>
         <source>Send coins to a Avian address</source>
-        <translation>Trimite monedele către o adresă Raven</translation>
+        <translation>Trimite monedele către o adresă Avian</translation>
     </message>
     <message>
         <source>Backup wallet to another location</source>
@@ -166,8 +168,8 @@
         <translation>&amp;Verifică mesajul...</translation>
     </message>
     <message>
-        <source>Raven</source>
-        <translation>Raven</translation>
+        <source>Avian</source>
+        <translation>Avian</translation>
     </message>
     <message>
         <source>Wallet</source>
@@ -195,11 +197,11 @@
     </message>
     <message>
         <source>Sign messages with your Avian addresses to prove you own them</source>
-        <translation>Semnează mesajele cu adresa ta de Raven pentru a face dovada că îți aparțin.</translation>
+        <translation>Semnează mesajele cu adresa ta de Avian pentru a face dovada că îți aparțin.</translation>
     </message>
     <message>
         <source>Verify messages to ensure they were signed with specified Avian addresses</source>
-        <translation>Verifică mesajele cu scopul de a asigura faptul că au fost semnate cu adresa de Raven specificată.</translation>
+        <translation>Verifică mesajele cu scopul de a asigura faptul că au fost semnate cu adresa de Avian specificată.</translation>
     </message>
     <message>
         <source>&amp;File</source>
@@ -746,10 +748,10 @@
     <name>WalletView</name>
     </context>
 <context>
-    <name>raven-core</name>
+    <name>avian-core</name>
     <message>
-        <source>Raven Core</source>
-        <translation>Raven Core</translation>
+        <source>Avian Core</source>
+        <translation>Avian Core</translation>
     </message>
     <message>
         <source>Information</source>

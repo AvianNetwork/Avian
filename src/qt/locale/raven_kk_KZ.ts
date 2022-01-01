@@ -1,4 +1,6 @@
-<TS language="kk_KZ" version="2.1">
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE TS>
+<TS version="2.1" language="kk_KZ">
 <context>
     <name>AddressBookPage</name>
     <message>
@@ -48,7 +50,7 @@
     <name>BanTableModel</name>
     </context>
 <context>
-    <name>RavenGUI</name>
+    <name>AvianGUI</name>
     <message>
         <source>&amp;Transactions</source>
         <translation>&amp;Транзакциялар</translation>
@@ -70,7 +72,7 @@
         <translation>Құпия сөзді өзгерту</translation>
     </message>
     <message>
-        <source>Raven</source>
+        <source>Avian</source>
         <translation>Биткоин</translation>
     </message>
     <message>
@@ -298,7 +300,7 @@
     <name>WalletView</name>
     </context>
 <context>
-    <name>raven-core</name>
+    <name>avian-core</name>
     <message>
         <source>Information</source>
         <translation>Информация</translation>

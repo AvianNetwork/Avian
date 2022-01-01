@@ -1,0 +1,23 @@
+FROM arm32v7/ubuntu:latest
+
+MAINTAINER cade <cade.call@mediciventures.com>
+
+EXPOSE $RPCPORT
+
+EXPOSE $PORT
+
+RUN useradd -ms /bin/bash avian
+
+RUN mkdir /etc/avian
+
+RUN mkdir /var/lib/avian
+
+RUN chown avian:avian /etc/avian /var/lib/avian
+
+WORKDIR /home/avian
+
+COPY --chown=avian:avian linux64/* ./run.sh /home/avian/
+
+USER avian
+
+CMD ["/home/avian/run.sh"]

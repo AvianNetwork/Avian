@@ -1,6 +1,6 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
 // Copyright (c) 2009-2016 The Bitcoin Core developers
-// Copyright (c) 2017 The Raven Core developers
+// Copyright (c) 2017-2019 The Raven Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -81,7 +81,9 @@ static bool SignStep(const BaseSignatureCreator& creator, const CScript& scriptP
     case TX_NONSTANDARD:
     case TX_NULL_DATA:
         return false;
-    /** RVN START */
+    case TX_RESTRICTED_ASSET_DATA:
+        return false;
+    /** AVN START */
     case TX_NEW_ASSET:
         keyID = CKeyID(uint160(vSolutions[0]));
         if (!Sign1(keyID, creator, scriptPubKey, ret, sigversion))
@@ -116,7 +118,7 @@ static bool SignStep(const BaseSignatureCreator& creator, const CScript& scriptP
             ret.push_back(ToByteVector(vch));
         }
         return true;
-    /** RVN END */
+    /** AVN END */
     case TX_PUBKEY:
         keyID = CPubKey(vSolutions[0]).GetID();
         return Sign1(keyID, creator, scriptPubKey, ret, sigversion);
@@ -219,11 +221,7 @@ bool ProduceSignature(const BaseSignatureCreator& creator, const CScript& fromPu
     sigdata.scriptSig = PushAll(result);
 
     // Test solution
-    if (!IsUAHFenabledForCurrentBlock()) {
-    	return solved && VerifyScript(sigdata.scriptSig, fromPubKey, &sigdata.scriptWitness, STANDARD_SCRIPT_VERIFY_FLAGS, creator.Checker());
-    } else {
-    	return solved && VerifyScript(sigdata.scriptSig, fromPubKey, &sigdata.scriptWitness, STANDARD_SCRIPT_VERIFY_FLAGS | SCRIPT_ENABLE_SIGHASH_FORKID, creator.Checker());
-    }
+    return solved && VerifyScript(sigdata.scriptSig, fromPubKey, &sigdata.scriptWitness, STANDARD_SCRIPT_VERIFY_FLAGS, creator.Checker());
 }
 
 SignatureData DataFromTransaction(const CMutableTransaction& tx, unsigned int nIn)
@@ -354,6 +352,11 @@ static Stacks CombineSignatures(const CScript& scriptPubKey, const BaseSignature
         if (sigs1.script.size() >= sigs2.script.size())
             return sigs1;
         return sigs2;
+    case TX_RESTRICTED_ASSET_DATA:
+        // Don't know anything about this, assume bigger one is correct:
+        if (sigs1.script.size() >= sigs2.script.size())
+            return sigs1;
+        return sigs2;
     case TX_PUBKEY:
     case TX_PUBKEYHASH:
         // Signatures are bigger than placeholders or empty scripts:
@@ -465,10 +468,6 @@ const BaseSignatureChecker& DummySignatureCreator::Checker() const
 bool DummySignatureCreator::CreateSig(std::vector<unsigned char>& vchSig, const CKeyID& keyid, const CScript& scriptCode, SigVersion sigversion) const
 {
     // Create a dummy signature that is a valid DER-encoding
-    uint32_t nHashType = SIGHASH_ALL;
-    if (IsUAHFenabledForCurrentBlock()) {
-        nHashType |= SIGHASH_FORKID;
-    }
     vchSig.assign(72, '\000');
     vchSig[0] = 0x30;
     vchSig[1] = 69;
@@ -478,6 +477,6 @@ bool DummySignatureCreator::CreateSig(std::vector<unsigned char>& vchSig, const 
     vchSig[4 + 33] = 0x02;
     vchSig[5 + 33] = 32;
     vchSig[6 + 33] = 0x01;
-    vchSig[6 + 33 + 32] = nHashType;
+    vchSig[6 + 33 + 32] = SIGHASH_ALL;
     return true;
 }

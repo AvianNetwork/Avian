@@ -1,5 +1,5 @@
 // Copyright (c) 2009-2016 The Bitcoin Core developers
-// Copyright (c) 2017 The Raven Core developers
+// Copyright (c) 2017-2019 The Raven Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -14,6 +14,7 @@
 #include "streams.h"
 #include <univalue.h>
 #include <iomanip>
+#include <wallet/wallet.h>
 #include "util.h"
 #include "utilmoneystr.h"
 #include "utilstrencodings.h"
@@ -83,14 +84,10 @@ std::string FormatScript(const CScript& script)
 const std::map<unsigned char, std::string> mapSigHashTypes = {
     {static_cast<unsigned char>(SIGHASH_ALL), std::string("ALL")},
     {static_cast<unsigned char>(SIGHASH_ALL|SIGHASH_ANYONECANPAY), std::string("ALL|ANYONECANPAY")},
-    {static_cast<unsigned char>(SIGHASH_ALL|SIGHASH_FORKID), std::string("ALL|FORKID")},
-    {static_cast<unsigned char>(SIGHASH_ALL|SIGHASH_FORKID|SIGHASH_ANYONECANPAY), std::string("ALL|FORKID|ANYONECANPAY")},
     {static_cast<unsigned char>(SIGHASH_NONE), std::string("NONE")},
     {static_cast<unsigned char>(SIGHASH_NONE|SIGHASH_ANYONECANPAY), std::string("NONE|ANYONECANPAY")},
-    {static_cast<unsigned char>(SIGHASH_NONE|SIGHASH_FORKID), std::string("NONE|FORKID")},
-    {static_cast<unsigned char>(SIGHASH_NONE|SIGHASH_FORKID|SIGHASH_ANYONECANPAY), std::string("NONE|FORKID|ANYONECANPAY")},
-    {static_cast<unsigned char>(SIGHASH_SINGLE|SIGHASH_FORKID), std::string("SINGLE|FORKID")},
-    {static_cast<unsigned char>(SIGHASH_SINGLE|SIGHASH_FORKID|SIGHASH_ANYONECANPAY), std::string("SINGLE|SIGHASH_FORKID|ANYONECANPAY")},
+    {static_cast<unsigned char>(SIGHASH_SINGLE), std::string("SINGLE")},
+    {static_cast<unsigned char>(SIGHASH_SINGLE|SIGHASH_ANYONECANPAY), std::string("SINGLE|ANYONECANPAY")},
 };
 
 /**
@@ -110,11 +107,18 @@ std::string ScriptToAsmStr(const CScript& script, const bool fAttemptSighashDeco
         if (!str.empty()) {
             str += " ";
         }
+
         if (!script.GetOp(pc, opcode, vch)) {
             str += "[error]";
             return str;
         }
-        if (0 <= opcode && opcode <= OP_PUSHDATA4) {
+
+        if (opcode == OP_AVN_ASSET) {
+            // Once we hit an OP_AVN_ASSET, we know that all the next data should be considered as hex
+            str += GetOpName(opcode);
+            str += " ";
+            str += HexStr(vch);
+        } else if (0 <= opcode && opcode <= OP_PUSHDATA4) {
             if (vch.size() <= static_cast<std::vector<unsigned char>::size_type>(4)) {
                 str += strprintf("%d", CScriptNum(vch, false).getint());
             } else {
@@ -125,17 +129,8 @@ std::string ScriptToAsmStr(const CScript& script, const bool fAttemptSighashDeco
                     // this won't decode correctly formatted public keys in Pubkey or Multisig scripts due to
                     // the restrictions on the pubkey formats (see IsCompressedOrUncompressedPubKey) being incongruous with the
                     // checks in CheckSignatureEncoding.
-                    uint32_t flags = SCRIPT_VERIFY_STRICTENC;
-                    if (vch.back() & SIGHASH_FORKID) {
-                        // If the transaction is using SIGHASH_FORKID, we need
-                        // to set the apropriate flag.
-                        // TODO: Remove after the Hard Fork.
-                        flags |= SCRIPT_ENABLE_SIGHASH_FORKID;
-                    }
-
-                    if (CheckSignatureEncoding(vch, flags , nullptr)) {
+                    if (CheckSignatureEncoding(vch, SCRIPT_VERIFY_STRICTENC, nullptr)) {
                         const unsigned char chSigHashType = vch.back();
-                        std::cout << "chsSigHashType" << chSigHashType << std::endl;
                         if (mapSigHashTypes.count(chSigHashType)) {
                             strSigHashDecode = "[" + mapSigHashTypes.find(chSigHashType)->second + "]";
                             vch.pop_back(); // remove the sighash type byte. it will be replaced by the decode.
@@ -179,21 +174,35 @@ void ScriptPubKeyToUniv(const CScript& scriptPubKey,
     out.pushKV("reqSigs", nRequired);
     out.pushKV("type", GetTxnOutputType(type));
 
-    /** RVN START */
+    /** AVN START */
     if (type == TX_NEW_ASSET || type == TX_TRANSFER_ASSET || type == TX_REISSUE_ASSET) {
         UniValue assetInfo(UniValue::VOBJ);
 
-        std::string name;
-        CAmount amount;
         std::string _assetAddress;
 
-        if (GetAssetInfoFromScript(scriptPubKey, name, amount)) {
-            assetInfo.pushKV("name", name);
-            assetInfo.pushKV("amount", ValueFromAmount(amount));
+        CAssetOutputEntry data;
+        if (GetAssetData(scriptPubKey, data)) {
+            assetInfo.pushKV("name", data.assetName);
+            assetInfo.pushKV("amount", ValueFromAmount(data.nAmount));
+            if (!data.message.empty())
+                assetInfo.pushKV("message", EncodeAssetData(data.message));
+            if(data.expireTime)
+                assetInfo.pushKV("expire_time", data.expireTime);
 
             switch (type) {
+                case TX_NONSTANDARD:
+                case TX_PUBKEY:
+                case TX_PUBKEYHASH:
+                case TX_SCRIPTHASH:
+                case TX_MULTISIG:
+                case TX_NULL_DATA:
+                case TX_WITNESS_V0_SCRIPTHASH:
+                case TX_WITNESS_V0_KEYHASH:
+                case TX_RESTRICTED_ASSET_DATA:
+                default:
+                    break;
                 case TX_NEW_ASSET:
-                    if (IsAssetNameAnOwner(name)) {
+                    if (IsAssetNameAnOwner(data.assetName)) {
                         // pwnd n00b
                     } else {
                         CNewAsset asset;
@@ -201,7 +210,7 @@ void ScriptPubKeyToUniv(const CScript& scriptPubKey,
                             assetInfo.pushKV("units", asset.units);
                             assetInfo.pushKV("reissuable", asset.nReissuable > 0 ? true : false);
                             if (asset.nHasIPFS > 0) {
-                                assetInfo.pushKV("ipfs_hash", EncodeIPFS(asset.strIPFSHash));
+                                assetInfo.pushKV("ipfs_hash", EncodeAssetData(asset.strIPFSHash));
                             }
                         }
                     }
@@ -216,7 +225,7 @@ void ScriptPubKeyToUniv(const CScript& scriptPubKey,
                         }
                         assetInfo.pushKV("reissuable", asset.nReissuable > 0 ? true : false);
                         if (!asset.strIPFSHash.empty()) {
-                            assetInfo.pushKV("ipfs_hash", EncodeIPFS(asset.strIPFSHash));
+                            assetInfo.pushKV("ipfs_hash", EncodeAssetData(asset.strIPFSHash));
                         }
                     }
                     break;
@@ -225,7 +234,35 @@ void ScriptPubKeyToUniv(const CScript& scriptPubKey,
 
         out.pushKV("asset", assetInfo);
     }
-     /** RVN END */
+
+    if (type == TX_RESTRICTED_ASSET_DATA) {
+        UniValue assetInfo(UniValue::VOBJ);
+        CNullAssetTxData data;
+        CNullAssetTxVerifierString verifierData;
+        std::string address;
+        if (AssetNullDataFromScript(scriptPubKey, data, address)) {
+            AssetType type;
+            IsAssetNameValid(data.asset_name, type);
+            if (type == AssetType::QUALIFIER || type == AssetType::SUB_QUALIFIER) {
+                assetInfo.pushKV("asset_name", data.asset_name);
+                assetInfo.pushKV("qualifier_type", data.flag ? "adding qualifier" : "removing qualifier");
+                assetInfo.pushKV("address", address);
+            } else if (type == AssetType::RESTRICTED) {
+                assetInfo.pushKV("asset_name", data.asset_name);
+                assetInfo.pushKV("restricted_type", data.flag ? "freezing address" : "unfreezing address");
+                assetInfo.pushKV("address", address);
+            }
+        } else if (GlobalAssetNullDataFromScript(scriptPubKey, data)) {
+            assetInfo.pushKV("restricted_name", data.asset_name);
+            assetInfo.pushKV("restricted_type", data.flag ? "freezing" : "unfreezing");
+            assetInfo.pushKV("address", "all addresses");
+        } else if (AssetNullVerifierDataFromScript(scriptPubKey, verifierData)) {
+            assetInfo.pushKV("verifier_string", verifierData.verifier_string);
+        }
+
+        out.pushKV("asset_data", assetInfo);
+    }
+     /** AVN END */
 
     UniValue a(UniValue::VARR);
     for (const CTxDestination& addr : addresses) {

@@ -3,7 +3,7 @@
 <plist version="1.0">
 <dict>
 	<key>Label</key>
-	<string>org.raven.aviand</string>
+	<string>org.avian.aviand</string>
 	<key>ProgramArguments</key>
 	<array>
 		<string>/usr/local/bin/aviand</string>

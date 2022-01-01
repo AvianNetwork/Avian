@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-#  aviand The raven core server.
+#  aviand The avian core server.
 #
 #
 # chkconfig: 345 80 20

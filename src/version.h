@@ -1,16 +1,16 @@
 // Copyright (c) 2012-2016 The Bitcoin Core developers
-// Copyright (c) 2017 The Raven Core developers
+// Copyright (c) 2017-2020 The Raven Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef RAVEN_VERSION_H
-#define RAVEN_VERSION_H
+#ifndef AVIAN_VERSION_H
+#define AVIAN_VERSION_H
 
 /**
  * network protocol versioning
  */
 
-static const int PROTOCOL_VERSION = 70031;
+static const int PROTOCOL_VERSION = 70032;
 
 //! initial proto version, to be increased after version/verack negotiation
 static const int INIT_PROTO_VERSION = 209;
@@ -55,4 +55,4 @@ static const int ASSETDATA_VERSION_UPDATED = 70020;
 //! getassetdata reutrn asstnotfound, and assetdata doesn't have blockhash in the data
 static const int X16RV2_VERSION = 70025;
 
-#endif // RAVEN_VERSION_H
+#endif // AVIAN_VERSION_H

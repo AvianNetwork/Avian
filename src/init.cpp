@@ -1,6 +1,6 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
 // Copyright (c) 2009-2016 The Bitcoin Core developers
-// Copyright (c) 2017 The Raven Core developers
+// Copyright (c) 2017-2020 The Raven Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -47,8 +47,10 @@
 #include "validationinterface.h"
 #include "assets/assets.h"
 #include "assets/assetdb.h"
+#include "assets/snapshotrequestdb.h"
 #ifdef ENABLE_WALLET
 #include "wallet/init.h"
+#include <wallet/wallet.h>
 #endif
 #include "warnings.h"
 #include "tinyformat.h"
@@ -63,7 +65,9 @@
 #include <boost/algorithm/string/classification.hpp>
 #include <boost/algorithm/string/replace.hpp>
 #include <boost/algorithm/string/split.hpp>
-#include <boost/bind.hpp>
+// Fixing Boost 1.73 compile errors
+#include <boost/bind/bind.hpp>
+using namespace boost::placeholders;
 #include <boost/interprocess/sync/file_lock.hpp>
 #include <boost/thread.hpp>
 #include <openssl/crypto.h>
@@ -121,11 +125,16 @@ static const char* FEE_ESTIMATES_FILENAME="fee_estimates.dat";
 //
 
 std::atomic<bool> fRequestShutdown(false);
+std::atomic<bool> fRequestRestart(false);
 std::atomic<bool> fDumpMempoolLater(false);
 
 void StartShutdown()
 {
     fRequestShutdown = true;
+}
+void StartRestart()
+{
+    fRequestShutdown = fRequestRestart = true;
 }
 bool ShutdownRequested()
 {
@@ -172,7 +181,8 @@ void Interrupt(boost::thread_group& threadGroup)
     threadGroup.interrupt_all();
 }
 
-void Shutdown()
+/** Preparing steps before shutting down or restarting the wallet */
+void PrepareShutdown()
 {
     LogPrintf("%s: In progress...\n", __func__);
     static CCriticalSection cs_Shutdown;
@@ -184,7 +194,7 @@ void Shutdown()
     /// for example if the data directory was found to be locked.
     /// Be sure that anything that writes files or flushes caches only does this if the respective
     /// module was initialized.
-    RenameThread("raven-shutoff");
+    RenameThread("avian-shutoff");
     mempool.AddTransactionsUpdated(1);
 
     StopHTTPRPC();
@@ -194,7 +204,7 @@ void Shutdown()
 #ifdef ENABLE_WALLET
     FlushWallets();
 #endif
-    GenerateRavens(false, 0, Params());
+    GenerateAvians(false, 0, GetParams());
 
     MapPort(false);
 
@@ -205,7 +215,6 @@ void Shutdown()
     peerLogic.reset();
     g_connman.reset();
 
-    StopTorControl();
     if (fDumpMempoolLater && gArgs.GetArg("-persistmempool", DEFAULT_PERSIST_MEMPOOL)) {
         DumpMempool();
     }
@@ -244,18 +253,72 @@ void Shutdown()
         }
         delete pcoinsTip;
         pcoinsTip = nullptr;
+
         delete pcoinscatcher;
         pcoinscatcher = nullptr;
+
         delete pcoinsdbview;
         pcoinsdbview = nullptr;
+
         delete pblocktree;
         pblocktree = nullptr;
+
+        /** AVN START */
         delete passets;
         passets = nullptr;
+
         delete passetsdb;
         passetsdb = nullptr;
+
         delete passetsCache;
         passetsCache = nullptr;
+
+        delete pMessagesCache;
+        pMessagesCache = nullptr;
+
+        delete pMessageSubscribedChannelsCache;
+        pMessageSubscribedChannelsCache = nullptr;
+
+        delete pMessagesSeenAddressCache;
+        pMessagesSeenAddressCache = nullptr;
+
+        delete pmessagechanneldb;
+        pmessagechanneldb = nullptr;
+
+        delete pmessagedb;
+        pmessagedb = nullptr;
+
+        delete pmyrestricteddb;
+        pmyrestricteddb = nullptr;
+
+        delete passetsVerifierCache;
+        passetsVerifierCache = nullptr;
+
+        delete passetsQualifierCache;
+        passetsQualifierCache = nullptr;
+
+        delete passetsRestrictionCache;
+        passetsRestrictionCache = nullptr;
+
+        delete passetsGlobalRestrictionCache;
+        passetsGlobalRestrictionCache = nullptr;
+
+        delete prestricteddb;
+        prestricteddb = nullptr;
+
+        delete pmessagechanneldb;
+        pmessagechanneldb = nullptr;
+
+        delete pSnapshotRequestDb;
+        pSnapshotRequestDb = nullptr;
+
+        delete pAssetSnapshotDb;
+        pAssetSnapshotDb = nullptr;
+
+        delete pDistributeSnapshotDb;
+        pDistributeSnapshotDb = nullptr;
+
+        /** AVN END */
     }
 #ifdef ENABLE_WALLET
     StopWallets();
@@ -278,9 +341,28 @@ void Shutdown()
 #endif
     UnregisterAllValidationInterfaces();
     GetMainSignals().UnregisterBackgroundSignalScheduler();
-#ifdef ENABLE_WALLET
+}
+
+/**
+* Shutdown is split into 2 parts:
+* Part 1: shut down everything but the main wallet instance (done in PrepareShutdown() )
+* Part 2: delete wallet instance
+*
+* In case of a restart PrepareShutdown() was already called before, but this method here gets
+* called implicitly when the parent object is deleted. In this case we have to skip the
+* PrepareShutdown() part because it was already executed and just delete the wallet instance.
+*/
+void Shutdown()
+{
+    // Shutdown part 1: prepare shutdown
+    if(!fRequestRestart) {
+        PrepareShutdown();
+    }
+    // Shutdown part 2: Stop TOR thread and close wallets
+    StopTorControl();
+ #ifdef ENABLE_WALLET
     CloseWallets();
-#endif
+ #endif
     globalVerifyHandle.reset();
     ECC_Stop();
     LogPrintf("%s: done\n", __func__);
@@ -331,6 +413,16 @@ std::string HelpMessage(HelpMessageMode mode)
     const auto testnetBaseParams = CreateBaseChainParams(CBaseChainParams::TESTNET);
     const auto defaultChainParams = CreateChainParams(CBaseChainParams::MAIN);
     const auto testnetChainParams = CreateChainParams(CBaseChainParams::TESTNET);
+
+    // We want to make sure to set the correct values after we get the help values
+    if (bNetwork.fOnRegtest) {
+        CreateChainParams(CBaseChainParams::REGTEST);
+    } else if (bNetwork.fOnTestnet) {
+        CreateChainParams(CBaseChainParams::TESTNET);
+    } else {
+        CreateChainParams(CBaseChainParams::MAIN);
+    }
+
     const bool showDebug = gArgs.GetBoolArg("-help-debug", false);
 
     // When adding new options to the categories, please keep and ensure alphabetical ordering.
@@ -343,7 +435,7 @@ std::string HelpMessage(HelpMessageMode mode)
     if (showDebug)
         strUsage += HelpMessageOpt("-blocksonly", strprintf(_("Whether to operate in a blocks only mode (default: %u)"), DEFAULT_BLOCKSONLY));
     strUsage +=HelpMessageOpt("-assumevalid=<hex>", strprintf(_("If this block is in the chain assume that it and its ancestors are valid and potentially skip their script verification (0 to verify all, default: %s, testnet: %s)"), defaultChainParams->GetConsensus().defaultAssumeValid.GetHex(), testnetChainParams->GetConsensus().defaultAssumeValid.GetHex()));
-    strUsage += HelpMessageOpt("-conf=<file>", strprintf(_("Specify configuration file (default: %s)"), RAVEN_CONF_FILENAME));
+    strUsage += HelpMessageOpt("-conf=<file>", strprintf(_("Specify configuration file (default: %s)"), AVIAN_CONF_FILENAME));
     if (mode == HMM_AVIAND)
     {
 #if HAVE_DECL_DAEMON
@@ -355,6 +447,7 @@ std::string HelpMessage(HelpMessageMode mode)
         strUsage += HelpMessageOpt("-dbbatchsize", strprintf("Maximum database write batch size in bytes (default: %u)", nDefaultDbBatchSize));
     }
     strUsage += HelpMessageOpt("-dbcache=<n>", strprintf(_("Set database cache size in megabytes (%d to %d, default: %d)"), nMinDbCache, nMaxDbCache, nDefaultDbCache));
+    strUsage += HelpMessageOpt("-disablemessaging", strprintf(_("Turn off the databasing the messages sent with assets (default: %u)"), false));
     if (showDebug)
         strUsage += HelpMessageOpt("-feefilter", strprintf("Tell other nodes to filter invs to us by our mempool min fee (default: %u)", DEFAULT_FEEFILTER));
     strUsage += HelpMessageOpt("-loadblock=<file>", _("Imports blocks from external blk000??.dat file on startup"));
@@ -371,8 +464,10 @@ std::string HelpMessage(HelpMessageMode mode)
     strUsage += HelpMessageOpt("-blockreconstructionextratxn=<n>", strprintf(_("Extra transactions to keep in memory for compact block reconstructions (default: %u)"), DEFAULT_BLOCK_RECONSTRUCTION_EXTRA_TXN));
     strUsage += HelpMessageOpt("-par=<n>", strprintf(_("Set the number of script verification threads (%u to %d, 0 = auto, <0 = leave that many cores free, default: %d)"),
         -GetNumCores(), MAX_SCRIPTCHECK_THREADS, DEFAULT_SCRIPTCHECK_THREADS));
+    strUsage += HelpMessageOpt("-autofixmempool", strprintf(_("When set, if the CreateNewBlock fails because of a transaction. The mempool will be cleared. (default: %d)"), false));
+    strUsage += HelpMessageOpt("-bypassdownload", strprintf(_("When set, if the chain is in initialblockdownload the getblocktemplate rpc call will still return block data (default: %d)"), false));
 #ifndef WIN32
-    strUsage += HelpMessageOpt("-pid=<file>", strprintf(_("Specify pid file (default: %s)"), RAVEN_PID_FILENAME));
+    strUsage += HelpMessageOpt("-pid=<file>", strprintf(_("Specify pid file (default: %s)"), AVIAN_PID_FILENAME));
 #endif
     strUsage += HelpMessageOpt("-prune=<n>", strprintf(_("Reduce storage requirements by enabling pruning (deleting) of old blocks. This allows the pruneblockchain RPC to be called to delete specific blocks, and enables automatic pruning of old blocks if a target size in MiB is provided. This mode is incompatible with -txindex and -rescan. "
             "Warning: Reverting this setting requires re-downloading the entire blockchain. "
@@ -383,6 +478,7 @@ std::string HelpMessage(HelpMessageMode mode)
     strUsage += HelpMessageOpt("-sysperms", _("Create new files with system default permissions, instead of umask 077 (only effective with disabled wallet functionality)"));
 #endif
     strUsage += HelpMessageOpt("-txindex", strprintf(_("Maintain a full transaction index, used by the getrawtransaction rpc call (default: %u)"), DEFAULT_TXINDEX));
+    strUsage += HelpMessageOpt("-assetindex", _("Keep an index of assets, used by the requestsnapshot rpc call. Requires a -reindex."));
 
     strUsage += HelpMessageOpt("-addressindex", strprintf(_("Maintain a full address index, used to query for the balance, txids and unspent outputs for addresses (default: %u)"), DEFAULT_ADDRESSINDEX));
     strUsage += HelpMessageOpt("-timestampindex", strprintf(_("Maintain a timestamp index for block hashes, used to query blocks hashes by a range of timestamps (default: %u)"), DEFAULT_TIMESTAMPINDEX));
@@ -438,6 +534,7 @@ std::string HelpMessage(HelpMessageMode mode)
     strUsage += HelpMessageOpt("-zmqpubhashtx=<address>", _("Enable publish hash transaction in <address>"));
     strUsage += HelpMessageOpt("-zmqpubrawblock=<address>", _("Enable publish raw block in <address>"));
     strUsage += HelpMessageOpt("-zmqpubrawtx=<address>", _("Enable publish raw transaction in <address>"));
+    strUsage += HelpMessageOpt("-zmqpubrawmessage=<address>", _("Enable publish raw asset messages in <address>"));
 #endif
 
     strUsage += HelpMessageGroup(_("Debugging/Testing options:"));
@@ -525,8 +622,6 @@ std::string HelpMessage(HelpMessageMode mode)
         strUsage += HelpMessageOpt("-rpcworkqueue=<n>", strprintf("Set the depth of the work queue to service RPC calls (default: %d)", DEFAULT_HTTP_WORKQUEUE));
         strUsage += HelpMessageOpt("-rpcservertimeout=<n>", strprintf("Timeout during HTTP requests (default: %d)", DEFAULT_HTTP_SERVER_TIMEOUT));
     }
-    // Crow: Allow switching of default pow algo via conf / command line, for miners that can't easily adjust their getblocktemplate calls
-    strUsage += HelpMessageOpt("-powalgo=x16rt|minotaurx", strprintf(_("Default pow mining algorithm. Miners who can't easily adjust their getblocktemplate calls should use this argument to set their preferred mining algorithm. (default: %s)"), DEFAULT_POW_TYPE));
 
     return strUsage;
 }
@@ -637,8 +732,8 @@ void CleanupBlockRevFiles()
 
 void ThreadImport(std::vector<fs::path> vImportFiles)
 {
-    const CChainParams& chainparams = Params();
-    RenameThread("raven-loadblk");
+    const CChainParams& chainparams = GetParams();
+    RenameThread("avian-loadblk");
 
     {
     CImportingNow imp;
@@ -708,7 +803,7 @@ void ThreadImport(std::vector<fs::path> vImportFiles)
 }
 
 /** Sanity checks
- *  Ensure that Raven is running in a usable environment with all
+ *  Ensure that Avian is running in a usable environment with all
  *  necessary library support.
  */
 bool InitSanityCheck(void)
@@ -907,7 +1002,7 @@ bool AppInitBasicSetup()
 
 bool AppInitParameterInteraction()
 {
-    const CChainParams& chainparams = Params();
+    const CChainParams& chainparams = GetParams();
     // ********************************************************* Step 2: parameter interactions
 
     // also see: InitParameterInteraction()
@@ -1173,7 +1268,7 @@ static bool LockDataDirectory(bool probeOnly)
 {
     std::string strDataDir = GetDataDir().string();
 
-    // Make sure only a single Raven process is using the data directory.
+    // Make sure only a single Avian process is using the data directory.
     fs::path pathLockFile = GetDataDir() / ".lock";
     FILE* file = fsbridge::fopen(pathLockFile, "a"); // empty lock file; created if it doesn't exist.
     if (file) fclose(file);
@@ -1227,7 +1322,7 @@ bool AppInitLockDataDirectory()
 
 bool AppInitMain(boost::thread_group& threadGroup, CScheduler& scheduler)
 {
-    const CChainParams& chainparams = Params();
+    const CChainParams& chainparams = GetParams();
     // ********************************************************* Step 4a: application initialization
 #ifndef WIN32
     CreatePidFile(GetPidFile(), getpid());
@@ -1245,7 +1340,7 @@ bool AppInitMain(boost::thread_group& threadGroup, CScheduler& scheduler)
         LogPrintf("Startup time: %s\n", DateTimeStrFormat("%Y-%m-%d %H:%M:%S", GetTime()));
     LogPrintf("Default data directory %s\n", GetDefaultDataDir().string());
     LogPrintf("Using data directory %s\n", GetDataDir().string());
-    LogPrintf("Using config file %s\n", GetConfigFile(gArgs.GetArg("-conf", RAVEN_CONF_FILENAME)).string());
+    LogPrintf("Using config file %s\n", GetConfigFile(gArgs.GetArg("-conf", AVIAN_CONF_FILENAME)).string());
     LogPrintf("Using at most %i automatic connections (%i file descriptors available)\n", nMaxConnections, nFD);
 
     InitSignatureCache();
@@ -1285,7 +1380,7 @@ bool AppInitMain(boost::thread_group& threadGroup, CScheduler& scheduler)
 
     bool fGenerate = gArgs.GetBoolArg("-regtest", false) ? false : DEFAULT_GENERATE;
     // Generate coins in the background
-    GenerateRavens(fGenerate, gArgs.GetArg("-genproclimit", DEFAULT_GENERATE_THREADS), chainparams);
+    GenerateAvians(fGenerate, gArgs.GetArg("-genproclimit", DEFAULT_GENERATE_THREADS), chainparams);
 
     // ********************************************************* Step 6: network initialization
     // Note that we absolutely cannot open any actual connections
@@ -1443,29 +1538,89 @@ bool AppInitMain(boost::thread_group& threadGroup, CScheduler& scheduler)
                 delete pcoinsdbview;
                 delete pcoinscatcher;
                 delete pblocktree;
-
                 pblocktree = new CBlockTreeDB(nBlockTreeDBCache, false, fReset, dbMaxFileSize);
 
+                /** AVN START */
+                {
+                    // Basic assets
+                    delete passets;
+                    delete passetsdb;
+                    delete passetsCache;
 
-                delete passets;
-                delete passetsdb;
-                delete passetsCache;
-                passetsdb = new CAssetsDB(nBlockTreeDBCache, false, fReset);
-                passets = new CAssetsCache();
-                passetsCache = new CLRUCache<std::string, CDatabasedAssetData>(MAX_CACHE_ASSETS_SIZE);
+                    // Messaging assets
+                    delete pmessagedb;
+                    delete pmessagechanneldb;
+                    delete pMessagesCache;
+                    delete pMessagesSeenAddressCache;
+                    delete pMessageSubscribedChannelsCache;
 
-                // Read for fAssetIndex to make sure that we only load asset address balances if it if true
-                pblocktree->ReadFlag("assetindex", fAssetIndex);
-                // Need to load assets before we verify the database
-                if (!passetsdb->LoadAssets()) {
-                    strLoadError = _("Failed to load Assets Database");
-                    break;
+                    // My restricted assets
+                    delete pmyrestricteddb;
+
+                    // Restricted assets
+                    delete prestricteddb;
+                    delete passetsVerifierCache;
+                    delete passetsQualifierCache;
+                    delete passetsRestrictionCache;
+                    delete passetsGlobalRestrictionCache;
+
+                    //  Rewards
+                    delete pSnapshotRequestDb;
+                    delete pAssetSnapshotDb;
+                    delete pDistributeSnapshotDb;
+
+                    // Basic assets
+                    passetsdb = new CAssetsDB(nBlockTreeDBCache, false, fReset);
+                    passets = new CAssetsCache();
+                    passetsCache = new CLRUCache<std::string, CDatabasedAssetData>(MAX_CACHE_ASSETS_SIZE);
+
+                    // Messaging assets
+                    pMessagesCache = new CLRUCache<std::string, CMessage>(1000);
+                    pMessageSubscribedChannelsCache = new CLRUCache<std::string, int>(1000);
+                    pMessagesSeenAddressCache = new CLRUCache<std::string, int>(1000);
+                    pmessagedb = new CMessageDB(nBlockTreeDBCache, false, false);
+                    pmessagechanneldb = new CMessageChannelDB(nBlockTreeDBCache, false, false);
+
+                    // My restricted assets
+                    pmyrestricteddb = new CMyRestrictedDB(nBlockTreeDBCache, false, false);
+
+                    // Restricted assets
+                    prestricteddb = new CRestrictedDB(nBlockTreeDBCache, false, fReset);
+                    passetsVerifierCache = new CLRUCache<std::string, CNullAssetTxVerifierString>(
+                            MAX_CACHE_ASSETS_SIZE);
+                    passetsQualifierCache = new CLRUCache<std::string, int8_t>(MAX_CACHE_ASSETS_SIZE);
+                    passetsRestrictionCache = new CLRUCache<std::string, int8_t>(MAX_CACHE_ASSETS_SIZE);
+                    passetsGlobalRestrictionCache = new CLRUCache<std::string, int8_t>(MAX_CACHE_ASSETS_SIZE);
+
+                    // Rewards
+                    pSnapshotRequestDb = new CSnapshotRequestDB(nBlockTreeDBCache, false, false);
+                    pAssetSnapshotDb = new CAssetSnapshotDB(nBlockTreeDBCache, false, false);
+                    pDistributeSnapshotDb = new CDistributeSnapshotRequestDB(nBlockTreeDBCache, false, false);
+
+                    // Read for fAssetIndex to make sure that we only load asset address balances if it if true
+                    pblocktree->ReadFlag("assetindex", fAssetIndex);
+                    // Need to load assets before we verify the database
+                    if (!passetsdb->LoadAssets()) {
+                        strLoadError = _("Failed to load Assets Database");
+                        break;
+                    }
+
+                    if (!passetsdb->ReadReissuedMempoolState())
+                        LogPrintf(
+                                "Database failed to load last Reissued Mempool State. Will have to start from empty state");
+
+                    LogPrintf("Successfully loaded assets from database.\nCache of assets size: %d\n",
+                              passetsCache->Size());
+
+                    // Check for changed -disablemessaging state
+                    if (gArgs.GetArg("-disablemessaging", false)) {
+                        LogPrintf("Messaging is disabled\n");
+                        fMessaging = false;
+                    } else {
+                        LogPrintf("Messaging is enabled\n");
+                    }
                 }
-
-                if (!passetsdb->ReadReissuedMempoolState())
-                    LogPrintf("Database failed to load last Reissued Mempool State. Will have to start from empty state");
-
-                LogPrintf("Loaded Assets from database without error\nCache of assets size: %d\n", passetsCache->Size());
+                /** AVN END */
 
                 if (fReset) {
                     pblocktree->WriteReindexing(true);
@@ -1494,12 +1649,6 @@ bool AppInitMain(boost::thread_group& threadGroup, CScheduler& scheduler)
                 // Check for changed -txindex state
                 if (fTxIndex != gArgs.GetBoolArg("-txindex", DEFAULT_TXINDEX)) {
                     strLoadError = _("You need to rebuild the database using -reindex to change -txindex");
-                    break;
-                }
-
-                // Check for changed -assetindex state
-                if (fAssetIndex != gArgs.GetBoolArg("-assetindex", DEFAULT_ASSETINDEX)) {
-                    strLoadError = _("You need to rebuild the database using -reindex to change -assetIndex");
                     break;
                 }
 
@@ -1785,14 +1934,34 @@ bool AppInitMain(boost::thread_group& threadGroup, CScheduler& scheduler)
         return false;
     }
 
-    // ********************************************************* Step 12: finished
+
+
+
+
 
     SetRPCWarmupFinished();
-    uiInterface.InitMessage(_("Done loading"));
 
 #ifdef ENABLE_WALLET
     StartWallets(scheduler);
+
+
+    // ********************************************************* Step 12: Init Msg Channel list
+    if (!fReindex && fLoaded && fMessaging && pmessagechanneldb && !gArgs.GetBoolArg("-disablewallet", false)) {
+        bool found;
+        if (!pmessagechanneldb->ReadFlag("init", found)) {
+            uiInterface.InitMessage(_("Init Message Channels - Scanning Asset Transactions"));
+            std::string strLoadError;
+            if (!ScanForMessageChannels(strLoadError)) {
+                LogPrintf("%s : Failed to scan for message channels, %s\n", __func__, strLoadError);
+            } else {
+                pmessagechanneldb->WriteFlag("init", true);
+            }
+        }
+    }
 #endif
+
+    // ********************************************************* Step 13: finished
+    uiInterface.InitMessage(_("Done Loading"));
 
     return !fRequestShutdown;
 }

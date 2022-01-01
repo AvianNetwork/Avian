@@ -1,10 +1,10 @@
 // Copyright (c) 2011-2016 The Bitcoin Core developers
-// Copyright (c) 2017 The Raven Core developers
+// Copyright (c) 2017-2019 The Raven Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef RAVEN_QT_RAVENUNITS_H
-#define RAVEN_QT_RAVENUNITS_H
+#ifndef AVIAN_QT_AVIANUNITS_H
+#define AVIAN_QT_AVIANUNITS_H
 
 #include "amount.h"
 
@@ -47,24 +47,24 @@
 #define THIN_SP_UTF8 REAL_THIN_SP_UTF8
 #define THIN_SP_HTML HTML_HACK_SP
 
-/** Raven unit definitions. Encapsulates parsing and formatting
+/** Avian unit definitions. Encapsulates parsing and formatting
    and serves as list model for drop-down selection boxes.
 */
-class RavenUnits: public QAbstractListModel
+class AvianUnits: public QAbstractListModel
 {
     Q_OBJECT
 
 public:
-    explicit RavenUnits(QObject *parent);
+    explicit AvianUnits(QObject *parent);
 
-    /** Raven units.
-      @note Source: https://en.raven.it/wiki/Units . Please add only sensible ones
+    /** Avian units.
+      @note Source: https://en.bitcoin.it/wiki/Units . Please add only sensible ones
      */
     enum Unit
     {
-        RVN,
-        mRVN,
-        uRVN
+        AVN,
+        mAVN,
+        uAVN
     };
 
     enum SeparatorStyle
@@ -132,8 +132,8 @@ public:
     static CAmount maxMoney();
 
 private:
-    QList<RavenUnits::Unit> unitlist;
+    QList<AvianUnits::Unit> unitlist;
 };
-typedef RavenUnits::Unit RavenUnit;
+typedef AvianUnits::Unit AvianUnit;
 
-#endif // RAVEN_QT_RAVENUNITS_H
+#endif // AVIAN_QT_AVIANUNITS_H

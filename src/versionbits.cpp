@@ -1,11 +1,10 @@
 // Copyright (c) 2016 The Bitcoin Core developers
-// Copyright (c) 2017 The Raven Core developers
+// Copyright (c) 2017-2020 The Raven Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include "versionbits.h"
 #include "consensus/params.h"
-#include "validation.h"
 
 const struct VBDeploymentInfo VersionBitsDeploymentInfo[Consensus::MAX_VERSION_BITS_DEPLOYMENTS] = {
     {
@@ -20,14 +19,25 @@ const struct VBDeploymentInfo VersionBitsDeploymentInfo[Consensus::MAX_VERSION_B
             /*.name =*/ "assets",
             /*.gbt_force =*/ true,
     },
-    // Crow: Deployment
     {
-        /*.name =*/ "minotaurx",
-        /*.gbt_force =*/ true,
+            /*.name =*/ "messaging_restricted",
+            /*.gbt_force =*/ true,
+    },
+    {
+            /*.name =*/ "transfer_script",
+            /*.gbt_force =*/ true,
+    },
+    {
+            /*.name =*/ "enforce_value",
+            /*.gbt_force =*/ true,
+    },
+    {
+            /*.name =*/ "coinbase",
+            /*.gbt_force =*/ true,
     }
 };
 
-ThresholdState AbstractThresholdConditionChecker::GetStateFor(const CBlockIndex* pindexPrev, const Consensus::ConsensusParams& params, ThresholdConditionCache& cache) const
+ThresholdState AbstractThresholdConditionChecker::GetStateFor(const CBlockIndex* pindexPrev, const Consensus::Params& params, ThresholdConditionCache& cache) const
 {
     int nPeriod = Period(params);
     int nThreshold = Threshold(params);
@@ -112,7 +122,7 @@ ThresholdState AbstractThresholdConditionChecker::GetStateFor(const CBlockIndex*
 }
 
 // return the numerical statistics of blocks signalling the specified BIP9 condition in this current period
-BIP9Stats AbstractThresholdConditionChecker::GetStateStatisticsFor(const CBlockIndex* pindex, const Consensus::ConsensusParams& params) const
+BIP9Stats AbstractThresholdConditionChecker::GetStateStatisticsFor(const CBlockIndex* pindex, const Consensus::Params& params) const
 {
     BIP9Stats stats = {};
 
@@ -141,7 +151,7 @@ BIP9Stats AbstractThresholdConditionChecker::GetStateStatisticsFor(const CBlockI
     return stats;
 }
 
-int AbstractThresholdConditionChecker::GetStateSinceHeightFor(const CBlockIndex* pindexPrev, const Consensus::ConsensusParams& params, ThresholdConditionCache& cache) const
+int AbstractThresholdConditionChecker::GetStateSinceHeightFor(const CBlockIndex* pindexPrev, const Consensus::Params& params, ThresholdConditionCache& cache) const
 {
     const ThresholdState initialState = GetStateFor(pindexPrev, params, cache);
 
@@ -181,44 +191,47 @@ private:
     const Consensus::DeploymentPos id;
 
 protected:
-    int64_t BeginTime(const Consensus::ConsensusParams& params) const override { return params.vDeployments[id].nStartTime; }
-    int64_t EndTime(const Consensus::ConsensusParams& params) const override { return params.vDeployments[id].nTimeout; }
-    int Period(const Consensus::ConsensusParams& params) const override { return params.nMinerConfirmationWindow; }
-    int Threshold(const Consensus::ConsensusParams& params) const override { return params.nRuleChangeActivationThreshold; }
+    int64_t BeginTime(const Consensus::Params& params) const override { return params.vDeployments[id].nStartTime; }
+    int64_t EndTime(const Consensus::Params& params) const override { return params.vDeployments[id].nTimeout; }
+    int Period(const Consensus::Params& params) const override {
+        if (params.vDeployments[id].nOverrideMinerConfirmationWindow > 0)
+            return params.vDeployments[id].nOverrideMinerConfirmationWindow;
+        return params.nMinerConfirmationWindow;
+    }
+    int Threshold(const Consensus::Params& params) const override {
+        if (params.vDeployments[id].nOverrideRuleChangeActivationThreshold > 0)
+            return params.vDeployments[id].nOverrideRuleChangeActivationThreshold;
+        return params.nRuleChangeActivationThreshold;
+    }
 
-    bool Condition(const CBlockIndex* pindex, const Consensus::ConsensusParams& params) const override
+    bool Condition(const CBlockIndex* pindex, const Consensus::Params& params) const override
     {
-           // Crow: Versionbits always active since powforktime and high bits repurposed at crow UASF activation;
-        // So, don't use VERSIONBITS_TOP_MASK any time past powforktime
-        if (pindex->nTime > params.powForkTime)
-            return (pindex->nVersion & Mask(params)) != 0;
-        else
-            return (((pindex->nVersion & VERSIONBITS_TOP_MASK) == VERSIONBITS_TOP_BITS) && (pindex->nVersion & Mask(params)) != 0);
+        return ((pindex->nVersion & Mask(params)) != 0);
     }
 
 public:
     explicit VersionBitsConditionChecker(Consensus::DeploymentPos id_) : id(id_) {}
-    uint32_t Mask(const Consensus::ConsensusParams& params) const { return ((uint32_t)1) << params.vDeployments[id].bit; }
+    uint32_t Mask(const Consensus::Params& params) const { return ((uint32_t)1) << params.vDeployments[id].bit; }
 };
 
 } // namespace
 
-ThresholdState VersionBitsState(const CBlockIndex* pindexPrev, const Consensus::ConsensusParams& params, Consensus::DeploymentPos pos, VersionBitsCache& cache)
+ThresholdState VersionBitsState(const CBlockIndex* pindexPrev, const Consensus::Params& params, Consensus::DeploymentPos pos, VersionBitsCache& cache)
 {
     return VersionBitsConditionChecker(pos).GetStateFor(pindexPrev, params, cache.caches[pos]);
 }
 
-BIP9Stats VersionBitsStatistics(const CBlockIndex* pindexPrev, const Consensus::ConsensusParams& params, Consensus::DeploymentPos pos)
+BIP9Stats VersionBitsStatistics(const CBlockIndex* pindexPrev, const Consensus::Params& params, Consensus::DeploymentPos pos)
 {
     return VersionBitsConditionChecker(pos).GetStateStatisticsFor(pindexPrev, params);
 }
 
-int VersionBitsStateSinceHeight(const CBlockIndex* pindexPrev, const Consensus::ConsensusParams& params, Consensus::DeploymentPos pos, VersionBitsCache& cache)
+int VersionBitsStateSinceHeight(const CBlockIndex* pindexPrev, const Consensus::Params& params, Consensus::DeploymentPos pos, VersionBitsCache& cache)
 {
     return VersionBitsConditionChecker(pos).GetStateSinceHeightFor(pindexPrev, params, cache.caches[pos]);
 }
 
-uint32_t VersionBitsMask(const Consensus::ConsensusParams& params, Consensus::DeploymentPos pos)
+uint32_t VersionBitsMask(const Consensus::Params& params, Consensus::DeploymentPos pos)
 {
     return VersionBitsConditionChecker(pos).Mask(params);
 }

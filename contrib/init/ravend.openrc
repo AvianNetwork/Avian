@@ -2,24 +2,24 @@
 
 # backward compatibility for existing gentoo layout 
 #
-if [ -d "/var/lib/raven/.raven" ]; then
-	AVIAND_DEFAULT_DATADIR="/var/lib/raven/.raven"
+if [ -d "/var/lib/avian/.avian" ]; then
+	AVIAND_DEFAULT_DATADIR="/var/lib/avian/.avian"
 else
 	AVIAND_DEFAULT_DATADIR="/var/lib/aviand"
 fi
 
-AVIAND_CONFIGFILE=${AVIAND_CONFIGFILE:-/etc/raven/avian.conf}
+AVIAND_CONFIGFILE=${AVIAND_CONFIGFILE:-/etc/avian/avian.conf}
 AVIAND_PIDDIR=${AVIAND_PIDDIR:-/var/run/aviand}
 AVIAND_PIDFILE=${AVIAND_PIDFILE:-${AVIAND_PIDDIR}/aviand.pid}
 AVIAND_DATADIR=${AVIAND_DATADIR:-${AVIAND_DEFAULT_DATADIR}}
-AVIAND_USER=${AVIAND_USER:-${RAVEN_USER:-raven}}
-AVIAND_GROUP=${AVIAND_GROUP:-raven}
+AVIAND_USER=${AVIAND_USER:-${AVIAN_USER:-avian}}
+AVIAND_GROUP=${AVIAND_GROUP:-avian}
 AVIAND_BIN=${AVIAND_BIN:-/usr/bin/aviand}
 AVIAND_NICE=${AVIAND_NICE:-${NICELEVEL:-0}}
-AVIAND_OPTS="${AVIAND_OPTS:-${RAVEN_OPTS}}"
+AVIAND_OPTS="${AVIAND_OPTS:-${AVIAN_OPTS}}"
 
-name="Raven Core Daemon"
-description="Raven cryptocurrency P2P network daemon"
+name="Avian Core Daemon"
+description="Avian cryptocurrency P2P network daemon"
 
 command="/usr/bin/aviand"
 command_args="-pid=\"${AVIAND_PIDFILE}\" \
@@ -84,7 +84,7 @@ checkconfig()
 		eerror "It is recommended that you also set alertnotify so you are "
 		eerror "notified of problems:"
 		eerror ""
-		eerror "ie: alertnotify=echo %%s | mail -s \"Raven Alert\"" \
+		eerror "ie: alertnotify=echo %%s | mail -s \"Avian Alert\"" \
 			"admin@foo.com"
 		eerror ""
 		return 1

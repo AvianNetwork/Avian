@@ -1,11 +1,11 @@
 // Copyright (c) 2011-2015 The Bitcoin Core developers
-// Copyright (c) 2017 The Raven Core developers
+// Copyright (c) 2017-2019 The Raven Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include "ravenamountfield.h"
+#include "avianamountfield.h"
 
-#include "ravenunits.h"
+#include "avianunits.h"
 #include "guiconstants.h"
 #include "qvaluecombobox.h"
 #include "platformstyle.h"
@@ -17,6 +17,10 @@
 #include <QKeyEvent>
 #include <QLineEdit>
 
+#if QT_VERSION < QT_VERSION_CHECK(5, 11, 0)
+#define QTversionPreFiveEleven
+#endif
+
 /** QSpinBox that uses fixed-point numbers internally and uses our own
  * formatting/parsing functions.
  */
@@ -27,7 +31,7 @@ class AmountSpinBox: public QAbstractSpinBox
 public:
     explicit AmountSpinBox(QWidget *parent):
         QAbstractSpinBox(parent),
-        currentUnit(RavenUnits::RVN),
+        currentUnit(AvianUnits::AVN),
         singleStep(100000), // satoshis
         assetUnit(-1)
     {
@@ -52,7 +56,7 @@ public:
         CAmount val = parse(input, &valid);
         if(valid)
         {
-            input = RavenUnits::format(currentUnit, val, false, RavenUnits::separatorAlways, assetUnit);
+            input = AvianUnits::format(currentUnit, val, false, AvianUnits::separatorAlways, assetUnit);
             lineEdit()->setText(input);
         }
     }
@@ -64,7 +68,7 @@ public:
 
     void setValue(const CAmount& value)
     {
-        lineEdit()->setText(RavenUnits::format(currentUnit, value, false, RavenUnits::separatorAlways, assetUnit));
+        lineEdit()->setText(AvianUnits::format(currentUnit, value, false, AvianUnits::separatorAlways, assetUnit));
         Q_EMIT valueChanged();
     }
 
@@ -73,7 +77,7 @@ public:
         bool valid = false;
         CAmount val = value(&valid);
         val = val + steps * singleStep;
-        val = qMin(qMax(val, CAmount(0)), RavenUnits::maxMoney());
+        val = qMin(qMax(val, CAmount(0)), AvianUnits::maxMoney());
         setValue(val);
     }
 
@@ -119,7 +123,11 @@ public:
 
             const QFontMetrics fm(fontMetrics());
             int h = lineEdit()->minimumSizeHint().height();
-            int w = fm.width(RavenUnits::format(RavenUnits::RVN, RavenUnits::maxMoney(), false, RavenUnits::separatorAlways, assetUnit));
+			#ifndef QTversionPreFiveEleven
+            	int w = fm.horizontalAdvance(AvianUnits::format(AvianUnits::AVN, AvianUnits::maxMoney(), false, AvianUnits::separatorAlways, assetUnit));
+			#else
+				int w = fm.width(AvianUnits::format(AvianUnits::AVN, AvianUnits::maxMoney(), false, AvianUnits::separatorAlways, assetUnit));
+			#endif
             w += 2; // cursor blinking space
 
             QStyleOptionSpinBox opt;
@@ -162,14 +170,14 @@ private:
         // Update parsing function to work with asset parsing units
         bool valid = false;
         if (assetUnit >= 0) {
-            valid = RavenUnits::assetParse(assetUnit, text, &val);
+            valid = AvianUnits::assetParse(assetUnit, text, &val);
         }
         else
-            valid = RavenUnits::parse(currentUnit, text, &val);
+            valid = AvianUnits::parse(currentUnit, text, &val);
 
         if(valid)
         {
-            if(val < 0 || val > RavenUnits::maxMoney())
+            if(val < 0 || val > AvianUnits::maxMoney())
                 valid = false;
         }
         if(valid_out)
@@ -200,14 +208,14 @@ protected:
         if (text().isEmpty()) // Allow step-up with empty field
             return StepUpEnabled;
 
-        StepEnabled rv = 0;
+        StepEnabled rv = StepNone;
         bool valid = false;
         CAmount val = value(&valid);
         if(valid)
         {
             if(val > 0)
                 rv |= StepDownEnabled;
-            if(val < RavenUnits::maxMoney())
+            if(val < AvianUnits::maxMoney())
                 rv |= StepUpEnabled;
         }
         return rv;
@@ -217,9 +225,9 @@ Q_SIGNALS:
     void valueChanged();
 };
 
-#include "ravenamountfield.moc"
+#include "avianamountfield.moc"
 
-RavenAmountField::RavenAmountField(QWidget *parent) :
+AvianAmountField::AvianAmountField(QWidget *parent) :
     QWidget(parent),
     amount(0)
 {
@@ -231,7 +239,7 @@ RavenAmountField::RavenAmountField(QWidget *parent) :
     QHBoxLayout *layout = new QHBoxLayout(this);
     layout->addWidget(amount);
     unit = new QValueComboBox();
-    unit->setModel(new RavenUnits(this));
+    unit->setModel(new AvianUnits(this));
     layout->addWidget(unit);
     layout->addStretch(1);
     layout->setContentsMargins(0,0,0,0);
@@ -250,19 +258,19 @@ RavenAmountField::RavenAmountField(QWidget *parent) :
 
 }
 
-void RavenAmountField::clear()
+void AvianAmountField::clear()
 {
     amount->clear();
     unit->setCurrentIndex(0);
 }
 
-void RavenAmountField::setEnabled(bool fEnabled)
+void AvianAmountField::setEnabled(bool fEnabled)
 {
     amount->setEnabled(fEnabled);
     unit->setEnabled(fEnabled);
 }
 
-bool RavenAmountField::validate()
+bool AvianAmountField::validate()
 {
     bool valid = false;
     value(&valid);
@@ -270,7 +278,7 @@ bool RavenAmountField::validate()
     return valid;
 }
 
-void RavenAmountField::setValid(bool valid)
+void AvianAmountField::setValid(bool valid)
 {
     if (valid) {
             amount->setStyleSheet("");
@@ -279,7 +287,7 @@ void RavenAmountField::setValid(bool valid)
     }
 }
 
-bool RavenAmountField::eventFilter(QObject *object, QEvent *event)
+bool AvianAmountField::eventFilter(QObject *object, QEvent *event)
 {
     if (event->type() == QEvent::FocusIn)
     {
@@ -289,45 +297,45 @@ bool RavenAmountField::eventFilter(QObject *object, QEvent *event)
     return QWidget::eventFilter(object, event);
 }
 
-QWidget *RavenAmountField::setupTabChain(QWidget *prev)
+QWidget *AvianAmountField::setupTabChain(QWidget *prev)
 {
     QWidget::setTabOrder(prev, amount);
     QWidget::setTabOrder(amount, unit);
     return unit;
 }
 
-CAmount RavenAmountField::value(bool *valid_out) const
+CAmount AvianAmountField::value(bool *valid_out) const
 {
     return amount->value(valid_out);
 }
 
-void RavenAmountField::setValue(const CAmount& value)
+void AvianAmountField::setValue(const CAmount& value)
 {
     amount->setValue(value);
 }
 
-void RavenAmountField::setReadOnly(bool fReadOnly)
+void AvianAmountField::setReadOnly(bool fReadOnly)
 {
     amount->setReadOnly(fReadOnly);
 }
 
-void RavenAmountField::unitChanged(int idx)
+void AvianAmountField::unitChanged(int idx)
 {
     // Use description tooltip for current unit for the combobox
     unit->setToolTip(unit->itemData(idx, Qt::ToolTipRole).toString());
 
     // Determine new unit ID
-    int newUnit = unit->itemData(idx, RavenUnits::UnitRole).toInt();
+    int newUnit = unit->itemData(idx, AvianUnits::UnitRole).toInt();
 
     amount->setDisplayUnit(newUnit);
 }
 
-void RavenAmountField::setDisplayUnit(int newUnit)
+void AvianAmountField::setDisplayUnit(int newUnit)
 {
     unit->setValue(newUnit);
 }
 
-void RavenAmountField::setSingleStep(const CAmount& step)
+void AvianAmountField::setSingleStep(const CAmount& step)
 {
     amount->setSingleStep(step);
 }
@@ -398,7 +406,7 @@ bool AssetAmountField::eventFilter(QObject *object, QEvent *event)
 
 CAmount AssetAmountField::value(bool *valid_out) const
 {
-    return amount->value(valid_out) * RavenUnits::factorAsset(8 - assetUnit);
+    return amount->value(valid_out) * AvianUnits::factorAsset(8 - assetUnit);
 }
 
 void AssetAmountField::setValue(const CAmount& value)

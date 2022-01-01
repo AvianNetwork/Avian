@@ -1,6 +1,6 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
 // Copyright (c) 2009-2016 The Bitcoin Core developers
-// Copyright (c) 2017 The Raven Core developers
+// Copyright (c) 2017-2019 The Raven Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -31,8 +31,8 @@
  *
  * \section intro_sec Introduction
  *
- * This is the developer documentation of the reference client for an experimental new digital currency called Raven (https://www.raven.org/),
- * which enables instant payments to anyone, anywhere in the world. Raven uses peer-to-peer technology to operate
+ * This is the developer documentation of the reference client for an experimental new digital currency called Avian (https://avn.network/),
+ * which enables instant payments to anyone, anywhere in the world. Avian uses peer-to-peer technology to operate
  * with no central authority: managing transactions and issuing money are carried out collectively by the network.
  *
  * The software is a community-driven open source project, released under the MIT license.
@@ -71,7 +71,7 @@ bool AppInit(int argc, char* argv[])
     //
     // Parameters
     //
-    // If Qt is used, parameters/avian.conf are parsed in qt/raven.cpp's main()
+    // If Qt is used, parameters/avian.conf are parsed in qt/avian.cpp's main()
     gArgs.ParseParameters(argc, argv);
 
     // Process help and version before taking care about datadir
@@ -104,14 +104,14 @@ bool AppInit(int argc, char* argv[])
         }
         try
         {
-            gArgs.ReadConfigFile(gArgs.GetArg("-conf", RAVEN_CONF_FILENAME));
+            gArgs.ReadConfigFile(gArgs.GetArg("-conf", AVIAN_CONF_FILENAME));
         } catch (const std::exception& e) {
             fprintf(stderr,"Error reading configuration file: %s\n", e.what());
             return false;
         }
-        // Check for -testnet or -regtest parameter (ConsensusParams() calls are only valid after this clause)
+        // Check for -testnet or -regtest parameter (GetParams() calls are only valid after this clause)
         try {
-            SelectParams(ChainNameFromCommandLine(),true);
+            SelectParams(ChainNameFromCommandLine(), true);
         } catch (const std::exception& e) {
             fprintf(stderr, "Error: %s\n", e.what());
             return false;

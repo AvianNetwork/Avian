@@ -1,4 +1,6 @@
-<TS language="zh_HK" version="2.1">
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE TS>
+<TS version="2.1" language="zh_HK">
 <context>
     <name>AddressBookPage</name>
     <message>
@@ -157,7 +159,7 @@
     </message>
     <message>
         <source>Warning: If you encrypt your wallet and lose your passphrase, you will &lt;b&gt;LOSE ALL OF YOUR AVIANS&lt;/b&gt;!</source>
-        <translation>警告: 如果你將錢包加密後又忘記密碼，你就會&lt;b&gt;失去所有 Raven 了&lt;/b&gt;！</translation>
+        <translation>警告: 如果你將錢包加密後又忘記密碼，你就會&lt;b&gt;失去所有 Avian 了&lt;/b&gt;！</translation>
     </message>
     <message>
         <source>Are you sure you wish to encrypt your wallet?</source>
@@ -220,7 +222,7 @@
     </message>
 </context>
 <context>
-    <name>RavenGUI</name>
+    <name>AvianGUI</name>
     <message>
         <source>Sign &amp;message...</source>
         <translation>簽署訊息... &amp;m</translation>
@@ -311,7 +313,7 @@
     </message>
     <message>
         <source>Send coins to a Avian address</source>
-        <translation>付款至一個 Raven 位址</translation>
+        <translation>付款至一個 Avian 位址</translation>
     </message>
     <message>
         <source>Backup wallet to another location</source>
@@ -334,8 +336,8 @@
         <translation>驗證訊息... &amp;V</translation>
     </message>
     <message>
-        <source>Raven</source>
-        <translation>Raven</translation>
+        <source>Avian</source>
+        <translation>Avian</translation>
     </message>
     <message>
         <source>Wallet</source>
@@ -441,7 +443,7 @@
     <name>QObject</name>
     <message>
         <source>Enter a Avian address (e.g. %1)</source>
-        <translation>輸入一個 Raven 位址 (例如 %1)</translation>
+        <translation>輸入一個 Avian 位址 (例如 %1)</translation>
     </message>
     <message>
         <source>%1 d</source>
@@ -660,7 +662,7 @@
     </message>
     </context>
 <context>
-    <name>raven-core</name>
+    <name>avian-core</name>
     <message>
         <source>Information</source>
         <translation>資訊</translation>
