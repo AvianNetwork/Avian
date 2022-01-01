@@ -436,7 +436,7 @@ void MaybeSetPeerAsAnnouncingHeaderAndIDs(NodeId nodeid, CConnman* connman) {
     }
 }
 
-bool TipMayBeStale(const Consensus::Params &consensusParams)
+bool TipMayBeStale(const Consensus::ConsensusParams &consensusParams)
 {
     AssertLockHeld(cs_main);
     if (g_last_tip_update == 0) {
@@ -446,7 +446,7 @@ bool TipMayBeStale(const Consensus::Params &consensusParams)
 }
 
 // Requires cs_main
-bool CanDirectFetch(const Consensus::Params &consensusParams)
+bool CanDirectFetch(const Consensus::ConsensusParams &consensusParams)
 {
     return chainActive.Tip()->GetBlockTime() > GetAdjustedTime() - consensusParams.nPowTargetSpacing * 20;
 }
@@ -463,7 +463,7 @@ bool PeerHasHeader(CNodeState *state, const CBlockIndex *pindex)
 
 /** Update pindexLastCommonBlock and add not-in-flight missing successors to vBlocks, until it has
  *  at most count entries. */
-void FindNextBlocksToDownload(NodeId nodeid, unsigned int count, std::vector<const CBlockIndex*>& vBlocks, NodeId& nodeStaller, const Consensus::Params& consensusParams) {
+void FindNextBlocksToDownload(NodeId nodeid, unsigned int count, std::vector<const CBlockIndex*>& vBlocks, NodeId& nodeStaller, const Consensus::ConsensusParams& consensusParams) {
     if (count == 0)
         return;
 
@@ -775,7 +775,7 @@ void Misbehaving(NodeId pnode, int howmuch)
 // To prevent fingerprinting attacks, only send blocks/headers outside of the
 // active chain if they are no more than a month older (both in time, and in
 // best equivalent proof of work) than the best header chain we know about.
-static bool StaleBlockRequestAllowed(const CBlockIndex* pindex, const Consensus::Params& consensusParams)
+static bool StaleBlockRequestAllowed(const CBlockIndex* pindex, const Consensus::ConsensusParams& consensusParams)
 {
     AssertLockHeld(cs_main);
     return (pindexBestHeader != nullptr) &&
@@ -787,7 +787,7 @@ PeerLogicValidation::PeerLogicValidation(CConnman* connmanIn, CScheduler &schedu
     // Initialize global variables that cannot be constructed at startup.
     recentRejects.reset(new CRollingBloomFilter(120000, 0.000001));
 
-    const Consensus::Params& consensusParams = GetParams().GetConsensus();
+    const Consensus::ConsensusParams& consensusParams = GetParams().GetConsensus();
     // Stale tip checking and peer eviction are on two different timers, but we
     // don't want them to get out of sync due to drift in the scheduler, so we
     // combine them in one function and schedule at the quicker (peer-eviction)
@@ -1023,7 +1023,7 @@ static void RelayAddress(const CAddress& addr, bool fReachable, CConnman* connma
     connman->ForEachNodeThen(std::move(sortfunc), std::move(pushfunc));
 }
 
-void static ProcessGetData(CNode* pfrom, const Consensus::Params& consensusParams, CConnman* connman, const std::atomic<bool>& interruptMsgProc)
+void static ProcessGetData(CNode* pfrom, const Consensus::ConsensusParams& consensusParams, CConnman* connman, const std::atomic<bool>& interruptMsgProc)
 {
     std::deque<CInv>::iterator it = pfrom->vRecvGetData.begin();
     std::vector<CInv> vNotFound;
@@ -1214,7 +1214,7 @@ void static ProcessGetData(CNode* pfrom, const Consensus::Params& consensusParam
     }
 }
 
-void static ProcessAssetGetData(CNode* pfrom, const Consensus::Params& consensusParams, CConnman* connman, const std::atomic<bool>& interruptMsgProc)
+void static ProcessAssetGetData(CNode* pfrom, const Consensus::ConsensusParams& consensusParams, CConnman* connman, const std::atomic<bool>& interruptMsgProc)
 {
     std::deque<CInvAsset>::iterator it = pfrom->vRecvAssetGetData.begin();
     std::vector<CInvAsset> vNotFound;
@@ -3194,7 +3194,7 @@ void PeerLogicValidation::EvictExtraOutboundPeers(int64_t time_in_seconds)
     }
 }
 
-void PeerLogicValidation::CheckForStaleTipAndEvictPeers(const Consensus::Params &consensusParams)
+void PeerLogicValidation::CheckForStaleTipAndEvictPeers(const Consensus::ConsensusParams &consensusParams)
 {
     if (connman == nullptr) return;
 
@@ -3235,7 +3235,7 @@ public:
 
 bool PeerLogicValidation::SendMessages(CNode* pto, std::atomic<bool>& interruptMsgProc)
 {
-    const Consensus::Params& consensusParams = GetParams().GetConsensus();
+    const Consensus::ConsensusParams& consensusParams = GetParams().GetConsensus();
     {
         // Don't send anything until the version handshake is complete
         if (!pto->fSuccessfullyConnected || pto->fDisconnect)

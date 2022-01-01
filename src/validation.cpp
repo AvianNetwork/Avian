@@ -121,7 +121,7 @@ CAmount maxTxFee = DEFAULT_TRANSACTION_MAXFEE;
 CBlockPolicyEstimator feeEstimator;
 CTxMemPool mempool(&feeEstimator);
 
-static void CheckBlockIndex(const Consensus::Params& consensusParams);
+static void CheckBlockIndex(const Consensus::ConsensusParams& consensusParams);
 
 /** Constant stuff for coinbase transactions we create: */
 CScript COINBASE_FLAGS;
@@ -391,7 +391,7 @@ bool CheckSequenceLocks(const CTransaction &tx, int flags, LockPoints* lp, bool 
 }
 
 // Returns the script flags which should be checked for a given block
-static unsigned int GetBlockScriptFlags(const CBlockIndex* pindex, const Consensus::Params& chainparams);
+static unsigned int GetBlockScriptFlags(const CBlockIndex* pindex, const Consensus::ConsensusParams& chainparams);
 
 static void LimitMempoolSize(CTxMemPool& pool, size_t limit, unsigned long age) {
     int expired = pool.Expire(GetTime() - age);
@@ -1196,7 +1196,7 @@ bool GetAddressUnspent(uint160 addressHash, int type,
 }
 
 /** Return transaction in txOut, and if it was found inside a block, its hash is placed in hashBlock */
-bool GetTransaction(const uint256 &hash, CTransactionRef &txOut, const Consensus::Params& consensusParams, uint256 &hashBlock, bool fAllowSlow)
+bool GetTransaction(const uint256 &hash, CTransactionRef &txOut, const Consensus::ConsensusParams& consensusParams, uint256 &hashBlock, bool fAllowSlow)
 {
     CBlockIndex *pindexSlow = nullptr;
 
@@ -1285,7 +1285,7 @@ static bool WriteBlockToDisk(const CBlock& block, CDiskBlockPos& pos, const CMes
     return true;
 }
 
-bool ReadBlockFromDisk(CBlock& block, const CDiskBlockPos& pos, const Consensus::Params& consensusParams)
+bool ReadBlockFromDisk(CBlock& block, const CDiskBlockPos& pos, const Consensus::ConsensusParams& consensusParams)
 {
     block.SetNull();
 
@@ -1309,7 +1309,7 @@ bool ReadBlockFromDisk(CBlock& block, const CDiskBlockPos& pos, const Consensus:
     return true;
 }
 
-bool ReadBlockFromDisk(CBlock& block, const CBlockIndex* pindex, const Consensus::Params& consensusParams)
+bool ReadBlockFromDisk(CBlock& block, const CBlockIndex* pindex, const Consensus::ConsensusParams& consensusParams)
 {
     if (!ReadBlockFromDisk(block, pindex->GetBlockPos(), consensusParams))
         return false;
@@ -1319,7 +1319,7 @@ bool ReadBlockFromDisk(CBlock& block, const CBlockIndex* pindex, const Consensus
     return true;
 }
 
-CAmount GetBlockSubsidy(int nHeight, const Consensus::Params& consensusParams)
+CAmount GetBlockSubsidy(int nHeight, const Consensus::ConsensusParams& consensusParams)
 {
     int halvings = nHeight / consensusParams.nSubsidyHalvingInterval;
     // Force block reward to zero when right shift is undefined.
@@ -2291,7 +2291,7 @@ void ThreadScriptCheck() {
 // Protected by cs_main
 VersionBitsCache versionbitscache;
 
-int32_t ComputeBlockVersion(const CBlockIndex* pindexPrev, const Consensus::Params& params)
+int32_t ComputeBlockVersion(const CBlockIndex* pindexPrev, const Consensus::ConsensusParams& params)
 {
     LOCK(cs_main);
     int32_t nVersion = VERSIONBITS_TOP_BITS;
@@ -2321,12 +2321,12 @@ private:
 public:
     explicit WarningBitsConditionChecker(int bitIn) : bit(bitIn) {}
 
-    int64_t BeginTime(const Consensus::Params& params) const override { return 0; }
-    int64_t EndTime(const Consensus::Params& params) const override { return std::numeric_limits<int64_t>::max(); }
-    int Period(const Consensus::Params& params) const override { return params.nMinerConfirmationWindow; }
-    int Threshold(const Consensus::Params& params) const override { return params.nRuleChangeActivationThreshold; }
+    int64_t BeginTime(const Consensus::ConsensusParams& params) const override { return 0; }
+    int64_t EndTime(const Consensus::ConsensusParams& params) const override { return std::numeric_limits<int64_t>::max(); }
+    int Period(const Consensus::ConsensusParams& params) const override { return params.nMinerConfirmationWindow; }
+    int Threshold(const Consensus::ConsensusParams& params) const override { return params.nRuleChangeActivationThreshold; }
 
-    bool Condition(const CBlockIndex* pindex, const Consensus::Params& params) const override
+    bool Condition(const CBlockIndex* pindex, const Consensus::ConsensusParams& params) const override
     {
         return ((pindex->nVersion & VERSIONBITS_TOP_MASK) == VERSIONBITS_TOP_BITS) &&
                ((pindex->nVersion >> bit) & 1) != 0 &&
@@ -2337,7 +2337,7 @@ public:
 // Protected by cs_main
 static ThresholdConditionCache warningcache[VERSIONBITS_NUM_BITS];
 
-static unsigned int GetBlockScriptFlags(const CBlockIndex* pindex, const Consensus::Params& consensusparams) {
+static unsigned int GetBlockScriptFlags(const CBlockIndex* pindex, const Consensus::ConsensusParams& consensusparams) {
     AssertLockHeld(cs_main);
 
     // BIP16 didn't become active until Apr 1 2012
@@ -3800,7 +3800,7 @@ static CBlockIndex* AddToBlockIndex(const CBlockHeader& block)
 }
 
 /** Mark a block as having its data received and checked (up to BLOCK_VALID_TRANSACTIONS). */
-static bool ReceivedBlockTransactions(const CBlock &block, CValidationState& state, CBlockIndex *pindexNew, const CDiskBlockPos& pos, const Consensus::Params& consensusParams)
+static bool ReceivedBlockTransactions(const CBlock &block, CValidationState& state, CBlockIndex *pindexNew, const CDiskBlockPos& pos, const Consensus::ConsensusParams& consensusParams)
 {
     pindexNew->nTx = block.vtx.size();
     pindexNew->nChainTx = 0;
@@ -3936,7 +3936,7 @@ static bool FindUndoPos(CValidationState &state, int nFile, CDiskBlockPos &pos, 
     return true;
 }
 
-static bool CheckBlockHeader(const CBlockHeader& block, CValidationState& state, const Consensus::Params& consensusParams, bool fCheckPOW = true)
+static bool CheckBlockHeader(const CBlockHeader& block, CValidationState& state, const Consensus::ConsensusParams& consensusParams, bool fCheckPOW = true)
 {
     // If we are checking a KAWPOW block below a know checkpoint height. We can validate the proof of work using the mix_hash
     if (fCheckPOW && block.nTime >= nKAWPOWActivationTime) {
@@ -3965,7 +3965,7 @@ static bool CheckBlockHeader(const CBlockHeader& block, CValidationState& state,
     return true;
 }
 
-bool CheckBlock(const CBlock& block, CValidationState& state, const Consensus::Params& consensusParams, bool fCheckPOW, bool fCheckMerkleRoot, bool fDBCheck)
+bool CheckBlock(const CBlock& block, CValidationState& state, const Consensus::ConsensusParams& consensusParams, bool fCheckPOW, bool fCheckMerkleRoot, bool fDBCheck)
 {
     // These are checks that are independent of context.
 
@@ -4042,12 +4042,12 @@ bool CheckBlock(const CBlock& block, CValidationState& state, const Consensus::P
     return true;
 }
 
-bool IsWitnessEnabled(const CBlockIndex* pindexPrev, const Consensus::Params& params)
+bool IsWitnessEnabled(const CBlockIndex* pindexPrev, const Consensus::ConsensusParams& params)
 {
     return params.nSegwitEnabled;
 }
 
-bool IsWitnessEnabled(const Consensus::Params& params) {
+bool IsWitnessEnabled(const Consensus::ConsensusParams& params) {
 	return params.nSegwitEnabled;
 }
 // Compute at which vout of the block's coinbase transaction the witness
@@ -4065,7 +4065,7 @@ static int GetWitnessCommitmentIndex(const CBlock& block)
     return commitpos;
 }
 
-void UpdateUncommittedBlockStructures(CBlock& block, const CBlockIndex* pindexPrev, const Consensus::Params& consensusParams)
+void UpdateUncommittedBlockStructures(CBlock& block, const CBlockIndex* pindexPrev, const Consensus::ConsensusParams& consensusParams)
 {
     int commitpos = GetWitnessCommitmentIndex(block);
     static const std::vector<unsigned char> nonce(32, 0x00);
@@ -4077,7 +4077,7 @@ void UpdateUncommittedBlockStructures(CBlock& block, const CBlockIndex* pindexPr
     }
 }
 
-std::vector<unsigned char> GenerateCoinbaseCommitment(CBlock& block, const CBlockIndex* pindexPrev, const Consensus::Params& consensusParams)
+std::vector<unsigned char> GenerateCoinbaseCommitment(CBlock& block, const CBlockIndex* pindexPrev, const Consensus::ConsensusParams& consensusParams)
 {
     std::vector<unsigned char> commitment;
     int commitpos = GetWitnessCommitmentIndex(block);
@@ -4130,7 +4130,7 @@ static bool ContextualCheckBlockHeader(const CBlockHeader& block, CValidationSta
     }
 
     // Check proof of work
-    const Consensus::Params& consensusParams = params.GetConsensus();
+    const Consensus::ConsensusParams& consensusParams = params.GetConsensus();
     if (block.nBits != GetNextWorkRequired(pindexPrev, &block, consensusParams))
         return state.DoS(100, false, REJECT_INVALID, "bad-diffbits", false, "incorrect proof of work");
 
@@ -4175,7 +4175,7 @@ static bool ContextualCheckBlockHeader(const CBlockHeader& block, CValidationSta
     return true;
 }
 
-static bool ContextualCheckBlock(const CBlock& block, CValidationState& state, const Consensus::Params& consensusParams, const CBlockIndex* pindexPrev, CAssetsCache* assetCache)
+static bool ContextualCheckBlock(const CBlock& block, CValidationState& state, const Consensus::ConsensusParams& consensusParams, const CBlockIndex* pindexPrev, CAssetsCache* assetCache)
 {
     const int nHeight = pindexPrev == nullptr ? 0 : pindexPrev->nHeight + 1;
 
@@ -5372,7 +5372,7 @@ bool LoadExternalBlockFile(const CChainParams& chainparams, FILE* fileIn, CDiskB
     return nLoaded > 0;
 }
 
-void static CheckBlockIndex(const Consensus::Params& consensusParams)
+void static CheckBlockIndex(const Consensus::ConsensusParams& consensusParams)
 {
     if (!fCheckBlockIndex) {
         return;
@@ -5568,19 +5568,19 @@ CBlockFileInfo* GetBlockFileInfo(size_t n)
     return &vinfoBlockFile.at(n);
 }
 
-ThresholdState VersionBitsTipState(const Consensus::Params& params, Consensus::DeploymentPos pos)
+ThresholdState VersionBitsTipState(const Consensus::ConsensusParams& params, Consensus::DeploymentPos pos)
 {
     LOCK(cs_main);
     return VersionBitsState(chainActive.Tip(), params, pos, versionbitscache);
 }
 
-BIP9Stats VersionBitsTipStatistics(const Consensus::Params& params, Consensus::DeploymentPos pos)
+BIP9Stats VersionBitsTipStatistics(const Consensus::ConsensusParams& params, Consensus::DeploymentPos pos)
 {
     LOCK(cs_main);
     return VersionBitsStatistics(chainActive.Tip(), params, pos);
 }
 
-int VersionBitsTipStateSinceHeight(const Consensus::Params& params, Consensus::DeploymentPos pos)
+int VersionBitsTipStateSinceHeight(const Consensus::ConsensusParams& params, Consensus::DeploymentPos pos)
 {
     LOCK(cs_main);
     return VersionBitsStateSinceHeight(chainActive.Tip(), params, pos, versionbitscache);
