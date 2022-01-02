@@ -113,6 +113,7 @@ QT_FORMS_UI = \
   qt/forms/debugwindow.ui \
   qt/forms/addpeerdialog.ui \
   qt/forms/testpeerdialog.ui \
+  qt/forms/poolpicker.ui \
   qt/forms/sendcoinsdialog.ui \
   qt/forms/sendcoinsentry.ui \
   qt/forms/signverifymessagedialog.ui \
