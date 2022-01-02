@@ -1,15 +1,16 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
 // Copyright (c) 2009-2016 The Bitcoin Core developers
-// Copyright (c) 2017-2020 The Raven Core developers
+// Copyright (c) 2017 The Raven Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef AVIAN_VALIDATION_H
-#define AVIAN_VALIDATION_H
+#ifndef RAVEN_VALIDATION_H
+#define RAVEN_VALIDATION_H
 
 #if defined(HAVE_CONFIG_H)
 #include "config/avian-config.h"
 #endif
+
 
 #include "amount.h"
 #include "coins.h"
@@ -35,11 +36,6 @@
 #include <atomic>
 #include <assets/assets.h>
 #include <assets/assetdb.h>
-#include <assets/messages.h>
-#include <assets/myassetsdb.h>
-#include <assets/restricteddb.h>
-#include <assets/assetsnapshotdb.h>
-#include <assets/snapshotrequestdb.h>
 
 class CBlockIndex;
 class CBlockTreeDB;
@@ -56,7 +52,6 @@ struct ChainTxData;
 
 class CAssetsDB;
 class CAssets;
-class CSnapshotRequestDB;
 
 struct PrecomputedTransactionData;
 struct LockPoints;
@@ -66,21 +61,21 @@ static const bool DEFAULT_WHITELISTRELAY = true;
 /** Default for -whitelistforcerelay. */
 static const bool DEFAULT_WHITELISTFORCERELAY = true;
 /** Default for -minrelaytxfee, minimum relay fee for transactions */
-static const unsigned int DEFAULT_MIN_RELAY_TX_FEE = 1000000;
+static const unsigned int DEFAULT_MIN_RELAY_TX_FEE = 1000;
 //! -maxtxfee default
-static const CAmount DEFAULT_TRANSACTION_MAXFEE = 1000 * COIN;
+static const CAmount DEFAULT_TRANSACTION_MAXFEE = 0.1 * COIN;
 //! Discourage users to set fees higher than this amount (in satoshis) per kB
-static const CAmount HIGH_TX_FEE_PER_KB = 0.1 * COIN;
+static const CAmount HIGH_TX_FEE_PER_KB = 0.01 * COIN;
 //! -maxtxfee will warn if called with a higher fee than this amount (in satoshis)
 static const CAmount HIGH_MAX_TX_FEE = 100 * HIGH_TX_FEE_PER_KB;
 /** Default for -limitancestorcount, max number of in-mempool ancestors */
 static const unsigned int DEFAULT_ANCESTOR_LIMIT = 200;
 /** Default for -limitancestorsize, maximum kilobytes of tx + all in-mempool ancestors */
-static const unsigned int DEFAULT_ANCESTOR_SIZE_LIMIT = 250;
+static const unsigned int DEFAULT_ANCESTOR_SIZE_LIMIT = 202;
 /** Default for -limitdescendantcount, max number of in-mempool descendants */
 static const unsigned int DEFAULT_DESCENDANT_LIMIT = 200;
 /** Default for -limitdescendantsize, maximum kilobytes of in-mempool descendants */
-static const unsigned int DEFAULT_DESCENDANT_SIZE_LIMIT = 250;
+static const unsigned int DEFAULT_DESCENDANT_SIZE_LIMIT = 202;
 /** Default for -mempoolexpiry, expiration time for mempool transactions in hours */
 static const unsigned int DEFAULT_MEMPOOL_EXPIRY = 336;
 /** Maximum kilobytes for transactions to store for processing during reorg */
@@ -135,7 +130,7 @@ static const unsigned int INVENTORY_BROADCAST_MAX = 7 * INVENTORY_BROADCAST_INTE
 static const unsigned int AVG_FEEFILTER_BROADCAST_INTERVAL = 10 * 60;
 /** Maximum feefilter broadcast delay after significant change. */
 static const unsigned int MAX_FEEFILTER_CHANGE_DELAY = 5 * 60;
-/** Block download timeout base, expressed in millionths of the block interval (i.e. 10 min) */ // TODO Should we change this for avian, with 1 minutes block intervals?
+/** Block download timeout base, expressed in millionths of the block interval (i.e. 10 min) */ // TODO Should we change this for raven, with 1 minutes block intervals?
 static const int64_t BLOCK_DOWNLOAD_TIMEOUT_BASE = 1000000;
 /** Additional block download timeout per parallel downloading peer (i.e. 5 min) */
 static const int64_t BLOCK_DOWNLOAD_TIMEOUT_PER_PEER = 500000;
@@ -155,7 +150,6 @@ static const bool DEFAULT_ASSETINDEX = false;
 static const bool DEFAULT_ADDRESSINDEX = false;
 static const bool DEFAULT_TIMESTAMPINDEX = false;
 static const bool DEFAULT_SPENTINDEX = false;
-static const bool DEFAULT_REWARDS_ENABLED = false;
 /** Default for -dbmaxfilesize , in MB */
 static const int64_t DEFAULT_DB_MAX_FILE_SIZE = 2;
 
@@ -196,7 +190,6 @@ extern CWaitableCriticalSection csBestBlock;
 extern CConditionVariable cvBlockChange;
 extern std::atomic_bool fImporting;
 extern std::atomic_bool fReindex;
-extern bool fMessaging;
 extern int nScriptCheckThreads;
 extern bool fTxIndex;
 extern bool fAssetIndex;
@@ -212,10 +205,6 @@ extern size_t nCoinCacheUsage;
 extern CFeeRate minRelayTxFee;
 /** Absolute maximum transaction fee (in satoshis) used by wallet and mempool (rejects high fee in sendrawtransaction) */
 extern CAmount maxTxFee;
-
-extern bool fUnitTest;
-
-
 /** If the tip is older than this (in seconds), the node is considered to be in initial block download. */
 extern int64_t nMaxTipAge;
 extern bool fEnableReplacement;
@@ -342,11 +331,19 @@ void PruneAndFlush();
 /** Prune block files up to a given height */
 void PruneBlockFilesManual(int nManualPruneHeight);
 
+/** Check is UAHF has activated. */
+bool IsUAHFenabled(const CBlockIndex *pindexPrev);
+bool IsUAHFenabledForCurrentBlock();
+
+/** Check is UAHF FOR Assets has activated. */
+bool IsUAHFForAssetsenabled(const CBlockIndex *pindexPrev);
+bool IsUAHFForAssetsenabledForCurrentBlock();
+
 /** (try to) add transaction to memory pool
  * plTxnReplaced will be appended to with all transactions replaced from mempool **/
 bool AcceptToMemoryPool(CTxMemPool& pool, CValidationState &state, const CTransactionRef &tx,
                         bool* pfMissingInputs, std::list<CTransactionRef>* plTxnReplaced,
-                        bool bypass_limits, const CAmount nAbsurdFee, bool test_accept=false);
+                        bool bypass_limits, const CAmount nAbsurdFee);
 
 /** Convert CValidationState to a human-readable message for logging */
 std::string FormatStateMessage(const CValidationState &state);
@@ -454,7 +451,7 @@ bool ReadBlockFromDisk(CBlock& block, const CBlockIndex* pindex, const Consensus
 /** Functions for validating blocks and updating the block tree */
 
 /** Context-independent validity checks */
-bool CheckBlock(const CBlock& block, CValidationState& state, const Consensus::ConsensusParams& consensusParams, bool fCheckPOW = true, bool fCheckMerkleRoot = true, bool fDBCheck = false);
+bool CheckBlock(const CBlock& block, CValidationState& state, const Consensus::ConsensusParams& consensusParams, bool fCheckPOW = true, bool fCheckMerkleRoot = true, bool fCheckAssetDuplicate = true, bool fForceDuplicateCheck = true);
 
 /** Check a block is completely valid from start to finish (only works on top of our current best block, with cs_main held) */
 bool TestBlockValidity(CValidationState& state, const CChainParams& chainparams, const CBlock& block, CBlockIndex* pindexPrev, bool fCheckPOW = true, bool fCheckMerkleRoot = true);
@@ -506,59 +503,14 @@ extern CCoinsViewCache *pcoinsTip;
 /** Global variable that points to the active block tree (protected by cs_main) */
 extern CBlockTreeDB *pblocktree;
 
-/** AVN START */
-
-/** Global variable that point to the active assets database (protected by cs_main) */
+/** RVN START */
+/** Global variable that point to the active assets database (protexted by cs_main) */
 extern CAssetsDB *passetsdb;
-
-/** Global variable that point to the active assets (protected by cs_main) */
+/** Global variable that point to the active assets (protexted by cs_main) */
 extern CAssetsCache *passets;
-
-/** Global variable that point to the assets metadata LRU Cache (protected by cs_main) */
+/** Global variable that point to the assets LRU Cache (protexted by cs_main) */
 extern CLRUCache<std::string, CDatabasedAssetData> *passetsCache;
-
-/** Global variable that points to the subscribed channel LRU Cache (protected by cs_main) */
-extern CLRUCache<std::string, CMessage> *pMessagesCache;
-
-/** Global variable that points to the subscribed channel LRU Cache (protected by cs_main) */
-extern CLRUCache<std::string, int> *pMessageSubscribedChannelsCache;
-
-/** Global variable that points to the address seen LRU Cache (protected by cs_main) */
-extern CLRUCache<std::string, int> *pMessagesSeenAddressCache;
-
-/** Global variable that points to the messages database (protected by cs_main) */
-extern CMessageDB *pmessagedb;
-
-/** Global variable that points to the message channel database (protected by cs_main) */
-extern CMessageChannelDB *pmessagechanneldb;
-
-/** Global variable that points to my wallets restricted database (protected by cs_main) */
-extern CMyRestrictedDB *pmyrestricteddb;
-
-/** Global variable that points to the active restricted asset database (protected by cs_main) */
-extern CRestrictedDB *prestricteddb;
-
-/** Global variable that points to the asset verifier LRU Cache (protected by cs_main) */
-extern CLRUCache<std::string, CNullAssetTxVerifierString> *passetsVerifierCache;
-
-/** Global variable that points to the asset address qualifier LRU Cache (protected by cs_main) */
-extern CLRUCache<std::string, int8_t> *passetsQualifierCache; // hash(address,qualifier_name) ->int8_t
-
-/** Global variable that points to the asset address restriction LRU Cache (protected by cs_main) */
-extern CLRUCache<std::string, int8_t> *passetsRestrictionCache; // hash(address,qualifier_name) ->int8_t
-
-/** Global variable that points to the global asset restriction LRU Cache (protected by cs_main) */
-extern CLRUCache<std::string, int8_t> *passetsGlobalRestrictionCache;
-
-/** Global variable that point to the active Snapshot Request database (protected by cs_main) */
-extern CSnapshotRequestDB *pSnapshotRequestDb;
-
-/** Global variable that point to the active asset snapshot database (protected by cs_main) */
-extern CAssetSnapshotDB *pAssetSnapshotDb;
-
-extern CDistributeSnapshotRequestDB *pDistributeSnapshotDb;
-
-/** AVN END */
+/** RVN END */
 
 /**
  * Return the spend height, which is one more than the inputs.GetBestBlock().
@@ -591,31 +543,12 @@ bool DumpMempool();
 /** Load the mempool from disk. */
 bool LoadMempool();
 
-/** AVN START */
+/** RVN START */
 bool AreAssetsDeployed();
 
-bool AreMessagesDeployed();
-
-bool AreRestrictedAssetsDeployed();
-
-bool AreEnforcedValuesDeployed();
-
-bool AreCoinbaseCheckAssetsDeployed();
-
-// Only used by test framework
-void SetEnforcedValues(bool value);
-void SetEnforcedCoinbase(bool value);
-
-bool IsRip5Active();
-
-
-bool AreTransferScriptsSizeDeployed();
-
 bool IsDGWActive(unsigned int nBlockNumber);
-bool IsMessagingActive(unsigned int nBlockNumber);
-bool IsRestrictedActive(unsigned int nBlockNumber);
 
 CAssetsCache* GetCurrentAssetCache();
-/** AVN END */
+/** RVN END */
 
-#endif // AVIAN_VALIDATION_H
+#endif // RAVEN_VALIDATION_H
