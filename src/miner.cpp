@@ -1,6 +1,7 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
 // Copyright (c) 2009-2016 The Bitcoin Core developers
 // Copyright (c) 2017-2020 The Raven Core developers
+// Copyright (c) 2021 The Avian Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -213,35 +214,10 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     }
 
     pblock->nNonce         = 0;
-    pblock->nNonce64         = 0;
-    pblock->nHeight          = nHeight;
     pblocktemplate->vTxSigOpsCost[0] = WITNESS_SCALE_FACTOR * GetLegacySigOpCount(*pblock->vtx[0]);
 
     CValidationState state;
     if (!TestBlockValidity(state, chainparams, *pblock, pindexPrev, false, false)) {
-        if (state.IsTransactionError()) {
-            if (gArgs.GetBoolArg("-autofixmempool", false)) {
-                {
-                    TRY_LOCK(mempool.cs, fLockMempool);
-                    if (fLockMempool) {
-                        LogPrintf("%s failed because of a transaction %s. -autofixmempool is set to true. Clearing the mempool\n", __func__,
-                                  state.GetFailedTransaction().GetHex());
-                        mempool.clear();
-                    }
-                }
-            } else {
-                {
-                    TRY_LOCK(mempool.cs, fLockMempool);
-                    if (fLockMempool) {
-                        auto mempoolTx = mempool.get(state.GetFailedTransaction());
-                        if (mempoolTx) {
-                            LogPrintf("%s : Failed because of a transaction %s. Trying to remove the transaction from the mempool\n", __func__, state.GetFailedTransaction().GetHex());
-                            mempool.removeRecursive(*mempoolTx, MemPoolRemovalReason::CONFLICT);
-                        }
-                    }
-                }
-            }
-        }
         throw std::runtime_error(strprintf("%s: TestBlockValidity failed: %s", __func__, FormatStateMessage(state)));
     }
     int64_t nTime2 = GetTimeMicros();
@@ -547,7 +523,6 @@ static bool ProcessBlockFound(const CBlock* pblock, const CChainParams& chainpar
 }
 
 CWallet *GetFirstWallet() {
-#ifdef ENABLE_WALLET
     while(vpwallets.size() == 0){
         MilliSleep(100);
 
@@ -555,11 +530,9 @@ CWallet *GetFirstWallet() {
     if (vpwallets.size() == 0)
         return(NULL);
     return(vpwallets[0]);
-#endif
-    return(NULL);
 }
 
-void static RavenMiner(const CChainParams& chainparams, const POW_TYPE powType)
+void static AvianMiner(const CChainParams& chainparams, const POW_TYPE powType)
 {
     LogPrintf("AvianMiner -- started\n");
     SetThreadPriority(THREAD_PRIORITY_LOWEST);
@@ -570,14 +543,13 @@ void static RavenMiner(const CChainParams& chainparams, const POW_TYPE powType)
 
     CWallet * pWallet = NULL;
 
-#ifdef ENABLE_WALLET
-    pWallet = GetFirstWallet();
-
+    #ifdef ENABLE_WALLET
+        pWallet = GetFirstWallet();
+    #endif
 
     if (!EnsureWalletIsAvailable(pWallet, false)) {
         LogPrintf("AvianMiner -- Wallet not available\n");
     }
-#endif
 
     if (pWallet == NULL)
     {
@@ -614,7 +586,6 @@ void static RavenMiner(const CChainParams& chainparams, const POW_TYPE powType)
                 // Busy-wait for the network to come online so we don't waste time mining
                 // on an obsolete chain. In regtest mode we expect to fly solo.
                 do {
-                    break;
                     if ((g_connman->GetNodeCount(CConnman::CONNECTIONS_ALL) > 0) && !IsInitialBlockDownload()) {
                         break;
                     }
@@ -655,13 +626,11 @@ void static RavenMiner(const CChainParams& chainparams, const POW_TYPE powType)
             {
 
                 uint256 hash;
-                uint256 mix_hash;
                 while (true)
                 {
-                    hash = pblock->GetHashFull(mix_hash);
+                    hash = pblock->GetHash();
                     if (UintToArith256(hash) <= hashTarget)
                     {
-                        pblock->mix_hash = mix_hash;
                         // Found a solution
                         SetThreadPriority(THREAD_PRIORITY_NORMAL);
                         LogPrintf("AvianMiner:\n  proof-of-work found\n  hash: %s\n  target: %s\n", hash.GetHex(), hashTarget.GetHex());
@@ -741,7 +710,7 @@ int GenerateAvians(bool fGenerate, int nThreads, const CChainParams& chainparams
         return numCores;
 
     minerThreads = new boost::thread_group();
-    
+
     //Reset metrics
     nMiningTimeStart = GetTimeMicros();
     nHashesDone = 0;
