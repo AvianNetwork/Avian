@@ -1,5 +1,5 @@
 // Copyright (c) 2013-2016 The Bitcoin Core developers
-// Copyright (c) 2017-2019 The Raven Core developers
+// Copyright (c) 2017 The Raven Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -24,7 +24,7 @@
 
 extern UniValue read_json(const std::string &jsondata);
 
-// Old script.cpp signature_hash function
+// Old script.cpp SignatureHash function
 uint256 static SignatureHashOld(CScript scriptCode, const CTransaction &txTo, unsigned int nIn, int nHashType)
 {
     static const uint256 one(uint256S("0000000000000000000000000000000000000000000000000000000000000001"));
@@ -168,7 +168,7 @@ BOOST_FIXTURE_TEST_SUITE(sighash_tests, BasicTestingSetup)
     #endif
     }
 
-    // Goal: check that signature_hash generates correct hash
+    // Goal: check that SignatureHash generates correct hash
     BOOST_AUTO_TEST_CASE(sighash_from_data_test)
     {
         BOOST_TEST_MESSAGE("Running SigHas From Data Test");

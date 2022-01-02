@@ -1,5 +1,5 @@
 // Copyright (c) 2011-2016 The Bitcoin Core developers
-// Copyright (c) 2017-2020 The Raven Core developers
+// Copyright (c) 2017-2018 The Raven Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -142,9 +142,7 @@ TestChain100Setup::CreateAndProcessBlock(const std::vector<CMutableTransaction> 
     unsigned int extraNonce = 0;
     IncrementExtraNonce(&block, chainActive.Tip(), extraNonce);
 
-    uint256 mix_hash;
-    while (!CheckProofOfWork(block.GetHashFull(mix_hash), block.nBits, chainparams.GetConsensus())) { ++block.nNonce64; ++block.nNonce;};
-    block.mix_hash = mix_hash;
+    while (!CheckProofOfWork(block.GetBlockHeader(), chainparams.GetConsensus())) ++block.nNonce;
 
     std::shared_ptr<const CBlock> shared_pblock = std::make_shared<const CBlock>(block);
     ProcessNewBlock(chainparams, shared_pblock, true, nullptr);

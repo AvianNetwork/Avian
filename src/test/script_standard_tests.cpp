@@ -1,5 +1,5 @@
 // Copyright (c) 2017 The Bitcoin Core developers
-// Copyright (c) 2017-2019 The Raven Core developers
+// Copyright (c) 2017 The Raven Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -37,7 +37,7 @@ BOOST_FIXTURE_TEST_SUITE(script_standard_tests, BasicTestingSetup)
         s << ToByteVector(pubkeys[0]) << OP_CHECKSIG;
         BOOST_CHECK(Solver(s, whichType, solutions));
         BOOST_CHECK_EQUAL(whichType, TX_PUBKEY);
-        BOOST_CHECK_EQUAL(solutions.size(), (uint32_t)1);
+        BOOST_CHECK_EQUAL(solutions.size(), 1);
         BOOST_CHECK(solutions[0] == ToByteVector(pubkeys[0]));
 
         // TX_PUBKEYHASH
@@ -45,7 +45,7 @@ BOOST_FIXTURE_TEST_SUITE(script_standard_tests, BasicTestingSetup)
         s << OP_DUP << OP_HASH160 << ToByteVector(pubkeys[0].GetID()) << OP_EQUALVERIFY << OP_CHECKSIG;
         BOOST_CHECK(Solver(s, whichType, solutions));
         BOOST_CHECK_EQUAL(whichType, TX_PUBKEYHASH);
-        BOOST_CHECK_EQUAL(solutions.size(), (uint64_t)1);
+        BOOST_CHECK_EQUAL(solutions.size(), 1);
         BOOST_CHECK(solutions[0] == ToByteVector(pubkeys[0].GetID()));
 
         // TX_SCRIPTHASH
@@ -54,7 +54,7 @@ BOOST_FIXTURE_TEST_SUITE(script_standard_tests, BasicTestingSetup)
         s << OP_HASH160 << ToByteVector(CScriptID(redeemScript)) << OP_EQUAL;
         BOOST_CHECK(Solver(s, whichType, solutions));
         BOOST_CHECK_EQUAL(whichType, TX_SCRIPTHASH);
-        BOOST_CHECK_EQUAL(solutions.size(), (uint64_t)1);
+        BOOST_CHECK_EQUAL(solutions.size(), 1);
         BOOST_CHECK(solutions[0] == ToByteVector(CScriptID(redeemScript)));
 
         // TX_MULTISIG
@@ -65,7 +65,7 @@ BOOST_FIXTURE_TEST_SUITE(script_standard_tests, BasicTestingSetup)
           OP_2 << OP_CHECKMULTISIG;
         BOOST_CHECK(Solver(s, whichType, solutions));
         BOOST_CHECK_EQUAL(whichType, TX_MULTISIG);
-        BOOST_CHECK_EQUAL(solutions.size(), (uint64_t)4);
+        BOOST_CHECK_EQUAL(solutions.size(), 4);
         BOOST_CHECK(solutions[0] == std::vector<unsigned char>({1}));
         BOOST_CHECK(solutions[1] == ToByteVector(pubkeys[0]));
         BOOST_CHECK(solutions[2] == ToByteVector(pubkeys[1]));
@@ -79,7 +79,7 @@ BOOST_FIXTURE_TEST_SUITE(script_standard_tests, BasicTestingSetup)
           OP_3 << OP_CHECKMULTISIG;
         BOOST_CHECK(Solver(s, whichType, solutions));
         BOOST_CHECK_EQUAL(whichType, TX_MULTISIG);
-        BOOST_CHECK_EQUAL(solutions.size(), (uint64_t)5);
+        BOOST_CHECK_EQUAL(solutions.size(), 5);
         BOOST_CHECK(solutions[0] == std::vector<unsigned char>({2}));
         BOOST_CHECK(solutions[1] == ToByteVector(pubkeys[0]));
         BOOST_CHECK(solutions[2] == ToByteVector(pubkeys[1]));
@@ -94,24 +94,14 @@ BOOST_FIXTURE_TEST_SUITE(script_standard_tests, BasicTestingSetup)
           std::vector<unsigned char>({255});
         BOOST_CHECK(Solver(s, whichType, solutions));
         BOOST_CHECK_EQUAL(whichType, TX_NULL_DATA);
-        BOOST_CHECK_EQUAL(solutions.size(), (uint64_t)0);
-
-        // TX_RESTRICTED_ASSET_DATA
-        s.clear();
-        s << OP_AVN_ASSET <<
-          std::vector<unsigned char>({0}) <<
-          std::vector<unsigned char>({75}) <<
-          std::vector<unsigned char>({255});
-        BOOST_CHECK(Solver(s, whichType, solutions));
-        BOOST_CHECK_EQUAL(whichType, TX_RESTRICTED_ASSET_DATA);
-        BOOST_CHECK_EQUAL(solutions.size(), (uint64_t)0);
+        BOOST_CHECK_EQUAL(solutions.size(), 0);
 
         // TX_WITNESS_V0_KEYHASH
         s.clear();
         s << OP_0 << ToByteVector(pubkeys[0].GetID());
         BOOST_CHECK(Solver(s, whichType, solutions));
         BOOST_CHECK_EQUAL(whichType, TX_WITNESS_V0_KEYHASH);
-        BOOST_CHECK_EQUAL(solutions.size(), (uint64_t)1);
+        BOOST_CHECK_EQUAL(solutions.size(), 1);
         BOOST_CHECK(solutions[0] == ToByteVector(pubkeys[0].GetID()));
 
         // TX_WITNESS_V0_SCRIPTHASH
@@ -123,7 +113,7 @@ BOOST_FIXTURE_TEST_SUITE(script_standard_tests, BasicTestingSetup)
         s << OP_0 << ToByteVector(scriptHash);
         BOOST_CHECK(Solver(s, whichType, solutions));
         BOOST_CHECK_EQUAL(whichType, TX_WITNESS_V0_SCRIPTHASH);
-        BOOST_CHECK_EQUAL(solutions.size(), (uint64_t)1);
+        BOOST_CHECK_EQUAL(solutions.size(), 1);
         BOOST_CHECK(solutions[0] == ToByteVector(scriptHash));
 
         // TX_NONSTANDARD
@@ -186,11 +176,6 @@ BOOST_FIXTURE_TEST_SUITE(script_standard_tests, BasicTestingSetup)
         s << OP_RETURN << std::vector<unsigned char>({75}) << OP_ADD;
         BOOST_CHECK(!Solver(s, whichType, solutions));
 
-        // TX_RESTRICTED_ASSET_DATA with other opcodes
-        s.clear();
-        s << OP_AVN_ASSET << std::vector<unsigned char>({75}) << OP_ADD;
-        BOOST_CHECK(!Solver(s, whichType, solutions));
-
         // TX_WITNESS with unknown version
         s.clear();
         s << OP_1 << ToByteVector(pubkey);
@@ -246,17 +231,6 @@ BOOST_FIXTURE_TEST_SUITE(script_standard_tests, BasicTestingSetup)
         s << OP_RETURN << std::vector<unsigned char>({75});
         BOOST_CHECK(!ExtractDestination(s, address));
 
-        // TX_RESTRICTED_ASSET_DATA without an address
-        s.clear();
-        s << OP_AVN_ASSET << std::vector<unsigned char>({75});
-        BOOST_CHECK(!ExtractDestination(s, address));
-
-        // TX_RESTRICTED_ASSET_DATA with an address
-        CNullAssetTxData data("#NAME", 1);
-        CScript dataScript = GetScriptForNullAssetDataDestination(address);
-        data.ConstructTransaction(dataScript);
-        BOOST_CHECK(ExtractDestination(dataScript, address));
-
         // TX_WITNESS_V0_KEYHASH
         s.clear();
         s << OP_0 << ToByteVector(pubkey);
@@ -290,7 +264,7 @@ BOOST_FIXTURE_TEST_SUITE(script_standard_tests, BasicTestingSetup)
         s << ToByteVector(pubkeys[0]) << OP_CHECKSIG;
         BOOST_CHECK(ExtractDestinations(s, whichType, addresses, nRequired));
         BOOST_CHECK_EQUAL(whichType, TX_PUBKEY);
-        BOOST_CHECK_EQUAL(addresses.size(), (uint64_t)1);
+        BOOST_CHECK_EQUAL(addresses.size(), 1);
         BOOST_CHECK_EQUAL(nRequired, 1);
         BOOST_CHECK(boost::get<CKeyID>(&addresses[0]) &&
                     *boost::get<CKeyID>(&addresses[0]) == pubkeys[0].GetID());
@@ -300,7 +274,7 @@ BOOST_FIXTURE_TEST_SUITE(script_standard_tests, BasicTestingSetup)
         s << OP_DUP << OP_HASH160 << ToByteVector(pubkeys[0].GetID()) << OP_EQUALVERIFY << OP_CHECKSIG;
         BOOST_CHECK(ExtractDestinations(s, whichType, addresses, nRequired));
         BOOST_CHECK_EQUAL(whichType, TX_PUBKEYHASH);
-        BOOST_CHECK_EQUAL(addresses.size(), (uint64_t)1);
+        BOOST_CHECK_EQUAL(addresses.size(), 1);
         BOOST_CHECK_EQUAL(nRequired, 1);
         BOOST_CHECK(boost::get<CKeyID>(&addresses[0]) &&
                     *boost::get<CKeyID>(&addresses[0]) == pubkeys[0].GetID());
@@ -311,7 +285,7 @@ BOOST_FIXTURE_TEST_SUITE(script_standard_tests, BasicTestingSetup)
         s << OP_HASH160 << ToByteVector(CScriptID(redeemScript)) << OP_EQUAL;
         BOOST_CHECK(ExtractDestinations(s, whichType, addresses, nRequired));
         BOOST_CHECK_EQUAL(whichType, TX_SCRIPTHASH);
-        BOOST_CHECK_EQUAL(addresses.size(), (uint64_t)1);
+        BOOST_CHECK_EQUAL(addresses.size(), 1);
         BOOST_CHECK_EQUAL(nRequired, 1);
         BOOST_CHECK(boost::get<CScriptID>(&addresses[0]) &&
                     *boost::get<CScriptID>(&addresses[0]) == CScriptID(redeemScript));
@@ -324,7 +298,7 @@ BOOST_FIXTURE_TEST_SUITE(script_standard_tests, BasicTestingSetup)
           OP_2 << OP_CHECKMULTISIG;
         BOOST_CHECK(ExtractDestinations(s, whichType, addresses, nRequired));
         BOOST_CHECK_EQUAL(whichType, TX_MULTISIG);
-        BOOST_CHECK_EQUAL(addresses.size(), (uint64_t)2);
+        BOOST_CHECK_EQUAL(addresses.size(), 2);
         BOOST_CHECK_EQUAL(nRequired, 2);
         BOOST_CHECK(boost::get<CKeyID>(&addresses[0]) &&
                     *boost::get<CKeyID>(&addresses[0]) == pubkeys[0].GetID());
@@ -334,11 +308,6 @@ BOOST_FIXTURE_TEST_SUITE(script_standard_tests, BasicTestingSetup)
         // TX_NULL_DATA
         s.clear();
         s << OP_RETURN << std::vector<unsigned char>({75});
-        BOOST_CHECK(!ExtractDestinations(s, whichType, addresses, nRequired));
-
-        // TX_RESTRICTED_ASSET_DATA
-        s.clear();
-        s << OP_AVN_ASSET << std::vector<unsigned char>({75});
         BOOST_CHECK(!ExtractDestinations(s, whichType, addresses, nRequired));
 
         // TX_WITNESS_V0_KEYHASH
@@ -766,19 +735,6 @@ BOOST_FIXTURE_TEST_SUITE(script_standard_tests, BasicTestingSetup)
 
             scriptPubKey.clear();
             scriptPubKey << OP_RETURN << ToByteVector(pubkeys[0]);
-
-            result = IsMine(keystore, scriptPubKey, isInvalid);
-            BOOST_CHECK_EQUAL(result, ISMINE_NO);
-            BOOST_CHECK(!isInvalid);
-        }
-
-        // OP_AVN_ASSET at front of script
-        {
-            CBasicKeyStore keystore;
-            keystore.AddKey(keys[0]);
-
-            scriptPubKey.clear();
-            scriptPubKey << OP_AVN_ASSET << ToByteVector(pubkeys[0]);
 
             result = IsMine(keystore, scriptPubKey, isInvalid);
             BOOST_CHECK_EQUAL(result, ISMINE_NO);
