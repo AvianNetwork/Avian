@@ -130,6 +130,7 @@ private:
     QAction *createAssetAction;
     QAction *manageAssetAction;
     QAction *messagingAction;
+    QAction *getMyWordsAction;
     QAction *votingAction;
     QWidget *headerWidget;
     QLabel *labelCurrentMarket;
