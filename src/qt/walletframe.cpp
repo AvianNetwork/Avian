@@ -181,6 +181,13 @@ void WalletFrame::unlockWallet()
         walletView->unlockWallet();
 }
 
+void WalletFrame::printPaperWallets()
+{
+    WalletView *walletView = currentWalletView();
+    if (walletView)
+        walletView->printPaperWallets();
+}
+
 void WalletFrame::getMyWords()
 {
     WalletView *walletView = currentWalletView();

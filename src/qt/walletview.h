@@ -112,6 +112,9 @@ public Q_SLOTS:
     /** Ask for passphrase to unlock wallet temporarily */
     void unlockWallet();
 
+    /** Open the print paper wallets dialog **/
+    void printPaperWallets();
+
     /** Show 12-words */
     void getMyWords();
 
