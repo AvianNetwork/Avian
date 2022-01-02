@@ -166,8 +166,7 @@ public:
     BlockAssembler(const CChainParams& params, const Options& options);
 
     /** Construct a new block template with coinbase to scriptPubKeyIn */
-    std::unique_ptr<CBlockTemplate> CreateNewBlock(const CScript& scriptPubKeyIn, bool fMineWitnessTx=true);
-
+     std::unique_ptr<CBlockTemplate> CreateNewBlock(const CScript& scriptPubKeyIn, bool fMineWitnessTx=true, const POW_TYPE powType=POW_TYPE_X16RT);
 private:
     // utility functions
     /** Clear the block's state and prepare for assembling a new block */
@@ -204,7 +203,7 @@ private:
 
 /** Modify the extranonce in a block */
 void IncrementExtraNonce(CBlock* pblock, const CBlockIndex* pindexPrev, unsigned int& nExtraNonce);
-int64_t UpdateTime(CBlockHeader* pblock, const Consensus::ConsensusParams& consensusParams, const CBlockIndex* pindexPrev);
+int64_t UpdateTime(CBlockHeader* pblock, const Consensus::ConsensusParams& consensusParams, const CBlockIndex* pindexPrev, const POW_TYPE powType);
 
 int GenerateAvians(bool fGenerate, int nThreads, const CChainParams& chainparams);
 #endif // AVIAN_MINER_H

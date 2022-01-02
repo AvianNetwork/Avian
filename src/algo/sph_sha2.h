@@ -37,14 +37,14 @@
  * @author   Thomas Pornin <thomas.pornin@cryptolog.com>
  */
 
-#ifndef SPH_SHA2_H__
-#define SPH_SHA2_H__
+#ifndef RVL_POW_SPH_SHA2_H
+#define RVL_POW_SPH_SHA2_H
 
 #include <stddef.h>
 #include "sph_types.h"
 
 #ifdef __cplusplus
-extern "C" {
+extern "C"{
 #endif
 
 /**
@@ -371,9 +371,8 @@ void sph_sha512_comp(const sph_u64 msg[16], sph_u64 val[8]);
 
 #endif
 
-#endif
+
 #ifdef __cplusplus
 }
 #endif
-
-
+#endif // RVL_POW_SPH_SHA2_H

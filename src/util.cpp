@@ -250,6 +250,7 @@ const CLogCategoryDesc LogCategories[] =
                 {BCLog::QT,          "qt"},
                 {BCLog::LEVELDB,     "leveldb"},
                 {BCLog::REWARDS,     "rewards"},
+                {BCLog::CROW,        "crow"},  // Crow
                 {BCLog::ALL,         "1"},
                 {BCLog::ALL,         "all"},
         };

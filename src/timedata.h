@@ -11,7 +11,8 @@
 #include <stdint.h>
 #include <vector>
 
-static const int64_t DEFAULT_MAX_TIME_ADJUSTMENT = 70 * 60;
+// static const int64_t DEFAULT_MAX_TIME_ADJUSTMENT = 70 * 60;
+ static const int64_t DEFAULT_MAX_TIME_ADJUSTMENT = ((90 * 5 * 60) / 20) / 2;    // Crow Algo: FTL/2 (675)
 
 class CNetAddr;
 

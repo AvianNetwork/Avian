@@ -13,14 +13,14 @@
 #include <stdint.h>
 #include <string>
 #include <vector>
-#include "crypto/common.h"
+#include <crypto/common.h>
 
 /** Template base class for fixed-sized opaque blobs. */
 template<unsigned int BITS>
 class base_blob
 {
 protected:
-    enum { WIDTH=BITS/8 };
+    static constexpr int WIDTH = BITS / 8;
     uint8_t data[WIDTH];
 public:
     base_blob()
@@ -125,6 +125,11 @@ public:
     uint256() {}
     explicit uint256(const std::vector<unsigned char>& vch) : base_blob<256>(vch) {}
 
+    // Truncate a uint512 to a uint256
+    uint256(base_blob<512>& dat){
+        memcpy(begin(), dat.begin(), size());
+    }
+
     int GetNibble(int index) const 
     {
         index = 63 - index;
@@ -142,6 +147,25 @@ public:
         return ReadLE64(data);
     }
 };
+
+// Crow: 512-bit opaque blob
+class uint512 : public base_blob<512> {
+public:
+    uint512() {}
+    explicit uint512(const std::vector<unsigned char>& vch) : base_blob<512>(vch) {}
+
+    unsigned char ByteAt(unsigned int n) {
+        return data[n];
+    }
+
+    uint256 trim256() const
+    {
+        uint256 result;
+        memcpy((void*)&result, (void*)data, 32);
+        return result;
+    }
+};
+
 
 /* uint256 from const char *.
  * This is a separate function because the constructor uint256(const char*) can result

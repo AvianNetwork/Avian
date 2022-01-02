@@ -5,6 +5,7 @@
 
 #include "versionbits.h"
 #include "consensus/params.h"
+#include "validation.h"
 
 const struct VBDeploymentInfo VersionBitsDeploymentInfo[Consensus::MAX_VERSION_BITS_DEPLOYMENTS] = {
     {
@@ -34,6 +35,11 @@ const struct VBDeploymentInfo VersionBitsDeploymentInfo[Consensus::MAX_VERSION_B
     {
             /*.name =*/ "coinbase",
             /*.gbt_force =*/ true,
+    },
+    // Crow: Deployment
+    {
+        /*.name =*/ "minotaurx",
+        /*.gbt_force =*/ true,
     }
 };
 
@@ -206,7 +212,12 @@ protected:
 
     bool Condition(const CBlockIndex* pindex, const Consensus::ConsensusParams& params) const override
     {
-        return ((pindex->nVersion & Mask(params)) != 0);
+        // Crow: Versionbits always active since powforktime and high bits repurposed at crow UASF activation;
+        // So, don't use VERSIONBITS_TOP_MASK any time past powforktime
+        if (pindex->nTime > params.powForkTime)
+            return (pindex->nVersion & Mask(params)) != 0;
+        else
+            return (((pindex->nVersion & VERSIONBITS_TOP_MASK) == VERSIONBITS_TOP_BITS) && (pindex->nVersion & Mask(params)) != 0);
     }
 
 public:

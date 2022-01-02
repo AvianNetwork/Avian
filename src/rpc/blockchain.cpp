@@ -94,6 +94,42 @@ double GetDifficulty(const CBlockIndex* blockindex)
     return dDiff;
 }
 
+// Crow
+double GetDifficulty(const CBlockIndex* blockindex, POW_TYPE powType)
+{
+    return GetDifficulty(chainActive, blockindex, powType);
+}
+
+
+// double GetDifficulty(const CBlockIndex* blockindex)
+// {
+//     if (blockindex == nullptr)
+//     {
+//         if (chainActive.Tip() == nullptr)
+//             return 1.0;
+//         else
+//             blockindex = chainActive.Tip();
+//     }
+
+//     int nShift = (blockindex->nBits >> 24) & 0xff;
+
+//     double dDiff =
+//         (double)0x0000ffff / (double)(blockindex->nBits & 0x00ffffff);
+
+//     while (nShift < 29)
+//     {
+//         dDiff *= 256.0;
+//         nShift++;
+//     }
+//     while (nShift > 29)
+//     {
+//         dDiff /= 256.0;
+//         nShift--;
+//     }
+
+//     return dDiff;
+// }
+
 UniValue blockheaderToJSON(const CBlockIndex* blockindex)
 {
     UniValue result(UniValue::VOBJ);
@@ -112,6 +148,8 @@ UniValue blockheaderToJSON(const CBlockIndex* blockindex)
     result.push_back(Pair("nonce", (uint64_t)blockindex->nNonce));
     result.push_back(Pair("bits", strprintf("%08x", blockindex->nBits)));
     result.push_back(Pair("difficulty", GetDifficulty(blockindex)));
+    if (IsCrowEnabled(blockindex, Params().GetConsensus()))
+        result.push_back(Pair("crowdifficulty", GetDifficulty(blockindex))); 
     result.push_back(Pair("chainwork", blockindex->nChainWork.GetHex()));
     result.push_back(Pair("nTx", (uint64_t)blockindex->nTx));
 
@@ -975,7 +1013,8 @@ UniValue getblock(const JSONRPCRequest& request)
             "  \"mediantime\" : ttt,    (numeric) The median block time in seconds since epoch (Jan 1 1970 GMT)\n"
             "  \"nonce\" : n,           (numeric) The nonce\n"
             "  \"bits\" : \"1d00ffff\", (string) The bits\n"
-            "  \"difficulty\" : x.xxx,  (numeric) The difficulty\n"
+            "  \"difficulty\" : x.xxx,  (numeric) The difficulty for x16rt\n"
+            "  \"crowdifficulty\" : x.xxx,  (numeric) The pow difficulty for Crow (once activated)\n" // Crow            
             "  \"chainwork\" : \"xxxx\",  (string) Expected number of hashes required to produce the chain up to this block (in hex)\n"
             "  \"nTx\", : \"x\",        (string) The number of transactions in the block\n"
             "  \"previousblockhash\" : \"hash\",  (string) The hash of the previous block\n"
