@@ -40,7 +40,7 @@ CService ip(uint32_t i)
 {
     struct in_addr s;
     s.s_addr = i;
-    return CService(CNetAddr(s), GetParams().GetDefaultPort());
+    return CService(CNetAddr(s), Params().GetDefaultPort());
 }
 
 static NodeId id = 0;

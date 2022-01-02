@@ -204,7 +204,7 @@ void PrepareShutdown()
 #ifdef ENABLE_WALLET
     FlushWallets();
 #endif
-    GenerateAvians(false, 0, GetParams());
+    GenerateAvians(false, 0, Params());
 
     MapPort(false);
 
@@ -734,7 +734,7 @@ void CleanupBlockRevFiles()
 
 void ThreadImport(std::vector<fs::path> vImportFiles)
 {
-    const CChainParams& chainparams = GetParams();
+    const CChainParams& chainparams = Params();
     RenameThread("avian-loadblk");
 
     {
@@ -1004,7 +1004,7 @@ bool AppInitBasicSetup()
 
 bool AppInitParameterInteraction()
 {
-    const CChainParams& chainparams = GetParams();
+    const CChainParams& chainparams = Params();
     // ********************************************************* Step 2: parameter interactions
 
     // also see: InitParameterInteraction()
@@ -1324,7 +1324,7 @@ bool AppInitLockDataDirectory()
 
 bool AppInitMain(boost::thread_group& threadGroup, CScheduler& scheduler)
 {
-    const CChainParams& chainparams = GetParams();
+    const CChainParams& chainparams = Params();
     // ********************************************************* Step 4a: application initialization
 #ifndef WIN32
     CreatePidFile(GetPidFile(), getpid());

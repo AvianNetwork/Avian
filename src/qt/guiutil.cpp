@@ -213,7 +213,7 @@ void setupAddressWidget(QValidatedLineEdit *widget, QWidget *parent)
     // We don't want translators to use own addresses in translations
     // and this is the only place, where this address is supplied.
     widget->setPlaceholderText(QObject::tr("Enter a Avian address (e.g. %1)").arg(
-        QString::fromStdString(DummyAddress(GetParams()))));
+        QString::fromStdString(DummyAddress(Params()))));
 #endif
     widget->setValidator(new AvianAddressEntryValidator(parent));
     widget->setCheckValidator(new AvianAddressCheckValidator(parent));

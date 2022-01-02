@@ -212,7 +212,7 @@ void CWallet::DeriveNewChildKey(CWalletDB &walletdb, CKeyMetadata& metadata, CKe
 				// derive m/purpose'
 				masterKey.Derive(purposeKey, 44 | BIP32_HARDENED_KEY_LIMIT);
 				// derive m/purpose'/coin_type'
-				purposeKey.Derive(coinTypeKey, GetParams().ExtCoinType() | BIP32_HARDENED_KEY_LIMIT);
+				purposeKey.Derive(coinTypeKey, Params().ExtCoinType() | BIP32_HARDENED_KEY_LIMIT);
 				// derive m/purpose'/coin_type'/account'
 				coinTypeKey.Derive(accountKey, nAccountIndex | BIP32_HARDENED_KEY_LIMIT);
 				// derive m/purpose'/coin_type'/account'/change
@@ -239,7 +239,7 @@ void CWallet::DeriveNewChildKey(CWalletDB &walletdb, CKeyMetadata& metadata, CKe
     secret = childKey.key;
 
     if(hdChain.IsBip44())
-        metadata.hdKeypath = strprintf("m/44'/%d'/%d'/%d/%d", GetParams().ExtCoinType(), nAccountIndex, internal, nChildIndex - 1);
+        metadata.hdKeypath = strprintf("m/44'/%d'/%d'/%d/%d", Params().ExtCoinType(), nAccountIndex, internal, nChildIndex - 1);
     else
         metadata.hdKeypath = strprintf("m/%d'/%d'/%d'", nAccountIndex, internal, nChildIndex - 1);
 
@@ -1788,7 +1788,7 @@ int64_t CWallet::RescanFromTime(int64_t startTime, bool update)
 CBlockIndex* CWallet::ScanForWalletTransactions(CBlockIndex* pindexStart, CBlockIndex* pindexStop, bool fUpdate)
 {
     int64_t nNow = GetTime();
-    const CChainParams& chainParams = GetParams();
+    const CChainParams& chainParams = Params();
 
     if (pindexStop) {
         assert(pindexStop->nHeight >= pindexStart->nHeight);
@@ -1814,7 +1814,7 @@ CBlockIndex* CWallet::ScanForWalletTransactions(CBlockIndex* pindexStart, CBlock
             }
 
             CBlock block;
-            if (ReadBlockFromDisk(block, pindex, GetParams().GetConsensus())) {
+            if (ReadBlockFromDisk(block, pindex, Params().GetConsensus())) {
                 for (size_t posInBlock = 0; posInBlock < block.vtx.size(); ++posInBlock) {
                     AddToWalletIfInvolvingMe(block.vtx[posInBlock], pindex, posInBlock, fUpdate);
                 }

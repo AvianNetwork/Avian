@@ -856,7 +856,7 @@ UniValue getmasterkeyinfo(const JSONRPCRequest& request)
             // Add the private and public key to the output
             ret.push_back(std::make_pair("bip32_root_private",  b58extkey.ToString()));
             ret.push_back(std::make_pair("bip32_root_public",  b58extpubkey.ToString()));
-            std::string path = strprintf("m/44'/%d'/%d'", GetParams().ExtCoinType(), 0);
+            std::string path = strprintf("m/44'/%d'/%d'", Params().ExtCoinType(), 0);
             ret.push_back(std::make_pair("account_derivation_path",  path));
 
             // Lets generate the account private and public keys
@@ -866,7 +866,7 @@ UniValue getmasterkeyinfo(const JSONRPCRequest& request)
             // derive m/purpose'
             masterKey.Derive(purposeKey, 44 | 0x80000000);
             // derive m/purpose'/coin_type'
-            purposeKey.Derive(coinTypeKey, GetParams().ExtCoinType() | 0x80000000);
+            purposeKey.Derive(coinTypeKey, Params().ExtCoinType() | 0x80000000);
             // derive m/purpose'/coin_type'/account'
             coinTypeKey.Derive(accountKey, 0 | 0x80000000);
 

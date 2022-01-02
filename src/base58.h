@@ -139,7 +139,7 @@ public:
     void SetKey(const K &key) {
         unsigned char vch[Size];
         key.Encode(vch);
-        SetData(GetParams().Base58Prefix(Type), vch, vch + Size);
+        SetData(Params().Base58Prefix(Type), vch, vch + Size);
     }
 
     K GetKey() {
@@ -156,7 +156,7 @@ public:
     }
 
     CAvianExtKeyBase(const std::string& strBase58c) {
-        SetString(strBase58c.c_str(), GetParams().Base58Prefix(Type).size());
+        SetString(strBase58c.c_str(), Params().Base58Prefix(Type).size());
     }
 
     CAvianExtKeyBase() {}

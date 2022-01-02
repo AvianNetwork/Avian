@@ -29,7 +29,7 @@ BOOST_FIXTURE_TEST_SUITE(asset_tx_tests, BasicTestingSetup)
 
         // Create the asset scriptPubKey
         CAssetTransfer asset("AVIANTEST", 1000);
-        CScript scriptPubKey = GetScriptForDestination(DecodeDestination(GetParams().GlobalBurnAddress()));
+        CScript scriptPubKey = GetScriptForDestination(DecodeDestination(Params().GlobalBurnAddress()));
         asset.ConstructTransaction(scriptPubKey);
 
         CCoinsView view;
@@ -77,7 +77,7 @@ BOOST_FIXTURE_TEST_SUITE(asset_tx_tests, BasicTestingSetup)
 
         // Create the asset scriptPubKey
         CAssetTransfer asset("AVIANTEST", 1000);
-        CScript scriptPubKey = GetScriptForDestination(DecodeDestination(GetParams().GlobalBurnAddress()));
+        CScript scriptPubKey = GetScriptForDestination(DecodeDestination(Params().GlobalBurnAddress()));
         asset.ConstructTransaction(scriptPubKey);
 
         CCoinsView view;
@@ -105,7 +105,7 @@ BOOST_FIXTURE_TEST_SUITE(asset_tx_tests, BasicTestingSetup)
         // Create CTxOut that will only send 100 of the asset
         // This should fail because 900 AVIAN doesn't have a destination
         CAssetTransfer assetTransfer("AVIANTEST", 100);
-        CScript scriptLess = GetScriptForDestination(DecodeDestination(GetParams().GlobalBurnAddress()));
+        CScript scriptLess = GetScriptForDestination(DecodeDestination(Params().GlobalBurnAddress()));
         assetTransfer.ConstructTransaction(scriptLess);
 
         CTxOut txOut2;
@@ -134,7 +134,7 @@ BOOST_FIXTURE_TEST_SUITE(asset_tx_tests, BasicTestingSetup)
 
         // Create the asset scriptPubKey
         CAssetTransfer asset("AVIANTEST", 1000);
-        CScript scriptPubKey = GetScriptForDestination(DecodeDestination(GetParams().GlobalBurnAddress()));
+        CScript scriptPubKey = GetScriptForDestination(DecodeDestination(Params().GlobalBurnAddress()));
         asset.ConstructTransaction(scriptPubKey);
 
         CCoinsView view;
@@ -163,7 +163,7 @@ BOOST_FIXTURE_TEST_SUITE(asset_tx_tests, BasicTestingSetup)
         for (int i = 0; i < 10; i++)
         {
             CAssetTransfer asset2("AVIANTEST", 100);
-            CScript scriptPubKey2 = GetScriptForDestination(DecodeDestination(GetParams().GlobalBurnAddress()));
+            CScript scriptPubKey2 = GetScriptForDestination(DecodeDestination(Params().GlobalBurnAddress()));
             asset2.ConstructTransaction(scriptPubKey2);
 
             CTxOut txOut2;
@@ -195,7 +195,7 @@ BOOST_FIXTURE_TEST_SUITE(asset_tx_tests, BasicTestingSetup)
 
         // Create the asset scriptPubKey
         CAssetTransfer asset("AVIANTEST", 1000);
-        CScript scriptPubKey = GetScriptForDestination(DecodeDestination(GetParams().GlobalBurnAddress()));
+        CScript scriptPubKey = GetScriptForDestination(DecodeDestination(Params().GlobalBurnAddress()));
         asset.ConstructTransaction(scriptPubKey);
 
         CCoinsView view;
@@ -224,7 +224,7 @@ BOOST_FIXTURE_TEST_SUITE(asset_tx_tests, BasicTestingSetup)
         for (int i = 0; i < 12; i++)
         {
             CAssetTransfer asset2("AVIANTEST", 100);
-            CScript scriptPubKey2 = GetScriptForDestination(DecodeDestination(GetParams().GlobalBurnAddress()));
+            CScript scriptPubKey2 = GetScriptForDestination(DecodeDestination(Params().GlobalBurnAddress()));
             asset2.ConstructTransaction(scriptPubKey2);
 
             CTxOut txOut2;
@@ -256,15 +256,15 @@ BOOST_FIXTURE_TEST_SUITE(asset_tx_tests, BasicTestingSetup)
 
         // Create the asset scriptPubKeys
         CAssetTransfer asset("AVIANTEST", 1000);
-        CScript scriptPubKey = GetScriptForDestination(DecodeDestination(GetParams().GlobalBurnAddress()));
+        CScript scriptPubKey = GetScriptForDestination(DecodeDestination(Params().GlobalBurnAddress()));
         asset.ConstructTransaction(scriptPubKey);
 
         CAssetTransfer asset2("AVIANTESTTEST", 1000);
-        CScript scriptPubKey2 = GetScriptForDestination(DecodeDestination(GetParams().GlobalBurnAddress()));
+        CScript scriptPubKey2 = GetScriptForDestination(DecodeDestination(Params().GlobalBurnAddress()));
         asset2.ConstructTransaction(scriptPubKey2);
 
         CAssetTransfer asset3("AVIANTESTTESTTEST", 1000);
-        CScript scriptPubKey3 = GetScriptForDestination(DecodeDestination(GetParams().GlobalBurnAddress()));
+        CScript scriptPubKey3 = GetScriptForDestination(DecodeDestination(Params().GlobalBurnAddress()));
         asset3.ConstructTransaction(scriptPubKey3);
 
         CCoinsView view;
@@ -321,7 +321,7 @@ BOOST_FIXTURE_TEST_SUITE(asset_tx_tests, BasicTestingSetup)
         {
             // Add the first asset
             CAssetTransfer outAsset("AVIANTEST", 100);
-            CScript outScript = GetScriptForDestination(DecodeDestination(GetParams().GlobalBurnAddress()));
+            CScript outScript = GetScriptForDestination(DecodeDestination(Params().GlobalBurnAddress()));
             outAsset.ConstructTransaction(outScript);
 
             CTxOut txOutNew;
@@ -332,7 +332,7 @@ BOOST_FIXTURE_TEST_SUITE(asset_tx_tests, BasicTestingSetup)
 
             // Add the second asset
             CAssetTransfer outAsset2("AVIANTESTTEST", 100);
-            CScript outScript2 = GetScriptForDestination(DecodeDestination(GetParams().GlobalBurnAddress()));
+            CScript outScript2 = GetScriptForDestination(DecodeDestination(Params().GlobalBurnAddress()));
             outAsset2.ConstructTransaction(outScript2);
 
             CTxOut txOutNew2;
@@ -343,7 +343,7 @@ BOOST_FIXTURE_TEST_SUITE(asset_tx_tests, BasicTestingSetup)
 
             // Add the third asset
             CAssetTransfer outAsset3("AVIANTESTTESTTEST", 100);
-            CScript outScript3 = GetScriptForDestination(DecodeDestination(GetParams().GlobalBurnAddress()));
+            CScript outScript3 = GetScriptForDestination(DecodeDestination(Params().GlobalBurnAddress()));
             outAsset3.ConstructTransaction(outScript3);
 
             CTxOut txOutNew3;
@@ -376,7 +376,7 @@ BOOST_FIXTURE_TEST_SUITE(asset_tx_tests, BasicTestingSetup)
         {
             // Add the first asset
             CAssetTransfer outAsset("AVIANTEST", 100);
-            CScript outScript = GetScriptForDestination(DecodeDestination(GetParams().GlobalBurnAddress()));
+            CScript outScript = GetScriptForDestination(DecodeDestination(Params().GlobalBurnAddress()));
             outAsset.ConstructTransaction(outScript);
 
             CTxOut txOutNew;
@@ -387,7 +387,7 @@ BOOST_FIXTURE_TEST_SUITE(asset_tx_tests, BasicTestingSetup)
 
             // Add the second asset
             CAssetTransfer outAsset2("AVIANTESTTEST", 100);
-            CScript outScript2 = GetScriptForDestination(DecodeDestination(GetParams().GlobalBurnAddress()));
+            CScript outScript2 = GetScriptForDestination(DecodeDestination(Params().GlobalBurnAddress()));
             outAsset2.ConstructTransaction(outScript2);
 
             CTxOut txOutNew2;
@@ -398,7 +398,7 @@ BOOST_FIXTURE_TEST_SUITE(asset_tx_tests, BasicTestingSetup)
 
             // Add the third asset
             CAssetTransfer outAsset3("AVIANTESTTESTTEST", 100);
-            CScript outScript3 = GetScriptForDestination(DecodeDestination(GetParams().GlobalBurnAddress()));
+            CScript outScript3 = GetScriptForDestination(DecodeDestination(Params().GlobalBurnAddress()));
             outAsset3.ConstructTransaction(outScript3);
 
             CTxOut txOutNew3;
@@ -490,7 +490,7 @@ BOOST_FIXTURE_TEST_SUITE(asset_tx_tests, BasicTestingSetup)
 
         // Create the reissue asset
         CReissueAsset reissueAsset("ENFORCE_VALUE", 100, 8, true, "");
-        CScript scriptPubKey = GetScriptForDestination(DecodeDestination(GetParams().GlobalBurnAddress()));
+        CScript scriptPubKey = GetScriptForDestination(DecodeDestination(Params().GlobalBurnAddress()));
         reissueAsset.ConstructTransaction(scriptPubKey);
 
         // Create an invalid reissue asset with nValue not equal to zero
@@ -572,12 +572,12 @@ BOOST_FIXTURE_TEST_SUITE(asset_tx_tests, BasicTestingSetup)
 
         // Add in the initial coinbase data
         coinbaseTx.vout[0].scriptPubKey = coinbaseScript->reserveScript;
-        coinbaseTx.vout[0].nValue = GetBlockSubsidy(100, GetParams().GetConsensus());
+        coinbaseTx.vout[0].nValue = GetBlockSubsidy(100, Params().GetConsensus());
         coinbaseTx.vin[0].scriptSig = CScript() << 100 << OP_0;
 
         // Create a transfer asset
         CAssetTransfer transferAsset("COINBASE_TEST", 100);
-        CScript scriptPubKey = GetScriptForDestination(DecodeDestination(GetParams().GlobalBurnAddress()));
+        CScript scriptPubKey = GetScriptForDestination(DecodeDestination(Params().GlobalBurnAddress()));
         transferAsset.ConstructTransaction(scriptPubKey);
 
         // Add the transfer asset script into the coinbase

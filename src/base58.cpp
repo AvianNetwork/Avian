@@ -231,13 +231,13 @@ public:
 
 bool CAvianAddress::Set(const CKeyID& id)
 {
-    SetData(GetParams().Base58Prefix(CChainParams::PUBKEY_ADDRESS), &id, 20);
+    SetData(Params().Base58Prefix(CChainParams::PUBKEY_ADDRESS), &id, 20);
     return true;
 }
 
 bool CAvianAddress::Set(const CScriptID& id)
 {
-    SetData(GetParams().Base58Prefix(CChainParams::SCRIPT_ADDRESS), &id, 20);
+    SetData(Params().Base58Prefix(CChainParams::SCRIPT_ADDRESS), &id, 20);
     return true;
 }
 
@@ -248,7 +248,7 @@ bool CAvianAddress::Set(const CTxDestination& dest)
 
 bool CAvianAddress::IsValid() const
 {
-    return IsValid(GetParams());
+    return IsValid(Params());
 }
 
 bool CAvianAddress::IsValid(const CChainParams& params) const
@@ -265,9 +265,9 @@ CTxDestination CAvianAddress::Get() const
         return CNoDestination();
     uint160 id;
     memcpy(&id, vchData.data(), 20);
-    if (vchVersion == GetParams().Base58Prefix(CChainParams::PUBKEY_ADDRESS))
+    if (vchVersion == Params().Base58Prefix(CChainParams::PUBKEY_ADDRESS))
         return CKeyID(id);
-    else if (vchVersion == GetParams().Base58Prefix(CChainParams::SCRIPT_ADDRESS))
+    else if (vchVersion == Params().Base58Prefix(CChainParams::SCRIPT_ADDRESS))
         return CScriptID(id);
     else
         return CNoDestination();
@@ -277,11 +277,11 @@ bool CAvianAddress::GetIndexKey(uint160& hashBytes, int& type) const
 {
     if (!IsValid()) {
         return false;
-    } else if (vchVersion == GetParams().Base58Prefix(CChainParams::PUBKEY_ADDRESS)) {
+    } else if (vchVersion == Params().Base58Prefix(CChainParams::PUBKEY_ADDRESS)) {
         memcpy(&hashBytes, &vchData[0], 20);
         type = 1;
         return true;
-    } else if (vchVersion == GetParams().Base58Prefix(CChainParams::SCRIPT_ADDRESS)) {
+    } else if (vchVersion == Params().Base58Prefix(CChainParams::SCRIPT_ADDRESS)) {
         memcpy(&hashBytes, &vchData[0], 20);
         type = 2;
         return true;
@@ -293,7 +293,7 @@ bool CAvianAddress::GetIndexKey(uint160& hashBytes, int& type) const
 void CAvianSecret::SetKey(const CKey& vchSecret)
 {
     assert(vchSecret.IsValid());
-    SetData(GetParams().Base58Prefix(CChainParams::SECRET_KEY), vchSecret.begin(), vchSecret.size());
+    SetData(Params().Base58Prefix(CChainParams::SECRET_KEY), vchSecret.begin(), vchSecret.size());
     if (vchSecret.IsCompressed())
         vchData.push_back(1);
 }
@@ -309,7 +309,7 @@ CKey CAvianSecret::GetKey()
 bool CAvianSecret::IsValid() const
 {
     bool fExpectedFormat = vchData.size() == 32 || (vchData.size() == 33 && vchData[32] == 1);
-    bool fCorrectVersion = vchVersion == GetParams().Base58Prefix(CChainParams::SECRET_KEY);
+    bool fCorrectVersion = vchVersion == Params().Base58Prefix(CChainParams::SECRET_KEY);
     return fExpectedFormat && fCorrectVersion;
 }
 

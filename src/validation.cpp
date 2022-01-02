@@ -918,7 +918,7 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
         // There is a similar check in CreateNewBlock() to prevent creating
         // invalid blocks (using TestBlockValidity), however allowing such
         // transactions into the mempool can be exploited as a DoS attack.
-        unsigned int currentBlockScriptVerifyFlags = GetBlockScriptFlags(chainActive.Tip(), GetParams().GetConsensus());
+        unsigned int currentBlockScriptVerifyFlags = GetBlockScriptFlags(chainActive.Tip(), Params().GetConsensus());
         if (!CheckInputsFromMempoolAndCache(tx, state, view, pool, currentBlockScriptVerifyFlags, true, txdata))
         {
             // If we're using promiscuousmempoolflags, we may hit this normally
@@ -1108,7 +1108,7 @@ bool AcceptToMemoryPool(CTxMemPool& pool, CValidationState &state, const CTransa
                         bool* pfMissingInputs, std::list<CTransactionRef>* plTxnReplaced,
                         bool bypass_limits, const CAmount nAbsurdFee, bool test_accept)
 {
-    const CChainParams& chainparams = GetParams();
+    const CChainParams& chainparams = Params();
     return AcceptToMemoryPoolWithTime(chainparams, pool, state, tx, pfMissingInputs, GetTime(), plTxnReplaced, bypass_limits, nAbsurdFee, test_accept);
 }
 
@@ -3053,14 +3053,14 @@ bool static FlushStateToDisk(const CChainParams& chainparams, CValidationState &
 
 void FlushStateToDisk() {
     CValidationState state;
-    const CChainParams& chainparams = GetParams();
+    const CChainParams& chainparams = Params();
     FlushStateToDisk(chainparams, state, FLUSH_STATE_ALWAYS);
 }
 
 void PruneAndFlush() {
     CValidationState state;
     fCheckForPruning = true;
-    const CChainParams& chainparams = GetParams();
+    const CChainParams& chainparams = Params();
     FlushStateToDisk(chainparams, state, FLUSH_STATE_NONE);
 }
 
@@ -3972,7 +3972,7 @@ static bool CheckBlockHeader(const CBlockHeader& block, CValidationState& state,
 {
     // If we are checking a KAWPOW block below a know checkpoint height. We can validate the proof of work using the mix_hash
     if (fCheckPOW && block.nTime >= nKAWPOWActivationTime) {
-        CBlockIndex* pcheckpoint = Checkpoints::GetLastCheckpoint(GetParams().Checkpoints());
+        CBlockIndex* pcheckpoint = Checkpoints::GetLastCheckpoint(Params().Checkpoints());
         if (fCheckPOW && pcheckpoint && block.nHeight <= (uint32_t)pcheckpoint->nHeight) {
            if (!CheckProofOfWork(block.GetHash(), block.nBits, consensusParams)) {
                return state.DoS(50, false, REJECT_INVALID, "high-hash", false, "proof of work failed with mix_hash only check");
@@ -4147,9 +4147,9 @@ static bool ContextualCheckBlockHeader(const CBlockHeader& block, CValidationSta
     const int nHeight = pindexPrev->nHeight + 1;
 
     //If this is a reorg, check that it is not too deep
-    int nMaxReorgDepth = gArgs.GetArg("-maxreorg", GetParams().MaxReorganizationDepth());
-    int nMinReorgPeers = gArgs.GetArg("-minreorgpeers", GetParams().MinReorganizationPeers());
-    int nMinReorgAge = gArgs.GetArg("-minreorgage", GetParams().MinReorganizationAge());
+    int nMaxReorgDepth = gArgs.GetArg("-maxreorg", Params().MaxReorganizationDepth());
+    int nMinReorgPeers = gArgs.GetArg("-minreorgpeers", Params().MinReorganizationPeers());
+    int nMinReorgAge = gArgs.GetArg("-minreorgage", Params().MinReorganizationAge());
     bool fGreaterThanMaxReorg = (chainActive.Height() - (nHeight - 1)) >= nMaxReorgDepth;
     if (fGreaterThanMaxReorg && g_connman) {
         int nCurrentNodeCount = g_connman->GetNodeCount(CConnman::CONNECTIONS_ALL);
@@ -4635,7 +4635,7 @@ static void FindFilesToPruneManual(std::set<int>& setFilesToPrune, int nManualPr
 void PruneBlockFilesManual(int nManualPruneHeight)
 {
     CValidationState state;
-    const CChainParams& chainparams = GetParams();
+    const CChainParams& chainparams = Params();
     FlushStateToDisk(chainparams, state, FLUSH_STATE_NONE, nManualPruneHeight);
 }
 
@@ -5649,7 +5649,7 @@ static const uint64_t MEMPOOL_DUMP_VERSION = 1;
 
 bool LoadMempool(void)
 {
-    const CChainParams& chainparams = GetParams();
+    const CChainParams& chainparams = Params();
     int64_t nExpiryTimeout = gArgs.GetArg("-mempoolexpiry", DEFAULT_MEMPOOL_EXPIRY) * 60 * 60;
     FILE* filestr = fsbridge::fopen(GetDataDir() / "mempool.dat", "rb");
     CAutoFile file(filestr, SER_DISK, CLIENT_VERSION);
@@ -5808,7 +5808,7 @@ bool AreEnforcedValuesDeployed()
     if (fEnforcedValuesIsActive)
         return true;
 
-    const ThresholdState thresholdState = VersionBitsTipState(GetParams().GetConsensus(), Consensus::DEPLOYMENT_ENFORCE_VALUE);
+    const ThresholdState thresholdState = VersionBitsTipState(Params().GetConsensus(), Consensus::DEPLOYMENT_ENFORCE_VALUE);
     if (thresholdState == THRESHOLD_ACTIVE || thresholdState == THRESHOLD_LOCKED_IN)
         fEnforcedValuesIsActive = true;
 
@@ -5820,7 +5820,7 @@ bool AreCoinbaseCheckAssetsDeployed()
     if (fCheckCoinbaseAssetsIsActive)
         return true;
 
-    const ThresholdState thresholdState = VersionBitsTipState(GetParams().GetConsensus(), Consensus::DEPLOYMENT_COINBASE_ASSETS);
+    const ThresholdState thresholdState = VersionBitsTipState(Params().GetConsensus(), Consensus::DEPLOYMENT_COINBASE_ASSETS);
     if (thresholdState == THRESHOLD_ACTIVE)
         fCheckCoinbaseAssetsIsActive = true;
 
@@ -5833,7 +5833,7 @@ bool AreAssetsDeployed()
     if (fAssetsIsActive)
         return true;
 
-    const ThresholdState thresholdState = VersionBitsTipState(GetParams().GetConsensus(), Consensus::DEPLOYMENT_ASSETS);
+    const ThresholdState thresholdState = VersionBitsTipState(Params().GetConsensus(), Consensus::DEPLOYMENT_ASSETS);
     if (thresholdState == THRESHOLD_ACTIVE)
         fAssetsIsActive = true;
 
@@ -5845,7 +5845,7 @@ bool IsRip5Active()
     if (fRip5IsActive)
         return true;
 
-    const ThresholdState thresholdState = VersionBitsTipState(GetParams().GetConsensus(), Consensus::DEPLOYMENT_MSG_REST_ASSETS);
+    const ThresholdState thresholdState = VersionBitsTipState(Params().GetConsensus(), Consensus::DEPLOYMENT_MSG_REST_ASSETS);
     if (thresholdState == THRESHOLD_ACTIVE)
         fRip5IsActive = true;
 
@@ -5862,7 +5862,7 @@ bool AreTransferScriptsSizeDeployed() {
     if (fTransferScriptIsActive)
         return true;
 
-    const ThresholdState thresholdState = VersionBitsTipState(GetParams().GetConsensus(), Consensus::DEPLOYMENT_TRANSFER_SCRIPT_SIZE);
+    const ThresholdState thresholdState = VersionBitsTipState(Params().GetConsensus(), Consensus::DEPLOYMENT_TRANSFER_SCRIPT_SIZE);
     if (thresholdState == THRESHOLD_ACTIVE)
         fTransferScriptIsActive = true;
 
@@ -5875,12 +5875,12 @@ bool AreRestrictedAssetsDeployed() {
 }
 
 bool IsDGWActive(unsigned int nBlockNumber) {
-    return nBlockNumber >= GetParams().DGWActivationBlock();
+    return nBlockNumber >= Params().DGWActivationBlock();
 }
 
 bool IsMessagingActive(unsigned int nBlockNumber) {
-    if (GetParams().MessagingActivationBlock()) {
-        return nBlockNumber > GetParams().MessagingActivationBlock();
+    if (Params().MessagingActivationBlock()) {
+        return nBlockNumber > Params().MessagingActivationBlock();
     } else {
         return AreMessagesDeployed();
     }
@@ -5888,8 +5888,8 @@ bool IsMessagingActive(unsigned int nBlockNumber) {
 
 bool IsRestrictedActive(unsigned int nBlockNumber)
 {
-    if (GetParams().RestrictedActivationBlock()) {
-        return nBlockNumber > GetParams().RestrictedActivationBlock();
+    if (Params().RestrictedActivationBlock()) {
+        return nBlockNumber > Params().RestrictedActivationBlock();
     } else {
         return AreRestrictedAssetsDeployed();
     }
