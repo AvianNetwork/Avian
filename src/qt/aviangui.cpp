@@ -618,7 +618,7 @@ void AvianGUI::createToolBars()
         toolbarWidget->setStyleSheet(widgetStyleSheet.arg(platformStyle->LightBlueColor().name(), platformStyle->DarkBlueColor().name()));
 
         QLabel* label = new QLabel();
-        label->setPixmap(QPixmap::fromImage(QImage(":/icons/avianlogo")));
+        label->setPixmap(QPixmap::fromImage(QImage(":/icons/aviantext")));
         label->setContentsMargins(0,0,0,0);
         label->setStyleSheet(".QLabel{background-color: transparent;}");
         /** AVN END */
