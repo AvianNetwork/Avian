@@ -59,7 +59,7 @@
 #include "assets/assetdb.h"
 
 #if defined(NDEBUG)
-# error "Raven cannot be compiled without assertions."
+# error "Avian cannot be compiled without assertions."
 #endif
 
 #define MICRO 0.000001
@@ -5569,8 +5569,44 @@ double GuessVerificationProgress(const ChainTxData& data, CBlockIndex *pindex) {
 }
 
 /** RVN START */
-bool AreAssetsDeployed() {
+// Only used by test framework
+void SetEnforcedValues(bool value) {
+    fEnforcedValuesIsActive = value;
+}
 
+void SetEnforcedCoinbase(bool value)
+{
+    fCheckCoinbaseAssetsIsActive = value;
+}
+
+bool AreEnforcedValuesDeployed()
+{
+    if (fEnforcedValuesIsActive)
+        return true;
+
+    // TODO: Fix
+    // const ThresholdState thresholdState = VersionBitsTipState(Params().GetConsensus(), Consensus::DEPLOYMENT_ENFORCE_VALUE);
+    // if (thresholdState == THRESHOLD_ACTIVE || thresholdState == THRESHOLD_LOCKED_IN)
+    //     fEnforcedValuesIsActive = true;
+
+    return false;
+}
+
+bool AreCoinbaseCheckAssetsDeployed()
+{
+    if (fCheckCoinbaseAssetsIsActive)
+        return true;
+
+    // TODO: Fix
+    // const ThresholdState thresholdState = VersionBitsTipState(Params().GetConsensus(), Consensus::DEPLOYMENT_COINBASE_ASSETS);
+    // if (thresholdState == THRESHOLD_ACTIVE)
+    //     fCheckCoinbaseAssetsIsActive = true;
+
+    return false;
+}
+
+bool AreAssetsDeployed()
+{
     if (fAssetsIsActive)
         return true;
 
@@ -5581,10 +5617,61 @@ bool AreAssetsDeployed() {
     return fAssetsIsActive;
 }
 
+bool IsRip5Active()
+{
+    if (fRip5IsActive)
+        return true;
+
+    // TODO: Fix
+    // const ThresholdState thresholdState = VersionBitsTipState(Params().GetConsensus(), Consensus::DEPLOYMENT_MSG_REST_ASSETS);
+    // if (thresholdState == THRESHOLD_ACTIVE)
+    //     fRip5IsActive = true;
+
+    return false;
+}
+
+bool AreMessagesDeployed() {
+    return IsRip5Active();
+}
+
+bool AreTransferScriptsSizeDeployed() {
+
+    if (fTransferScriptIsActive)
+        return true;
+
+    // TODO: Fix
+    // const ThresholdState thresholdState = VersionBitsTipState(Params().GetConsensus(), Consensus::DEPLOYMENT_TRANSFER_SCRIPT_SIZE);
+    // if (thresholdState == THRESHOLD_ACTIVE)
+    //     fTransferScriptIsActive = true;
+
+    return false;
+}
+
+bool AreRestrictedAssetsDeployed() {
+
+    return IsRip5Active();
+}
+
 bool IsDGWActive(unsigned int nBlockNumber) {
     return nBlockNumber >= Params().DGWActivationBlock();
 }
 
+bool IsMessagingActive(unsigned int nBlockNumber) {
+    if (Params().MessagingActivationBlock()) {
+        return nBlockNumber > Params().MessagingActivationBlock();
+    } else {
+        return AreMessagesDeployed();
+    }
+}
+
+bool IsRestrictedActive(unsigned int nBlockNumber)
+{
+    if (Params().RestrictedActivationBlock()) {
+        return nBlockNumber > Params().RestrictedActivationBlock();
+    } else {
+        return AreRestrictedAssetsDeployed();
+    }
+}
 
 CAssetsCache* GetCurrentAssetCache()
 {

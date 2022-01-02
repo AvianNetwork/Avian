@@ -261,9 +261,10 @@ public:
         nMinReorganizationPeers = 4;
         nMinReorganizationAge = 60 * 60 * 12; // 12 hours
 
-        nAssetActivationHeight = 9999999999; // Asset activated block height
-        nMessagingActivationBlock = 9999999999; // Messaging activated block height
-        nRestrictedActivationBlock = 9999999999; // Restricted activated block height
+        // TODO: Assets, Messaging, Restricted
+        // nAssetActivationHeight = 9999999999; // Asset activated block height
+        // nMessagingActivationBlock = 9999999999; // Messaging activated block height
+        // nRestrictedActivationBlock = 9999999999; // Restricted activated block height
 
         nKAAAWWWPOWActivationTime = 1588788000; // UTC: Wed May 06 2020 18:00:00
         nKAWPOWActivationTime = nKAAAWWWPOWActivationTime;

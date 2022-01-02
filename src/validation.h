@@ -150,6 +150,7 @@ static const bool DEFAULT_ASSETINDEX = false;
 static const bool DEFAULT_ADDRESSINDEX = false;
 static const bool DEFAULT_TIMESTAMPINDEX = false;
 static const bool DEFAULT_SPENTINDEX = false;
+static const bool DEFAULT_REWARDS_ENABLED = false;
 /** Default for -dbmaxfilesize , in MB */
 static const int64_t DEFAULT_DB_MAX_FILE_SIZE = 2;
 
@@ -190,6 +191,7 @@ extern CWaitableCriticalSection csBestBlock;
 extern CConditionVariable cvBlockChange;
 extern std::atomic_bool fImporting;
 extern std::atomic_bool fReindex;
+extern bool fMessaging;
 extern int nScriptCheckThreads;
 extern bool fTxIndex;
 extern bool fAssetIndex;
@@ -205,6 +207,10 @@ extern size_t nCoinCacheUsage;
 extern CFeeRate minRelayTxFee;
 /** Absolute maximum transaction fee (in satoshis) used by wallet and mempool (rejects high fee in sendrawtransaction) */
 extern CAmount maxTxFee;
+
+extern bool fUnitTest;
+
+
 /** If the tip is older than this (in seconds), the node is considered to be in initial block download. */
 extern int64_t nMaxTipAge;
 extern bool fEnableReplacement;
@@ -545,6 +551,14 @@ bool LoadMempool();
 
 /** RVN START */
 bool AreAssetsDeployed();
+
+bool AreMessagesDeployed();
+
+bool AreRestrictedAssetsDeployed();
+
+bool AreEnforcedValuesDeployed();
+
+bool AreCoinbaseCheckAssetsDeployed();
 
 bool IsDGWActive(unsigned int nBlockNumber);
 
