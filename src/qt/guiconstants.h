@@ -61,6 +61,8 @@ static const bool DEFAULT_SPLASHSCREEN = true;
 #define COLOR_TOOLBAR_NOT_SELECTED_TEXT QColor("#FFFFFF")
 /* Toolbar selected text color */
 #define COLOR_TOOLBAR_SELECTED_TEXT COLOR_WHITE
+/* Send entries background color */
+#define COLOR_SENDENTRIES_BACKGROUND QColor("#fbfbfe")
 
 /** DARK MODE */
 /* Widget background color, dark mode */
@@ -83,17 +85,12 @@ static const bool DEFAULT_SPLASHSCREEN = true;
 #define COLOR_TOOLBAR_NOT_SELECTED_TEXT_DARK_MODE QColor("#6c80c5")
 /* Toolbar selected text color */
 #define COLOR_TOOLBAR_SELECTED_TEXT_DARK_MODE QColor("#c5ccdf")
+/* Send entries background color dark mode */
+#define COLOR_SENDENTRIES_BACKGROUND_DARK QColor("#1c2535")
 
-
-/* Aviancoin label color as a string */
+/* Avian label color as a string */
 #define STRING_LABEL_COLOR "color: #000000"
 #define STRING_LABEL_COLOR_WHITE "color: #FFFFFF"
-
-
-
-
-
-
 
 /* Tooltips longer than this (in characters) are converted into rich text,
    so that they can be word-wrapped.
@@ -113,5 +110,11 @@ static const int MAX_URI_LENGTH = 255;
 #define QAPP_ORG_DOMAIN "avn.network"
 #define QAPP_APP_NAME_DEFAULT "Avian-Qt"
 #define QAPP_APP_NAME_TESTNET "Avian-Qt-testnet"
+
+/* Default third party browser urls */
+#define DEFAULT_THIRD_PARTY_BROWSERS "https://api.ravencoin.org/tx/%s|https://rvn.cryptoscope.io/tx/?txid=%s|https://blockbook.ravencoin.org/tx/%s|https://explorer.mangofarmassets.com/tx/%s|https://www.assetsexplorer.com/tx/%s|https://explorer.ravenland.org/tx/%s"
+
+/* Default IPFS viewer */
+#define DEFAULT_IPFS_VIEWER "https://ipfs.io/ipfs/%s"
 
 #endif // AVIAN_QT_GUICONSTANTS_H
