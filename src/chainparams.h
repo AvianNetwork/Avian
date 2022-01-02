@@ -134,7 +134,8 @@ public:
     }
 
     unsigned int DGWActivationBlock() const { return nDGWActivationBlock; }
-    uint32_t X16RV2ActivationTime() const { return nX16RV2ActivationTime; }
+    unsigned int MessagingActivationBlock() const { return nMessagingActivationBlock; }
+    unsigned int RestrictedActivationBlock() const { return nRestrictedActivationBlock; }
 
     int MaxReorganizationDepth() const { return nMaxReorganizationDepth; }
     int MinReorganizationPeers() const { return nMinReorganizationPeers; }
