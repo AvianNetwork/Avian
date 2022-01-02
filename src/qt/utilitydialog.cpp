@@ -1,7 +1,8 @@
 // Copyright (c) 2011-2016 The Bitcoin Core developers
-// Copyright (c) 2017-2019 The Raven Core developers
+// Copyright (c) 2017-2019 The Avian Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
+
 
 #if defined(HAVE_CONFIG_H)
 #include "config/avian-config.h"
@@ -10,6 +11,20 @@
 #include "utilitydialog.h"
 
 #include "ui_helpmessagedialog.h"
+#include "ui_paperwalletdialog.h"
+
+#include "avianunits.h"
+
+#ifdef ENABLE_WALLET
+#include "guiconstants.h"
+#include "walletmodel.h"
+#include "sendcoinsdialog.h"
+#include "sendcoinsentry.h"
+#include "../wallet/coincontrol.h"
+#include "coincontroldialog.h"
+#endif
+
+#include "optionsmodel.h"
 
 #include "aviangui.h"
 #include "clientmodel.h"
@@ -21,6 +36,7 @@
 #include "clientversion.h"
 #include "init.h"
 #include "util.h"
+#include "net.h"
 
 #include <stdio.h>
 
@@ -226,11 +242,11 @@ void PaperWalletDialog::on_getNewAddress_clicked()
     CPubKey pubkey = privKey.GetPubKey();
 
     // Derive the public key hash
-    CRavenAddress pubkeyhash;
+    CAvianAddress pubkeyhash;
     pubkeyhash.Set(pubkey.GetID());
 
     // Create String versions of each
-    std::string myPrivKey = CRavenSecret(privKey).ToString();
+    std::string myPrivKey = CAvianSecret(privKey).ToString();
     std::string myPubKey = HexStr(pubkey.begin(), pubkey.end());
     std::string myAddress = pubkeyhash.ToString();
 
@@ -381,7 +397,7 @@ void PaperWalletDialog::on_printButton_clicked()
     while (true) {
         bool ok;
 
-        // Ask for an amount to send to each paper wallet. It might be better to try to use the RavenLiteAmountField, but this works fine.
+        // Ask for an amount to send to each paper wallet. It might be better to try to use the AvianLiteAmountField, but this works fine.
         double amountInput = QInputDialog::getDouble(this, tr("Load Paper Wallets"), tr("The paper wallet printing process has begun.<br/>Please wait for the wallets to print completely and verify that everything printed correctly.<br/>Check for misalignments, ink bleeding, smears, or anything else that could make the private keys unreadable.<br/>Now, enter the number of DOGE you wish to send to each wallet:"), 0, 0, 2147483647, 8, &ok);
 
         if (!ok) {
@@ -438,7 +454,7 @@ void PaperWalletDialog::on_printButton_clicked()
     if (txFee > 0) {
         // append fee string if a fee is required
         questionString.append("<hr /><span style='color:#aa0000;'>");
-        questionString.append(RavenUnits::formatWithUnit(model->getOptionsModel()->getDisplayUnit(), txFee));
+        questionString.append(AvianUnits::formatWithUnit(model->getOptionsModel()->getDisplayUnit(), txFee));
         questionString.append("</span> ");
         questionString.append(tr("added as transaction fee"));
     }
@@ -447,13 +463,13 @@ void PaperWalletDialog::on_printButton_clicked()
     questionString.append("<hr />");
     qint64 totalAmount = tx->getTotalTransactionAmount() + txFee;
     QStringList alternativeUnits;
-    BOOST_FOREACH(RavenUnits::Unit u, RavenUnits::availableUnits()) {
+    BOOST_FOREACH(AvianUnits::Unit u, AvianUnits::availableUnits()) {
         if (u != model->getOptionsModel()->getDisplayUnit())
-            alternativeUnits.append(RavenUnits::formatWithUnit(u, totalAmount));
+            alternativeUnits.append(AvianUnits::formatWithUnit(u, totalAmount));
     }
 
     questionString.append(tr("Total Amount %1 (= %2)")
-                              .arg(RavenUnits::formatWithUnit(model->getOptionsModel()->getDisplayUnit(), totalAmount))
+                              .arg(AvianUnits::formatWithUnit(model->getOptionsModel()->getDisplayUnit(), totalAmount))
                               .arg(alternativeUnits.join(" " + tr("or") + " ")));
 
     QMessageBox::StandardButton retval = QMessageBox::question(this, tr("Confirm send coins"), questionString.arg(formatted.join("<br />")), QMessageBox::Yes | QMessageBox::Cancel, QMessageBox::Cancel);
