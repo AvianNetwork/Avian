@@ -1,11 +1,10 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
-// Copyright (c) 2009-2016 The Bitcoin Core developers
-// Copyright (c) 2017-2019 The Raven Core developers
+// Copyright (c) 2009-2017 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef AVIAN_UINT256_H
-#define AVIAN_UINT256_H
+#ifndef BITCOIN_UINT256_H
+#define BITCOIN_UINT256_H
 
 #include <assert.h>
 #include <cstring>
@@ -123,6 +122,9 @@ public:
 class uint256 : public base_blob<256> {
 public:
     uint256() {}
+    uint256(const base_blob<256>& b) : base_blob<256>(b) {}
+    explicit uint256(const char* psz) { SetHex(psz); }
+    explicit uint256(const std::string& strHex) { SetHex(strHex); }
     explicit uint256(const std::vector<unsigned char>& vch) : base_blob<256>(vch) {}
 
     // Truncate a uint512 to a uint256
@@ -188,16 +190,4 @@ inline uint256 uint256S(const std::string& str)
     return rv;
 }
 
-class uint512 : public base_blob<512> {
-public:
-    uint512() {}
-    uint512(const base_blob<512>& b) : base_blob<512>(b) {}
-    explicit uint512(const std::vector<unsigned char>& vch) : base_blob<512>(vch) {}
-    uint256 trim256() const
-    {
-        uint256 result;
-        memcpy((void*)&result, (void*)data, 32);
-        return result;
-    }
-};
-#endif // AVIAN_UINT256_H
+#endif // BITCOIN_UINT256_H
