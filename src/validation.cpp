@@ -3960,10 +3960,6 @@ bool CheckBlock(const CBlock& block, CValidationState& state, const Consensus::C
     if (block.fChecked)
         return true;
 
-    NewAssetInfo newAssetInfo;
-    newAssetInfo.nTimeAdded = block.nTime;
-    newAssetInfo.fFromMempool = false;
-
     // Check that the header is valid (particularly PoW).  This is mostly
     // redundant with the call in AcceptBlockHeader.
     if (!CheckBlockHeader(block, state, consensusParams, fCheckPOW))
