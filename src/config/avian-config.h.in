@@ -201,6 +201,9 @@
 /* Define to 1 if you have the `gdi32' library (-lgdi32). */
 #undef HAVE_LIBGDI32
 
+/* Define to 1 if you have the `imm32' library (-limm32). */
+#undef HAVE_LIBIMM32
+
 /* Define to 1 if you have the `iphlpapi' library (-liphlpapi). */
 #undef HAVE_LIBIPHLPAPI
 
@@ -248,6 +251,9 @@
 
 /* Define to 1 if you have the `ws2_32' library (-lws2_32). */
 #undef HAVE_LIBWS2_32
+
+/* Define to 1 if you have the `z ' library (-lz ). */
+#undef HAVE_LIBZ_
 
 /* Define this symbol if you have malloc_info */
 #undef HAVE_MALLOC_INFO
@@ -354,9 +360,6 @@
 /* Define to necessary symbol if this constant uses a non-standard name on
    your system. */
 #undef PTHREAD_CREATE_JOINABLE
-
-/* Define this symbol if the qt platform is android */
-#undef QT_QPA_PLATFORM_ANDROID
 
 /* Define this symbol if the qt platform is cocoa */
 #undef QT_QPA_PLATFORM_COCOA
