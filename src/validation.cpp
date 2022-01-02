@@ -3997,11 +3997,19 @@ bool CheckBlock(const CBlock& block, CValidationState& state, const Consensus::C
             return state.DoS(100, false, REJECT_INVALID, "bad-cb-multiple", false, "more than one coinbase");
 
     // Check transactions
-    auto currentActiveAssetCache = GetCurrentAssetCache();
-    for (const auto& tx : block.vtx)
-        if (!CheckTransaction(*tx, state, currentActiveAssetCache, true, false, fCheckAssetDuplicate, fForceDuplicateCheck, &newAssetInfo))
+    bool fCheckBlock = CHECK_BLOCK_TRANSACTION_TRUE;
+    bool fCheckDuplicates = CHECK_DUPLICATE_TRANSACTION_TRUE;
+    bool fCheckMempool = CHECK_MEMPOOL_TRANSACTION_FALSE;
+    for (const auto& tx : block.vtx) {
+        // We only want to check the blocks when they are added to our chain
+        // We want to make sure when nodes shutdown and restart that they still
+        // verify the blocks in the database correctly even if Enforce Value BIP is active
+        fCheckBlock = CHECK_BLOCK_TRANSACTION_TRUE;
+        if (!CheckTransaction(*tx, state, fCheckDuplicates, fCheckMempool, fCheckBlock))
             return state.Invalid(false, state.GetRejectCode(), state.GetRejectReason(),
-                                 strprintf("Transaction check failed (tx hash %s) %s %s", tx->GetHash().ToString(), state.GetDebugMessage(), state.GetRejectReason()));
+                                 strprintf("Transaction check failed (tx hash %s) %s %s", tx->GetHash().ToString(),
+                                           state.GetDebugMessage(), state.GetRejectReason()));
+    }
 
     unsigned int nSigOps = 0;
     for (const auto& tx : block.vtx)
