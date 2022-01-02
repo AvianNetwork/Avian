@@ -471,6 +471,7 @@ AVIAN_QT_WALLET_CPP = \
   qt/transactiontablemodel.cpp \
   qt/transactionview.cpp \
   qt/verticallabel.cpp \
+  qt/peerdialog.cpp \
   qt/walletframe.cpp \
   qt/walletmodel.cpp \
   qt/walletmodeltransaction.cpp \
