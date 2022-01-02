@@ -210,14 +210,14 @@ AvianGUI::AvianGUI(const PlatformStyle *_platformStyle, const NetworkStyle *netw
         setCentralWidget(rpcConsole);
     }
 
-    /** RVN START */
+    /** AVN START */
     labelCurrentMarket = new QLabel();
     labelCurrentPrice = new QLabel();
     headerWidget = new QWidget();
     pricingTimer = new QTimer();
     networkManager = new QNetworkAccessManager();
     request = new QNetworkRequest();
-    /** RVN END */
+    /** AVN END */
 
     // Accept D&D of URIs
     setAcceptDrops(true);
@@ -402,7 +402,7 @@ void AvianGUI::createActions()
     historyAction->setFont(font);
     tabGroup->addAction(historyAction);
 
-    /** RVN START */
+    /** AVN START */
     transferAssetAction = new QAction(platformStyle->SingleColorIconOnOff(":/icons/asset_transfer_selected", ":/icons/asset_transfer"), tr("&Transfer Assets"), this);
     transferAssetAction->setStatusTip(tr("Transfer assets to AVN addresses"));
     transferAssetAction->setToolTip(transferAssetAction->statusTip());
@@ -443,7 +443,7 @@ void AvianGUI::createActions()
     votingAction->setFont(font);
     tabGroup->addAction(votingAction);
 
-    /** RVN END */
+    /** AVN END */
 
 #ifdef ENABLE_WALLET
     // These showNormalIfMinimized are needed because Send Coins and Receive Coins
@@ -720,18 +720,18 @@ void AvianGUI::createToolBars()
         labelCurrentPrice->setStyleSheet(platformStyle->TextColor().name());
         labelCurrentPrice->setFont(currentMarketFont);
 
-        QLabel* labelBtcRvn = new QLabel();
-        labelBtcRvn->setText("USDT / AVN");
-        labelBtcRvn->setContentsMargins(15,0,0,0);
-        labelBtcRvn->setFixedHeight(75);
-        labelBtcRvn->setAlignment(Qt::AlignVCenter);
-        labelBtcRvn->setStyleSheet(platformStyle->TextColor().name());
-        labelBtcRvn->setFont(currentMarketFont);
+        QLabel* labelBtcAVN = new QLabel();
+        labelBtcAVN->setText("USDT / AVN");
+        labelBtcAVN->setContentsMargins(15,0,0,0);
+        labelBtcAVN->setFixedHeight(75);
+        labelBtcAVN->setAlignment(Qt::AlignVCenter);
+        labelBtcAVN->setStyleSheet(platformStyle->TextColor().name());
+        labelBtcAVN->setFont(currentMarketFont);
 
         priceLayout->setGeometry(headerWidget->rect());
         priceLayout->addWidget(labelCurrentMarket, 0, Qt::AlignVCenter | Qt::AlignLeft);
         priceLayout->addWidget(labelCurrentPrice, 0,  Qt::AlignVCenter | Qt::AlignLeft);
-        priceLayout->addWidget(labelBtcRvn, 0 , Qt::AlignVCenter | Qt::AlignLeft);
+        priceLayout->addWidget(labelBtcAVN, 0 , Qt::AlignVCenter | Qt::AlignLeft);
         priceLayout->addStretch();
 
         // Create the layout for widget to the right of the tool bar
@@ -1079,7 +1079,7 @@ void AvianGUI::gotoVerifyMessageTab(QString addr)
     if (walletFrame) walletFrame->gotoVerifyMessageTab(addr);
 }
 
-/** RVN START */
+/** AVN START */
 void AvianGUI::gotoAssetsPage()
 {
     transferAssetAction->setChecked(true);
@@ -1097,7 +1097,7 @@ void AvianGUI::gotoManageAssetsPage()
     manageAssetAction->setChecked(true);
     if (walletFrame) walletFrame->gotoManageAssetsPage();
 };
-/** RVN END */
+/** AVN END */
 #endif // ENABLE_WALLET
 
 void AvianGUI::updateNetworkState()
@@ -1373,7 +1373,7 @@ void AvianGUI::incomingTransaction(const QString& date, int unit, const CAmount&
 {
     // On new transaction, make an info balloon
     QString msg = tr("Date: %1\n").arg(date);
-    if (assetName == "RVN")
+    if (assetName == "AVN")
         msg += tr("Amount: %1\n").arg(AvianUnits::formatWithUnit(unit, amount, true));
     else
         msg += tr("Amount: %1\n").arg(AvianUnits::formatWithCustomName(assetName, amount, MAX_ASSET_UNITS, true));

@@ -238,12 +238,12 @@ private Q_SLOTS:
     /** Show open dialog */
     void openClicked();
 
-    /** RVN START */
+    /** AVN START */
     /** Switch to assets page */
     void gotoAssetsPage();
     void gotoCreateAssetsPage();
     void gotoManageAssetsPage();
-    /** RVN END */
+    /** AVN END */
 
 #endif // ENABLE_WALLET
     /** Show configuration dialog */
