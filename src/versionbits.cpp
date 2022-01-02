@@ -1,5 +1,5 @@
 // Copyright (c) 2016 The Bitcoin Core developers
-// Copyright (c) 2017-2020 The Raven Core developers
+// Copyright (c) 2017 The Raven Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -17,30 +17,14 @@ const struct VBDeploymentInfo VersionBitsDeploymentInfo[Consensus::MAX_VERSION_B
 //		/*.gbt_force =*/ true,
 //	}
     {
-            /*.name =*/ "assets",
-            /*.gbt_force =*/ true,
-    },
-    {
-            /*.name =*/ "messaging_restricted",
-            /*.gbt_force =*/ true,
-    },
-    {
-            /*.name =*/ "transfer_script",
-            /*.gbt_force =*/ true,
-    },
-    {
-            /*.name =*/ "enforce_value",
-            /*.gbt_force =*/ true,
-    },
-    {
-            /*.name =*/ "coinbase",
-            /*.gbt_force =*/ true,
+        /*.name =*/ "assets",
+        /*.gbt_force =*/ true,
     },
     // Crow: Deployment
     {
         /*.name =*/ "minotaurx",
         /*.gbt_force =*/ true,
-    },
+    }
 };
 
 ThresholdState AbstractThresholdConditionChecker::GetStateFor(const CBlockIndex* pindexPrev, const Consensus::ConsensusParams& params, ThresholdConditionCache& cache) const
@@ -199,16 +183,8 @@ private:
 protected:
     int64_t BeginTime(const Consensus::ConsensusParams& params) const override { return params.vDeployments[id].nStartTime; }
     int64_t EndTime(const Consensus::ConsensusParams& params) const override { return params.vDeployments[id].nTimeout; }
-    int Period(const Consensus::ConsensusParams& params) const override {
-        if (params.vDeployments[id].nOverrideMinerConfirmationWindow > 0)
-            return params.vDeployments[id].nOverrideMinerConfirmationWindow;
-        return params.nMinerConfirmationWindow;
-    }
-    int Threshold(const Consensus::ConsensusParams& params) const override {
-        if (params.vDeployments[id].nOverrideRuleChangeActivationThreshold > 0)
-            return params.vDeployments[id].nOverrideRuleChangeActivationThreshold;
-        return params.nRuleChangeActivationThreshold;
-    }
+    int Period(const Consensus::ConsensusParams& params) const override { return params.nMinerConfirmationWindow; }
+    int Threshold(const Consensus::ConsensusParams& params) const override { return params.nRuleChangeActivationThreshold; }
 
     bool Condition(const CBlockIndex* pindex, const Consensus::ConsensusParams& params) const override
     {
