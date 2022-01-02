@@ -5746,6 +5746,13 @@ bool AreCoinbaseCheckAssetsDeployed()
     return false;
 }
 
+bool AreTransferScriptsSizeDeployed()
+{
+    // TODO: Fix!
+
+    return false;
+}
+
 bool AreAssetsDeployed()
 {
     if (fAssetsIsActive)
