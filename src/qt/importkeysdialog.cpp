@@ -34,7 +34,6 @@ Q_SIGNALS:
     void rescanWallet(CWallet*, CBlockIndex*);
 };
 
-#include "importkeysdialog.moc"
 
 void ImportKeyExecutor::rescan(CWallet* pwallet, CBlockIndex* genesisBlock)
 {

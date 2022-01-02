@@ -20,8 +20,6 @@
 #include <QUrl>
 #endif
 
-#include "poolpicker.moc"
-
 PoolPicker::PoolPicker(QWidget *parent) :
     QDialog(parent),
     ui(new Ui::PoolPicker)
