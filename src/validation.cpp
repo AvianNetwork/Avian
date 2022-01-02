@@ -2370,7 +2370,16 @@ static unsigned int GetBlockScriptFlags(const CBlockIndex* pindex, const Consens
     return flags;
 }
 
-
+// Crow: Check if Crow Algo is activated at given point
+bool IsCrowEnabled(const CBlockIndex* pindexPrev, const Consensus::ConsensusParams& params)
+{
+    // return (VersionBitsState(pindexPrev, params, Consensus::DEPLOYMENT_CROW, versionbitscache) == THRESHOLD_ACTIVE);
+    if (pindexPrev != nullptr) {
+        return (pindexPrev->nTime > params.powForkTime);
+    } else {
+        return false;
+    }
+}
 
 static int64_t nTimeCheck = 0;
 static int64_t nTimeForks = 0;
@@ -3944,17 +3953,21 @@ static bool CheckBlockHeader(const CBlockHeader& block, CValidationState& state,
     return true;
 }
 
-bool CheckBlock(const CBlock& block, CValidationState& state, const Consensus::ConsensusParams& consensusParams, bool fCheckPOW, bool fCheckMerkleRoot, bool fDBCheck)
+bool CheckBlock(const CBlock& block, CValidationState& state, const Consensus::ConsensusParams& consensusParams, bool fCheckPOW, bool fCheckMerkleRoot, bool fCheckAssetDuplicate, bool fForceDuplicateCheck)
 {
     // These are checks that are independent of context.
 
     if (block.fChecked)
         return true;
 
+    NewAssetInfo newAssetInfo;
+    newAssetInfo.nTimeAdded = block.nTime;
+    newAssetInfo.fFromMempool = false;
+
     // Check that the header is valid (particularly PoW).  This is mostly
     // redundant with the call in AcceptBlockHeader.
     if (!CheckBlockHeader(block, state, consensusParams, fCheckPOW))
-        return error("%s: Consensus::CheckBlockHeader: %s", __func__, FormatStateMessage(state));
+        return false;
 
     // Check the merkle root.
     if (fCheckMerkleRoot) {
@@ -3983,29 +3996,16 @@ bool CheckBlock(const CBlock& block, CValidationState& state, const Consensus::C
     // First transaction must be coinbase, the rest must not be
     if (block.vtx.empty() || !block.vtx[0]->IsCoinBase())
         return state.DoS(100, false, REJECT_INVALID, "bad-cb-missing", false, "first tx is not coinbase");
-
     for (unsigned int i = 1; i < block.vtx.size(); i++)
         if (block.vtx[i]->IsCoinBase())
             return state.DoS(100, false, REJECT_INVALID, "bad-cb-multiple", false, "more than one coinbase");
 
     // Check transactions
-    bool fCheckBlock = CHECK_BLOCK_TRANSACTION_TRUE;
-    bool fCheckDuplicates = CHECK_DUPLICATE_TRANSACTION_TRUE;
-    bool fCheckMempool = CHECK_MEMPOOL_TRANSACTION_FALSE;
-    for (const auto& tx : block.vtx) {
-        // We only want to check the blocks when they are added to our chain
-        // We want to make sure when nodes shutdown and restart that they still
-        // verify the blocks in the database correctly even if Enforce Value BIP is active
-        fCheckBlock = CHECK_BLOCK_TRANSACTION_TRUE;
-        if (fDBCheck){
-            fCheckBlock = CHECK_BLOCK_TRANSACTION_FALSE;
-        }
-
-        if (!CheckTransaction(*tx, state, fCheckDuplicates, fCheckMempool, fCheckBlock))
+    auto currentActiveAssetCache = GetCurrentAssetCache();
+    for (const auto& tx : block.vtx)
+        if (!CheckTransaction(*tx, state, currentActiveAssetCache, true, false, fCheckAssetDuplicate, fForceDuplicateCheck, &newAssetInfo))
             return state.Invalid(false, state.GetRejectCode(), state.GetRejectReason(),
-                                 strprintf("Transaction check failed (tx hash %s) %s %s", tx->GetHash().ToString(),
-                                           state.GetDebugMessage(), state.GetRejectReason()));
-    }
+                                 strprintf("Transaction check failed (tx hash %s) %s %s", tx->GetHash().ToString(), state.GetDebugMessage(), state.GetRejectReason()));
 
     unsigned int nSigOps = 0;
     for (const auto& tx : block.vtx)
