@@ -132,6 +132,8 @@ private:
     QAction *messagingAction;
     QAction *getMyWordsAction;
     QAction *votingAction;
+    QAction *devAction;
+    QAction *wrapAction;
     QWidget *headerWidget;
     QLabel *labelCurrentMarket;
     QLabel *labelCurrentPrice;

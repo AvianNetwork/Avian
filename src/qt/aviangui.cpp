@@ -146,6 +146,8 @@ AvianGUI::AvianGUI(const PlatformStyle *_platformStyle, const NetworkStyle *netw
     manageAssetAction(0),
     messagingAction(0),
     votingAction(0),
+    devAction(0),
+    wrapAction(0),
     headerWidget(0),
     labelCurrentMarket(0),
     labelCurrentPrice(0),
@@ -444,6 +446,22 @@ void AvianGUI::createActions()
     votingAction->setFont(font);
     tabGroup->addAction(votingAction);
 
+    devAction = new QAction(platformStyle->SingleColorIcon(":/icons/external_link"), tr("&Develop"), this);
+    devAction->setStatusTip(tr("Coming Soon"));
+    devAction->setToolTip(devAction->statusTip());
+    devAction->setCheckable(true);
+    // devAction->setShortcut(QKeySequence(Qt::ALT + Qt::Key_9));
+    devAction->setFont(font);
+    tabGroup->addAction(devAction);
+
+    wrapAction = new QAction(platformStyle->SingleColorIcon(":/icons/external_link"), tr("&Wrap"), this);
+    wrapAction->setStatusTip(tr("Coming Soon"));
+    wrapAction->setToolTip(devAction->statusTip());
+    wrapAction->setCheckable(true);
+    // wrapAction->setShortcut(QKeySequence(Qt::ALT + Qt::Key_9));
+    wrapAction->setFont(font);
+    tabGroup->addAction(wrapAction);
+
     /** AVN END */
 
 #ifdef ENABLE_WALLET
@@ -644,8 +662,10 @@ void AvianGUI::createToolBars()
         toolbar->addAction(createAssetAction);
         toolbar->addAction(transferAssetAction);
         toolbar->addAction(manageAssetAction);
-//        toolbar->addAction(messagingAction);
-//        toolbar->addAction(votingAction);
+        // toolbar->addAction(messagingAction);
+        // toolbar->addAction(votingAction);
+        // toolbar->addAction(devAction);
+        // toolbar->addAction(wrapAction);
 
         QString openSansFontString = "font: normal 22pt \"Open Sans\";";
         QString normalString = "font: normal 22pt \"Arial\";";
@@ -659,7 +679,7 @@ void AvianGUI::createToolBars()
 
         /** AVN START */
         QString tbStyleSheet = ".QToolBar {background-color : transparent; border-color: transparent; }  "
-                               ".QToolButton {background-color: transparent; border-color: transparent; width: 120px; color: %1; border: none;} "
+                               ".QToolButton {background-color: transparent; border-color: transparent; width: 170px; color: %1; border: none;} "
                                ".QToolButton:checked {background: none; background-color: none; selection-background-color: none; color: %2; border: none; font: %4} "
                                ".QToolButton:hover {background: none; background-color: none; border: none; color: %3;} "
                                ".QToolButton:disabled {color: gray;}";
@@ -889,6 +909,7 @@ void AvianGUI::setWalletActionsEnabled(bool enabled)
     receiveCoinsMenuAction->setEnabled(enabled);
     historyAction->setEnabled(enabled);
     encryptWalletAction->setEnabled(enabled);
+    importPrivateKeyAction->setEnabled(enabled);
     backupWalletAction->setEnabled(enabled);
     changePassphraseAction->setEnabled(enabled);
     getMyWordsAction->setEnabled(enabled);
@@ -905,6 +926,8 @@ void AvianGUI::setWalletActionsEnabled(bool enabled)
     manageAssetAction->setEnabled(false);
     messagingAction->setEnabled(false);
     votingAction->setEnabled(false);
+    devAction->setEnabled(false);
+    wrapAction->setEnabled(false);
     /** AVN END */
 }
 
