@@ -166,7 +166,7 @@ QColor PlatformStyle::TextColor() const
     if (darkModeEnabled)
         return COLOR_TOOLBAR_SELECTED_TEXT_DARK_MODE;
 
-    return textColor;
+    return STRING_LABEL_COLOR;
 }
 
 QColor PlatformStyle::ToolBarSelectedTextColor() const
