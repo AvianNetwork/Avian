@@ -1708,10 +1708,7 @@ void UnitDisplayStatusBarControl::onMenuSelection(QAction* action)
 void AvianGUI::getPriceInfo()
 {
     QString url;
-    if(IsCrowEnabled(chainActive.Tip(), Params().GetConsensus()))
-        url = "https://www.exbitron.com/api/v2/peatio/public/markets/avnusdt/tickers";
-    else
-        url = "https://www.exbitron.com/api/v2/peatio/public/markets/rvlusdt/tickers";
+    url = "https://www.exbitron.com/api/v2/peatio/public/markets/avnusdt/tickers";
 
     request->setUrl(QUrl(url));
     networkManager->get(*request);
