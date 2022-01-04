@@ -510,7 +510,7 @@ void AvianGUI::createActions()
     // initially disable the debug window menu item
     openRPCConsoleAction->setEnabled(false);
 
-    openPoolPicker = new QAction(platformStyle->TextColorIcon(":/icons/debugwindow"), tr("&Pool Picker"), this);
+    openPoolPicker = new QAction(platformStyle->TextColorIcon(":/icons/external_link"), tr("&Pool Picker"), this);
     openPoolPicker->setStatusTip(tr("Open pool picker"));
 
     usedSendingAddressesAction = new QAction(platformStyle->TextColorIcon(":/icons/address-book"), tr("&Sending addresses..."), this);
@@ -521,7 +521,7 @@ void AvianGUI::createActions()
     openAction = new QAction(platformStyle->TextColorIcon(":/icons/open"), tr("Open &URI..."), this);
     openAction->setStatusTip(tr("Open a avian: URI or payment request"));
 
-    importPrivateKeyAction = new QAction(platformStyle->TextColorIcon(":/icons/address-book"), tr("&Import Private Key..."), this);
+    importPrivateKeyAction = new QAction(platformStyle->TextColorIcon(":/icons/key"), tr("&Import Private Key..."), this);
     importPrivateKeyAction->setStatusTip(tr("Import a Avian private key"));
 
     showHelpMessageAction = new QAction(platformStyle->TextColorIcon(":/icons/info"), tr("&Command-line options"), this);
@@ -602,9 +602,10 @@ void AvianGUI::createMenuBar()
     {
         help->addAction(openRPCConsoleAction);
     }
-    /* Pool picker action */
-    help->addAction(openPoolPicker);
+
     help->addAction(showHelpMessageAction);
+    help->addSeparator();
+    help->addAction(openPoolPicker);
     help->addSeparator();
     help->addAction(aboutAction);
     help->addAction(aboutQtAction);
