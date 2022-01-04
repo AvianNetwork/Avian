@@ -616,7 +616,7 @@ void AvianGUI::createToolBars()
     if(walletFrame)
     {
         /** AVN START */
-        // Create the background and the vertical tool bar
+        // Create the background and the horizontal tool bar
         QWidget* toolbarWidget = new QWidget();
 
         QString widgetStyleSheet = ".QWidget {background-color: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1, stop: 0 %1, stop: 1 %2);}";
@@ -624,7 +624,9 @@ void AvianGUI::createToolBars()
         toolbarWidget->setStyleSheet(widgetStyleSheet.arg(platformStyle->LightBlueColor().name(), platformStyle->DarkBlueColor().name()));
 
         QLabel* label = new QLabel();
-        label->setPixmap(QPixmap::fromImage(QImage(":/icons/aviantext")));
+        QImage avian(":/icons/avian");
+        QImage avianScaled = avian.scaled(64, 64, Qt::KeepAspectRatio);
+        label->setPixmap(QPixmap::fromImage(avianScaled));
         label->setContentsMargins(0,0,0,0);
         label->setStyleSheet(".QLabel{background-color: transparent;}");
         /** AVN END */
@@ -657,7 +659,7 @@ void AvianGUI::createToolBars()
 
         /** AVN START */
         QString tbStyleSheet = ".QToolBar {background-color : transparent; border-color: transparent; }  "
-                               ".QToolButton {background-color: transparent; border-color: transparent; width: 249px; color: %1; border: none;} "
+                               ".QToolButton {background-color: transparent; border-color: transparent; width: 120px; color: %1; border: none;} "
                                ".QToolButton:checked {background: none; background-color: none; selection-background-color: none; color: %2; border: none; font: %4} "
                                ".QToolButton:hover {background: none; background-color: none; border: none; color: %3;} "
                                ".QToolButton:disabled {color: gray;}";
@@ -666,7 +668,7 @@ void AvianGUI::createToolBars()
                                                 platformStyle->ToolBarSelectedTextColor().name(),
                                                 platformStyle->DarkOrangeColor().name(), stringToUse));
 
-        toolbar->setOrientation(Qt::Vertical);
+        toolbar->setOrientation(Qt::Horizontal);
         toolbar->setIconSize(QSize(40, 40));
 
         QLayout* lay = toolbar->layout();
@@ -675,10 +677,10 @@ void AvianGUI::createToolBars()
 
         overviewAction->setChecked(true);
 
-        QVBoxLayout* avianLabelLayout = new QVBoxLayout(toolbarWidget);
+        QHBoxLayout* avianLabelLayout = new QHBoxLayout(toolbarWidget);
         avianLabelLayout->addWidget(label);
         avianLabelLayout->addWidget(toolbar);
-        avianLabelLayout->setDirection(QBoxLayout::TopToBottom);
+        avianLabelLayout->setDirection(QBoxLayout::LeftToRight);
         avianLabelLayout->addStretch(1);
 
         QString mainWalletWidgetStyle = QString(".QWidget{background-color: %1}").arg(platformStyle->MainBackGroundColor().name());
@@ -747,12 +749,12 @@ void AvianGUI::createToolBars()
         mainFrameLayout->setDirection(QBoxLayout::TopToBottom);
         mainFrameLayout->setContentsMargins(QMargins());
 
-        QVBoxLayout* layout = new QVBoxLayout();
+        QHBoxLayout* layout = new QHBoxLayout();
         layout->addWidget(toolbarWidget);
         layout->addWidget(mainWalletWidget);
         layout->setSpacing(0);
         layout->setContentsMargins(QMargins());
-        layout->setDirection(QBoxLayout::LeftToRight);
+        layout->setDirection(QBoxLayout::TopToBottom);
         QWidget* containerWidget = new QWidget();
         containerWidget->setLayout(layout);
         setCentralWidget(containerWidget);
