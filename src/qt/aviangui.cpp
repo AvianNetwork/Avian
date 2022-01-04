@@ -779,38 +779,6 @@ void AvianGUI::createToolBars()
 
                     labelCurrentPrice->setText(QString("%1").arg(QString().setNum(num, 'f', 8)));
 			        labelCurrentPrice->setToolTip(tr("Brought to you by exbitron.com"));
-
-            //         // Create regex expression to find the value with 8 decimals
-		    // QRegExp rx("0\\.0\\d\\d\\d\\d");
-            //         rx.indexIn(answer);
-
-            //         // List the found values
-            //         QStringList list = rx.capturedTexts();
-
-            //         QString currentPriceStyleSheet = ".QLabel{color: %1;}";
-            //         // Evaluate the current and next numbers and assign a color (green for positive, red for negative)
-            //         bool ok;
-            //         if (!list.isEmpty()) {
-            //             double next = list.first().toDouble(&ok);
-            //             if (!ok) {
-            //                 labelCurrentPrice->setStyleSheet(currentPriceStyleSheet.arg(COLOR_LABELS.name()));
-            //                 labelCurrentPrice->setText("");
-            //             } else {
-            //                 double current = labelCurrentPrice->text().toDouble(&ok);
-            //                 if (!ok) {
-            //                     current = 0.00000000;
-            //                 } else {
-            //                     if (next < current)
-            //                         labelCurrentPrice->setStyleSheet(currentPriceStyleSheet.arg("red"));
-            //                     else if (next > current)
-            //                         labelCurrentPrice->setStyleSheet(currentPriceStyleSheet.arg("green"));
-            //                     else
-            //                         labelCurrentPrice->setStyleSheet(currentPriceStyleSheet.arg(COLOR_LABELS.name()));
-            //                 }
-            //                 labelCurrentPrice->setText(QString("%1").arg(QString().setNum(next, 'f', 8)));
-			//     labelCurrentPrice->setToolTip(tr("Brought to you by exbitron.com"));
-            //             }
-            //         }
                 }
         );
 
