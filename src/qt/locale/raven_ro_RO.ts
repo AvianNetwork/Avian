@@ -155,7 +155,7 @@
     </message>
     <message>
         <source>Send coins to a Avian address</source>
-        <translation>Trimite monede către o adresă Raven</translation>
+        <translation>Trimite monede către o adresă Avian</translation>
     </message>
     <message>
         <source>Backup wallet to another location</source>
@@ -178,8 +178,8 @@
         <translation>&amp;Verifică mesaj...</translation>
     </message>
     <message>
-        <source>Raven</source>
-        <translation>Raven</translation>
+        <source>Avian</source>
+        <translation>Avian</translation>
     </message>
     <message>
         <source>Wallet</source>
@@ -207,11 +207,11 @@
     </message>
     <message>
         <source>Sign messages with your Avian addresses to prove you own them</source>
-        <translation>Semnaţi mesaje cu adresa dvs. Raven pentru a dovedi că vă aparţin</translation>
+        <translation>Semnaţi mesaje cu adresa dvs. Avian pentru a dovedi că vă aparţin</translation>
     </message>
     <message>
         <source>Verify messages to ensure they were signed with specified Avian addresses</source>
-        <translation>Verificaţi mesaje pentru a vă asigura că au fost semnate cu adresa Raven specificată</translation>
+        <translation>Verificaţi mesaje pentru a vă asigura că au fost semnate cu adresa Avian specificată</translation>
     </message>
     <message>
         <source>&amp;File</source>
@@ -251,7 +251,7 @@
     </message>
     <message numerus="yes">
         <source>%n active connection(s) to Avian network</source>
-        <translation><numerusform>%n conexiune activă către reţeaua Raven</numerusform><numerusform>%n conexiuni active către reţeaua Raven</numerusform><numerusform>%n de conexiuni active către reţeaua Raven</numerusform></translation>
+        <translation><numerusform>%n conexiune activă către reţeaua Avian</numerusform><numerusform>%n conexiuni active către reţeaua Avian</numerusform><numerusform>%n de conexiuni active către reţeaua Avian</numerusform></translation>
     </message>
     <message numerus="yes">
         <source>Processed %n block(s) of transaction history.</source>
@@ -656,8 +656,8 @@
         <translation>Cheltuire rest neconfirmat</translation>
     </message>
     <message>
-        <source>Automatically open the Raven client port on the router. This only works when your router supports UPnP and it is enabled.</source>
-        <translation>Deschide automat în router portul aferent clientului Raven. Funcţionează doar dacă routerul duportă UPnP şi e activat.</translation>
+        <source>Automatically open the Avian client port on the router. This only works when your router supports UPnP and it is enabled.</source>
+        <translation>Deschide automat în router portul aferent clientului Avian. Funcţionează doar dacă routerul duportă UPnP şi e activat.</translation>
     </message>
     <message>
         <source>Map port using &amp;UPnP</source>
@@ -665,7 +665,7 @@
     </message>
     <message>
         <source>Connect to the Avian network through a SOCKS5 proxy.</source>
-        <translation>Conectare la reţeaua Raven printr-un proxy SOCKS.</translation>
+        <translation>Conectare la reţeaua Avian printr-un proxy SOCKS.</translation>
     </message>
     <message>
         <source>&amp;Connect through SOCKS5 proxy (default proxy):</source>
@@ -776,7 +776,7 @@
     </message>
     <message>
         <source>The displayed information may be out of date. Your wallet automatically synchronizes with the Avian network after a connection is established, but this process has not completed yet.</source>
-        <translation>Informaţiile afişate pot fi neactualizate. Portofelul dvs. se sincronizează automat cu reţeaua Raven după ce o conexiune este stabilită, dar acest proces nu a fost finalizat încă.</translation>
+        <translation>Informaţiile afişate pot fi neactualizate. Portofelul dvs. se sincronizează automat cu reţeaua Avian după ce o conexiune este stabilită, dar acest proces nu a fost finalizat încă.</translation>
     </message>
     <message>
         <source>Watch-only:</source>
@@ -865,7 +865,7 @@
     </message>
     <message>
         <source>Enter a Avian address (e.g. %1)</source>
-        <translation>Introduceţi o adresă Raven (de exemplu %1)</translation>
+        <translation>Introduceţi o adresă Avian (de exemplu %1)</translation>
     </message>
     <message>
         <source>%1 d</source>
@@ -1165,7 +1165,7 @@
     </message>
     <message>
         <source>An optional message to attach to the payment request, which will be displayed when the request is opened. Note: The message will not be sent with the payment over the Avian network.</source>
-        <translation>Un mesaj opţional de ataşat la cererea de plată, care va fi afişat cînd cererea este deschisă. Notă: Acest mesaj nu va fi trimis cu plata către reţeaua Raven.</translation>
+        <translation>Un mesaj opţional de ataşat la cererea de plată, care va fi afişat cînd cererea este deschisă. Notă: Acest mesaj nu va fi trimis cu plata către reţeaua Avian.</translation>
     </message>
     <message>
         <source>An optional label to associate with the new receiving address.</source>
@@ -1482,7 +1482,7 @@
     </message>
     <message>
         <source>Sign the message to prove you own this Avian address</source>
-        <translation>Semnează mesajul pentru a dovedi ca deţineţi acestă adresă Raven</translation>
+        <translation>Semnează mesajul pentru a dovedi ca deţineţi acestă adresă Avian</translation>
     </message>
     <message>
         <source>Sign &amp;Message</source>
@@ -1502,11 +1502,11 @@
     </message>
     <message>
         <source>The Avian address the message was signed with</source>
-        <translation>Introduceţi o adresă Raven</translation>
+        <translation>Introduceţi o adresă Avian</translation>
     </message>
     <message>
         <source>Verify the message to ensure it was signed with the specified Avian address</source>
-        <translation>Verificaţi mesajul pentru a vă asigura că a fost semnat cu adresa Raven specificată</translation>
+        <translation>Verificaţi mesajul pentru a vă asigura că a fost semnat cu adresa Avian specificată</translation>
     </message>
     <message>
         <source>Verify &amp;Message</source>
@@ -1594,8 +1594,8 @@
         <translation>Rulează în fundal ca un demon şi acceptă comenzi</translation>
     </message>
     <message>
-        <source>Raven Core</source>
-        <translation>Nucleul Raven</translation>
+        <source>Avian Core</source>
+        <translation>Nucleul Avian</translation>
     </message>
     <message>
         <source>Bind to given address and always listen on it. Use [host]:port notation for IPv6</source>
