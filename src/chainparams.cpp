@@ -150,7 +150,7 @@ public:
         consensus.diffRetargetTake2 = 1639269000;           // Third iteration of diff retargetter fix
         consensus.lwmaAveragingWindow = 45;                 // Averaging window size for LWMA diff adjust
 
-	// until "LWMA3" retarget algo, only "00000fff..." was used. these will apply once LWMA3 goes live
+	    // until "LWMA3" retarget algo, only "00000fff..." was used. these will apply once LWMA3 goes live
         consensus.powTypeLimits.emplace_back(uint256S("00000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"));   // x16rt limit
         consensus.powTypeLimits.emplace_back(uint256S("000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"));   // Crow limit
 
@@ -435,6 +435,17 @@ public:
         consensus.vDeployments[Consensus::DEPLOYMENT_ASSETS].bit = 6;
         consensus.vDeployments[Consensus::DEPLOYMENT_ASSETS].nStartTime = 0;
         consensus.vDeployments[Consensus::DEPLOYMENT_ASSETS].nTimeout = 999999999999ULL;
+
+        // Crow Algo Deployment (testnet)
+        consensus.vDeployments[Consensus::DEPLOYMENT_CROW].bit = 7;
+        consensus.vDeployments[Consensus::DEPLOYMENT_CROW].nStartTime = 0;
+        consensus.vDeployments[Consensus::DEPLOYMENT_CROW].nTimeout = 999999999999ULL;
+
+        // Crow Algo consensus
+        consensus.powForkTime = 1;                 // Time of PoW hash method change
+        consensus.lwmaAveragingWindow = 45;        // Averaging window size for LWMA diff adjust
+        consensus.diffRetargetFix = 1;             // Block of diff algo change
+        consensus.diffRetargetTake2 = 1;           // Third iteration of LWMA retarget activation timestamp
 
         // regtest x16rt switch (genesis +1)
         consensus.nX16rtTimestamp = 1629951212;
