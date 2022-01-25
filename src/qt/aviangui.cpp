@@ -680,7 +680,7 @@ void AvianGUI::createToolBars()
 
         /** AVN START */
         QString tbStyleSheet = ".QToolBar {background-color : transparent; border-color: transparent; }  "
-                               ".QToolButton {background-color: transparent; border-color: transparent; width: 170px; color: %1; border: none;} "
+                               ".QToolButton {background-color: transparent; border-color: transparent; color: %1; border: none;} "
                                ".QToolButton:checked {background: none; background-color: none; selection-background-color: none; color: %2; border: none; font: %4} "
                                ".QToolButton:hover {background: none; background-color: none; border: none; color: %3;} "
                                ".QToolButton:disabled {color: gray;}";
@@ -690,7 +690,7 @@ void AvianGUI::createToolBars()
                                                 platformStyle->DarkOrangeColor().name(), stringToUse));
 
         toolbar->setOrientation(Qt::Horizontal);
-        toolbar->setIconSize(QSize(40, 40));
+        toolbar->setIconSize(QSize(30, 30));
 
         QLayout* lay = toolbar->layout();
         for(int i = 0; i < lay->count(); ++i)
