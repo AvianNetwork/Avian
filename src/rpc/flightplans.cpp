@@ -47,9 +47,14 @@ UniValue call_function(const JSONRPCRequest& request)
 
     auto flightplans = AvianFlightPlans();
 
-    boost::filesystem::path datadir = GetDataDir(false);
-    datadir /= "flightplans";
-    std::string path = datadir.string() + request.params[0].get_str() + ".lua";
+    std::string datadir = boost::filesystem::canonical(GetDataDir(false)).string();
+
+    #ifdef __linux__ 
+        std::string path = datadir + "/flightplans/" + request.params[0].get_str() + ".lua";
+    #elif _WIN32
+        std::string path = datadir + "\\flightplans\\" + request.params[0].get_str() + ".lua";
+    #else
+    #endif
 
     FlightPlanResult result = flightplans.run_f(path.c_str(), request.params[1].get_str().c_str());
 
