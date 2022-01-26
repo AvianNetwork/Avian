@@ -201,6 +201,7 @@ AVIAN_CORE_H = \
   reverse_iterator.h \
   reverselock.h \
   rpc/blockchain.h \
+  rpc/flightplans.h \
   rpc/client.h \
   rpc/mining.h \
   rpc/protocol.h \
@@ -248,8 +249,40 @@ AVIAN_CORE_H = \
   zmq/zmqabstractnotifier.h \
   zmq/zmqconfig.h\
   zmq/zmqnotificationinterface.h \
-  zmq/zmqpublishnotifier.h
-
+  zmq/zmqpublishnotifier.h \
+  flightplans/flightplans.h \
+  lua/lapi.h \
+  lua/lauxlib.h \
+  lua/lbaselib.h \
+  lua/lcode.h \
+  lua/lcorolib.h \
+  lua/lctype.h \
+  lua/ldblib.h \
+  lua/ldebug.h \
+  lua/ldo.h \
+  lua/ldump.h \
+  lua/lfunc.h \
+  lua/lgc.h \
+  lua/linit.h \
+  lua/liolib.h \
+  lua/llex.h \
+  lua/lmathlib.h \
+  lua/lmem.h \
+  lua/loadlib.h \
+  lua/lobject.h \
+  lua/lopcodes.h \
+  lua/loslib.h \
+  lua/lparser.h \
+  lua/lstate.h \
+  lua/lstring.h \
+  lua/lstrlib.h \
+  lua/ltable.h \
+  lua/ltablib.h \
+  lua/ltm.h \
+  lua/lundump.h \
+  lua/lutf8lib.h \
+  lua/lvm.h \
+  lua/lzio.h
 
 obj/build.h: FORCE
 	@$(MKDIR_P) $(builddir)/obj
@@ -292,6 +325,7 @@ libavian_server_a_SOURCES = \
   policy/rbf.cpp \
   pow.cpp \
   rest.cpp \
+  rpc/flightplans.cpp \
   rpc/assets.cpp \
   rpc/blockchain.cpp \
   rpc/messages.cpp \
@@ -312,6 +346,39 @@ libavian_server_a_SOURCES = \
   validation.cpp \
   validationinterface.cpp \
   versionbits.cpp \
+  flightplans/flightplans.cpp \
+  lua/lapi.c \
+  lua/lauxlib.c \
+  lua/lbaselib.c \
+  lua/lcode.c \
+  lua/lcorolib.c \
+  lua/lctype.c \
+  lua/ldblib.c \
+  lua/ldebug.c \
+  lua/ldo.c \
+  lua/ldump.c \
+  lua/lfunc.c \
+  lua/lgc.c \
+  lua/linit.c \
+  lua/liolib.c \
+  lua/llex.c \
+  lua/lmathlib.c \
+  lua/lmem.c \
+  lua/loadlib.c \
+  lua/lobject.c \
+  lua/lopcodes.c \
+  lua/loslib.c \
+  lua/lparser.c \
+  lua/lstate.c \
+  lua/lstring.c \
+  lua/lstrlib.c \
+  lua/ltable.c \
+  lua/ltablib.c \
+  lua/ltm.c \
+  lua/lundump.c \
+  lua/lutf8lib.c \
+  lua/lvm.c \
+  lua/lzio.c \
   $(AVIAN_CORE_H)
 
 if ENABLE_ZMQ
