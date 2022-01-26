@@ -9,6 +9,32 @@ Please take precautions when using this feature.
 */
 
 #include "flightplans.h"
+
+#include "amount.h"
+#include "base58.h"
+#include "chain.h"
+#include "consensus/validation.h"
+#include "core_io.h"
+#include "httpserver.h"
+#include "validation.h"
+#include "net.h"
+#include "policy/feerate.h"
+#include "policy/fees.h"
+#include "policy/policy.h"
+#include "policy/rbf.h"
+#include "rpc/mining.h"
+#include "rpc/safemode.h"
+#include "rpc/server.h"
+#include "script/sign.h"
+#include "timedata.h"
+#include "util.h"
+#include "utiltime.h"
+#include "utilmoneystr.h"
+#include "wallet/coincontrol.h"
+#include "wallet/feebumper.h"
+#include "wallet/wallet.h"
+#include "wallet/walletdb.h"
+
 #include <cstdio>
 #include <iostream>
 
@@ -20,17 +46,30 @@ extern "C" {
 }
 #endif //__cplusplus
 
+/* Avian Lua Lib */
+static int balance(lua_State *L)
+{
+    CWallet * const pwallet = vpwallets[0];
+
+	lua_pushnumber(L, pwallet->GetBalance());
+
+	/* return the number of results */
+	return 1;
+}
+
 FlightPlanResult AvianFlightPlans::run_f(const char* file, const char* func)
 {
     // Result object
     FlightPlanResult result;
+    int status;
 
     lua_State* L = luaL_newstate();
 
     // Make standard libraries available in the Lua object
     luaL_openlibs(L);
 
-    int status;
+    // Register Avian libs
+	lua_register(L, "avnBalance", balance);
 
     // Load the program
     status = luaL_dofile(L, file);
@@ -62,12 +101,12 @@ FlightPlanResult AvianFlightPlans::run_f(const char* file, const char* func)
             result.result = (char*)lua_tostring(L, -1);
             lua_pop(L, 1);
         } else {
-            result.result = "Return value was not a string.";
+            result.result = "Return value was null.";
             result.is_error = true;
             return result;
         }
     } else {
-        result.result = "Function not found or not a valid function.";
+        result.result = "Function not found or invalid.";
         result.is_error = true;
         return result;
     }

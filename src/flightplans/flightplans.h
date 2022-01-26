@@ -6,6 +6,8 @@
 #ifndef AVIAN_FLIGHTPLANS_H
 #define AVIAN_FLIGHTPLANS_H
 
+class CWallet;
+
 /* Avian Flightplans Result */
 class FlightPlanResult
 {
