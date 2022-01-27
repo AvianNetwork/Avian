@@ -25,9 +25,12 @@
 #include "warnings.h"
 
 #include <stdint.h>
-#include <string>
-
 #include <univalue.h>
+
+#include <cstddef>
+#include <cstdio>
+#include <string>
+#include <vector>
 
 UniValue call_function(const JSONRPCRequest& request)
 {
@@ -38,6 +41,7 @@ UniValue call_function(const JSONRPCRequest& request)
             "\nArguments:\n"
             "1. contract name      (string, required) Lua file.\n"
             "2. function      (string, required) Lua function.\n"
+            "3. args      (string, not needed) Lua args.\n"
             "\nResult:\n"
             "1.    (string) Result from called function\n"
             "\nExamples:\n" +
@@ -45,18 +49,30 @@ UniValue call_function(const JSONRPCRequest& request)
 
     LOCK(cs_main);
 
+    std::vector<std::string> args = {};
+
+    for(size_t i = 0; i < request.params.size(); i++) {
+        args.push_back(request.params[i].get_str());
+    }
+
+    args.erase(args.begin());
+    args.erase(args.begin());
+
     auto flightplans = AvianFlightPlans();
 
     std::string datadir = boost::filesystem::canonical(GetDataDir(false)).string();
 
-    #ifdef __linux__ 
-        std::string path = datadir + "/flightplans/" + request.params[0].get_str() + ".lua";
-    #elif _WIN32
-        std::string path = datadir + "\\flightplans\\" + request.params[0].get_str() + ".lua";
-    #else
+    // TODO: Fix this to use lib instead of relying on marcos.
+    
+    #if !defined(_WIN32) && (defined(__unix__) || defined(__unix) || (defined(__APPLE__) && defined(__MACH__)))
+    std::string path = datadir + "/flightplans/" + request.params[0].get_str() + ".lua";
     #endif
 
-    FlightPlanResult result = flightplans.run_f(path.c_str(), request.params[1].get_str().c_str());
+    #ifdef _WIN32
+        std::string path = datadir + "\\flightplans\\" + request.params[0].get_str() + ".lua";
+    #endif
+
+    FlightPlanResult result = flightplans.run_f(path.c_str(), request.params[1].get_str().c_str(), args);
 
     boost::filesystem::path file(path);
     if (boost::filesystem::exists(file)) {

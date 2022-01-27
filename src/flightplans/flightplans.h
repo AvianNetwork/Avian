@@ -6,6 +6,9 @@
 #ifndef AVIAN_FLIGHTPLANS_H
 #define AVIAN_FLIGHTPLANS_H
 
+#include <string>
+#include <vector>
+
 class CWallet;
 
 /* Avian Flightplans Result */
@@ -20,7 +23,7 @@ public:
 class AvianFlightPlans
 {
 public:
-    FlightPlanResult run_f(const char* file, const char* func);
+    FlightPlanResult run_f(const char* file, const char* func, std::vector<std::string> args={});
 };
 
 #endif
