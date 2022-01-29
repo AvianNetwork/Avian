@@ -72,7 +72,7 @@ UniValue call_function(const JSONRPCRequest& request)
         std::string path = datadir + "\\flightplans\\" + request.params[0].get_str() + ".lua";
     #endif
 
-    FlightPlanResult result = flightplans.run_f(path.c_str(), request.params[1].get_str().c_str(), args);
+    FlightPlanResult result = flightplans.run_file(path.c_str(), request.params[1].get_str().c_str(), args);
 
     boost::filesystem::path file(path);
     if (boost::filesystem::exists(file)) {

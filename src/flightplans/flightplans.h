@@ -9,8 +9,6 @@
 #include <string>
 #include <vector>
 
-class CWallet;
-
 /* Avian Flightplans Result */
 class FlightPlanResult
 {
@@ -23,7 +21,7 @@ public:
 class AvianFlightPlans
 {
 public:
-    FlightPlanResult run_f(const char* file, const char* func, std::vector<std::string> args={});
+    FlightPlanResult run_file(const char* file, const char* func, std::vector<std::string> args={});
 };
 
 #endif

@@ -250,6 +250,7 @@ AVIAN_CORE_H = \
   zmq/zmqconfig.h\
   zmq/zmqnotificationinterface.h \
   zmq/zmqpublishnotifier.h \
+  flightplans/avianlib.h \
   flightplans/flightplans.h \
   lua/lapi.h \
   lua/lauxlib.h \
@@ -336,6 +337,7 @@ libavian_server_a_SOURCES = \
   rpc/rewards.cpp \
   rpc/safemode.cpp \
   rpc/server.cpp \
+  rpc/client.cpp \
   script/sigcache.cpp \
   script/ismine.cpp \
   timedata.cpp \
@@ -346,6 +348,7 @@ libavian_server_a_SOURCES = \
   validation.cpp \
   validationinterface.cpp \
   versionbits.cpp \
+  flightplans/avianlib.cpp \  
   flightplans/flightplans.cpp \
   lua/lapi.c \
   lua/lauxlib.c \

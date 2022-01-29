@@ -10,30 +10,8 @@ Please take precautions when using this feature.
 
 #include "flightplans.h"
 
-#include "amount.h"
-#include "base58.h"
-#include "chain.h"
-#include "consensus/validation.h"
-#include "core_io.h"
-#include "httpserver.h"
-#include "net.h"
-#include "policy/feerate.h"
-#include "policy/fees.h"
-#include "policy/policy.h"
-#include "policy/rbf.h"
-#include "rpc/mining.h"
-#include "rpc/safemode.h"
-#include "rpc/server.h"
-#include "script/sign.h"
-#include "timedata.h"
+#include "avianlib.h"
 #include "util.h"
-#include "utilmoneystr.h"
-#include "utiltime.h"
-#include "validation.h"
-#include "wallet/coincontrol.h"
-#include "wallet/feebumper.h"
-#include "wallet/wallet.h"
-#include "wallet/walletdb.h"
 
 #include <cstddef>
 #include <cstdio>
@@ -42,18 +20,7 @@ Please take precautions when using this feature.
 
 #include "lua/lua.hpp"
 
-/* Avian Lua Lib */
-static int balance(lua_State* L)
-{
-    CWallet* const pwallet = vpwallets[0];
-
-    lua_pushnumber(L, pwallet->GetBalance());
-
-    /* return the number of results */
-    return 1;
-}
-
-FlightPlanResult AvianFlightPlans::run_f(const char* file, const char* func, std::vector<std::string> args)
+FlightPlanResult AvianFlightPlans::run_file(const char* file, const char* func, std::vector<std::string> args)
 {
     // Result object
     FlightPlanResult result;
@@ -64,8 +31,8 @@ FlightPlanResult AvianFlightPlans::run_f(const char* file, const char* func, std
     // Make standard libraries available in the Lua object
     luaL_openlibs(L);
 
-    // Register Avian libs
-    lua_register(L, "avnBalance", balance);
+    // Register Avian lib
+    register_avianlib(L);
 
     // Load the program
     status = luaL_dofile(L, file);
@@ -84,7 +51,7 @@ FlightPlanResult AvianFlightPlans::run_f(const char* file, const char* func, std
     if (lua_isfunction(L, -1)) {
         int n = 0;
 
-        if(args.size() >= 1) {
+        if (args.size() >= 1) {
             n = args.size();
             /* loop through each argument */
             for (int i = 0; i < n; i++) {
