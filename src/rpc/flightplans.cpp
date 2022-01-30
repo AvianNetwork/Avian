@@ -49,40 +49,45 @@ UniValue call_function(const JSONRPCRequest& request)
 
     LOCK(cs_main);
 
-    std::vector<std::string> args = {};
+    if (gArgs.IsArgSet("-flightplans")) {
+        std::vector<std::string> args = {};
 
-    for(size_t i = 0; i < request.params.size(); i++) {
-        args.push_back(request.params[i].get_str());
-    }
+        for (size_t i = 0; i < request.params.size(); i++) {
+            args.push_back(request.params[i].get_str());
+        }
 
-    args.erase(args.begin());
-    args.erase(args.begin());
+        // Remove first 2 arguments
+        args.erase(args.begin());
+        args.erase(args.begin());
 
-    auto flightplans = AvianFlightPlans();
+        auto flightplans = AvianFlightPlans();
 
-    std::string datadir = boost::filesystem::canonical(GetDataDir(false)).string();
+        std::string datadir = boost::filesystem::canonical(GetDataDir(false)).string();
 
-    // TODO: Fix this to use lib instead of relying on marcos.
-    
-    #if !defined(_WIN32) && (defined(__unix__) || defined(__unix) || (defined(__APPLE__) && defined(__MACH__)))
-    std::string path = datadir + "/flightplans/" + request.params[0].get_str() + ".lua";
-    #endif
+        // TODO: Fix this to use lib instead of relying on marcos.
 
-    #ifdef _WIN32
+#if !defined(_WIN32) && (defined(__unix__) || defined(__unix) || (defined(__APPLE__) && defined(__MACH__)))
+        std::string path = datadir + "/flightplans/" + request.params[0].get_str() + ".lua";
+#endif
+
+#ifdef _WIN32
         std::string path = datadir + "\\flightplans\\" + request.params[0].get_str() + ".lua";
-    #endif
+#endif
 
-    FlightPlanResult result = flightplans.run_file(path.c_str(), request.params[1].get_str().c_str(), args);
+        FlightPlanResult result = flightplans.run_file(path.c_str(), request.params[1].get_str().c_str(), args);
 
-    boost::filesystem::path file(path);
-    if (boost::filesystem::exists(file)) {
-        if (result.is_error) {
-            throw JSONRPCError(RPC_MISC_ERROR, result.result);
+        boost::filesystem::path file(path);
+        if (boost::filesystem::exists(file)) {
+            if (result.is_error) {
+                throw JSONRPCError(RPC_MISC_ERROR, result.result);
+            } else {
+                return result.result;
+            }
         } else {
-            return result.result;
+            throw JSONRPCError(RPC_MISC_ERROR, "Flightplan does not exist.");
         }
     } else {
-        throw JSONRPCError(RPC_MISC_ERROR, "Flightplan does not exist.");
+        throw JSONRPCError(RPC_MISC_ERROR, "Flight Plans are experimental and prone to bugs. Please take precautions when using this feature. To enable, launch Avian with the -flightplan flag.");
     }
 }
 
