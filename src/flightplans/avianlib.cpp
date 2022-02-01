@@ -275,7 +275,11 @@ bool RPCParse(std::string& strResult, const std::string& strCommand, const bool 
     }
 }
 
-/* Avian Lua Lib */
+/* -- Avian Lua Lib -- */
+
+/* Main */
+
+// Call RPC method
 static int rpc_call(lua_State* L)
 {
     if (lua_isstring(L, 1)) {
@@ -296,11 +300,322 @@ static int rpc_call(lua_State* L)
     return 1;
 }
 
+/* Assets */
+
+// test
+static int test(lua_State* L)
+{
+    return luaL_error(L, "avian.assets.test unimplemented");
+}
+
+/* Blockchain */
+
+// decodeblock "blockhex"
+static int decodeblock(lua_State* L)
+{
+    if (lua_isstring(L, 1)) {
+        std::string block_hex = std::string(lua_tostring(L, 1));
+        std::string result;
+        if (RPCParse(result, "decodeblock " + block_hex, true, nullptr)) {
+            lua_pushstring(L, result.c_str());
+        } else {
+            lua_pushliteral(L, "RPC Parse error: unbalanced ' or \"");
+            lua_error(L);
+        }
+    } else {
+        lua_pushliteral(L, "Missing block hex.");
+        lua_error(L);
+    }
+    return 1;
+}
+
+// getbestblockhash
+static int getbestblockhash(lua_State* L)
+{
+    std::string result;
+    if (RPCParse(result, "getbestblockhash", true, nullptr)) {
+        lua_pushstring(L, result.c_str());
+    } else {
+        lua_pushliteral(L, "RPC Parse error: unbalanced ' or \"");
+        lua_error(L);
+    }
+    return 1;
+}
+
+// getblock "blockhash"
+static int getblock(lua_State* L)
+{
+    if (lua_isstring(L, 1)) {
+        std::string block_hash = std::string(lua_tostring(L, 1));
+        std::string result;
+        if (RPCParse(result, "getblock " + block_hash, true, nullptr)) {
+            lua_pushstring(L, result.c_str());
+        } else {
+            lua_pushliteral(L, "RPC Parse error: unbalanced ' or \"");
+            lua_error(L);
+        }
+    } else {
+        lua_pushliteral(L, "Missing block hash.");
+        lua_error(L);
+    }
+    return 1;
+}
+
+// getblockchaininfo
+static int getblockchaininfo(lua_State* L)
+{
+    std::string result;
+    if (RPCParse(result, "getblockchaininfo", true, nullptr)) {
+        lua_pushstring(L, result.c_str());
+    } else {
+        lua_pushliteral(L, "RPC Parse error: unbalanced ' or \"");
+        lua_error(L);
+    }
+    return 1;
+}
+
+// getblockcount
+static int getblockcount(lua_State* L)
+{
+    std::string result;
+    if (RPCParse(result, "getblockcount", true, nullptr)) {
+        lua_pushstring(L, result.c_str());
+    } else {
+        lua_pushliteral(L, "RPC Parse error: unbalanced ' or \"");
+        lua_error(L);
+    }
+    return 1;
+}
+
+// getblockhash height
+static int getblockhash(lua_State* L)
+{
+    if (lua_isstring(L, 1)) {
+        std::string height = std::string(lua_tostring(L, 1));
+        std::string result;
+        if (RPCParse(result, "getblockhash " + height, true, nullptr)) {
+            lua_pushstring(L, result.c_str());
+        } else {
+            lua_pushliteral(L, "RPC Parse error: unbalanced ' or \"");
+            lua_error(L);
+        }
+    } else {
+        lua_pushliteral(L, "Missing block height string.");
+        lua_error(L);
+    }
+    return 1;
+}
+
+// getblockhashes timestamp
+static int getblockhashes(lua_State* L)
+{
+    if (lua_isstring(L, 1)) {
+        std::string timestamp = std::string(lua_tostring(L, 1));
+        std::string result;
+        if (RPCParse(result, "getblockhashes " + timestamp, true, nullptr)) {
+            lua_pushstring(L, result.c_str());
+        } else {
+            lua_pushliteral(L, "RPC Parse error: unbalanced ' or \"");
+            lua_error(L);
+        }
+    } else {
+        lua_pushliteral(L, "Missing timestamp.");
+        lua_error(L);
+    }
+    return 1;
+}
+
+// getblockheader "hash"
+static int getblockheader(lua_State* L)
+{
+    if (lua_isstring(L, 1)) {
+        std::string hash = std::string(lua_tostring(L, 1));
+        std::string result;
+        if (RPCParse(result, "getblockheader " + hash, true, nullptr)) {
+            lua_pushstring(L, result.c_str());
+        } else {
+            lua_pushliteral(L, "RPC Parse error: unbalanced ' or \"");
+            lua_error(L);
+        }
+    } else {
+        lua_pushliteral(L, "Missing block hash.");
+        lua_error(L);
+    }
+    return 1;
+}
+
+// getchaintips
+static int getchaintips(lua_State* L)
+{
+    std::string result;
+    if (RPCParse(result, "getchaintips", true, nullptr)) {
+        lua_pushstring(L, result.c_str());
+    } else {
+        lua_pushliteral(L, "RPC Parse error: unbalanced ' or \"");
+        lua_error(L);
+    }
+    return 1;
+}
+
+// getchaintxstats
+static int getchaintxstats(lua_State* L)
+{
+    std::string result;
+    if (RPCParse(result, "getchaintxstats", true, nullptr)) {
+        lua_pushstring(L, result.c_str());
+    } else {
+        lua_pushliteral(L, "RPC Parse error: unbalanced ' or \"");
+        lua_error(L);
+    }
+    return 1;
+}
+
+// getdifficulty
+static int getdifficulty(lua_State* L)
+{
+    std::string result;
+    if (RPCParse(result, "getdifficulty", true, nullptr)) {
+        lua_pushstring(L, result.c_str());
+    } else {
+        lua_pushliteral(L, "RPC Parse error: unbalanced ' or \"");
+        lua_error(L);
+    }
+    return 1;
+}
+
+// getmempoolancestors txid
+static int getmempoolancestors(lua_State* L)
+{
+    if (lua_isstring(L, 1)) {
+        std::string txid = std::string(lua_tostring(L, 1));
+        std::string result;
+        if (RPCParse(result, "getmempoolancestors " + txid, true, nullptr)) {
+            lua_pushstring(L, result.c_str());
+        } else {
+            lua_pushliteral(L, "RPC Parse error: unbalanced ' or \"");
+            lua_error(L);
+        }
+    } else {
+        lua_pushliteral(L, "Missing txid.");
+        lua_error(L);
+    }
+    return 1;
+}
+
+// getmempoolentry txid
+static int getmempoolentry(lua_State* L)
+{
+    if (lua_isstring(L, 1)) {
+        std::string txid = std::string(lua_tostring(L, 1));
+        std::string result;
+        if (RPCParse(result, "getmempoolentry " + txid, true, nullptr)) {
+            lua_pushstring(L, result.c_str());
+        } else {
+            lua_pushliteral(L, "RPC Parse error: unbalanced ' or \"");
+            lua_error(L);
+        }
+    } else {
+        lua_pushliteral(L, "Missing txid.");
+        lua_error(L);
+    }
+    return 1;
+}
+
+// getmempoolinfo
+static int getmempoolinfo(lua_State* L)
+{
+    std::string result;
+    if (RPCParse(result, "getmempoolinfo", true, nullptr)) {
+        lua_pushstring(L, result.c_str());
+    } else {
+        lua_pushliteral(L, "RPC Parse error: unbalanced ' or \"");
+        lua_error(L);
+    }
+    return 1;
+}
+
+// getrawmempool
+static int getrawmempool(lua_State* L)
+{
+    std::string result;
+    if (RPCParse(result, "getrawmempool", true, nullptr)) {
+        lua_pushstring(L, result.c_str());
+    } else {
+        lua_pushliteral(L, "RPC Parse error: unbalanced ' or \"");
+        lua_error(L);
+    }
+    return 1;
+}
+
+// getspentinfo
+static int getspentinfo(lua_State* L)
+{
+    std::string result;
+    if (RPCParse(result, "getspentinfo", true, nullptr)) {
+        lua_pushstring(L, result.c_str());
+    } else {
+        lua_pushliteral(L, "RPC Parse error: unbalanced ' or \"");
+        lua_error(L);
+    }
+    return 1;
+}
+
+// gettxoutsetinfo
+static int gettxoutsetinfo(lua_State* L)
+{
+    std::string result;
+    if (RPCParse(result, "gettxoutsetinfo", true, nullptr)) {
+        lua_pushstring(L, result.c_str());
+    } else {
+        lua_pushliteral(L, "RPC Parse error: unbalanced ' or \"");
+        lua_error(L);
+    }
+    return 1;
+}
+
 void register_avianlib(lua_State* L)
 {
-    static const struct luaL_Reg avian[] = {
+    static const struct luaL_Reg avian_main[] = {
         {"rpc_call", rpc_call},
         {NULL, NULL}};
-    luaL_newlib(L, avian);     // create table containing `avian`
-    lua_setglobal(L, "avian"); // assign that table to global `avian`
+
+    static const struct luaL_Reg avian_assets[] = {
+        {"test", test},
+        {NULL, NULL}};
+
+    static const struct luaL_Reg avian_blockchain[] = {
+        {"decodeblock", decodeblock},
+        {"getbestblockhash", getbestblockhash},
+        {"getblock", getblock},
+        {"getblockchaininfo", getblockchaininfo},
+        {"getblockcount", getblockcount},
+        {"getblockhash", getblockhash},
+        {"getblockhashes", getblockhashes},
+        {"getblockheader", getblockheader},
+        {"getchaintips", getchaintips},
+        {"getchaintxstats", getchaintxstats},
+        {"getdifficulty", getdifficulty},
+        {"getmempoolancestors", getmempoolancestors},
+        {"getmempoolentry", getmempoolentry},
+        {"getmempoolinfo", getmempoolinfo},
+        {"getrawmempool", getrawmempool},
+        {"getspentinfo", getspentinfo},
+        {"gettxoutsetinfo", getchaintips},
+        {NULL, NULL}};
+
+    lua_newtable(L); // create the avian table
+
+    lua_newtable(L);
+    luaL_setfuncs(L, avian_main, 0);
+    lua_setfield(L, -2, "main");
+
+    lua_newtable(L);
+    luaL_setfuncs(L, avian_assets, 0);
+    lua_setfield(L, -2, "assets");
+
+    lua_newtable(L);
+    luaL_setfuncs(L, avian_blockchain, 0);
+    lua_setfield(L, -2, "blockchain");
+
+    lua_setglobal(L, "avian"); // assign the avian table to global `avian`
 }
