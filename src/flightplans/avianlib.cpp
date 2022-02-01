@@ -275,6 +275,39 @@ bool RPCParse(std::string& strResult, const std::string& strCommand, const bool 
     }
 }
 
+/* Call RPC method with no args */
+int RPCCall(lua_State* L, std::string command)
+{
+    std::string result;
+    if (RPCParse(result, command, true, nullptr)) {
+        lua_pushstring(L, result.c_str());
+    } else {
+        lua_pushliteral(L, "RPC Parse error: unbalanced ' or \"");
+        lua_error(L);
+    }
+    return 1;
+}
+
+/* Call RPC method with 1 arg */
+int RPCCallArg(lua_State* L, std::string command, std::string required_arg)
+{
+    if (lua_isstring(L, 1)) {
+        std::string arg = std::string(lua_tostring(L, 1));
+        std::string result;
+        if (RPCParse(result, command + " " + arg, true, nullptr)) {
+            lua_pushstring(L, result.c_str());
+        } else {
+            lua_pushliteral(L, "RPC Parse error: unbalanced ' or \"");
+            lua_error(L);
+        }
+    } else {
+        std::string error = "Missing " + required_arg;
+        lua_pushstring(L, error.c_str());
+        lua_error(L);
+    }
+    return 1;
+}
+
 /* -- Avian Lua Lib -- */
 
 /* Main */
@@ -313,264 +346,103 @@ static int test(lua_State* L)
 // decodeblock "blockhex"
 static int decodeblock(lua_State* L)
 {
-    if (lua_isstring(L, 1)) {
-        std::string block_hex = std::string(lua_tostring(L, 1));
-        std::string result;
-        if (RPCParse(result, "decodeblock " + block_hex, true, nullptr)) {
-            lua_pushstring(L, result.c_str());
-        } else {
-            lua_pushliteral(L, "RPC Parse error: unbalanced ' or \"");
-            lua_error(L);
-        }
-    } else {
-        lua_pushliteral(L, "Missing block hex.");
-        lua_error(L);
-    }
-    return 1;
+    return RPCCallArg(L, "decodeblock", "blockhex");
 }
 
 // getbestblockhash
 static int getbestblockhash(lua_State* L)
 {
-    std::string result;
-    if (RPCParse(result, "getbestblockhash", true, nullptr)) {
-        lua_pushstring(L, result.c_str());
-    } else {
-        lua_pushliteral(L, "RPC Parse error: unbalanced ' or \"");
-        lua_error(L);
-    }
-    return 1;
+    return RPCCall(L, "getbestblockhash");
 }
 
 // getblock "blockhash"
 static int getblock(lua_State* L)
 {
-    if (lua_isstring(L, 1)) {
-        std::string block_hash = std::string(lua_tostring(L, 1));
-        std::string result;
-        if (RPCParse(result, "getblock " + block_hash, true, nullptr)) {
-            lua_pushstring(L, result.c_str());
-        } else {
-            lua_pushliteral(L, "RPC Parse error: unbalanced ' or \"");
-            lua_error(L);
-        }
-    } else {
-        lua_pushliteral(L, "Missing block hash.");
-        lua_error(L);
-    }
-    return 1;
+    return RPCCallArg(L, "getblock", "blockhash");
 }
 
 // getblockchaininfo
 static int getblockchaininfo(lua_State* L)
 {
-    std::string result;
-    if (RPCParse(result, "getblockchaininfo", true, nullptr)) {
-        lua_pushstring(L, result.c_str());
-    } else {
-        lua_pushliteral(L, "RPC Parse error: unbalanced ' or \"");
-        lua_error(L);
-    }
-    return 1;
+    return RPCCall(L, "getblockchaininfo");
 }
 
 // getblockcount
 static int getblockcount(lua_State* L)
 {
-    std::string result;
-    if (RPCParse(result, "getblockcount", true, nullptr)) {
-        lua_pushstring(L, result.c_str());
-    } else {
-        lua_pushliteral(L, "RPC Parse error: unbalanced ' or \"");
-        lua_error(L);
-    }
-    return 1;
+    return RPCCall(L, "getblockcount");
 }
 
 // getblockhash height
 static int getblockhash(lua_State* L)
 {
-    if (lua_isstring(L, 1)) {
-        std::string height = std::string(lua_tostring(L, 1));
-        std::string result;
-        if (RPCParse(result, "getblockhash " + height, true, nullptr)) {
-            lua_pushstring(L, result.c_str());
-        } else {
-            lua_pushliteral(L, "RPC Parse error: unbalanced ' or \"");
-            lua_error(L);
-        }
-    } else {
-        lua_pushliteral(L, "Missing block height string.");
-        lua_error(L);
-    }
-    return 1;
+    return RPCCallArg(L, "getblockhash", "height");
 }
 
 // getblockhashes timestamp
 static int getblockhashes(lua_State* L)
 {
-    if (lua_isstring(L, 1)) {
-        std::string timestamp = std::string(lua_tostring(L, 1));
-        std::string result;
-        if (RPCParse(result, "getblockhashes " + timestamp, true, nullptr)) {
-            lua_pushstring(L, result.c_str());
-        } else {
-            lua_pushliteral(L, "RPC Parse error: unbalanced ' or \"");
-            lua_error(L);
-        }
-    } else {
-        lua_pushliteral(L, "Missing timestamp.");
-        lua_error(L);
-    }
-    return 1;
+    return RPCCallArg(L, "getblockhashes", "timestamp");
 }
 
 // getblockheader "hash"
 static int getblockheader(lua_State* L)
 {
-    if (lua_isstring(L, 1)) {
-        std::string hash = std::string(lua_tostring(L, 1));
-        std::string result;
-        if (RPCParse(result, "getblockheader " + hash, true, nullptr)) {
-            lua_pushstring(L, result.c_str());
-        } else {
-            lua_pushliteral(L, "RPC Parse error: unbalanced ' or \"");
-            lua_error(L);
-        }
-    } else {
-        lua_pushliteral(L, "Missing block hash.");
-        lua_error(L);
-    }
-    return 1;
+    return RPCCallArg(L, "getblockheader", "hash");
 }
 
 // getchaintips
 static int getchaintips(lua_State* L)
 {
-    std::string result;
-    if (RPCParse(result, "getchaintips", true, nullptr)) {
-        lua_pushstring(L, result.c_str());
-    } else {
-        lua_pushliteral(L, "RPC Parse error: unbalanced ' or \"");
-        lua_error(L);
-    }
-    return 1;
+    return RPCCall(L, "getchaintips");
 }
 
 // getchaintxstats
 static int getchaintxstats(lua_State* L)
 {
-    std::string result;
-    if (RPCParse(result, "getchaintxstats", true, nullptr)) {
-        lua_pushstring(L, result.c_str());
-    } else {
-        lua_pushliteral(L, "RPC Parse error: unbalanced ' or \"");
-        lua_error(L);
-    }
-    return 1;
+    return RPCCall(L, "getchaintxstats");
 }
 
 // getdifficulty
 static int getdifficulty(lua_State* L)
 {
-    std::string result;
-    if (RPCParse(result, "getdifficulty", true, nullptr)) {
-        lua_pushstring(L, result.c_str());
-    } else {
-        lua_pushliteral(L, "RPC Parse error: unbalanced ' or \"");
-        lua_error(L);
-    }
-    return 1;
+    return RPCCall(L, "getdifficulty");
 }
 
 // getmempoolancestors txid
 static int getmempoolancestors(lua_State* L)
 {
-    if (lua_isstring(L, 1)) {
-        std::string txid = std::string(lua_tostring(L, 1));
-        std::string result;
-        if (RPCParse(result, "getmempoolancestors " + txid, true, nullptr)) {
-            lua_pushstring(L, result.c_str());
-        } else {
-            lua_pushliteral(L, "RPC Parse error: unbalanced ' or \"");
-            lua_error(L);
-        }
-    } else {
-        lua_pushliteral(L, "Missing txid.");
-        lua_error(L);
-    }
-    return 1;
+    return RPCCallArg(L, "getmempoolancestors", "txid");
 }
 
 // getmempoolentry txid
 static int getmempoolentry(lua_State* L)
 {
-    if (lua_isstring(L, 1)) {
-        std::string txid = std::string(lua_tostring(L, 1));
-        std::string result;
-        if (RPCParse(result, "getmempoolentry " + txid, true, nullptr)) {
-            lua_pushstring(L, result.c_str());
-        } else {
-            lua_pushliteral(L, "RPC Parse error: unbalanced ' or \"");
-            lua_error(L);
-        }
-    } else {
-        lua_pushliteral(L, "Missing txid.");
-        lua_error(L);
-    }
-    return 1;
+    return RPCCallArg(L, "getmempoolentry", "txid");
 }
 
 // getmempoolinfo
 static int getmempoolinfo(lua_State* L)
 {
-    std::string result;
-    if (RPCParse(result, "getmempoolinfo", true, nullptr)) {
-        lua_pushstring(L, result.c_str());
-    } else {
-        lua_pushliteral(L, "RPC Parse error: unbalanced ' or \"");
-        lua_error(L);
-    }
-    return 1;
+    return RPCCall(L, "getmempoolinfo");
 }
 
 // getrawmempool
 static int getrawmempool(lua_State* L)
 {
-    std::string result;
-    if (RPCParse(result, "getrawmempool", true, nullptr)) {
-        lua_pushstring(L, result.c_str());
-    } else {
-        lua_pushliteral(L, "RPC Parse error: unbalanced ' or \"");
-        lua_error(L);
-    }
-    return 1;
+    return RPCCall(L, "getrawmempool");
 }
 
 // getspentinfo
 static int getspentinfo(lua_State* L)
 {
-    std::string result;
-    if (RPCParse(result, "getspentinfo", true, nullptr)) {
-        lua_pushstring(L, result.c_str());
-    } else {
-        lua_pushliteral(L, "RPC Parse error: unbalanced ' or \"");
-        lua_error(L);
-    }
-    return 1;
+    return RPCCall(L, "getspentinfo");
 }
 
 // gettxoutsetinfo
 static int gettxoutsetinfo(lua_State* L)
 {
-    std::string result;
-    if (RPCParse(result, "gettxoutsetinfo", true, nullptr)) {
-        lua_pushstring(L, result.c_str());
-    } else {
-        lua_pushliteral(L, "RPC Parse error: unbalanced ' or \"");
-        lua_error(L);
-    }
-    return 1;
+    return RPCCall(L, "gettxoutsetinfo");
 }
 
 void register_avianlib(lua_State* L)
