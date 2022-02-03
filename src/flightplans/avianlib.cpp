@@ -558,6 +558,43 @@ static int gettxout(lua_State* L)
     return RPCCall(L, "getaddressutxos");
 }
 
+/* Messages */
+
+// clearmessages
+static int clearmessages(lua_State* L)
+{
+    return RPCCall(L, "clearmessages");
+}
+
+// sendmessage
+static int sendmessage(lua_State* L)
+{
+    return RPCCall(L, "sendmessage");
+}
+
+// subscribetochannel
+static int subscribetochannel(lua_State* L)
+{
+    return RPCCall(L, "subscribetochannel");
+}
+
+// unsubscribefromchannel
+static int unsubscribefromchannel(lua_State* L)
+{
+    return RPCCall(L, "unsubscribefromchannel");
+}
+
+// viewallmessagechannels
+static int viewallmessagechannels(lua_State* L)
+{
+    return RPCCall(L, "viewallmessagechannels");
+}
+
+// viewallmessages
+static int viewallmessages(lua_State* L)
+{
+    return RPCCall(L, "viewallmessages");
+}
 
 void register_avianlib(lua_State* L)
 {
@@ -611,6 +648,15 @@ void register_avianlib(lua_State* L)
         {"getaddressutxos", getaddressutxos},
         {NULL, NULL}};
 
+    static const struct luaL_Reg avian_messages[] = {
+        {"clearmessages", clearmessages},
+        {"sendmessage", sendmessage},
+        {"subscribetochannel", subscribetochannel},
+        {"unsubscribefromchannel", unsubscribefromchannel},
+        {"viewallmessagechannels", viewallmessagechannels},
+        {"viewallmessages", viewallmessages},
+        {NULL, NULL}};
+
     lua_newtable(L); // create the avian table
 
     lua_newtable(L);
@@ -628,6 +674,10 @@ void register_avianlib(lua_State* L)
     lua_newtable(L);
     luaL_setfuncs(L, avian_addressindex, 0);
     lua_setfield(L, -2, "addressIndex");
+
+    lua_newtable(L);
+    luaL_setfuncs(L, avian_messages, 0);
+    lua_setfield(L, -2, "messages");
 
     lua_setglobal(L, "avian"); // assign the avian table to global `avian`
 }
