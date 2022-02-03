@@ -330,6 +330,66 @@ static int rpc_call(lua_State* L)
     return 1;
 }
 
+// createmultisig
+static int createmultisig(lua_State* L)
+{
+    return RPCCall(L, "createmultisig");
+}
+
+// estimatefee
+static int estimatefee(lua_State* L)
+{
+    return RPCCall(L, "estimatefee");
+}
+
+// estimatesmartfee
+static int estimatesmartfee(lua_State* L)
+{
+    return RPCCall(L, "estimatesmartfee");
+}
+
+// signmessagewithprivkey
+static int signmessagewithprivkey(lua_State* L)
+{
+    return RPCCall(L, "signmessagewithprivkey");
+}
+
+// validateaddress
+static int validateaddress(lua_State* L)
+{
+    return RPCCall(L, "validateaddress");
+}
+
+// verifymessage
+static int verifymessage(lua_State* L)
+{
+    return RPCCall(L, "verifymessage");
+}
+
+// getinfo
+static int getinfo(lua_State* L)
+{
+    return RPCCall(L, "getinfo");
+}
+
+// getmemoryinfo
+static int getmemoryinfo(lua_State* L)
+{
+    return RPCCall(L, "getmemoryinfo");
+}
+
+// getrpcinfo
+static int getmemoryinfo(lua_State* L)
+{
+    return RPCCall(L, "getrpcinfo");
+}
+
+// uptime
+static int node_uptime(lua_State* L)
+{
+    return RPCCall(L, "uptime");
+}
+
 /* Assets */
 
 // getassetdata "asset_name"
@@ -690,10 +750,76 @@ static int setnetworkactive(lua_State* L)
     return RPCCall(L, "setnetworkactive");
 }
 
+/* Transactions */
+
+// combinerawtransaction
+static int combinerawtransaction(lua_State* L)
+{
+    return RPCCall(L, "combinerawtransaction");
+}
+
+// createrawtransaction
+static int createrawtransaction(lua_State* L)
+{
+    return RPCCall(L, "createrawtransaction");
+}
+
+// decoderawtransaction
+static int decoderawtransaction(lua_State* L)
+{
+    return RPCCall(L, "decoderawtransaction");
+}
+
+// decodescript
+static int decodescript(lua_State* L)
+{
+    return RPCCall(L, "decodescript");
+}
+
+// fundrawtransaction
+static int fundrawtransaction(lua_State* L)
+{
+    return RPCCall(L, "fundrawtransaction");
+}
+
+// getrawtransaction
+static int getrawtransaction(lua_State* L)
+{
+    return RPCCall(L, "getrawtransaction");
+}
+
+// sendrawtransaction
+static int sendrawtransaction(lua_State* L)
+{
+    return RPCCall(L, "sendrawtransaction");
+}
+
+// signrawtransaction
+static int signrawtransaction(lua_State* L)
+{
+    return RPCCall(L, "signrawtransaction");
+}
+
+// testmempoolaccept
+static int testmempoolaccept(lua_State* L)
+{
+    return RPCCall(L, "v");
+}
+
 void register_avianlib(lua_State* L)
 {
     static const struct luaL_Reg avian_main[] = {
         {"rpc_call", rpc_call},
+        {"createmultisig", createmultisig},
+        {"estimatefee", estimatefee},
+        {"estimatesmartfee", estimatesmartfee},
+        {"signmessagewithprivkey", signmessagewithprivkey},
+        {"validateaddress", validateaddress},
+        {"verifymessage", verifymessage},
+        {"getinfo", getinfo},
+        {"getmemoryinfo", getmemoryinfo},
+        {"getrpcinfo", getrpcinfo},
+        {"nodeuptime", uptime},
         {NULL, NULL}};
 
     static const struct luaL_Reg avian_assets[] = {
@@ -773,11 +899,23 @@ void register_avianlib(lua_State* L)
         {"setnetworkactive", setnetworkactive},
         {NULL, NULL}};
 
+    static const struct luaL_Reg avian_transcations[] = {
+        {"combinerawtransaction", combinerawtransaction},
+        {"createrawtransaction", createrawtransaction},
+        {"decoderawtransaction", decoderawtransaction},
+        {"decodescript", decodescript},
+        {"fundrawtransaction", fundrawtransaction},
+        {"getrawtransaction", getrawtransaction},
+        {"sendrawtransaction", sendrawtransaction},
+        {"signrawtransaction", getpeerinfo},
+        {"testmempoolaccept", testmempoolaccept},
+        {NULL, NULL}};
+
     lua_newtable(L); // create the avian table
 
     lua_newtable(L);
     luaL_setfuncs(L, avian_main, 0);
-    lua_setfield(L, -2, "main");
+    lua_setfield(L, -2, "util");
 
     lua_newtable(L);
     luaL_setfuncs(L, avian_assets, 0);
@@ -802,6 +940,10 @@ void register_avianlib(lua_State* L)
     lua_newtable(L);
     luaL_setfuncs(L, avian_network, 0);
     lua_setfield(L, -2, "network");
+
+    lua_newtable(L);
+    luaL_setfuncs(L, avian_transcations, 0);
+    lua_setfield(L, -2, "transcations");
 
     lua_setglobal(L, "avian"); // assign the avian table to global `avian`
 }
