@@ -35,7 +35,7 @@
 
 #include "lua/lua.hpp"
 
-/* Run RPC commands */
+/* Parse RPC commands */
 bool RPCParse(std::string& strResult, const std::string& strCommand, const bool fExecute, std::string* const pstrFilteredOut)
 {
     std::vector<std::vector<std::string>> stack;
@@ -275,36 +275,33 @@ bool RPCParse(std::string& strResult, const std::string& strCommand, const bool 
     }
 }
 
-/* Call RPC method with no args */
+/* Call RPC method with multiple arguments */
 int RPCCall(lua_State* L, std::string command)
 {
+    std::string args;
+
+    /* get number of arguments */
+    int n = lua_gettop(L);
+
+    /* loop through each argument */
+    for (int i = 1; i <= n; i++) {
+        if (lua_isstring(L, i)) {
+            std::string arg = std::string(lua_tostring(L, i));
+            args = args + " " + arg;
+        } else {
+            lua_pushliteral(L, "Invalid argument");
+            lua_error(L);
+        }
+    }
+
     std::string result;
-    if (RPCParse(result, command, true, nullptr)) {
+    if (RPCParse(result, command + args, true, nullptr)) {
         lua_pushstring(L, result.c_str());
     } else {
         lua_pushliteral(L, "RPC Parse error: unbalanced ' or \"");
         lua_error(L);
     }
-    return 1;
-}
 
-/* Call RPC method with 1 arg */
-int RPCCallArg(lua_State* L, std::string command, std::string required_arg)
-{
-    if (lua_isstring(L, 1)) {
-        std::string arg = std::string(lua_tostring(L, 1));
-        std::string result;
-        if (RPCParse(result, command + " " + arg, true, nullptr)) {
-            lua_pushstring(L, result.c_str());
-        } else {
-            lua_pushliteral(L, "RPC Parse error: unbalanced ' or \"");
-            lua_error(L);
-        }
-    } else {
-        std::string error = "Missing " + required_arg;
-        lua_pushstring(L, error.c_str());
-        lua_error(L);
-    }
     return 1;
 }
 
@@ -335,10 +332,88 @@ static int rpc_call(lua_State* L)
 
 /* Assets */
 
-// test
-static int test(lua_State* L)
+// getassetdata "asset_name"
+static int getassetdata(lua_State* L)
 {
-    return luaL_error(L, "avian.assets.test unimplemented");
+    return RPCCall(L, "getassetdata");
+}
+
+// getcacheinfo
+static int getcacheinfo(lua_State* L)
+{
+    return RPCCall(L, "getcacheinfo");
+}
+
+// getsnapshot
+static int getsnapshot(lua_State* L)
+{
+    return RPCCall(L, "getsnapshot");
+}
+
+// issue
+static int issue(lua_State* L)
+{
+    return RPCCall(L, "issue");
+}
+
+// issueunique
+static int issueunique(lua_State* L)
+{
+    return RPCCall(L, "issueunique");
+}
+
+// listaddressesbyasset
+static int listaddressesbyasset(lua_State* L)
+{
+    return RPCCall(L, "listaddressesbyasset");
+}
+
+// listassetbalancesbyaddress
+static int getaslistassetbalancesbyaddresssetdata(lua_State* L)
+{
+    return RPCCall(L, "listassetbalancesbyaddress");
+}
+
+// listassets
+static int listassets(lua_State* L)
+{
+    return RPCCall(L, "listassets");
+}
+
+// listmyassets
+static int listmyassets(lua_State* L)
+{
+    return RPCCall(L, "listmyassets");
+}
+
+// purgesnapshot
+static int purgesnapshot(lua_State* L)
+{
+    return RPCCall(L, "purgesnapshot");
+}
+
+// reissue
+static int reissue(lua_State* L)
+{
+    return RPCCall(L, "reissue");
+}
+
+// transfer
+static int transfer(lua_State* L)
+{
+    return RPCCall(L, "transfer");
+}
+
+// transferfromaddress
+static int transferfromaddress(lua_State* L)
+{
+    return RPCCall(L, "transferfromaddress");
+}
+
+// transferfromaddresses
+static int transferfromaddresses(lua_State* L)
+{
+    return RPCCall(L, "transferfromaddresses");
 }
 
 /* Blockchain */
@@ -346,7 +421,7 @@ static int test(lua_State* L)
 // decodeblock "blockhex"
 static int decodeblock(lua_State* L)
 {
-    return RPCCallArg(L, "decodeblock", "blockhex");
+    return RPCCall(L, "decodeblock");
 }
 
 // getbestblockhash
@@ -358,7 +433,7 @@ static int getbestblockhash(lua_State* L)
 // getblock "blockhash"
 static int getblock(lua_State* L)
 {
-    return RPCCallArg(L, "getblock", "blockhash");
+    return RPCCall(L, "getblock");
 }
 
 // getblockchaininfo
@@ -376,19 +451,19 @@ static int getblockcount(lua_State* L)
 // getblockhash height
 static int getblockhash(lua_State* L)
 {
-    return RPCCallArg(L, "getblockhash", "height");
+    return RPCCall(L, "getblockhash");
 }
 
 // getblockhashes timestamp
 static int getblockhashes(lua_State* L)
 {
-    return RPCCallArg(L, "getblockhashes", "timestamp");
+    return RPCCall(L, "getblockhashes");
 }
 
 // getblockheader "hash"
 static int getblockheader(lua_State* L)
 {
-    return RPCCallArg(L, "getblockheader", "hash");
+    return RPCCall(L, "getblockheader");
 }
 
 // getchaintips
@@ -412,13 +487,13 @@ static int getdifficulty(lua_State* L)
 // getmempoolancestors txid
 static int getmempoolancestors(lua_State* L)
 {
-    return RPCCallArg(L, "getmempoolancestors", "txid");
+    return RPCCall(L, "getmempoolancestors");
 }
 
 // getmempoolentry txid
 static int getmempoolentry(lua_State* L)
 {
-    return RPCCallArg(L, "getmempoolentry", "txid");
+    return RPCCall(L, "getmempoolentry");
 }
 
 // getmempoolinfo
@@ -445,6 +520,45 @@ static int gettxoutsetinfo(lua_State* L)
     return RPCCall(L, "gettxoutsetinfo");
 }
 
+// gettxout
+static int gettxout(lua_State* L)
+{
+    return RPCCall(L, "gettxout");
+}
+
+/* Address Index */
+
+// getaddressbalance
+static int getaddressbalance(lua_State* L)
+{
+    return RPCCall(L, "getaddressbalance");
+}
+
+// getaddressdeltas
+static int getaddressdeltas(lua_State* L)
+{
+    return RPCCall(L, "getaddressdeltas");
+}
+
+// getaddressmempool
+static int getaddressmempool(lua_State* L)
+{
+    return RPCCall(L, "getaddressmempool");
+}
+
+// getaddresstxids
+static int getaddresstxids(lua_State* L)
+{
+    return RPCCall(L, "getaddresstxids");
+}
+
+// getaddressutxos
+static int gettxout(lua_State* L)
+{
+    return RPCCall(L, "getaddressutxos");
+}
+
+
 void register_avianlib(lua_State* L)
 {
     static const struct luaL_Reg avian_main[] = {
@@ -452,7 +566,20 @@ void register_avianlib(lua_State* L)
         {NULL, NULL}};
 
     static const struct luaL_Reg avian_assets[] = {
-        {"test", test},
+        {"getassetdata", getassetdata},
+        {"getcacheinfo", getcacheinfo},
+        {"getsnapshot", getsnapshot},
+        {"issue", issue},
+        {"issueunique", issueunique},
+        {"listaddressesbyasset", listaddressesbyasset},
+        {"listassetbalancesbyaddress", listassetbalancesbyaddress},
+        {"listassets", listassets},
+        {"listmyassets", listmyassets},
+        {"purgesnapshot", purgesnapshot},
+        {"reissue", reissue},
+        {"transfer", transfer},
+        {"transferfromaddress", transferfromaddress},
+        {"transferfromaddresses", transferfromaddresses},
         {NULL, NULL}};
 
     static const struct luaL_Reg avian_blockchain[] = {
@@ -472,7 +599,16 @@ void register_avianlib(lua_State* L)
         {"getmempoolinfo", getmempoolinfo},
         {"getrawmempool", getrawmempool},
         {"getspentinfo", getspentinfo},
-        {"gettxoutsetinfo", getchaintips},
+        {"gettxoutsetinfo", gettxoutsetinfo},
+        {"gettxout", gettxout},
+        {NULL, NULL}};
+    
+    static const struct luaL_Reg avian_addressindex[] = {
+        {"getaddressbalance", getaddressbalance},
+        {"getaddressdeltas", getaddressdeltas},
+        {"getaddressmempool", getaddressmempool},
+        {"getaddresstxids", getaddresstxids},
+        {"getaddressutxos", getaddressutxos},
         {NULL, NULL}};
 
     lua_newtable(L); // create the avian table
@@ -488,6 +624,10 @@ void register_avianlib(lua_State* L)
     lua_newtable(L);
     luaL_setfuncs(L, avian_blockchain, 0);
     lua_setfield(L, -2, "blockchain");
+
+    lua_newtable(L);
+    luaL_setfuncs(L, avian_addressindex, 0);
+    lua_setfield(L, -2, "addressIndex");
 
     lua_setglobal(L, "avian"); // assign the avian table to global `avian`
 }
