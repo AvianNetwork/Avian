@@ -379,13 +379,13 @@ static int getmemoryinfo(lua_State* L)
 }
 
 // getrpcinfo
-static int getmemoryinfo(lua_State* L)
+static int getrpcinfo(lua_State* L)
 {
     return RPCCall(L, "getrpcinfo");
 }
 
 // uptime
-static int node_uptime(lua_State* L)
+static int uptime(lua_State* L)
 {
     return RPCCall(L, "uptime");
 }
@@ -429,7 +429,7 @@ static int listaddressesbyasset(lua_State* L)
 }
 
 // listassetbalancesbyaddress
-static int getaslistassetbalancesbyaddresssetdata(lua_State* L)
+static int listassetbalancesbyaddress(lua_State* L)
 {
     return RPCCall(L, "listassetbalancesbyaddress");
 }
@@ -613,7 +613,7 @@ static int getaddresstxids(lua_State* L)
 }
 
 // getaddressutxos
-static int gettxout(lua_State* L)
+static int getaddressutxos(lua_State* L)
 {
     return RPCCall(L, "getaddressutxos");
 }
@@ -674,6 +674,12 @@ static int getmininginfo(lua_State* L)
 static int getnetworkhashps(lua_State* L)
 {
     return RPCCall(L, "getnetworkhashps");
+}
+
+// getnetworkinfo
+static int getnetworkinfo(lua_State* L)
+{
+    return RPCCall(L, "getnetworkinfo");
 }
 
 // submitblock
@@ -739,9 +745,9 @@ static int ping(lua_State* L)
 }
 
 // setban
-static int submitblock(lua_State* L)
+static int setban(lua_State* L)
 {
-    return RPCCall(L, "submitblock");
+    return RPCCall(L, "setban");
 }
 
 // setnetworkactive
@@ -907,7 +913,7 @@ void register_avianlib(lua_State* L)
         {"fundrawtransaction", fundrawtransaction},
         {"getrawtransaction", getrawtransaction},
         {"sendrawtransaction", sendrawtransaction},
-        {"signrawtransaction", getpeerinfo},
+        {"signrawtransaction", signrawtransaction},
         {"testmempoolaccept", testmempoolaccept},
         {NULL, NULL}};
 
