@@ -622,6 +622,74 @@ static int submitblock(lua_State* L)
     return RPCCall(L, "submitblock");
 }
 
+/* Network */
+
+// addnode
+static int addnode(lua_State* L)
+{
+    return RPCCall(L, "addnode");
+}
+
+// clearbanned
+static int clearbanned(lua_State* L)
+{
+    return RPCCall(L, "clearbanned");
+}
+
+// disconnectnode
+static int disconnectnode(lua_State* L)
+{
+    return RPCCall(L, "submitblock");
+}
+
+// getaddednodeinfo
+static int getaddednodeinfo(lua_State* L)
+{
+    return RPCCall(L, "getaddednodeinfo");
+}
+
+// getconnectioncount
+static int getconnectioncount(lua_State* L)
+{
+    return RPCCall(L, "getconnectioncount");
+}
+
+// getnettotals
+static int getnettotals(lua_State* L)
+{
+    return RPCCall(L, "getnettotals");
+}
+
+// getpeerinfo
+static int getpeerinfo(lua_State* L)
+{
+    return RPCCall(L, "getpeerinfo");
+}
+
+// listbanned
+static int listbanned(lua_State* L)
+{
+    return RPCCall(L, "listbanned");
+}
+
+// ping
+static int ping(lua_State* L)
+{
+    return RPCCall(L, "ping");
+}
+
+// setban
+static int submitblock(lua_State* L)
+{
+    return RPCCall(L, "submitblock");
+}
+
+// setnetworkactive
+static int setnetworkactive(lua_State* L)
+{
+    return RPCCall(L, "setnetworkactive");
+}
+
 void register_avianlib(lua_State* L)
 {
     static const struct luaL_Reg avian_main[] = {
@@ -690,6 +758,21 @@ void register_avianlib(lua_State* L)
         {"submitblock", submitblock},
         {NULL, NULL}};
 
+    static const struct luaL_Reg avian_network[] = {
+        {"addnode", addnode},
+        {"clearbanned", clearbanned},
+        {"disconnectnode", disconnectnode},
+        {"getaddednodeinfo", getaddednodeinfo},
+        {"getconnectioncount", getconnectioncount},
+        {"getnettotals", getnettotals},
+        {"getnetworkinfo", getnetworkinfo},
+        {"getpeerinfo", getpeerinfo},
+        {"listbanned", listbanned},
+        {"ping", ping},
+        {"setban", setban},
+        {"setnetworkactive", setnetworkactive},
+        {NULL, NULL}};
+
     lua_newtable(L); // create the avian table
 
     lua_newtable(L);
@@ -715,6 +798,10 @@ void register_avianlib(lua_State* L)
     lua_newtable(L);
     luaL_setfuncs(L, avian_mining, 0);
     lua_setfield(L, -2, "mining");
+
+    lua_newtable(L);
+    luaL_setfuncs(L, avian_network, 0);
+    lua_setfield(L, -2, "network");
 
     lua_setglobal(L, "avian"); // assign the avian table to global `avian`
 }
