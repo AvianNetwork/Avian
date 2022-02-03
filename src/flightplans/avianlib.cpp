@@ -596,6 +596,32 @@ static int viewallmessages(lua_State* L)
     return RPCCall(L, "viewallmessages");
 }
 
+/* Mining */
+
+// getblocktemplate
+static int getblocktemplate(lua_State* L)
+{
+    return RPCCall(L, "getblocktemplate");
+}
+
+// unsubscribefromchannel
+static int getmininginfo(lua_State* L)
+{
+    return RPCCall(L, "getmininginfo");
+}
+
+// getnetworkhashps
+static int getnetworkhashps(lua_State* L)
+{
+    return RPCCall(L, "getnetworkhashps");
+}
+
+// submitblock
+static int submitblock(lua_State* L)
+{
+    return RPCCall(L, "submitblock");
+}
+
 void register_avianlib(lua_State* L)
 {
     static const struct luaL_Reg avian_main[] = {
@@ -639,7 +665,7 @@ void register_avianlib(lua_State* L)
         {"gettxoutsetinfo", gettxoutsetinfo},
         {"gettxout", gettxout},
         {NULL, NULL}};
-    
+
     static const struct luaL_Reg avian_addressindex[] = {
         {"getaddressbalance", getaddressbalance},
         {"getaddressdeltas", getaddressdeltas},
@@ -655,6 +681,13 @@ void register_avianlib(lua_State* L)
         {"unsubscribefromchannel", unsubscribefromchannel},
         {"viewallmessagechannels", viewallmessagechannels},
         {"viewallmessages", viewallmessages},
+        {NULL, NULL}};
+
+    static const struct luaL_Reg avian_mining[] = {
+        {"getblocktemplate", getblocktemplate},
+        {"getmininginfo", getmininginfo},
+        {"getnetworkhashps", getnetworkhashps},
+        {"submitblock", submitblock},
         {NULL, NULL}};
 
     lua_newtable(L); // create the avian table
@@ -678,6 +711,10 @@ void register_avianlib(lua_State* L)
     lua_newtable(L);
     luaL_setfuncs(L, avian_messages, 0);
     lua_setfield(L, -2, "messages");
+
+    lua_newtable(L);
+    luaL_setfuncs(L, avian_mining, 0);
+    lua_setfield(L, -2, "mining");
 
     lua_setglobal(L, "avian"); // assign the avian table to global `avian`
 }
