@@ -809,7 +809,181 @@ static int signrawtransaction(lua_State* L)
 // testmempoolaccept
 static int testmempoolaccept(lua_State* L)
 {
-    return RPCCall(L, "v");
+    return RPCCall(L, "testmempoolaccept");
+}
+
+/* Local wallet */
+
+// abandontransaction
+static int abandontransaction(lua_State* L)
+{
+    return RPCCall(L, "abandontransaction");
+}
+
+// addmultisigaddress
+static int addmultisigaddress(lua_State* L)
+{
+    return RPCCall(L, "addmultisigaddress");
+}
+
+// addwitnessaddress
+static int addwitnessaddress(lua_State* L)
+{
+    return RPCCall(L, "addwitnessaddress");
+}
+
+// getaccount
+static int getaccount(lua_State* L)
+{
+    return RPCCall(L, "getaccount");
+}
+
+// getaccountaddress
+static int getaccountaddress(lua_State* L)
+{
+    return RPCCall(L, "getaccountaddress");
+}
+
+// getaddressesbyaccount
+static int getaddressesbyaccount(lua_State* L)
+{
+    return RPCCall(L, "getaddressesbyaccount");
+}
+// balance
+static int balance(lua_State* L)
+{
+    return RPCCall(L, "getbalance");
+}
+
+// getnewaddress
+static int getnewaddress(lua_State* L)
+{
+    return RPCCall(L, "getnewaddress");
+}
+
+// getrawchangeaddress
+static int getrawchangeaddress(lua_State* L)
+{
+    return RPCCall(L, "getrawchangeaddress");
+}
+// getreceivedbyaccount
+static int getreceivedbyaccount(lua_State* L)
+{
+    return RPCCall(L, "getreceivedbyaccount");
+}
+
+// getreceivedbyaddress
+static int getreceivedbyaddress(lua_State* L)
+{
+    return RPCCall(L, "getreceivedbyaddress");
+}
+
+// gettransaction
+static int gettransaction(lua_State* L)
+{
+    return RPCCall(L, "gettransaction");
+}
+// getunconfirmedbalance
+static int getunconfirmedbalance(lua_State* L)
+{
+    return RPCCall(L, "getunconfirmedbalance");
+}
+
+// keypoolrefill
+static int keypoolrefill(lua_State* L)
+{
+    return RPCCall(L, "keypoolrefill");
+}
+
+// listaccounts
+static int listaccounts(lua_State* L)
+{
+    return RPCCall(L, "listaccounts");
+}
+// listaddressgroupings
+static int listaddressgroupings(lua_State* L)
+{
+    return RPCCall(L, "listaddressgroupings");
+}
+
+// listlockunspent
+static int listlockunspent(lua_State* L)
+{
+    return RPCCall(L, "listlockunspent");
+}
+
+// listreceivedbyaccount
+static int listreceivedbyaccount(lua_State* L)
+{
+    return RPCCall(L, "listreceivedbyaccount");
+}
+// listreceivedbyaddress
+static int listreceivedbyaddress(lua_State* L)
+{
+    return RPCCall(L, "listreceivedbyaddress");
+}
+
+// listsinceblock
+static int listsinceblock(lua_State* L)
+{
+    return RPCCall(L, "listsinceblock");
+}
+
+// listtransactions
+static int listtransactions(lua_State* L)
+{
+    return RPCCall(L, "listtransactions");
+}
+// listunspent
+static int listunspent(lua_State* L)
+{
+    return RPCCall(L, "listunspent");
+}
+
+// lockunspent
+static int lockunspent(lua_State* L)
+{
+    return RPCCall(L, "lockunspent");
+}
+
+// move
+static int move(lua_State* L)
+{
+    return RPCCall(L, "move");
+}
+// removeprunedfunds
+static int removeprunedfunds(lua_State* L)
+{
+    return RPCCall(L, "removeprunedfunds");
+}
+
+// sendfrom
+static int sendfrom(lua_State* L)
+{
+    return RPCCall(L, "sendfrom");
+}
+
+// sendmany
+static int sendmany(lua_State* L)
+{
+    return RPCCall(L, "sendmany");
+}
+// sendtoaddress
+static int sendtoaddress(lua_State* L)
+{
+    return RPCCall(L, "sendtoaddress");
+}
+
+// setaccount
+static int setaccount(lua_State* L)
+{
+    return RPCCall(L, "setaccount");
+}
+
+// signmessage
+static int signmessage(lua_State* L)
+{
+    return RPCCall(L, "signmessage");
 }
 
 void register_avianlib(lua_State* L)
@@ -917,6 +1091,40 @@ void register_avianlib(lua_State* L)
         {"testmempoolaccept", testmempoolaccept},
         {NULL, NULL}};
 
+    static const struct luaL_Reg avian_wallet[] = {
+        {"abandontransaction", abandontransaction},
+        {"addmultisigaddress", addmultisigaddress},
+        {"addwitnessaddress", addwitnessaddress},
+        {"getaccount", getaccount},
+        {"getaccountaddress", getaccountaddress},
+        {"getaddressesbyaccount", getaddressesbyaccount},
+        {"balance", balance},
+        {"getnewaddress", getnewaddress},
+        {"getrawchangeaddress", getrawchangeaddress},
+        {"getreceivedbyaccount", getreceivedbyaccount},
+        {"getreceivedbyaddress", getreceivedbyaddress},
+        {"gettransaction", gettransaction},
+        {"getunconfirmedbalance", getunconfirmedbalance},
+        {"keypoolrefill", keypoolrefill},
+        {"listaccounts", listaccounts},
+        {"listaddressgroupings", listaddressgroupings},
+        {"listlockunspent", listlockunspent},
+        {"listreceivedbyaccount", listreceivedbyaccount},
+        {"listreceivedbyaddress", listreceivedbyaddress},
+        {"listsinceblock", listsinceblock},
+        {"listtransactions", listtransactions},
+        {"listunspent", listunspent},
+        {"lockunspent", lockunspent},
+        {"move", move},
+        {"removeprunedfunds", removeprunedfunds},
+        {"sendfrom", sendfrom},
+        {"sendmany", sendmany},
+        {"sendtoaddress", sendtoaddress},
+        {"setaccount", setaccount},
+        {"signmessage", signmessage},
+        {NULL, NULL}};
+
+
     lua_newtable(L); // create the avian table
 
     lua_newtable(L);
@@ -950,6 +1158,10 @@ void register_avianlib(lua_State* L)
     lua_newtable(L);
     luaL_setfuncs(L, avian_transcations, 0);
     lua_setfield(L, -2, "transcations");
+
+    lua_newtable(L);
+    luaL_setfuncs(L, avian_wallet, 0);
+    lua_setfield(L, -2, "localWallet");
 
     lua_setglobal(L, "avian"); // assign the avian table to global `avian`
 }
