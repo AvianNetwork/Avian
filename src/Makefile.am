@@ -252,6 +252,8 @@ AVIAN_CORE_H = \
   zmq/zmqpublishnotifier.h \
   flightplans/avianlib.h \
   flightplans/flightplans.h \
+  flightplans/json/strbuf.h \
+  flightplans/json/fpconv.h \
   lua/lapi.h \
   lua/lauxlib.h \
   lua/lbaselib.h \
@@ -350,6 +352,9 @@ libavian_server_a_SOURCES = \
   versionbits.cpp \
   flightplans/avianlib.cpp \  
   flightplans/flightplans.cpp \
+  flightplans/json/strbuf.c \
+  flightplans/json/fpconv.c \
+  flightplans/json/lua_cjson.c \
   lua/lapi.c \
   lua/lauxlib.c \
   lua/lbaselib.c \

@@ -5,6 +5,10 @@
 
 #include "avianlib.h"
 
+extern "C" {
+    #include "json/lua_cjson.c"
+}
+
 #include "amount.h"
 #include "base58.h"
 #include "chain.h"
@@ -917,6 +921,7 @@ static int listreceivedbyaccount(lua_State* L)
 {
     return RPCCall(L, "listreceivedbyaccount");
 }
+
 // listreceivedbyaddress
 static int listreceivedbyaddress(lua_State* L)
 {
@@ -1164,4 +1169,7 @@ void register_avianlib(lua_State* L)
     lua_setfield(L, -2, "localWallet");
 
     lua_setglobal(L, "avian"); // assign the avian table to global `avian`
+
+    lua_cjson(L);
+    lua_setglobal(L, "json"); // json
 }
