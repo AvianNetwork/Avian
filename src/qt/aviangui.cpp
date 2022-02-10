@@ -635,7 +635,7 @@ void AvianGUI::createToolBars()
     if(walletFrame)
     {
         /** AVN START */
-        // Create the background and the horizontal tool bar
+        // Create the background and the vertical tool bar
         QWidget* toolbarWidget = new QWidget();
 
         QString widgetStyleSheet = ".QWidget {background-color: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1, stop: 0 %1, stop: 1 %2);}";
@@ -689,7 +689,7 @@ void AvianGUI::createToolBars()
                                                 platformStyle->ToolBarSelectedTextColor().name(),
                                                 platformStyle->DarkOrangeColor().name(), stringToUse));
 
-        toolbar->setOrientation(Qt::Horizontal);
+        toolbar->setOrientation(Qt::Vertical);
         toolbar->setIconSize(QSize(30, 30));
 
         QLayout* lay = toolbar->layout();
@@ -698,10 +698,10 @@ void AvianGUI::createToolBars()
 
         overviewAction->setChecked(true);
 
-        QHBoxLayout* avianLabelLayout = new QHBoxLayout(toolbarWidget);
+        QVBoxLayout* avianLabelLayout = new QVBoxLayout(toolbarWidget);
         avianLabelLayout->addWidget(label);
         avianLabelLayout->addWidget(toolbar);
-        avianLabelLayout->setDirection(QBoxLayout::LeftToRight);
+        avianLabelLayout->setDirection(QBoxLayout::TopToBottom);
         avianLabelLayout->addStretch(1);
 
         QString mainWalletWidgetStyle = QString(".QWidget{background-color: %1}").arg(platformStyle->MainBackGroundColor().name());
@@ -770,12 +770,12 @@ void AvianGUI::createToolBars()
         mainFrameLayout->setDirection(QBoxLayout::TopToBottom);
         mainFrameLayout->setContentsMargins(QMargins());
 
-        QHBoxLayout* layout = new QHBoxLayout();
+        QVBoxLayout* layout = new QVBoxLayout();
         layout->addWidget(toolbarWidget);
         layout->addWidget(mainWalletWidget);
         layout->setSpacing(0);
         layout->setContentsMargins(QMargins());
-        layout->setDirection(QBoxLayout::TopToBottom);
+        layout->setDirection(QBoxLayout::LeftToRight);
         QWidget* containerWidget = new QWidget();
         containerWidget->setLayout(layout);
         setCentralWidget(containerWidget);
