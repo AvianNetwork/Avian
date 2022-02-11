@@ -366,7 +366,7 @@ void AvianGUI::createActions()
 
     QActionGroup *tabGroup = new QActionGroup(this);
 
-    overviewAction = new QAction(platformStyle->SingleColorIconOnOff(":/icons/overview_selected", ":/icons/overview"), tr("&Overview"), this);
+    overviewAction = new QAction(platformStyle->SingleColorIconOnOff(":/icons/overview_selected", ":/icons/overview"), tr(""), this);
     overviewAction->setStatusTip(tr("Show general overview of wallet"));
     overviewAction->setToolTip(overviewAction->statusTip());
     overviewAction->setCheckable(true);
@@ -374,7 +374,7 @@ void AvianGUI::createActions()
     overviewAction->setFont(font);
     tabGroup->addAction(overviewAction);
 
-    sendCoinsAction = new QAction(platformStyle->SingleColorIconOnOff(":/icons/send_selected", ":/icons/send"), tr("&Send"), this);
+    sendCoinsAction = new QAction(platformStyle->SingleColorIconOnOff(":/icons/send_selected", ":/icons/send"), tr(""), this);
     sendCoinsAction->setStatusTip(tr("Send coins to a Avian address"));
     sendCoinsAction->setToolTip(sendCoinsAction->statusTip());
     sendCoinsAction->setCheckable(true);
@@ -386,7 +386,7 @@ void AvianGUI::createActions()
     sendCoinsMenuAction->setStatusTip(sendCoinsAction->statusTip());
     sendCoinsMenuAction->setToolTip(sendCoinsMenuAction->statusTip());
 
-    receiveCoinsAction = new QAction(platformStyle->SingleColorIconOnOff(":/icons/receiving_addresses_selected", ":/icons/receiving_addresses"), tr("&Receive"), this);
+    receiveCoinsAction = new QAction(platformStyle->SingleColorIconOnOff(":/icons/receiving_addresses_selected", ":/icons/receiving_addresses"), tr(""), this);
     receiveCoinsAction->setStatusTip(tr("Request payments (generates QR codes and avian: URIs)"));
     receiveCoinsAction->setToolTip(receiveCoinsAction->statusTip());
     receiveCoinsAction->setCheckable(true);
@@ -398,7 +398,7 @@ void AvianGUI::createActions()
     receiveCoinsMenuAction->setStatusTip(receiveCoinsAction->statusTip());
     receiveCoinsMenuAction->setToolTip(receiveCoinsMenuAction->statusTip());
 
-    historyAction = new QAction(platformStyle->SingleColorIconOnOff(":/icons/history_selected", ":/icons/history"), tr("&Transactions"), this);
+    historyAction = new QAction(platformStyle->SingleColorIconOnOff(":/icons/history_selected", ":/icons/history"), tr(""), this);
     historyAction->setStatusTip(tr("Browse transaction history"));
     historyAction->setToolTip(historyAction->statusTip());
     historyAction->setCheckable(true);
@@ -407,7 +407,7 @@ void AvianGUI::createActions()
     tabGroup->addAction(historyAction);
 
     /** AVN START */
-    transferAssetAction = new QAction(platformStyle->SingleColorIconOnOff(":/icons/asset_transfer_selected", ":/icons/asset_transfer"), tr("&Transfer Assets"), this);
+    transferAssetAction = new QAction(platformStyle->SingleColorIconOnOff(":/icons/asset_transfer_selected", ":/icons/asset_transfer"), tr(""), this);
     transferAssetAction->setStatusTip(tr("Transfer assets to AVN addresses"));
     transferAssetAction->setToolTip(transferAssetAction->statusTip());
     transferAssetAction->setCheckable(true);
@@ -415,7 +415,7 @@ void AvianGUI::createActions()
     transferAssetAction->setFont(font);
     tabGroup->addAction(transferAssetAction);
 
-    createAssetAction = new QAction(platformStyle->SingleColorIconOnOff(":/icons/asset_create_selected", ":/icons/asset_create"), tr("&Create Assets"), this);
+    createAssetAction = new QAction(platformStyle->SingleColorIconOnOff(":/icons/asset_create_selected", ":/icons/asset_create"), tr(""), this);
     createAssetAction->setStatusTip(tr("Create new main/sub/unique assets"));
     createAssetAction->setToolTip(createAssetAction->statusTip());
     createAssetAction->setCheckable(true);
@@ -423,7 +423,7 @@ void AvianGUI::createActions()
     createAssetAction->setFont(font);
     tabGroup->addAction(createAssetAction);
 
-    manageAssetAction = new QAction(platformStyle->SingleColorIconOnOff(":/icons/asset_manage_selected", ":/icons/asset_manage"), tr("&Manage Assets"), this);
+    manageAssetAction = new QAction(platformStyle->SingleColorIconOnOff(":/icons/asset_manage_selected", ":/icons/asset_manage"), tr(""), this);
     manageAssetAction->setStatusTip(tr("Manage assets you are the administrator of"));
     manageAssetAction->setToolTip(manageAssetAction->statusTip());
     manageAssetAction->setCheckable(true);
@@ -431,7 +431,7 @@ void AvianGUI::createActions()
     manageAssetAction->setFont(font);
     tabGroup->addAction(manageAssetAction);
 
-    messagingAction = new QAction(platformStyle->SingleColorIcon(":/icons/editcopy"), tr("&Messaging"), this);
+    messagingAction = new QAction(platformStyle->SingleColorIcon(":/icons/editcopy"), tr(""), this);
     messagingAction->setStatusTip(tr("Coming Soon"));
     messagingAction->setToolTip(messagingAction->statusTip());
     messagingAction->setCheckable(true);
@@ -439,7 +439,7 @@ void AvianGUI::createActions()
     messagingAction->setFont(font);
     tabGroup->addAction(messagingAction);
 
-    votingAction = new QAction(platformStyle->SingleColorIcon(":/icons/edit"), tr("&Voting"), this);
+    votingAction = new QAction(platformStyle->SingleColorIcon(":/icons/edit"), tr(""), this);
     votingAction->setStatusTip(tr("Coming Soon"));
     votingAction->setToolTip(votingAction->statusTip());
     votingAction->setCheckable(true);
@@ -447,7 +447,7 @@ void AvianGUI::createActions()
     votingAction->setFont(font);
     tabGroup->addAction(votingAction);
 
-    devAction = new QAction(platformStyle->SingleColorIcon(":/icons/external_link"), tr("&Develop"), this);
+    devAction = new QAction(platformStyle->SingleColorIcon(":/icons/external_link"), tr(""), this);
     devAction->setStatusTip(tr("Coming Soon"));
     devAction->setToolTip(devAction->statusTip());
     devAction->setCheckable(true);
@@ -455,7 +455,7 @@ void AvianGUI::createActions()
     devAction->setFont(font);
     tabGroup->addAction(devAction);
 
-    wrapAction = new QAction(platformStyle->SingleColorIcon(":/icons/external_link"), tr("&Wrap"), this);
+    wrapAction = new QAction(platformStyle->SingleColorIcon(":/icons/external_link"), tr(""), this);
     wrapAction->setStatusTip(tr("Coming Soon"));
     wrapAction->setToolTip(devAction->statusTip());
     wrapAction->setCheckable(true);
@@ -644,10 +644,16 @@ void AvianGUI::createToolBars()
 
         QLabel* label = new QLabel();
         QImage avian(":/icons/avian");
-        QImage avianScaled = avian.scaled(64, 64, Qt::KeepAspectRatio);
+        QImage avianScaled = avian.scaled(70, 70, Qt::KeepAspectRatio);
         label->setPixmap(QPixmap::fromImage(avianScaled));
         label->setContentsMargins(0,0,0,0);
         label->setStyleSheet(".QLabel{background-color: transparent;}");
+        
+        // Status bar notification icons
+        QWidget *frameBlocks = new QWidget();
+        QHBoxLayout *frameBlocksLayout = new QHBoxLayout(frameBlocks);
+        frameBlocksLayout->addWidget(label);
+        frameBlocksLayout->addWidget(label);
         /** AVN END */
 
         QToolBar *toolbar = new QToolBar();
@@ -655,7 +661,7 @@ void AvianGUI::createToolBars()
         toolbar->setMinimumWidth(label->width());
         toolbar->setContextMenuPolicy(Qt::PreventContextMenu);
         toolbar->setMovable(false);
-        toolbar->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
+        toolbar->setToolButtonStyle(Qt::ToolButtonIconOnly);
         toolbar->addAction(overviewAction);
         toolbar->addAction(sendCoinsAction);
         toolbar->addAction(receiveCoinsAction);
@@ -679,7 +685,7 @@ void AvianGUI::createToolBars()
 #endif
 
         /** AVN START */
-        QString tbStyleSheet = ".QToolBar {background-color : transparent; border-color: transparent; }  "
+        QString tbStyleSheet = ".QToolBar {background-color : transparent; border-color: transparent;}  "
                                ".QToolButton {background-color: transparent; border-color: transparent; color: %1; border: none;} "
                                ".QToolButton:checked {background: none; background-color: none; selection-background-color: none; color: %2; border: none; font: %4} "
                                ".QToolButton:hover {background: none; background-color: none; border: none; color: %3;} "
@@ -690,7 +696,7 @@ void AvianGUI::createToolBars()
                                                 platformStyle->DarkOrangeColor().name(), stringToUse));
 
         toolbar->setOrientation(Qt::Vertical);
-        toolbar->setIconSize(QSize(30, 30));
+        toolbar->setIconSize(QSize(65, 65));
 
         QLayout* lay = toolbar->layout();
         for(int i = 0; i < lay->count(); ++i)
@@ -698,11 +704,16 @@ void AvianGUI::createToolBars()
 
         overviewAction->setChecked(true);
 
+        QSpacerItem *topSpacer = new QSpacerItem(20, 40, QSizePolicy::Minimum, QSizePolicy::Expanding);
+        QSpacerItem *bottomSpacer = new QSpacerItem(20, 40, QSizePolicy::Minimum, QSizePolicy::Expanding);
+
         QVBoxLayout* avianLabelLayout = new QVBoxLayout(toolbarWidget);
         avianLabelLayout->addWidget(label);
+        avianLabelLayout->addItem(topSpacer);
         avianLabelLayout->addWidget(toolbar);
+        avianLabelLayout->addItem(bottomSpacer);
+        avianLabelLayout->addWidget(frameBlocks);
         avianLabelLayout->setDirection(QBoxLayout::TopToBottom);
-        avianLabelLayout->addStretch(1);
 
         QString mainWalletWidgetStyle = QString(".QWidget{background-color: %1}").arg(platformStyle->MainBackGroundColor().name());
         QWidget* mainWalletWidget = new QWidget();
@@ -710,9 +721,9 @@ void AvianGUI::createToolBars()
 
         /** Create the shadow effects for the main wallet frame. Make it so it puts a shadow on the tool bar */
         QGraphicsDropShadowEffect *walletFrameShadow = new QGraphicsDropShadowEffect;
-        walletFrameShadow->setBlurRadius(50);
+        walletFrameShadow->setBlurRadius(5);
         walletFrameShadow->setColor(COLOR_WALLETFRAME_SHADOW);
-        walletFrameShadow->setXOffset(-8.0);
+        walletFrameShadow->setXOffset(-1.0);
         walletFrameShadow->setYOffset(0);
         mainWalletWidget->setGraphicsEffect(walletFrameShadow);
 

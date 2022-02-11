@@ -47,17 +47,17 @@ static const bool DEFAULT_SPLASHSCREEN = true;
 /** LIGHT MODE */
 /* Background color, very light gray */
 #define COLOR_BACKGROUND_LIGHT QColor("#fbfbfe")
-/* Aviancoin dark orange */
+/* Avian dark orange */
 #define COLOR_DARK_ORANGE QColor("#f05339")
-/* Aviancoin light orange */
+/* Avian light orange */
 #define COLOR_LIGHT_ORANGE QColor("#f79433")
-/* Aviancoin dark blue */
-#define COLOR_DARK_BLUE QColor("#002b26")
-/* Aviancoin light blue */
-#define COLOR_LIGHT_BLUE QColor("#002b27")
-/* Aviancoin asset text */
+/* Avian dark blue - Sidedar start */
+#define COLOR_DARK_BLUE QColor("#FFFFFF")
+/* Avian light blue - Sidebar end */
+#define COLOR_LIGHT_BLUE QColor("#FFFFFF")
+/* Avian asset text */
 #define COLOR_ASSET_TEXT QColor(255, 255, 255)
-/* Aviancoin shadow color - light mode */
+/* Avian shadow color - light mode */
 #define COLOR_SHADOW_LIGHT QColor("#e1e6f3")
 /* Toolbar not selected text color */
 #define COLOR_TOOLBAR_NOT_SELECTED_TEXT QColor("#FFFFFF")
@@ -69,19 +69,19 @@ static const bool DEFAULT_SPLASHSCREEN = true;
 /** DARK MODE */
 /* Widget background color, dark mode */
 #define COLOR_WIDGET_BACKGROUND_DARK QColor("#1c2535")
-/* Aviancoin shadow color - dark mode */
+/* Avian shadow color - dark mode */
 #define COLOR_SHADOW_DARK QColor("#0c1b3d")
-/* Aviancoin Light blue - dark mode - dark mode */
+/* Avian Light blue - dark mode - dark mode */
 #define COLOR_LIGHT_BLUE_DARK QColor("#1e2636")
-/* Aviancoin Dark blue - dark mode - dark mode */
+/* Avian Dark blue - dark mode - dark mode */
 #define COLOR_DARK_BLUE_DARK QColor("#0b1018")
 /* Pricing widget background color */
 #define COLOR_PRICING_WIDGET QColor("#161e2d")
-/* Aviancoin dark mode administrator background color */
+/* Avian dark mode administrator background color */
 #define COLOR_ADMIN_CARD_DARK COLOR_BLACK
-/* Aviancoin dark mode regular asset background color */
+/* Avian dark mode regular asset background color */
 #define COLOR_REGULAR_CARD_DARK_BLUE_DARK_MODE QColor("#06132a")
-/* Aviancoin dark mode regular asset background color */
+/* Avian dark mode regular asset background color */
 #define COLOR_REGULAR_CARD_LIGHT_BLUE_DARK_MODE QColor("#0e1b3b")
 /* Toolbar not selected text color */
 #define COLOR_TOOLBAR_NOT_SELECTED_TEXT_DARK_MODE QColor("#6c80c5")
