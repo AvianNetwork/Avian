@@ -71,17 +71,27 @@ SplashScreen::SplashScreen(const NetworkStyle* networkStyle)
     pixPaint.setPen(QColor(250, 250, 250));
 
     // draw a slightly radial gradient
-    QRadialGradient gradient(QPoint(0,0), splashSize.width()/devicePixelRatio);
-    gradient.setColorAt(0, Qt::black);
-    gradient.setColorAt(1, QColor(48, 48, 48));
-    QRect rGradient(QPoint(0,0), splashSize);
-    pixPaint.fillRect(rGradient, gradient);
+    if (titleAddText.isEmpty()) {
+        // Mainnet
+        QRadialGradient gradient(QPoint(0, 0), splashSize.width() / devicePixelRatio);
+        gradient.setColorAt(0, QColor(52, 245, 198));
+        gradient.setColorAt(1, QColor(42, 115, 127));
+        QRect rGradient(QPoint(0, 0), splashSize);
+        pixPaint.fillRect(rGradient, gradient);
+    } else {
+        // Testnet
+        QRadialGradient gradient(QPoint(0, 0), splashSize.width() / devicePixelRatio);
+        gradient.setColorAt(0, QColor(68, 73, 205));
+        gradient.setColorAt(1, QColor(31, 22, 142));
+        QRect rGradient(QPoint(0, 0), splashSize);
+        pixPaint.fillRect(rGradient, gradient);
+    }
 
     // draw the avian icon, expected size of PNG: 1024x1024
     QRect rectIcon(QPoint(-40,0), QSize(310,310));
 
     const QSize requiredSize(1024,1024);
-    QPixmap icon(networkStyle->getSplashIcon().pixmap(requiredSize));
+    QPixmap icon(":/icons/avianlogo");
 
     pixPaint.drawPixmap(rectIcon, icon);
 
