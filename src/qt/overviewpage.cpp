@@ -357,9 +357,9 @@ OverviewPage::OverviewPage(const PlatformStyle *platformStyle, QWidget *parent) 
     connect(ui->labelTransactionsStatus, SIGNAL(clicked()), this, SLOT(handleOutOfSyncWarningClicks()));
 
     /** Set the overview page background colors, and the frames colors and padding */
-    ui->assetFrame->setStyleSheet(QString(".QFrame {background-color: %1; padding-top: 10px; padding-right: 5px;}").arg(platformStyle->WidgetBackGroundColor().name()));
-    ui->frame->setStyleSheet(QString(".QFrame {background-color: %1; padding-bottom: 10px; padding-right: 5px;}").arg(platformStyle->WidgetBackGroundColor().name()));
-    ui->frame_2->setStyleSheet(QString(".QFrame {background-color: %1; padding-left: 5px;}").arg(platformStyle->WidgetBackGroundColor().name()));
+    ui->assetFrame->setStyleSheet(QString(".QFrame {background-color: %1; padding-top: 10px; padding-right: 5px; border-radius: 10px;}").arg(platformStyle->WidgetBackGroundColor().name()));
+    ui->frame->setStyleSheet(QString(".QFrame {background-color: %1; padding-bottom: 10px; padding-right: 5px; border-radius: 10px;}").arg(platformStyle->WidgetBackGroundColor().name()));
+    ui->frame_2->setStyleSheet(QString(".QFrame {background-color: %1; padding-left: 5px; border-radius: 10px;}").arg(platformStyle->WidgetBackGroundColor().name()));
 
     /** Create the shadow effects on the frames */
     ui->assetFrame->setGraphicsEffect(GUIUtil::getShadowEffect());
