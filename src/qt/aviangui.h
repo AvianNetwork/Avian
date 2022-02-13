@@ -100,6 +100,7 @@ private:
     QProgressDialog *progressDialog;
 
     QMenuBar *appMenuBar;
+    QFrame *frameBlocks;
     QAction *overviewAction;
     QAction *historyAction;
     QAction *quitAction;

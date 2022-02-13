@@ -118,6 +118,7 @@ AvianGUI::AvianGUI(const PlatformStyle *_platformStyle, const NetworkStyle *netw
     progressBar(0),
     progressDialog(0),
     appMenuBar(0),
+    frameBlocks(0),
     overviewAction(0),
     historyAction(0),
     quitAction(0),
@@ -249,34 +250,28 @@ AvianGUI::AvianGUI(const PlatformStyle *_platformStyle, const NetworkStyle *netw
     statusBar()->setSizeGripEnabled(false);
 
     // Status bar notification icons
-    QFrame *frameBlocks = new QFrame();
+    frameBlocks = new QFrame();
     frameBlocks->setContentsMargins(0,0,0,0);
     frameBlocks->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Preferred);
     QHBoxLayout *frameBlocksLayout = new QHBoxLayout(frameBlocks);
-    frameBlocksLayout->setContentsMargins(3,0,3,0);
-    frameBlocksLayout->setSpacing(3);
+    frameBlocksLayout->setContentsMargins(0,0,0,0);
+    frameBlocksLayout->setSpacing(2);
     unitDisplayControl = new UnitDisplayStatusBarControl(platformStyle);
     labelWalletEncryptionIcon = new QLabel();
     labelWalletHDStatusIcon = new QLabel();
     connectionsControl = new GUIUtil::ClickableLabel();
 
     labelBlocksIcon = new GUIUtil::ClickableLabel();
-    labelBlocksIcon->setContentsMargins(15,0,100,0);
+    labelBlocksIcon->setContentsMargins(15,0,70,0);
     labelBlocksIcon->setFixedHeight(75);
 
     if(enableWallet)
     {
-        frameBlocksLayout->addStretch();
-        frameBlocksLayout->addWidget(unitDisplayControl);
-        frameBlocksLayout->addStretch();
         frameBlocksLayout->addWidget(labelWalletEncryptionIcon);
         frameBlocksLayout->addWidget(labelWalletHDStatusIcon);
     }
-    frameBlocksLayout->addStretch();
     frameBlocksLayout->addWidget(connectionsControl);
-    frameBlocksLayout->addStretch();
     frameBlocksLayout->addWidget(labelBlocksIcon);
-    frameBlocksLayout->addStretch();
 
     // Progress bar and label for blocks download
     progressBarLabel = new QLabel();
@@ -296,7 +291,7 @@ AvianGUI::AvianGUI(const PlatformStyle *_platformStyle, const NetworkStyle *netw
 
     statusBar()->addWidget(progressBarLabel);
     statusBar()->addWidget(progressBar);
-    statusBar()->addPermanentWidget(frameBlocks);
+    statusBar()->addWidget(unitDisplayControl);
 
     if(darkModeEnabled)
         statusBar()->setStyleSheet(QString(".QStatusBar{background-color: %1; border-top: 1px solid %2;}").arg(platformStyle->TopWidgetBackGroundColor().name(), platformStyle->TextColor().name()));
@@ -650,13 +645,6 @@ void AvianGUI::createToolBars()
         label->setPixmap(QPixmap::fromImage(avianScaled));
         label->setContentsMargins(0,0,0,0);
         label->setStyleSheet(".QLabel{background-color: transparent;}");
-        
-        // Status bar notification icons
-        QWidget *frameBlocks = new QWidget();
-        QHBoxLayout *frameBlocksLayout = new QHBoxLayout(frameBlocks);
-        frameBlocksLayout->addWidget(label);
-        frameBlocksLayout->addWidget(label);
-        /** AVN END */
 
         QToolBar *toolbar = new QToolBar();
         toolbar->setStyle(style());
