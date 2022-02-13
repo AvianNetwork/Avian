@@ -239,9 +239,6 @@ AvianGUI::AvianGUI(const PlatformStyle *_platformStyle, const NetworkStyle *netw
     // Create application menu bar
     createMenuBar();
 
-    // Create the toolbars
-    createToolBars();
-
     // Create system tray icon and notification
     createTrayIcon(networkStyle);
 
@@ -262,7 +259,11 @@ AvianGUI::AvianGUI(const PlatformStyle *_platformStyle, const NetworkStyle *netw
     labelWalletEncryptionIcon = new QLabel();
     labelWalletHDStatusIcon = new QLabel();
     connectionsControl = new GUIUtil::ClickableLabel();
+
     labelBlocksIcon = new GUIUtil::ClickableLabel();
+    labelBlocksIcon->setContentsMargins(15,0,100,0);
+    labelBlocksIcon->setFixedHeight(75);
+
     if(enableWallet)
     {
         frameBlocksLayout->addStretch();
@@ -280,7 +281,6 @@ AvianGUI::AvianGUI(const PlatformStyle *_platformStyle, const NetworkStyle *netw
     // Progress bar and label for blocks download
     progressBarLabel = new QLabel();
     progressBarLabel->setVisible(false);
-    progressBarLabel->setStyleSheet(QString(".QLabel { color : %1; }").arg(platformStyle->TextColor().name()));
     progressBar = new GUIUtil::ProgressBar();
     progressBar->setAlignment(Qt::AlignCenter);
     progressBar->setVisible(false);
@@ -306,6 +306,9 @@ AvianGUI::AvianGUI(const PlatformStyle *_platformStyle, const NetworkStyle *netw
 
     // Initially wallet actions should be disabled
     setWalletActionsEnabled(false);
+
+    // Create the toolbars
+    createToolBars();
 
     // Subscribe to notifications from core
     subscribeToCoreSignals();
@@ -352,7 +355,6 @@ void AvianGUI::loadFonts()
     QFontDatabase::addApplicationFont(":/fonts/opensans-semibold");
     QFontDatabase::addApplicationFont(":/fonts/opensans-semibolditalic");
 }
-
 
 void AvianGUI::createActions()
 {
@@ -728,11 +730,11 @@ void AvianGUI::createToolBars()
         mainWalletWidget->setGraphicsEffect(walletFrameShadow);
 
         QString widgetBackgroundSytleSheet = QString(".QWidget{background-color: %1}").arg(platformStyle->TopWidgetBackGroundColor().name());
+        QSpacerItem *middleSpacer = new QSpacerItem(40, 20, QSizePolicy::Expanding, QSizePolicy::Minimum);
 
         // Set the headers widget options
         headerWidget->setContentsMargins(0,0,0,50);
         headerWidget->setStyleSheet(widgetBackgroundSytleSheet);
-        headerWidget->setGraphicsEffect(GUIUtil::getShadowEffect());
         headerWidget->setFixedHeight(75);
 
         QFont currentMarketFont;
@@ -768,11 +770,20 @@ void AvianGUI::createToolBars()
         labelBtcAVN->setStyleSheet(platformStyle->TextColor().name());
         labelBtcAVN->setFont(currentMarketFont);
 
+        // Style progress text
+        progressBarLabel->setContentsMargins(15,0,0,0);
+        progressBarLabel->setFixedHeight(75);
+        progressBarLabel->setAlignment(Qt::AlignVCenter);
+        progressBarLabel->setStyleSheet(platformStyle->TextColor().name());
+        progressBarLabel->setFont(currentMarketFont);
+
         priceLayout->setGeometry(headerWidget->rect());
         priceLayout->addWidget(labelCurrentMarket, 0, Qt::AlignVCenter | Qt::AlignLeft);
         priceLayout->addWidget(labelCurrentPrice, 0,  Qt::AlignVCenter | Qt::AlignLeft);
         priceLayout->addWidget(labelBtcAVN, 0 , Qt::AlignVCenter | Qt::AlignLeft);
-        priceLayout->addStretch();
+        priceLayout->addItem(middleSpacer);
+        priceLayout->addWidget(progressBarLabel, 0,  Qt::AlignVCenter | Qt::AlignRight);        
+        priceLayout->addWidget(labelBlocksIcon, 0,  Qt::AlignVCenter | Qt::AlignRight);
 
         // Create the layout for widget to the right of the tool bar
         QVBoxLayout* mainFrameLayout = new QVBoxLayout(mainWalletWidget);
