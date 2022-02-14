@@ -238,7 +238,7 @@ public:
         /** Create the font that is used for painting the asset name */
         QFont nameFont;
 #if !defined(Q_OS_MAC)
-        nameFont.setFamily("Open Sans");
+        nameFont.setFamily("Manrope");
 #endif
         nameFont.setPixelSize(18);
         nameFont.setWeight(QFont::Weight::Normal);
@@ -247,7 +247,7 @@ public:
         /** Create the font that is used for painting the asset amount */
         QFont amountFont;
 #if !defined(Q_OS_MAC)
-        amountFont.setFamily("Open Sans");
+        amountFont.setFamily("Manrope");
 #endif
         amountFont.setPixelSize(14);
         amountFont.setWeight(QFont::Weight::Normal);

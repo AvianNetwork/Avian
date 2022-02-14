@@ -153,5 +153,12 @@
         <file alias="opensans-regular">res/fonts/OpenSans-Regular.ttf</file>
         <file alias="opensans-semibold">res/fonts/OpenSans-SemiBold.ttf</file>
         <file alias="opensans-semibolditalic">res/fonts/OpenSans-SemiBoldItalic.ttf</file>
+        <file alias="manrope-bold">res/fonts/Manrope-Bold.ttf</file>
+        <file alias="manrope-extrabold">res/fonts/Manrope-ExtraBold.ttf</file>
+        <file alias="manrope-extralight">res/fonts/Manrope-ExtraLight.ttf</file>
+        <file alias="manrope-light">res/fonts/Manrope-Light.ttf</file>
+        <file alias="manrope-medium">res/fonts/Manrope-Medium.ttf</file>
+        <file alias="manrope-regular">res/fonts/Manrope-Regular.ttf</file>
+        <file alias="manrope-semibold">res/fonts/Manrope-SemiBold.ttf</file>
     </qresource>
 </RCC>

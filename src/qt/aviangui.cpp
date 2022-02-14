@@ -230,7 +230,7 @@ AvianGUI::AvianGUI(const PlatformStyle *_platformStyle, const NetworkStyle *netw
     loadFonts();
 
 #if !defined(Q_OS_MAC)
-    this->setFont(QFont("Open Sans"));
+    this->setFont(QFont("Manrope"));
 #endif
 
     // Create actions for the toolbar, menu bar and tray/dock icon
@@ -339,6 +339,7 @@ AvianGUI::~AvianGUI()
 
 void AvianGUI::loadFonts()
 {
+    // Open Sans font
     QFontDatabase::addApplicationFont(":/fonts/opensans-bold");
     QFontDatabase::addApplicationFont(":/fonts/opensans-bolditalic");
     QFontDatabase::addApplicationFont(":/fonts/opensans-extrabold");
@@ -349,6 +350,15 @@ void AvianGUI::loadFonts()
     QFontDatabase::addApplicationFont(":/fonts/opensans-regular");
     QFontDatabase::addApplicationFont(":/fonts/opensans-semibold");
     QFontDatabase::addApplicationFont(":/fonts/opensans-semibolditalic");
+
+    // Manrope font
+    QFontDatabase::addApplicationFont(":/fonts/manrope-bold");
+    QFontDatabase::addApplicationFont(":/fonts/manrope-extrabold");
+    QFontDatabase::addApplicationFont(":/fonts/manrope-extralight");
+    QFontDatabase::addApplicationFont(":/fonts/manrope-light");
+    QFontDatabase::addApplicationFont(":/fonts/manrope-medium");
+    QFontDatabase::addApplicationFont(":/fonts/manrope-regular");
+    QFontDatabase::addApplicationFont(":/fonts/manrope-semibold");
 }
 
 void AvianGUI::createActions()
@@ -357,7 +367,7 @@ void AvianGUI::createActions()
     font.setPixelSize(22);
     font.setLetterSpacing(QFont::SpacingType::AbsoluteSpacing, -0.43);
 #if !defined(Q_OS_MAC)
-    font.setFamily("Open Sans");
+    font.setFamily("Manrope");
 #endif
     font.setWeight(QFont::Weight::ExtraLight);
 
@@ -664,7 +674,7 @@ void AvianGUI::createToolBars()
         // toolbar->addAction(devAction);
         // toolbar->addAction(wrapAction);
 
-        QString openSansFontString = "font: normal 22pt \"Open Sans\";";
+        QString openSansFontString = "font: normal 22pt \"Manrope\";";
         QString normalString = "font: normal 22pt \"Arial\";";
         QString stringToUse = "";
 
@@ -726,7 +736,7 @@ void AvianGUI::createToolBars()
         headerWidget->setFixedHeight(75);
 
         QFont currentMarketFont;
-        currentMarketFont.setFamily("Open Sans");
+        currentMarketFont.setFamily("Manrope");
         currentMarketFont.setWeight(QFont::Weight::Normal);
         currentMarketFont.setLetterSpacing(QFont::SpacingType::AbsoluteSpacing, -0.6);
         currentMarketFont.setPixelSize(18);

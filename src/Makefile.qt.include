@@ -402,7 +402,14 @@ RES_ICONS = \
   qt/res/fonts/OpenSans-LightItalic.ttf \
   qt/res/fonts/OpenSans-Regular.ttf \
   qt/res/fonts/OpenSans-SemiBold.ttf \
-  qt/res/fonts/OpenSans-SemiBoldItalic.ttf
+  qt/res/fonts/OpenSans-SemiBoldItalic.ttf \  
+  qt/res/fonts/Manrope-Bold.ttf \
+  qt/res/fonts/Manrope-ExtraBold.ttf \
+  qt/res/fonts/Manrope-ExtraLight.ttf \
+  qt/res/fonts/Manrope-Light.ttf \
+  qt/res/fonts/Manrope-Medium.ttf \
+  qt/res/fonts/Manrope-Regular.ttf \
+  qt/res/fonts/Manrope-SemiBold.ttf 
 
 
 AVIAN_QT_BASE_CPP = \
