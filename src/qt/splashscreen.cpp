@@ -27,6 +27,15 @@
 #include <QRadialGradient>
 #include <QScreen>
 
+#if QT_VERSION < 0x050000
+#include <QTextDocument>
+#include <QUrl>
+#else
+#include <QUrlQuery>
+#include <tinyformat.h>
+#include <QFontDatabase>
+#endif
+
 #if QT_VERSION < QT_VERSION_CHECK(5, 11, 0)
 #define QTversionPreFiveEleven
 #endif
@@ -38,6 +47,9 @@ using namespace boost::placeholders;
 SplashScreen::SplashScreen(const NetworkStyle* networkStyle)
     : QWidget(), curAlignment(0)
 {
+    // Add font
+    QFontDatabase::addApplicationFont(":/fonts/manrope-regular");
+
     // set reference point, paddings
     int paddingRight            = 50;
     int paddingTop              = 50;
@@ -56,7 +68,7 @@ SplashScreen::SplashScreen(const NetworkStyle* networkStyle)
     QString copyrightText   = QString::fromUtf8(CopyrightHolders(strprintf("\xc2\xA9 %u-%u ", 2009, COPYRIGHT_YEAR)).c_str());
     QString titleAddText    = networkStyle->getTitleAddText();
 
-    QString font            = QApplication::font().toString();
+    QString font            = "Manrope";
 
     // create a bitmap according to device pixelratio
     QSize splashSize(480*devicePixelRatio,320*devicePixelRatio);
