@@ -262,7 +262,7 @@ AvianGUI::AvianGUI(const PlatformStyle *_platformStyle, const NetworkStyle *netw
     connectionsControl = new GUIUtil::ClickableLabel();
 
     labelBlocksIcon = new GUIUtil::ClickableLabel();
-    labelBlocksIcon->setContentsMargins(15,0,70,0);
+    labelBlocksIcon->setContentsMargins(15,0,55,0);
     labelBlocksIcon->setFixedHeight(75);
 
     if(enableWallet)
