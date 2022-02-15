@@ -1,7 +1,10 @@
 // Copyright (c) 2011-2016 The Bitcoin Core developers
 // Copyright (c) 2017-2020 The Raven Core developers
+// Copyright (c) 2022 The Avian Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
+
+#include <iostream>
 
 #include "overviewpage.h"
 #include "ui_overviewpage.h"
@@ -36,6 +39,15 @@
 #include <QGraphicsDropShadowEffect>
 #include <QScrollBar>
 #include <QUrl>
+
+#include <QtNetwork/QNetworkAccessManager>
+#include <QtNetwork/QNetworkReply>
+
+#include <QJsonDocument>
+#include <QJsonParseError>
+#include <QJsonObject>
+#include <QJsonValue>
+#include <QJsonArray>
 
 #if QT_VERSION < QT_VERSION_CHECK(5, 11, 0)
 #define QTversionPreFiveEleven
@@ -313,10 +325,19 @@ OverviewPage::OverviewPage(const PlatformStyle *platformStyle, QWidget *parent) 
     currentWatchOnlyBalance(-1),
     currentWatchUnconfBalance(-1),
     currentWatchImmatureBalance(-1),
+    pricingTimer(0),
+    networkManager(0),
+    request(0),
     txdelegate(new TxViewDelegate(platformStyle, this)),
     assetdelegate(new AssetViewDelegate(platformStyle, this))
 {
     ui->setupUi(this);
+
+    /** AVN START */
+    pricingTimer = new QTimer();
+    networkManager = new QNetworkAccessManager();
+    request = new QNetworkRequest();
+    /** AVN END */
 
     // use a SingleColorIcon for the "out of sync warning" icon
     QIcon icon = platformStyle->SingleColorIcon(":/icons/warning");
@@ -444,6 +465,43 @@ OverviewPage::OverviewPage(const PlatformStyle *platformStyle, QWidget *parent) 
     contextMenu->addAction(copyNameAction);
     contextMenu->addAction(copyAmountAction);
     // context menu signals
+
+    // Network request code for price
+    QObject::connect(networkManager, &QNetworkAccessManager::finished,
+        this, [=](QNetworkReply* reply) {
+            // Get selected unit
+            int unit = walletModel->getOptionsModel()->getDisplayUnit();
+
+            if (reply->error()) {
+                ui->labelTotal->setText(AvianUnits::formatWithUnit(unit, currentBalance + currentUnconfirmedBalance + currentImmatureBalance, false, AvianUnits::separatorAlways));
+                qDebug() << reply->errorString();
+                return;
+            }
+            // Get the data from the network request
+            QString answer = reply->readAll();
+
+            // Convert into JSON document
+            QJsonDocument doc(QJsonDocument::fromJson(answer.toUtf8()));
+
+            // Get JSON object
+            QJsonObject obj = doc.object();
+            QJsonObject ticker = obj.value("ticker").toObject();
+
+            // Access last price
+            double num = ticker.value("last").toString().toDouble();
+
+            // Get USDT value
+            double coinValue = AvianUnits::format(unit, currentBalance + currentUnconfirmedBalance + currentImmatureBalance, false, AvianUnits::separatorAlways).simplified().remove(' ').toDouble() * num;
+
+            // Set total with USDT value
+            ui->labelTotal->setText(AvianUnits::formatWithUnit(unit, currentBalance + currentUnconfirmedBalance + currentImmatureBalance, false, AvianUnits::separatorAlways) + " ($" + QString().setNum(coinValue, 'f', 2) + ")");
+
+        });
+
+    // Create the timer
+    connect(pricingTimer, SIGNAL(timeout()), this, SLOT(getPriceInfo()));
+    pricingTimer->start(30000);
+    getPriceInfo();
 }
 
 bool OverviewPage::eventFilter(QObject *object, QEvent *event)
@@ -561,10 +619,10 @@ void OverviewPage::setBalance(const CAmount& balance, const CAmount& unconfirmed
     currentWatchOnlyBalance = watchOnlyBalance;
     currentWatchUnconfBalance = watchUnconfBalance;
     currentWatchImmatureBalance = watchImmatureBalance;
+    getPriceInfo();
     ui->labelBalance->setText(AvianUnits::formatWithUnit(unit, balance, false, AvianUnits::separatorAlways));
     ui->labelUnconfirmed->setText(AvianUnits::formatWithUnit(unit, unconfirmedBalance, false, AvianUnits::separatorAlways));
     ui->labelImmature->setText(AvianUnits::formatWithUnit(unit, immatureBalance, false, AvianUnits::separatorAlways));
-    ui->labelTotal->setText(AvianUnits::formatWithUnit(unit, balance + unconfirmedBalance + immatureBalance, false, AvianUnits::separatorAlways));
     ui->labelWatchAvailable->setText(AvianUnits::formatWithUnit(unit, watchOnlyBalance, false, AvianUnits::separatorAlways));
     ui->labelWatchPending->setText(AvianUnits::formatWithUnit(unit, watchUnconfBalance, false, AvianUnits::separatorAlways));
     ui->labelWatchImmature->setText(AvianUnits::formatWithUnit(unit, watchImmatureBalance, false, AvianUnits::separatorAlways));
@@ -631,7 +689,6 @@ void OverviewPage::setWalletModel(WalletModel *model)
 
         ui->assetVerticalSpaceWidget->setStyleSheet("background-color: transparent");
         ui->assetVerticalSpaceWidget2->setStyleSheet("background-color: transparent");
-
 
         // Keep up to date with wallet
         setBalance(model->getBalance(), model->getUnconfirmedBalance(), model->getImmatureBalance(),
@@ -727,4 +784,13 @@ void OverviewPage::openIPFSForAsset(const QModelIndex &index)
         QDesktopServices::openUrl(ipfsurl);
         }
     }
+}
+
+void OverviewPage::getPriceInfo()
+{
+    QString url;
+    url = "https://www.exbitron.com/api/v2/peatio/public/markets/avnusdt/tickers";
+
+    request->setUrl(QUrl(url));
+    networkManager->get(*request);
 }

@@ -1,5 +1,6 @@
 // Copyright (c) 2011-2016 The Bitcoin Core developers
 // Copyright (c) 2017-2019 The Raven Core developers
+// Copyright (c) 2022 The Avian Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -12,6 +13,9 @@
 #include <QWidget>
 #include <QMenu>
 #include <memory>
+
+#include <QtNetwork/QNetworkAccessManager>
+#include <QtNetwork/QNetworkReply>
 
 class ClientModel;
 class TransactionFilterProxy;
@@ -46,6 +50,9 @@ public:
 
     bool eventFilter(QObject *object, QEvent *event);
     void openIPFSForAsset(const QModelIndex &index);
+
+    void setPriceBalance();
+    void getPriceInfo();
 
 public Q_SLOTS:
             void setBalance(const CAmount& balance, const CAmount& unconfirmedBalance, const CAmount& immatureBalance,
@@ -83,6 +90,11 @@ private:
     QAction *openURL;
     QAction *copyHashAction;
 
+    /** AVN START */
+    QTimer *pricingTimer;
+    QNetworkAccessManager* networkManager;
+    QNetworkRequest* request;
+    /** AVN END */
 
 private Q_SLOTS:
     void updateDisplayUnit();

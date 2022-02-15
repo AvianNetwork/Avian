@@ -73,7 +73,6 @@
 #include <QToolBar>
 #include <QVBoxLayout>
 
-
 #include <QJsonDocument>
 #include <QJsonParseError>
 #include <QJsonObject>
