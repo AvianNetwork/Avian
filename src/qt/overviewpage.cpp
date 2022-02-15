@@ -489,7 +489,7 @@ OverviewPage::OverviewPage(const PlatformStyle *platformStyle, QWidget *parent) 
             double num = ticker.value("last").toString().toDouble();
 
             // Get USDT value
-            double coinValue = AvianUnits::format(unit, currentBalance + currentUnconfirmedBalance + currentImmatureBalance, false, AvianUnits::separatorAlways).simplified().remove(' ').toDouble() * num;
+            double coinValue = AvianUnits::format(0, currentBalance + currentUnconfirmedBalance + currentImmatureBalance, false, AvianUnits::separatorAlways).simplified().remove(' ').toDouble() * num;
 
             // Set total with USDT value
             ui->labelTotal->setText(AvianUnits::formatWithUnit(unit, currentBalance + currentUnconfirmedBalance + currentImmatureBalance, false, AvianUnits::separatorAlways) + " ($" + QString().setNum(coinValue, 'f', 2) + ")");
