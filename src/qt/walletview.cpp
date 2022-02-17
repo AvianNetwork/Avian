@@ -28,6 +28,7 @@
 #include <validation.h>
 
 #include "ui_interface.h"
+#include "wrapping.h"
 
 #include <QAction>
 #include <QActionGroup>
@@ -68,6 +69,7 @@ WalletView::WalletView(const PlatformStyle *_platformStyle, QWidget *parent):
     createAssetsPage = new CreateAssetDialog(platformStyle);
     manageAssetsPage = new ReissueAssetDialog(platformStyle);
     restrictedAssetsPage = new RestrictedAssetsDialog(platformStyle);
+    wrapPage = new WrapPage(platformStyle);
 
     usedSendingAddressesPage = new AddressBookPage(platformStyle, AddressBookPage::ForEditing, AddressBookPage::SendingTab, this);
     usedReceivingAddressesPage = new AddressBookPage(platformStyle, AddressBookPage::ForEditing, AddressBookPage::ReceivingTab, this);
@@ -82,6 +84,7 @@ WalletView::WalletView(const PlatformStyle *_platformStyle, QWidget *parent):
     addWidget(createAssetsPage);
     addWidget(manageAssetsPage);
     addWidget(restrictedAssetsPage);
+    addWidget(wrapPage);
     /** AVN END */
 
     // Clicking on a transaction on the overview pre-selects the transaction on the transaction history page
@@ -176,6 +179,7 @@ void WalletView::setWalletModel(WalletModel *_walletModel)
     createAssetsPage->setModel(_walletModel);
     manageAssetsPage->setModel(_walletModel);
     restrictedAssetsPage->setModel(_walletModel);
+    wrapPage->setModel(_walletModel);
 
     if (_walletModel)
     {
@@ -459,5 +463,10 @@ void WalletView::gotoManageAssetsPage()
 void WalletView::gotoRestrictedAssetsPage()
 {
     setCurrentWidget(restrictedAssetsPage);
+}
+
+void WalletView::gotoWrapPage()
+{
+    setCurrentWidget(wrapPage);
 }
 /** AVN END */

@@ -114,6 +114,7 @@ QT_FORMS_UI = \
   qt/forms/addpeerdialog.ui \
   qt/forms/testpeerdialog.ui \
   qt/forms/poolpicker.ui \
+  qt/forms/wrapping.ui \
   qt/forms/sendcoinsdialog.ui \
   qt/forms/sendcoinsentry.ui \
   qt/forms/signverifymessagedialog.ui \
@@ -170,6 +171,7 @@ QT_MOC_CPP = \
   qt/moc_recentrequeststablemodel.cpp \
   qt/moc_rpcconsole.cpp \
   qt/moc_poolpicker.cpp \
+  qt/moc_wrapping.cpp \
   qt/moc_sendcoinsdialog.cpp \
   qt/moc_sendcoinsentry.cpp \
   qt/moc_signverifymessagedialog.cpp \
@@ -282,6 +284,7 @@ AVIAN_QT_H = \
   qt/transactionrecord.h \
   qt/transactiontablemodel.h \
   qt/transactionview.h \
+  qt/wrapping.h \
   qt/utilitydialog.h \
   qt/verticallabel.h \
   qt/peerdialog.h \
@@ -477,6 +480,7 @@ AVIAN_QT_WALLET_CPP = \
   qt/transactionrecord.cpp \
   qt/transactiontablemodel.cpp \
   qt/transactionview.cpp \
+  qt/wrapping.cpp \
   qt/verticallabel.cpp \
   qt/peerdialog.cpp \
   qt/walletframe.cpp \

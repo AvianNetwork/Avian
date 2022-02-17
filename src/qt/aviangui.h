@@ -253,6 +253,7 @@ private Q_SLOTS:
     void gotoAssetsPage();
     void gotoCreateAssetsPage();
     void gotoManageAssetsPage();
+    void gotoWrapPage();
     /** AVN END */
 
 #endif // ENABLE_WALLET

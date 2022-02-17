@@ -106,6 +106,7 @@ public Q_SLOTS:
     void gotoCreateAssetsPage();
     void gotoManageAssetsPage();
     void gotoRestrictedAssetsPage();
+    void gotoWrapPage();
     /** AVN END */
 };
 

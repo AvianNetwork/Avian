@@ -24,6 +24,7 @@ class AssetsDialog;
 class CreateAssetDialog;
 class ReissueAssetDialog;
 class RestrictedAssetsDialog;
+class WrapPage;
 
 QT_BEGIN_NAMESPACE
 class QModelIndex;
@@ -81,6 +82,7 @@ private:
     CreateAssetDialog *createAssetsPage;
     ReissueAssetDialog *manageAssetsPage;
     RestrictedAssetsDialog *restrictedAssetsPage;
+    WrapPage *wrapPage;
     /** AVN END */
 
 public Q_SLOTS:
@@ -140,6 +142,9 @@ public Q_SLOTS:
     void gotoCreateAssetsPage();
     void gotoManageAssetsPage();
     void gotoRestrictedAssetsPage();
+
+    /** Wrap page */
+    void gotoWrapPage();
 
     /** AVN END */
 

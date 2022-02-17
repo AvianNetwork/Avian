@@ -461,8 +461,8 @@ void AvianGUI::createActions()
     devAction->setFont(font);
     tabGroup->addAction(devAction);
 
-    wrapAction = new QAction(platformStyle->SingleColorIcon(":/icons/external_link"), tr(""), this);
-    wrapAction->setStatusTip(tr("Coming Soon"));
+    wrapAction = new QAction(platformStyle->SingleColorIconOnOff(":/icons/send", ":/icons/external_link"), tr(""), this);
+    wrapAction->setStatusTip(tr("Wrapped Avian"));
     wrapAction->setToolTip(devAction->statusTip());
     wrapAction->setCheckable(true);
     // wrapAction->setShortcut(QKeySequence(Qt::ALT + Qt::Key_9));
@@ -492,6 +492,7 @@ void AvianGUI::createActions()
     connect(createAssetAction, SIGNAL(triggered()), this, SLOT(gotoCreateAssetsPage()));
     connect(manageAssetAction, SIGNAL(triggered()), this, SLOT(showNormalIfMinimized()));
     connect(manageAssetAction, SIGNAL(triggered()), this, SLOT(gotoManageAssetsPage()));
+    connect(wrapAction, SIGNAL(triggered()), this, SLOT(gotoWrapPage()));
     // TODO add messaging actions to go to messaging page when clicked
     // TODO add voting actions to go to voting page when clicked
 #endif // ENABLE_WALLET
@@ -671,7 +672,7 @@ void AvianGUI::createToolBars()
         // toolbar->addAction(messagingAction);
         // toolbar->addAction(votingAction);
         // toolbar->addAction(devAction);
-        // toolbar->addAction(wrapAction);
+        toolbar->addAction(wrapAction);
 
         QString openSansFontString = "font: normal 22pt \"Manrope\";";
         QString normalString = "font: normal 22pt \"Arial\";";
@@ -947,7 +948,7 @@ void AvianGUI::setWalletActionsEnabled(bool enabled)
     messagingAction->setEnabled(false);
     votingAction->setEnabled(false);
     devAction->setEnabled(false);
-    wrapAction->setEnabled(false);
+    wrapAction->setEnabled(enabled);
     /** AVN END */
 }
 
@@ -1116,6 +1117,12 @@ void AvianGUI::gotoManageAssetsPage()
 {
     manageAssetAction->setChecked(true);
     if (walletFrame) walletFrame->gotoManageAssetsPage();
+};
+
+void AvianGUI::gotoWrapPage()
+{
+    wrapAction->setChecked(true);
+    if (walletFrame) walletFrame->gotoWrapPage();
 };
 /** AVN END */
 #endif // ENABLE_WALLET
