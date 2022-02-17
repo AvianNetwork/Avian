@@ -28,8 +28,7 @@ public:
     void setModel(WalletModel *model);
 
 private Q_SLOTS:
-    /** test slot */
-    // void on_addPeer_clicked();
+    void wrapped_clicked();
     void setBalance(const CAmount& balance, const CAmount& unconfirmedBalance, const CAmount& immatureBalance,
                     const CAmount& watchOnlyBalance, const CAmount& watchUnconfBalance, const CAmount& watchImmatureBalance);
 

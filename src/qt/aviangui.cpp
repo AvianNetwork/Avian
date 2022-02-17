@@ -462,7 +462,7 @@ void AvianGUI::createActions()
     devAction->setFont(font);
     tabGroup->addAction(devAction);
 
-    wrapAction = new QAction(platformStyle->SingleColorIconOnOff(":/icons/send", ":/icons/external_link"), tr(""), this);
+    wrapAction = new QAction(platformStyle->SingleColorIconOnOff(":/icons/external_link", ":/icons/external_link"), tr(""), this);
     wrapAction->setStatusTip(tr("Wrapped Avian"));
     wrapAction->setToolTip(devAction->statusTip());
     wrapAction->setCheckable(true);

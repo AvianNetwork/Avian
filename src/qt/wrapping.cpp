@@ -58,6 +58,27 @@ WrapPage::WrapPage(const PlatformStyle *platformStyle, QWidget *parent) :
     ui->amount->setFont(GUIUtil::getTopLabelFont());
     ui->labelBalance->setFont(GUIUtil::getTopLabelFont());
     ui->label->setFont(GUIUtil::getTopLabelFont());
+
+    /** Connect signals */
+    connect(ui->wrapButton, SIGNAL(clicked()), this, SLOT(wrapped_clicked()));
+}
+
+void WrapPage::wrapped_clicked()
+{
+    /** Show warning */
+    QMessageBox msgBox;
+    msgBox.setIcon(QMessageBox::Information);
+    msgBox.setWindowTitle("Wrapping Notice");
+    msgBox.setText("Wrapped Avian is NOT managed by Avian Core and is run by a 3rd party. We are not responsible for any coin LOSS. By using this feature, you must understand the RISK.");
+
+    QAbstractButton *buttonWrap = msgBox.addButton(tr("I understand the risk"), QMessageBox::YesRole);
+    QAbstractButton *buttonAbort = msgBox.addButton(tr("Cancel request"), QMessageBox::NoRole);
+
+    msgBox.exec();
+
+    if (msgBox.clickedButton() == buttonWrap) {
+    // Wrap
+    }
 }
 
 void WrapPage::setModel(WalletModel *_model)
