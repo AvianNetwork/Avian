@@ -52,6 +52,12 @@ WrapPage::WrapPage(const PlatformStyle *platformStyle, QWidget *parent) :
     /** Create the shadow effects on the frames */
     ui->wrapFrame->setGraphicsEffect(GUIUtil::getShadowEffect());
     ui->unwrapFrame->setGraphicsEffect(GUIUtil::getShadowEffect());
+
+    /** Set fonts */
+    ui->wrapTitle->setFont(GUIUtil::getTopLabelFont());
+    ui->amount->setFont(GUIUtil::getTopLabelFont());
+    ui->labelBalance->setFont(GUIUtil::getTopLabelFont());
+    ui->label->setFont(GUIUtil::getTopLabelFont());
 }
 
 void WrapPage::setModel(WalletModel *_model)

@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>617</width>
-    <height>440</height>
+    <height>446</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -20,9 +20,13 @@
    <item>
     <widget class="QTabWidget" name="tabWidget">
      <property name="currentIndex">
-      <number>4</number>
+      <number>0</number>
      </property>
      <widget class="QWidget" name="tabMain">
+      <attribute name="icon">
+       <iconset resource="../avian.qrc">
+        <normaloff>:/icons/options</normaloff>:/icons/options</iconset>
+      </attribute>
       <attribute name="title">
        <string>&amp;Main</string>
       </attribute>
@@ -133,6 +137,10 @@
       </layout>
      </widget>
      <widget class="QWidget" name="tabWallet">
+      <attribute name="icon">
+       <iconset resource="../avian.qrc">
+        <normaloff>:/icons/key</normaloff>:/icons/key</iconset>
+      </attribute>
       <attribute name="title">
        <string>W&amp;allet</string>
       </attribute>
@@ -189,6 +197,10 @@
       </layout>
      </widget>
      <widget class="QWidget" name="tabNetwork">
+      <attribute name="icon">
+       <iconset resource="../avian.qrc">
+        <normaloff>:/icons/connect_4</normaloff>:/icons/connect_4</iconset>
+      </attribute>
       <attribute name="title">
        <string>&amp;Network</string>
       </attribute>
@@ -507,6 +519,10 @@
       </layout>
      </widget>
      <widget class="QWidget" name="tabWindow">
+      <attribute name="icon">
+       <iconset resource="../avian.qrc">
+        <normaloff>:/icons/debugwindow</normaloff>:/icons/debugwindow</iconset>
+      </attribute>
       <attribute name="title">
        <string>&amp;Window</string>
       </attribute>
@@ -557,6 +573,10 @@
       </layout>
      </widget>
      <widget class="QWidget" name="tabDisplay">
+      <attribute name="icon">
+       <iconset resource="../avian.qrc">
+        <normaloff>:/icons/editpaste</normaloff>:/icons/editpaste</iconset>
+      </attribute>
       <attribute name="title">
        <string>&amp;Display</string>
       </attribute>
@@ -908,6 +928,8 @@
    <header>qvaluecombobox.h</header>
   </customwidget>
  </customwidgets>
- <resources/>
+ <resources>
+  <include location="../avian.qrc"/>
+ </resources>
  <connections/>
 </ui>
