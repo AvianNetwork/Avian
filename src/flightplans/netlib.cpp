@@ -20,7 +20,7 @@ using tcp = net::ip::tcp;       // from <boost/asio/ip/tcp.hpp>
 const static std::string POLYGON_RPC = "polygon-rpc.com";
 
 // Performs an HTTP POST and returns the response
-std::string http_rpc(std::string host, std::string command)
+std::string http_rpc(std::string host, std::string command, std::string args)
 {
     std::string result;
     try {
@@ -31,7 +31,7 @@ std::string http_rpc(std::string host, std::string command)
         // Set POST body
         std::string body = std::string("{\"jsonrpc\":\"2.0\",\"method\":") 
                             + std::string("\"") + command + std::string("\"") 
-                            + std::string(",\"params\":[],\"id\":1}");
+                            + std::string(",\"params\":[" + args + "],\"id\":1}");
 
         // The io_context is required for all I/O
         net::io_context ioc;
@@ -84,11 +84,18 @@ std::string http_rpc(std::string host, std::string command)
 static int polygon_rpc(lua_State* L)
 {
     if (lua_isstring(L, 1)) {
-        const char* command = lua_tostring(L, 1);
-        std::string result = http_rpc(POLYGON_RPC, std::string(command));
-        lua_pushstring(L, result.c_str());
+        if (lua_isstring(L, 2)) {
+            const char* command = lua_tostring(L, 1);
+            const char* args = lua_tostring(L, 2);
+            std::string result = http_rpc(POLYGON_RPC, std::string(command), std::string(args));
+            lua_pushstring(L, result.c_str());
+
+        } else {
+            lua_pushliteral(L, "Missing args. If no args needed then use: \"\"");
+            lua_error(L);
+        }
     } else {
-        lua_pushliteral(L, "Missing or invalid argument.");
+        lua_pushliteral(L, "Missing RPC command");
         lua_error(L);
     }
 
