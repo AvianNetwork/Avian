@@ -6,7 +6,7 @@
 #include "avianlib.h"
 
 extern "C" {
-    #include "json/lua_cjson.c"
+#include "json/lua_cjson.c"
 }
 
 #include "amount.h"
