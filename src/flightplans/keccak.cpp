@@ -6,11 +6,7 @@
 
 #include "keccak.h"
 
-// big endian architectures need #define __BYTE_ORDER __BIG_ENDIAN
-#ifndef _MSC_VER
-#include <endian.h>
-#endif
-
+#include "compat/endian.h"
 
 /// same as reset()
 Keccak::Keccak(Bits bits)
