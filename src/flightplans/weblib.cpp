@@ -1,4 +1,4 @@
-#include "netlib.h"
+#include "weblib.h"
 
 #include <boost/asio/connect.hpp>
 #include <boost/asio/ip/tcp.hpp>
@@ -58,7 +58,7 @@ std::string http_rpc(std::string host, std::string command, std::string args)
 
         http::write(stream, request);
 
-        boost::beast::flat_buffer buffer;
+        beast::flat_buffer buffer;
         http::response<boost::beast::http::dynamic_body> res;
 
         http::read(stream, buffer, res);
@@ -103,7 +103,7 @@ static int polygon_rpc(lua_State* L)
     return 1;
 }
 
-void register_netlib(lua_State* L)
+void register_weblib(lua_State* L)
 {
     static const struct luaL_Reg polygon[] = {
         {"rpc", polygon_rpc},
@@ -115,5 +115,5 @@ void register_netlib(lua_State* L)
     luaL_setfuncs(L, polygon, 0);
     lua_setfield(L, -2, "polygon");
 
-    lua_setglobal(L, "net");
+    lua_setglobal(L, "web3");
 }

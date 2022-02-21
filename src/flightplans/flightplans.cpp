@@ -11,7 +11,7 @@ Please take precautions when using this feature.
 #include "flightplans.h"
 
 #include "avianlib.h"
-#include "netlib.h"
+#include "weblib.h"
 #include "util.h"
 
 #include <cstddef>
@@ -35,8 +35,8 @@ FlightPlanResult AvianFlightPlans::run_file(const char* file, const char* func, 
     // Register Avian lib
     register_avianlib(L);
     
-    // Register Net lib
-    register_netlib(L);
+    // Register Web3 lib
+    register_weblib(L);
 
     // Load the program
     status = luaL_dofile(L, file);

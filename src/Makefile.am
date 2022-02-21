@@ -251,7 +251,7 @@ AVIAN_CORE_H = \
   zmq/zmqconfig.h\
   zmq/zmqnotificationinterface.h \
   zmq/zmqpublishnotifier.h \
-  flightplans/netlib.h \
+  flightplans/weblib.h \
   flightplans/avianlib.h \
   flightplans/flightplans.h \
   flightplans/json/strbuf.h \
@@ -352,7 +352,7 @@ libavian_server_a_SOURCES = \
   validation.cpp \
   validationinterface.cpp \
   versionbits.cpp \
-  flightplans/netlib.cpp \  
+  flightplans/weblib.cpp \  
   flightplans/avianlib.cpp \  
   flightplans/flightplans.cpp \
   flightplans/json/strbuf.c \

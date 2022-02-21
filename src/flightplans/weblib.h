@@ -10,6 +10,6 @@
 #include <string>
 
 /* Lua */
-void register_netlib(lua_State* L);
+void register_weblib(lua_State* L);
 
 #endif
