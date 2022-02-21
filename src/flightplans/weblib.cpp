@@ -6,9 +6,13 @@
 #include <boost/beast/http.hpp>
 #include <boost/beast/version.hpp>
 #include <cstdlib>
-#include <iostream>
+#include <algorithm>
+#include <iomanip>
+#include <sstream>
 #include <string>
+#include <vector>
 
+#include "keccak.h"
 #include "lua/lua.hpp"
 
 namespace beast = boost::beast; // from <boost/beast.hpp>
@@ -29,9 +33,7 @@ std::string http_rpc(std::string host, std::string command, std::string args)
         const char* target = "/";
 
         // Set POST body
-        std::string body = std::string("{\"jsonrpc\":\"2.0\",\"method\":") 
-                            + std::string("\"") + command + std::string("\"") 
-                            + std::string(",\"params\":[" + args + "],\"id\":1}");
+        std::string body = std::string("{\"jsonrpc\":\"2.0\",\"method\":") + std::string("\"") + command + std::string("\"") + std::string(",\"params\":[" + args + "],\"id\":1}");
 
         // The io_context is required for all I/O
         net::io_context ioc;
@@ -81,6 +83,7 @@ std::string http_rpc(std::string host, std::string command, std::string args)
     return result;
 }
 
+/** Polygon Lua RPC */
 static int polygon_rpc(lua_State* L)
 {
     if (lua_isstring(L, 1)) {
@@ -103,10 +106,60 @@ static int polygon_rpc(lua_State* L)
     return 1;
 }
 
+/** ABI Encoder */
+std::string abi_function(std::string func, std::vector<std::string> args)
+{
+    Keccak keccak256(Keccak::Keccak256);
+    std::stringstream stream;
+    
+    // Get first 8 bytes of Keccak hash from function name
+    std::string keccakHash(keccak256(func), 0, 8);
+    stream << "0x" << keccakHash;
+
+    // Add argument with padded hex
+    args.erase(args.begin());
+    for(const std::string& arg : args) {
+        std::string arg_item(arg);
+        std::string arg_item_padded(arg_item, 2, 40);
+        stream << std::setfill('0') << std::setw(64) << arg_item_padded;
+    }
+
+    // Return ABI result
+    return stream.str();
+}
+
+static int lua_abi_function(lua_State* L)
+{
+    std::vector<std::string> args;
+
+    /* get number of arguments */
+    int n = lua_gettop(L);
+
+    /* loop through each argument */
+    for (int i = 1; i <= n; i++) {
+        if (lua_isstring(L, i)) {
+            std::string arg = std::string(lua_tostring(L, i));
+            args.push_back(arg);
+        } else {
+            lua_pushliteral(L, "Invalid argument");
+            lua_error(L);
+        }
+    }
+
+    std::string result = abi_function(args[0], args);
+    lua_pushstring(L, result.c_str());
+
+    return 1;
+}
+
 void register_weblib(lua_State* L)
 {
     static const struct luaL_Reg polygon[] = {
         {"rpc", polygon_rpc},
+        {NULL, NULL}};
+
+    static const struct luaL_Reg abi[] = {
+        {"encode", lua_abi_function},
         {NULL, NULL}};
 
     lua_newtable(L);
@@ -114,6 +167,10 @@ void register_weblib(lua_State* L)
     lua_newtable(L);
     luaL_setfuncs(L, polygon, 0);
     lua_setfield(L, -2, "polygon");
+
+    lua_newtable(L);
+    luaL_setfuncs(L, abi, 0);
+    lua_setfield(L, -2, "abi");
 
     lua_setglobal(L, "web3");
 }

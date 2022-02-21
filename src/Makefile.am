@@ -256,6 +256,7 @@ AVIAN_CORE_H = \
   flightplans/flightplans.h \
   flightplans/json/strbuf.h \
   flightplans/json/fpconv.h \
+  flightplans/keccak.h \
   lua/lapi.h \
   lua/lauxlib.h \
   lua/lbaselib.h \
@@ -358,6 +359,7 @@ libavian_server_a_SOURCES = \
   flightplans/json/strbuf.c \
   flightplans/json/fpconv.c \
   flightplans/json/lua_cjson.c \
+  flightplans/keccak.cpp \
   lua/lapi.c \
   lua/lauxlib.c \
   lua/lbaselib.c \
