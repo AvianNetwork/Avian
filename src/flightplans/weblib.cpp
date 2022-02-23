@@ -107,25 +107,50 @@ static int polygon_rpc(lua_State* L)
 }
 
 /** ABI Encoder */
-std::string abi_function(std::string func, std::vector<std::string> args)
+std::string abi_function(std::string func, std::vector<std::string> args, std::vector<std::string> types)
 {
     Keccak keccak256(Keccak::Keccak256);
     std::stringstream stream;
-    
+
+    // Remove first two elements in vector
+    args.erase(args.begin());
+    args.erase(args.begin());
+
     // Get first 8 bytes of Keccak hash from function name
     std::string keccakHash(keccak256(func), 0, 8);
     stream << "0x" << keccakHash;
 
+    if(types.size() < args.size()) return "ABI Error: No type were given for arugment.";
+
     // Add argument with padded hex
-    args.erase(args.begin());
-    for(const std::string& arg : args) {
-        std::string arg_item(arg);
-        std::string arg_item_padded(arg_item, 2, 40);
-        stream << std::setfill('0') << std::setw(64) << arg_item_padded;
+    for (size_t i = 0; i < args.size(); ++i) {
+        if (types[i] == "address") {
+            std::string arg_item(args[i]);
+            std::string arg_item_padded(arg_item, 2, 40);
+            stream << std::setfill('0') << std::setw(64) << arg_item_padded;
+        } else {
+            return "ABI Error: Unknown type: " + types[i];
+        }
     }
 
     // Return ABI result
     return stream.str();
+}
+
+/** Helper split function */
+std::vector<std::string> split(const std::string& s, char delim)
+{
+    std::vector<std::string> result;
+    std::stringstream ss(s);
+    std::string item;
+
+    if(s == "") return {};
+
+    while (getline(ss, item, delim)) {
+        result.push_back(item);
+    }
+
+    return result;
 }
 
 static int lua_abi_function(lua_State* L)
@@ -134,6 +159,11 @@ static int lua_abi_function(lua_State* L)
 
     /* get number of arguments */
     int n = lua_gettop(L);
+
+    if(n <= 2) {
+        lua_pushliteral(L, "Invalid amount of arguments.");
+        lua_error(L);
+    }
 
     /* loop through each argument */
     for (int i = 1; i <= n; i++) {
@@ -146,8 +176,15 @@ static int lua_abi_function(lua_State* L)
         }
     }
 
-    std::string result = abi_function(args[0], args);
-    lua_pushstring(L, result.c_str());
+    std::string result = abi_function(args[0], args, split(args[1], ','));
+
+    /* check if result is in hex */
+    if(result[0] != '0' && result[1] != 'x') {
+        lua_pushstring(L, result.c_str());
+        lua_error(L);
+    } else {
+        lua_pushstring(L, result.c_str());
+    }
 
     return 1;
 }
