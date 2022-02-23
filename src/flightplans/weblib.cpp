@@ -176,7 +176,8 @@ static int lua_abi_function(lua_State* L)
         }
     }
 
-    std::string result = abi_function(args[0], args, split(args[1], ','));
+    std::string func_name = args[0] + "(" + args[1] + ")";
+    std::string result = abi_function(func_name, args, split(args[1], ','));
 
     /* check if result is in hex */
     if(result[0] != '0' && result[1] != 'x') {
