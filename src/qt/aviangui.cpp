@@ -230,7 +230,6 @@ AvianGUI::AvianGUI(const PlatformStyle *_platformStyle, const NetworkStyle *netw
 
 #if !defined(Q_OS_MAC)
     this->setFont(QFont("Manrope"));
-    QApplication::setFont(QFont("Manrope"));
 #endif
 
     // Create actions for the toolbar, menu bar and tray/dock icon
