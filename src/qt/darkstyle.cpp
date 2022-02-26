@@ -36,27 +36,12 @@ void DarkStyle::polish(QPalette &palette)
 {
   // modify palette to dark
   palette.setColor(QPalette::Window,QColor(53,53,53));
-  palette.setColor(QPalette::WindowText,Qt::white);/*
-###############################################################################
-#                                                                             #
-# The MIT License                                                             #
-#                                                                             #
-# Copyright (C) 2017 by Juergen Skrotzky (JorgenVikingGod@gmail.com)          #
-#               >> https://github.com/Jorgen-VikingGod                        #
-#                                                                             #
-# Sources: https://github.com/Jorgen-VikingGod/Qt-Frameless-Window-DarkStyle  #
-#                                                                             #
-###############################################################################
-*/
-  palette.setColor(QPalette::Disabled,QPalette::WindowText,QColor(127,127,127));
-  palette.setColor(QPalette::Base,QColor(42,42,42));
-  palette.setColor(QPalette::AlternateBase,QColor(66,66,66));
+  palette.setColor(QPalette::WindowText,Qt::white);
   palette.setColor(QPalette::ToolTipBase,Qt::white);
   palette.setColor(QPalette::ToolTipText,QColor(53,53,53));
   palette.setColor(QPalette::Text,Qt::white);
   palette.setColor(QPalette::Disabled,QPalette::Text,QColor(127,127,127));
   palette.setColor(QPalette::Dark,QColor(35,35,35));
-  palette.setColor(QPalette::Shadow,QColor(20,20,20));
   palette.setColor(QPalette::Button,QColor(53,53,53));
   palette.setColor(QPalette::ButtonText,Qt::white);
   palette.setColor(QPalette::Disabled,QPalette::ButtonText,QColor(127,127,127));
