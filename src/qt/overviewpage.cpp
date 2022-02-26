@@ -79,7 +79,7 @@ public:
         if (darkModeEnabled)
             icon = platformStyle->SingleColorIcon(icon, COLOR_TOOLBAR_NOT_SELECTED_TEXT);
         else
-            icon = platformStyle->SingleColorIcon(icon, COLOR_LABELS);
+            icon = platformStyle->SingleColorIcon(icon, STRING_LABEL_COLOR);
         icon.paint(painter, decorationRect);
 
         QDateTime date = index.data(TransactionTableModel::DateRole).toDateTime();
