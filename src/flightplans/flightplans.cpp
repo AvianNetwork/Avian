@@ -23,6 +23,9 @@ Please take precautions when using this feature.
 
 FlightPlanResult AvianFlightPlans::run_file(const char* file, const char* func, std::vector<std::string> args)
 {
+    /* Warn user **/
+    LogPrintf("Running flight plan -- Avian Flight Plans are experimental and prone to bugs. Please take precautions when using this feature.\n");
+
     // Result object
     FlightPlanResult result;
     int status;
