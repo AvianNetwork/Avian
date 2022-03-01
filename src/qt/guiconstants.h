@@ -70,7 +70,7 @@ static const bool DEFAULT_SPLASHSCREEN = true;
 /* Widget background color, dark mode */
 #define COLOR_WIDGET_BACKGROUND_DARK QColor("#2E2E2E")
 /* Avian shadow color - dark mode */
-#define COLOR_SHADOW_DARK QColor("#030303")
+#define COLOR_SHADOW_DARK QColor("#1B1B1B")
 /* Avian Light blue - dark mode - dark mode */
 #define COLOR_LIGHT_BLUE_DARK QColor("#1D1D1D")
 /* Avian Dark blue - dark mode - dark mode */
