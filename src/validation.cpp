@@ -5800,8 +5800,11 @@ bool AreAssetsDeployed()
     if (fAssetsIsActive)
         return true;
 
-    const ThresholdState thresholdState = VersionBitsTipState(Params().GetConsensus(), Consensus::DEPLOYMENT_ASSETS);
-    if (thresholdState == THRESHOLD_ACTIVE)
+    // const ThresholdState thresholdState = VersionBitsTipState(Params().GetConsensus(), Consensus::DEPLOYMENT_ASSETS);
+    // if (thresholdState == THRESHOLD_ACTIVE)
+    //     fAssetsIsActive = true;
+
+    if ((chainActive.Tip() != nullptr) && chainActive.Tip()->nTime > Params().GetConsensus().nAssetActivationTime)
         fAssetsIsActive = true;
 
     return fAssetsIsActive;

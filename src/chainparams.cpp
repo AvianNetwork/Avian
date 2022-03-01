@@ -150,6 +150,9 @@ public:
         consensus.diffRetargetTake2 = 1639269000;           // Third iteration of diff retargetter fix
         consensus.lwmaAveragingWindow = 45;                 // Averaging window size for LWMA diff adjust
 
+        // Avian Assets
+        // consensus.nAssetActivationTime = 0;
+
 	    // until "LWMA3" retarget algo, only "00000fff..." was used. these will apply once LWMA3 goes live
         consensus.powTypeLimits.emplace_back(uint256S("00000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"));   // x16rt limit
         consensus.powTypeLimits.emplace_back(uint256S("000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"));   // Crow limit
@@ -310,6 +313,9 @@ public:
         consensus.diffRetargetFix = 0;                      // Block of diff algo change
         consensus.lwmaAveragingWindow = 45;                 // Averaging window size for LWMA diff adjust
         consensus.diffRetargetTake2 = 1639269000;           // Third iteration of LWMA retarget activation timestamp
+
+        // Avian Assets
+        consensus.nAssetActivationTime = 1645104453;
 
         consensus.powTypeLimits.emplace_back(uint256S("00000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"));   // x16rt limit
         consensus.powTypeLimits.emplace_back(uint256S("000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"));   // Crow limit

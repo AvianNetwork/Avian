@@ -79,6 +79,9 @@ struct ConsensusParams {
     int64_t diffRetargetTake2;
     int64_t lwmaAveragingWindow;        // Averaging window size for LWMA diff adjust
     std::vector<uint256> powTypeLimits; // Limits for each pow type (with future-proofing space; can't pick up NUM_BLOCK_TYPES here)
+
+    // AVN Assets
+    uint32_t nAssetActivationTime;
 };
 } // namespace Consensus
 
