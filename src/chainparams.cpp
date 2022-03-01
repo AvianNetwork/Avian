@@ -146,12 +146,9 @@ public:
 
         // Crow Algo consensus
         consensus.powForkTime = 1638847407;                 // Time of PoW hash method change (Dec 06 2021)
+        consensus.lwmaAveragingWindow = 45;                 // Averaging window size for LWMA diff adjust
         consensus.diffRetargetFix = 275109;                 // Block for diff algo fix
         consensus.diffRetargetTake2 = 1639269000;           // Third iteration of diff retargetter fix
-        consensus.lwmaAveragingWindow = 45;                 // Averaging window size for LWMA diff adjust
-
-        // Avian Assets
-        // consensus.nAssetActivationTime = 0;
 
 	    // until "LWMA3" retarget algo, only "00000fff..." was used. these will apply once LWMA3 goes live
         consensus.powTypeLimits.emplace_back(uint256S("00000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"));   // x16rt limit
@@ -159,6 +156,9 @@ public:
 
         // x16rt switch
         consensus.nX16rtTimestamp = 1638748799;
+
+        // Avian Assets
+        // consensus.nAssetActivationTime = 0; // TODO
 
         // The best chain should have at least this much work.
         consensus.nMinimumChainWork = uint256S("0x0000000000000000000000000000000000000000000000000000000000000002");
@@ -257,7 +257,7 @@ public:
         strIssueRestrictedAssetBurnAddress = "RXissueRestrictedXXXXXXXXXXXXzJZ1q";
         strAddNullQualifierTagBurnAddress = "RXaddTagBurnXXXXXXXXXXXXXXXXZQm5ya";
 
-        //Global Burn Address
+        // Global Burn Address
         strGlobalBurnAddress = "RXBurnXXXXXXXXXXXXXXXXXXXXXXWUo9FV";
 
         // DGW Activation
@@ -271,6 +271,7 @@ public:
         // nAssetActivationHeight = 9999999999; // Asset activated block height
         // nMessagingActivationBlock = 9999999999; // Messaging activated block height
         // nRestrictedActivationBlock = 9999999999; // Restricted activated block height
+
         /** AVN End **/
     }
 };
@@ -310,18 +311,18 @@ public:
 
         // Crow Algo consensus
         consensus.powForkTime = 1639005225;                 // Time of PoW hash method change
-        consensus.diffRetargetFix = 0;                      // Block of diff algo change
         consensus.lwmaAveragingWindow = 45;                 // Averaging window size for LWMA diff adjust
+        consensus.diffRetargetFix = 0;                      // Block of diff algo change
         consensus.diffRetargetTake2 = 1639269000;           // Third iteration of LWMA retarget activation timestamp
-
-        // Avian Assets
-        consensus.nAssetActivationTime = 1645104453;
 
         consensus.powTypeLimits.emplace_back(uint256S("00000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"));   // x16rt limit
         consensus.powTypeLimits.emplace_back(uint256S("000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"));   // Crow limit
 
         // testnet x16rt switch
         consensus.nX16rtTimestamp = 1634101200; // Oct 13, 2021 
+
+        // Avian Assets
+        consensus.nAssetActivationTime = 1645104453; // Feb 17, 2022
 
         // The best chain should have at least this much work.
         consensus.nMinimumChainWork = uint256S("0x0000000000000000000000000000000000000000000000000000000000000002");
@@ -342,7 +343,6 @@ public:
         consensus.hashGenesisBlock = genesis.GetHash();
         assert(consensus.hashGenesisBlock == uint256S("0x00000084af22998d2aed78cc29f1fa587f854150ccd2991dfc82241c8f049219"));
         assert(genesis.hashMerkleRoot == uint256S("0x63d9b6b6b549a2d96eb5ac4eb2ab80761e6d7bffa9ae1a647191e08d6416184d"));
-
 
         vFixedSeeds.clear();
         vSeeds.clear();
@@ -408,7 +408,7 @@ public:
         nMinReorganizationPeers = 4;
         nMinReorganizationAge = 60 * 60 * 12; // 12 hours
 
-        nAssetActivationHeight = 0; // Asset activated block height
+        nAssetActivationHeight = 3031; // Asset activated block height
         nMessagingActivationBlock = 0; // Messaging activated block height
         nRestrictedActivationBlock = 0; // Restricted activated block height
         /** AVN End **/
@@ -455,6 +455,9 @@ public:
 
         // regtest x16rt switch (genesis +1)
         consensus.nX16rtTimestamp = 1629951212;
+
+        // Avian Assets
+        consensus.nAssetActivationTime = 1;
 
         // The best chain should have at least this much work.
         consensus.nMinimumChainWork = uint256S("0x00");
