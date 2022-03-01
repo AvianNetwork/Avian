@@ -385,17 +385,6 @@ OverviewPage::OverviewPage(const PlatformStyle *platformStyle, QWidget *parent) 
     ui->frame->setGraphicsEffect(GUIUtil::getShadowEffect());
     ui->frame_2->setGraphicsEffect(GUIUtil::getShadowEffect());
 
-    /** Update the labels colors */
-    ui->assetBalanceLabel->setStyleSheet(STRING_LABEL_COLOR);
-    ui->avnBalancesLabel->setStyleSheet(STRING_LABEL_COLOR);
-    ui->labelBalanceText->setStyleSheet(STRING_LABEL_COLOR);
-    ui->labelPendingText->setStyleSheet(STRING_LABEL_COLOR);
-    ui->labelImmatureText->setStyleSheet(STRING_LABEL_COLOR);
-    ui->labelTotalText->setStyleSheet(STRING_LABEL_COLOR);
-    ui->labelSpendable->setStyleSheet(STRING_LABEL_COLOR);
-    ui->labelWatchonly->setStyleSheet(STRING_LABEL_COLOR);
-    ui->recentTransactionsLabel->setStyleSheet(STRING_LABEL_COLOR);
-
     /** Update the labels font */
     ui->avnBalancesLabel->setFont(GUIUtil::getTopLabelFont());
     ui->assetBalanceLabel->setFont(GUIUtil::getTopLabelFont());

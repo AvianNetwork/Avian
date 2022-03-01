@@ -222,36 +222,14 @@ void SendCoinsDialog::setupCoinControl(const PlatformStyle *platformStyle)
     /** Create the shadow effects on the frames */
 
     ui->frameCoinControl->setGraphicsEffect(GUIUtil::getShadowEffect());
-
-    ui->labelCoinControlFeatures->setStyleSheet(STRING_LABEL_COLOR);
     ui->labelCoinControlFeatures->setFont(GUIUtil::getTopLabelFont());
-
-    ui->labelCoinControlQuantityText->setStyleSheet(STRING_LABEL_COLOR);
     ui->labelCoinControlQuantityText->setFont(GUIUtil::getSubLabelFont());
-
-    ui->labelCoinControlAmountText->setStyleSheet(STRING_LABEL_COLOR);
     ui->labelCoinControlAmountText->setFont(GUIUtil::getSubLabelFont());
-
-    ui->labelCoinControlFeeText->setStyleSheet(STRING_LABEL_COLOR);
     ui->labelCoinControlFeeText->setFont(GUIUtil::getSubLabelFont());
-
-    ui->labelCoinControlAfterFeeText->setStyleSheet(STRING_LABEL_COLOR);
     ui->labelCoinControlAfterFeeText->setFont(GUIUtil::getSubLabelFont());
-
-    ui->labelCoinControlBytesText->setStyleSheet(STRING_LABEL_COLOR);
     ui->labelCoinControlBytesText->setFont(GUIUtil::getSubLabelFont());
-
-    ui->labelCoinControlLowOutputText->setStyleSheet(STRING_LABEL_COLOR);
     ui->labelCoinControlLowOutputText->setFont(GUIUtil::getSubLabelFont());
-
-    ui->labelCoinControlChangeText->setStyleSheet(STRING_LABEL_COLOR);
     ui->labelCoinControlChangeText->setFont(GUIUtil::getSubLabelFont());
-
-    // Align the other labels next to the input buttons to the text in the same height
-    ui->labelCoinControlAutomaticallySelected->setStyleSheet(STRING_LABEL_COLOR);
-
-    // Align the Custom change address checkbox
-    ui->checkBoxCoinControlChange->setStyleSheet(STRING_LABEL_COLOR);
 
     ui->labelCoinControlQuantity->setFont(GUIUtil::getSubLabelFont());
     ui->labelCoinControlAmount->setFont(GUIUtil::getSubLabelFont());
@@ -285,17 +263,7 @@ void SendCoinsDialog::setupFeeControl(const PlatformStyle *platformStyle)
     /** Create the shadow effects on the frames */
 
     ui->frameFee->setGraphicsEffect(GUIUtil::getShadowEffect());
-
-    ui->labelFeeHeadline->setStyleSheet(STRING_LABEL_COLOR);
     ui->labelFeeHeadline->setFont(GUIUtil::getSubLabelFont());
-
-    ui->labelSmartFee3->setStyleSheet(STRING_LABEL_COLOR);
-    ui->labelCustomPerKilobyte->setStyleSheet(STRING_LABEL_COLOR);
-    ui->radioSmartFee->setStyleSheet(STRING_LABEL_COLOR);
-    ui->radioCustomFee->setStyleSheet(STRING_LABEL_COLOR);
-    ui->checkBoxMinimumFee->setStyleSheet(STRING_LABEL_COLOR);
-
-
     ui->buttonChooseFee->setFont(GUIUtil::getSubLabelFont());
     ui->fallbackFeeWarningLabel->setFont(GUIUtil::getSubLabelFont());
     ui->buttonMinimizeFee->setFont(GUIUtil::getSubLabelFont());

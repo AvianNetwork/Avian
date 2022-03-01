@@ -188,7 +188,7 @@ QColor PlatformStyle::ToolBarNotSelectedTextColor() const
 QColor PlatformStyle::MainBackGroundColor() const
 {
     if (darkModeEnabled)
-        return COLOR_BLACK;
+        return COLOR_WIDGET_BACKGROUND_DARK;
 
     return COLOR_BACKGROUND_LIGHT;
 }

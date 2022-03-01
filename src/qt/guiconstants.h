@@ -76,19 +76,19 @@ static const bool DEFAULT_SPLASHSCREEN = true;
 /* Avian Dark blue - dark mode - dark mode */
 #define COLOR_DARK_BLUE_DARK QColor("#1D1D1D")
 /* Pricing widget background color */
-#define COLOR_PRICING_WIDGET QColor("#161e2d")
+#define COLOR_PRICING_WIDGET QColor("#2E2E2E")
 /* Avian dark mode administrator background color */
 #define COLOR_ADMIN_CARD_DARK COLOR_BLACK
 /* Avian dark mode regular asset background color */
-#define COLOR_REGULAR_CARD_DARK_BLUE_DARK_MODE QColor("#06132a")
+#define COLOR_REGULAR_CARD_DARK_BLUE_DARK_MODE QColor("#2E2E2E")
 /* Avian dark mode regular asset background color */
-#define COLOR_REGULAR_CARD_LIGHT_BLUE_DARK_MODE QColor("#0e1b3b")
+#define COLOR_REGULAR_CARD_LIGHT_BLUE_DARK_MODE QColor("#2E2E2E")
 /* Toolbar not selected text color */
 #define COLOR_TOOLBAR_NOT_SELECTED_TEXT_DARK_MODE QColor("#6c80c5")
 /* Toolbar selected text color */
 #define COLOR_TOOLBAR_SELECTED_TEXT_DARK_MODE QColor("#c5ccdf")
 /* Send entries background color dark mode */
-#define COLOR_SENDENTRIES_BACKGROUND_DARK QColor("#1c2535")
+#define COLOR_SENDENTRIES_BACKGROUND_DARK QColor("#2E2E2E")
 
 /* Avian label color as a string */
 #define STRING_LABEL_COLOR "color: #000000"
