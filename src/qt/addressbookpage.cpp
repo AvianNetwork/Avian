@@ -39,7 +39,7 @@ AddressBookPage::AddressBookPage(const PlatformStyle *platformStyle, Mode _mode,
     } else {
         ui->newAddress->setIcon(platformStyle->SingleColorIcon(":/icons/add"));
         ui->copyAddress->setIcon(platformStyle->SingleColorIcon(":/icons/editcopy"));
-        ui->deleteAddress->setIcon(QIcon(":/icons/remove"));
+        ui->deleteAddress->setIcon(platformStyle->SingleColorIcon(":/icons/remove"));
         ui->exportButton->setIcon(platformStyle->SingleColorIcon(":/icons/export"));
     }
 

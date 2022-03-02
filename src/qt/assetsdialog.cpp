@@ -62,7 +62,7 @@ AssetsDialog::AssetsDialog(const PlatformStyle *_platformStyle, QWidget *parent)
         ui->sendButton->setIcon(QIcon());
     } else {
         ui->addButton->setIcon(_platformStyle->SingleColorIcon(":/icons/add"));
-        ui->clearButton->setIcon(QIcon(":/icons/remove"));
+        ui->clearButton->setIcon(_platformStyle->SingleColorIcon(":/icons/remove"));
         ui->sendButton->setIcon(_platformStyle->SingleColorIcon(":/icons/send"));
     }
 
