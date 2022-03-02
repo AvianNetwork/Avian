@@ -225,8 +225,8 @@ public:
                 gradient.setColorAt(0, COLOR_REGULAR_CARD_LIGHT_BLUE_DARK_MODE);
                 gradient.setColorAt(1, COLOR_REGULAR_CARD_DARK_BLUE_DARK_MODE);
             } else {
-                gradient.setColorAt(0, COLOR_LIGHT_BLUE);
-                gradient.setColorAt(1, COLOR_DARK_BLUE);
+                gradient.setColorAt(0, COLOR_LIGHT_GREEN);
+                gradient.setColorAt(1, COLOR_DARK_GREEN);
             }
         }
 

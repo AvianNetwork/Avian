@@ -55,6 +55,10 @@ static const bool DEFAULT_SPLASHSCREEN = true;
 #define COLOR_DARK_BLUE QColor("#FFFFFF")
 /* Avian light blue - Sidebar end */
 #define COLOR_LIGHT_BLUE QColor("#FFFFFF")
+/* Avian dark green - Asset */
+#define COLOR_DARK_GREEN QColor("#2a737f")
+/* Avian light green - Asset */
+#define COLOR_LIGHT_GREEN QColor("#34f5c6")
 /* Avian asset text */
 #define COLOR_ASSET_TEXT QColor(255, 255, 255)
 /* Avian shadow color - light mode */
