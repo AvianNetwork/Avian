@@ -333,7 +333,7 @@ OverviewPage::OverviewPage(const PlatformStyle *platformStyle, QWidget *parent) 
 
     /** AVN START */
     pricingTimer = new QTimer();
-    networkManager = new QNetworkAccessManager();background: rgba(255,255,255,240); 
+    networkManager = new QNetworkAccessManager();
     request = new QNetworkRequest();
     /** AVN END */
 
