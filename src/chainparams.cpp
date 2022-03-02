@@ -158,7 +158,7 @@ public:
         consensus.nX16rtTimestamp = 1638748799;
 
         // Avian Assets
-        // consensus.nAssetActivationTime = 0; // TODO
+        consensus.nAssetActivationTime = 999999999999ULL; // TODO
 
         // The best chain should have at least this much work.
         consensus.nMinimumChainWork = uint256S("0x0000000000000000000000000000000000000000000000000000000000000002");
