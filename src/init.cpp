@@ -1530,8 +1530,6 @@ bool AppInitMain(boost::thread_group& threadGroup, CScheduler& scheduler)
         bool fReset = fReindex;
         std::string strLoadError;
 
-        uiInterface.InitMessage(_("Loading block index..."));
-
         nStart = GetTimeMillis();
         do {
             try {

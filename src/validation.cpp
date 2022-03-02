@@ -4738,7 +4738,8 @@ CBlockIndex * InsertBlockIndex(uint256 hash)
 
 bool static LoadBlockIndexDB(const CChainParams& chainparams)
 {
-    if (!pblocktree->LoadBlockIndexGuts(chainparams.GetConsensus(), InsertBlockIndex))
+    int nHighest = 1;
+    if (!pblocktree->LoadBlockIndexGuts(chainparams.GetConsensus(), InsertBlockIndex, nHighest))
         return false;
 
     boost::this_thread::interruption_point();
@@ -4752,8 +4753,21 @@ bool static LoadBlockIndexDB(const CChainParams& chainparams)
         vSortedByHeight.push_back(std::make_pair(pindex->nHeight, pindex));
     }
     sort(vSortedByHeight.begin(), vSortedByHeight.end());
+    int64_t nNow;
+    int64_t nLastNow = 0;
+    int nHeight = 0;
+    int nLastPercent = -1;
     for (const std::pair<int, CBlockIndex*>& item : vSortedByHeight)
     {
+        nNow = GetTime();
+        if (nNow >= nLastNow + 5) {
+            int nPercent = 100 * nHeight / nHighest;
+            if (nPercent > nLastPercent) {
+                uiInterface.InitMessage(strprintf(_("Indexing blocks... %d%%"), (100 * nHeight) / nHighest));
+                nLastPercent = nPercent;
+            }
+            nLastNow = nNow;
+        }
         CBlockIndex* pindex = item.second;
         pindex->nChainWork = (pindex->pprev ? pindex->pprev->nChainWork : 0) + GetBlockProof(*pindex);
         pindex->nTimeMax = (pindex->pprev ? std::max(pindex->pprev->nTimeMax, pindex->nTime) : pindex->nTime);
