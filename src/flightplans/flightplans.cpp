@@ -38,8 +38,10 @@ FlightPlanResult AvianFlightPlans::run_file(const char* file, const char* func, 
     // Register Avian lib
     register_avianlib(L);
     
-    // Register Web3 lib
-    register_weblib(L);
+    // Register Web3 lib (only if enabled)
+    if (gArgs.IsArgSet("-flightplans-web3")) {
+        register_weblib(L);
+    }
 
     // Load the program
     status = luaL_dofile(L, file);
