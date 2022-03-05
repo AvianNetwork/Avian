@@ -164,7 +164,7 @@ public:
         consensus.nMinimumChainWork = uint256S("0x0000000000000000000000000000000000000000000000000000000000000002");
 
         // By default assume that the signatures in ancestors of this block are valid.
-        consensus.defaultAssumeValid = uint256S("0x0000e7f2b2ae2e3ccbb2349034770709d50dc21ca6809823dbe123d989d97f6c");
+        consensus.defaultAssumeValid = uint256S("0x00000000006cd2496fb78aedbd6524c8b1993589097fb848740e37eeab651682");
 
 
         // The best chain should have at least this much work.
@@ -329,7 +329,7 @@ public:
         consensus.nMinimumChainWork = uint256S("0x0000000000000000000000000000000000000000000000000000000000000002");
 
         // By default assume that the signatures in ancestors of this block are valid.
-        consensus.defaultAssumeValid = uint256S("0x0000e7f2b2ae2e3ccbb2349034770709d50dc21ca6809823dbe123d989d97f6c");
+        consensus.defaultAssumeValid = uint256S("0x00016603365e3252687eeb7a309d9d6b903b81239d9bce670286a7a9d26131b9");
 
 
         pchMessageStart[0] = 0x52; // R
