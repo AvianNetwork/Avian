@@ -42,7 +42,7 @@ public:
     ~AddPeerDialog();
 private:
     Ui::AddPeerDialog *ui;
-private Q_SLOTS:
+public Q_SLOTS:
     void on_addPeer_clicked();
 };
 
@@ -56,7 +56,7 @@ public:
     ~TestPeerDialog();
 private:
     Ui::TestPeerDialog *ui;
-private Q_SLOTS:
+public Q_SLOTS:
     void on_testPeer_clicked();
 };
 
