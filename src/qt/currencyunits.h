@@ -1,5 +1,5 @@
 // Copyright (c) 2011-2016 The Bitcoin Core developers
-// Copyright (c) 2017-2019 The Raven Core developers
+// Copyright (c) 2022 The Avian Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -7,27 +7,70 @@
 #define AVIAN_QT_CURRENCYUNITS_H
 
 #include <QString>
-#include <array>
+#include <vector>
 
-/** Currency unit definitions. Stores basic title and symbol for a avn swap asset,
- * as well as how many decimals to format the dispaly with.
-*/
-struct CurrencyUnitDetails
-{
-    const char* Header;
-    const char* Ticker;
-    float Scalar;
-    int Decimals;
-};
-
-class CurrencyUnits
-{
-public:
-    static std::array<CurrencyUnitDetails, 5> CurrencyOptions;
-
-    static int count() {
-        return CurrencyOptions.size();
-    }
+const std::vector<QString> CurrencyUnits = {
+    "aed",
+    "ars",
+    "aud",
+    "bch",
+    "bdt",
+    "bhd",
+    "bmd",
+    "bnb",
+    "brl",
+    "btc",
+    "cad",
+    "chf",
+    "clp",
+    "cny",
+    "czk",
+    "dkk",
+    "dot",
+    "eos",
+    "eth",
+    "eur",
+    "gbp",
+    "hkd",
+    "huf",
+    "idr",
+    "ils",
+    "inr",
+    "jpy",
+    "krw",
+    "kwd",
+    "lkr",
+    "ltc",
+    "mmk",
+    "mxn",
+    "myr",
+    "ngn",
+    "nok",
+    "nzd",
+    "php",
+    "pkr",
+    "pln",
+    "rub",
+    "sar",
+    "sek",
+    "sgd",
+    "thb",
+    "try",
+    "twd",
+    "uah",
+    "usd",
+    "vef",
+    "vnd",
+    "xag",
+    "xau",
+    "xdr",
+    "xlm",
+    "xrp",
+    "yfi",
+    "zar",
+    "bits",
+    "link",
+    "sats"
 };
 
 #endif // AVIAN_QT_CURRENCYUNITS_H

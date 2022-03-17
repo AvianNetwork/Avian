@@ -115,10 +115,10 @@ OptionsDialog::OptionsDialog(QWidget *parent, bool enableWallet) :
 
     ui->unit->setModel(new AvianUnits(this));
     
-    // QStringList currencyList;
-    // for(int unitNum = 0; unitNum < CurrencyUnits::count() ; unitNum++) {
-    //     ui->currencyUnitIndex->addItem(QString(CurrencyUnits::CurrencyOptions[unitNum].Header), unitNum);
-    // }
+    QStringList currencyList;
+    for(int unitNum = 0; unitNum < CurrencyUnits.size(); unitNum++) {
+        ui->currencyUnitIndex->addItem(QString(CurrencyUnits[unitNum]).toUpper(), unitNum);
+    }
 
     /* Widget-to-option mapper */
     mapper = new QDataWidgetMapper(this);

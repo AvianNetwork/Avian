@@ -10,6 +10,7 @@
 #include "optionsmodel.h"
 
 #include "avianunits.h"
+#include "currencyunits.h"
 #include "guiutil.h"
 #include "amount.h"
 #include "init.h"
@@ -495,6 +496,12 @@ void OptionsModel::setDisplayCurrencyIndex(const QVariant &value)
         settings.setValue("nDisplayCurrencyIndex", nDisplayCurrencyIndex);
         Q_EMIT displayCurrencyIndexChanged(nDisplayCurrencyIndex);
     }
+}
+
+QString OptionsModel::getDisplayCurrency()
+{
+    QString result = nDisplayCurrencyIndex ? QString(CurrencyUnits[nDisplayCurrencyIndex]) : "USDT";
+    return result;
 }
 
 bool OptionsModel::getProxySettings(QNetworkProxy& proxy) const

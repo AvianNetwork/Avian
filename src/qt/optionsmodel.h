@@ -65,6 +65,8 @@ public:
     /** Updates current unit in memory, settings and emits displayCurrencyIndexChanged(newIndex) signal */
     void setDisplayCurrencyIndex(const QVariant &value);
 
+    QString getDisplayCurrency();
+
     /* Explicit getters */
     bool getHideTrayIcon() const { return fHideTrayIcon; }
     bool getMinimizeToTray() const { return fMinimizeToTray; }

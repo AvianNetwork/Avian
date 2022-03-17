@@ -828,7 +828,7 @@ void AvianGUI::createToolBars()
 
         // Create the timer
         connect(pricingTimer, SIGNAL(timeout()), this, SLOT(getPriceInfo()));
-        pricingTimer->start(30000);
+        pricingTimer->start(600000);
         getPriceInfo();
         /** AVN END */
     }

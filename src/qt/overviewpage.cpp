@@ -458,6 +458,9 @@ OverviewPage::OverviewPage(const PlatformStyle *platformStyle, QWidget *parent) 
             // Get selected unit
             int unit = walletModel->getOptionsModel()->getDisplayUnit();
 
+            // Get user currency unit
+            QString currency = walletModel->getOptionsModel()->getDisplayCurrency();
+
             if (reply->error()) {
                 ui->labelTotal->setText(AvianUnits::formatWithUnit(unit, currentBalance + currentUnconfirmedBalance + currentImmatureBalance, false, AvianUnits::separatorAlways));
                 qDebug() << reply->errorString();
@@ -468,25 +471,28 @@ OverviewPage::OverviewPage(const PlatformStyle *platformStyle, QWidget *parent) 
 
             // Convert into JSON document
             QJsonDocument doc(QJsonDocument::fromJson(answer.toUtf8()));
-
-            // Get JSON object
             QJsonObject obj = doc.object();
-            QJsonObject ticker = obj.value("ticker").toObject();
 
-            // Access last price
-            double num = ticker.value("last").toString().toDouble();
+            // Get market_data object
+            QJsonObject market_data = obj.value("market_data").toObject();
 
-            // Get USDT value
+            // Get current_price object
+            QJsonObject current_price = market_data.value("current_price").toObject();
+
+            // Access price
+            double num = current_price.value(currency).toDouble();
+
+            // Get curreny value
             double coinValue = AvianUnits::format(0, currentBalance + currentUnconfirmedBalance + currentImmatureBalance, false, AvianUnits::separatorAlways).simplified().remove(' ').toDouble() * num;
 
-            // Set total with USDT value
-            ui->labelTotal->setText(AvianUnits::formatWithUnit(unit, currentBalance + currentUnconfirmedBalance + currentImmatureBalance, false, AvianUnits::separatorAlways) + " ($" + QString().setNum(coinValue, 'f', 2) + ")");
+            // Set total with curreny value
+            ui->labelTotal->setText(AvianUnits::formatWithUnit(unit, currentBalance + currentUnconfirmedBalance + currentImmatureBalance, false, AvianUnits::separatorAlways) + " (" + QString().setNum(coinValue, 'f', 2) + " " + currency.toUpper() + ")");
 
         });
 
     // Create the timer
     connect(pricingTimer, SIGNAL(timeout()), this, SLOT(getPriceInfo()));
-    pricingTimer->start(30000);
+    pricingTimer->start(600000);
     getPriceInfo();
 }
 
@@ -775,7 +781,7 @@ void OverviewPage::openIPFSForAsset(const QModelIndex &index)
 void OverviewPage::getPriceInfo()
 {
     QString url;
-    url = "https://www.exbitron.com/api/v2/peatio/public/markets/avnusdt/tickers";
+    url = "https://api.coingecko.com/api/v3/coins/avian-network/";
 
     request->setUrl(QUrl(url));
     networkManager->get(*request);
