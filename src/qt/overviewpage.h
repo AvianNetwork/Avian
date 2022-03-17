@@ -52,9 +52,9 @@ public:
     void openIPFSForAsset(const QModelIndex &index);
 
     void setPriceBalance();
-    void getPriceInfo();
 
 public Q_SLOTS:
+            void getPriceInfo();
             void setBalance(const CAmount& balance, const CAmount& unconfirmedBalance, const CAmount& immatureBalance,
                             const CAmount& watchOnlyBalance, const CAmount& watchUnconfBalance, const CAmount& watchImmatureBalance);
 
