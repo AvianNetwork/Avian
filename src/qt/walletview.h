@@ -20,6 +20,7 @@ class SendCoinsRecipient;
 class TransactionView;
 class WalletModel;
 class AddressBookPage;
+class ImportKeysDialog;
 class AssetsDialog;
 class CreateAssetDialog;
 class ReissueAssetDialog;
@@ -70,6 +71,7 @@ private:
     SendCoinsDialog *sendCoinsPage;
     AddressBookPage *usedSendingAddressesPage;
     AddressBookPage *usedReceivingAddressesPage;
+    ImportKeysDialog *importKeysDialog;
 
     TransactionView *transactionView;
 
@@ -90,6 +92,8 @@ public Q_SLOTS:
     void gotoOverviewPage();
     /** Switch to history (transactions) page */
     void gotoHistoryPage();
+    /** Switch to import keys dialog */
+    void gotoImportKeysDialog();
     /** Switch to receive coins page */
     void gotoReceiveCoinsPage();
     /** Switch to send coins page */

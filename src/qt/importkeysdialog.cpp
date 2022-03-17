@@ -1,5 +1,5 @@
-// Copyright (c) 2021 The Raven Core developers
 // Copyright (c) 2021 The Dogecoin Core developers
+// Copyright (c) 2022 The Avian Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -20,20 +20,6 @@
 
 #include <QThread>
 #include <QDebug>
-
-/* Object for executing key import commands in a separate thread.
-*/
-class ImportKeyExecutor : public QObject
-{
-    Q_OBJECT
-
-public Q_SLOTS:
-    void rescan(CWallet*, CBlockIndex*);
-
-Q_SIGNALS:
-    void rescanWallet(CWallet*, CBlockIndex*);
-};
-
 
 void ImportKeyExecutor::rescan(CWallet* pwallet, CBlockIndex* genesisBlock)
 {
