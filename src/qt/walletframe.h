@@ -88,6 +88,9 @@ public Q_SLOTS:
 
     /** Paper wallet */
     void printPaperWallets();
+
+    /** Import private key */
+    void importPrivateKey();
     
     /** Show the 12-words **/
     void getMyWords();

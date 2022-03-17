@@ -188,6 +188,13 @@ void WalletFrame::printPaperWallets()
         walletView->printPaperWallets();
 }
 
+void WalletFrame::importPrivateKey()
+{
+    WalletView *walletView = currentWalletView();
+    if (walletView)
+        walletView->importPrivateKey();
+}
+
 void WalletFrame::getMyWords()
 {
     WalletView *walletView = currentWalletView();

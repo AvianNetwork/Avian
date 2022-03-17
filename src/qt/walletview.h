@@ -117,6 +117,9 @@ public Q_SLOTS:
     /** Open the print paper wallets dialog **/
     void printPaperWallets();
 
+    /** Import private key dialog **/
+    void importPrivateKey();
+
     /** Show 12-words */
     void getMyWords();
 

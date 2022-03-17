@@ -13,6 +13,7 @@
 #include "optionsmodel.h"
 #include "overviewpage.h"
 #include "platformstyle.h"
+#include "importkeysdialog.h"
 #include "receivecoinsdialog.h"
 #include "sendcoinsdialog.h"
 #include "signverifymessagedialog.h"
@@ -70,6 +71,8 @@ WalletView::WalletView(const PlatformStyle *_platformStyle, QWidget *parent):
     manageAssetsPage = new ReissueAssetDialog(platformStyle);
     restrictedAssetsPage = new RestrictedAssetsDialog(platformStyle);
     wrapPage = new WrapPage(platformStyle);
+
+    importKeysDialog = new ImportKeysDialog(platformStyle);
 
     usedSendingAddressesPage = new AddressBookPage(platformStyle, AddressBookPage::ForEditing, AddressBookPage::SendingTab, this);
     usedReceivingAddressesPage = new AddressBookPage(platformStyle, AddressBookPage::ForEditing, AddressBookPage::ReceivingTab, this);
@@ -408,6 +411,16 @@ void WalletView::printPaperWallets()
     PaperWalletDialog dlg(this);
     dlg.setModel(walletModel);
     dlg.exec();
+}
+
+void WalletView::importPrivateKey()
+{
+    if(!walletModel)
+        return;
+
+    importKeysDialog->show();
+    importKeysDialog->raise();
+    importKeysDialog->activateWindow();
 }
 
 void WalletView::showProgress(const QString &title, int nProgress)
