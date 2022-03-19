@@ -3152,6 +3152,10 @@ bool CWallet::SignTransaction(CMutableTransaction &tx)
     // sign the new tx
     CTransaction txNewConst(tx);
     int nIn = 0;
+    uint32_t nHashType = SIGHASH_ALL;
+    if (IsUAHFenabledForCurrentBlock()) {
+        nHashType |= SIGHASH_FORKID;
+    }
     for (const auto& input : tx.vin) {
         std::map<uint256, CWalletTx>::const_iterator mi = mapWallet.find(input.prevout.hash);
         if(mi == mapWallet.end() || input.prevout.n >= mi->second.tx->vout.size()) {
@@ -3160,7 +3164,7 @@ bool CWallet::SignTransaction(CMutableTransaction &tx)
         const CScript& scriptPubKey = mi->second.tx->vout[input.prevout.n].scriptPubKey;
         const CAmount& amount = mi->second.tx->vout[input.prevout.n].nValue;
         SignatureData sigdata;
-        if (!ProduceSignature(TransactionSignatureCreator(this, &txNewConst, nIn, amount, SIGHASH_ALL), scriptPubKey, sigdata)) {
+        if (!ProduceSignature(TransactionSignatureCreator(this, &txNewConst, nIn, amount, nHashType), scriptPubKey, sigdata)) {
             return false;
         }
         UpdateTransaction(tx, nIn, sigdata);
@@ -3771,6 +3775,14 @@ bool CWallet::CreateTransactionAll(const std::vector<CRecipient>& vecSend, CWall
 
         if (sign)
         {
+            uint32_t nHashType = SIGHASH_ALL;
+            // If we already forked, use replay protected tx by default.
+            // It is ok to use GetConfig here, because we'll just use replay
+            // protected transaction only fairly soon anyway, so we can just
+            // remove that call.
+            if (IsUAHFenabledForCurrentBlock()) {
+                nHashType |= SIGHASH_FORKID;
+            }
             CTransaction txNewConst(txNew);
             int nIn = 0;
             for (const auto& coin : setCoins)
@@ -3778,7 +3790,7 @@ bool CWallet::CreateTransactionAll(const std::vector<CRecipient>& vecSend, CWall
                 const CScript& scriptPubKey = coin.txout.scriptPubKey;
                 SignatureData sigdata;
 
-                if (!ProduceSignature(TransactionSignatureCreator(this, &txNewConst, nIn, coin.txout.nValue, SIGHASH_ALL), scriptPubKey, sigdata))
+                if (!ProduceSignature(TransactionSignatureCreator(this, &txNewConst, nIn, coin.txout.nValue, nHashType), scriptPubKey, sigdata))
                 {
                     strFailReason = _("Signing transaction failed");
                     return false;

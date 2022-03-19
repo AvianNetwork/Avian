@@ -115,7 +115,8 @@ int avianconsensus_verify_script(const unsigned char *scriptPubKey, unsigned int
                                    const unsigned char *txTo        , unsigned int txToLen,
                                    unsigned int nIn, unsigned int flags, avianconsensus_error* err)
 {
-    if (flags & avianconsensus_SCRIPT_FLAGS_VERIFY_WITNESS) {
+    if (flags & avianconsensus_SCRIPT_FLAGS_VERIFY_WITNESS ||
+        flags & avianconsensus_SCRIPT_FLAGS_VERIFY_WITNESS) {
         return set_error(err, avianconsensus_ERR_AMOUNT_REQUIRED);
     }
 

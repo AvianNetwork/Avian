@@ -56,6 +56,8 @@ enum
     avianconsensus_SCRIPT_FLAGS_VERIFY_CHECKLOCKTIMEVERIFY = (1U << 9), // enable CHECKLOCKTIMEVERIFY (BIP65)
     avianconsensus_SCRIPT_FLAGS_VERIFY_CHECKSEQUENCEVERIFY = (1U << 10), // enable CHECKSEQUENCEVERIFY (BIP112)
     avianconsensus_SCRIPT_FLAGS_VERIFY_WITNESS             = (1U << 11), // enable WITNESS (BIP141)
+    // enable SIGHASH_FORKID replay protection
+    avianconsensus_SCRIPT_ENABLE_SIGHASH_FORKID            = (1U << 16),
     avianconsensus_SCRIPT_FLAGS_VERIFY_ALL                 = avianconsensus_SCRIPT_FLAGS_VERIFY_P2SH | avianconsensus_SCRIPT_FLAGS_VERIFY_DERSIG |
                                                                avianconsensus_SCRIPT_FLAGS_VERIFY_NULLDUMMY | avianconsensus_SCRIPT_FLAGS_VERIFY_CHECKLOCKTIMEVERIFY |
                                                                avianconsensus_SCRIPT_FLAGS_VERIFY_CHECKSEQUENCEVERIFY | avianconsensus_SCRIPT_FLAGS_VERIFY_WITNESS
