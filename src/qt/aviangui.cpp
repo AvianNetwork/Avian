@@ -672,7 +672,7 @@ void AvianGUI::createToolBars()
         // toolbar->addAction(messagingAction);
         // toolbar->addAction(votingAction);
         // toolbar->addAction(devAction);
-        toolbar->addAction(wrapAction);
+        // toolbar->addAction(wrapAction);
 
         QString openSansFontString = "font: normal 22pt \"Manrope\";";
         QString normalString = "font: normal 22pt \"Arial\";";
