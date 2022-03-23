@@ -561,7 +561,7 @@ void AvianGUI::createActions()
     connect(toggleHideAction, SIGNAL(triggered()), this, SLOT(toggleHidden()));
     connect(showHelpMessageAction, SIGNAL(triggered()), this, SLOT(showHelpMessageClicked()));
     connect(openRPCConsoleAction, SIGNAL(triggered()), this, SLOT(showDebugWindow()));
-    // connect(openPoolPicker, SIGNAL(triggered()), this, SLOT(showPoolPicker()));
+    connect(openPoolPicker, SIGNAL(triggered()), this, SLOT(showPoolPicker()));
     // prevents an open debug window from becoming stuck/unusable on client shutdown
     connect(quitAction, SIGNAL(triggered()), rpcConsole, SLOT(hide()));
 
@@ -631,7 +631,8 @@ void AvianGUI::createMenuBar()
 
     help->addAction(showHelpMessageAction);
     help->addSeparator();
-    help->addAction(openPoolPicker);
+    // TODO: pool picker
+    // help->addAction(openPoolPicker);
     help->addSeparator();
     help->addAction(aboutAction);
     help->addAction(aboutQtAction);
