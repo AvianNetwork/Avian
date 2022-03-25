@@ -455,17 +455,17 @@ OverviewPage::OverviewPage(const PlatformStyle *platformStyle, QWidget *parent) 
     // Network request code for price
     QObject::connect(networkManager, &QNetworkAccessManager::finished,
         this, [=](QNetworkReply* reply) {
+            if (reply->error()) {
+                qDebug() << reply->errorString();
+                return;
+            }
+
             // Get selected unit
             int unit = walletModel->getOptionsModel()->getDisplayUnit();
 
             // Get user currency unit
             QString currency = walletModel->getOptionsModel()->getDisplayCurrency();
 
-            if (reply->error()) {
-                ui->labelTotal->setText(AvianUnits::formatWithUnit(unit, currentBalance + currentUnconfirmedBalance + currentImmatureBalance, false, AvianUnits::separatorAlways));
-                qDebug() << reply->errorString();
-                return;
-            }
             // Get the data from the network request
             QString answer = reply->readAll();
 
