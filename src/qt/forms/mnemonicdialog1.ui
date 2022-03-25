@@ -101,8 +101,7 @@
       <item>
        <widget class="QRadioButton" name="walletOldRadio">
         <property name="text">
-         <string>Re-create an existing wallet using a previously used BIP39 compliant set 
-    of 12 seed words which you know.</string>
+         <string>Re-create an existing wallet using a previously used BIP39 compliant set of 12 seed words which you know.</string>
         </property>
        </widget>
       </item>

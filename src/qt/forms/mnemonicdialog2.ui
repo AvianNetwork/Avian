@@ -250,8 +250,7 @@
      <item row="1" column="1">
       <widget class="QLabel" name="label_2">
        <property name="text">
-        <string>Please write down your 12 seed words and Passphrase before Accepting. 
-They are not recoverable !!</string>
+        <string>Please ensure you write down your Recovery Phrase and Passphrase - they are not recoverable!</string>
        </property>
       </widget>
      </item>
