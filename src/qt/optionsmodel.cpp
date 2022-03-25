@@ -77,7 +77,7 @@ void OptionsModel::Init(bool resetSettings)
     nDisplayUnit = settings.value("nDisplayUnit").toInt();
     
     if (!settings.contains("nDisplayCurrencyIndex"))
-        settings.setValue("nDisplayCurrencyIndex", 0);
+        settings.setValue("nDisplayCurrencyIndex", 48);
     nDisplayCurrencyIndex = settings.value("nDisplayCurrencyIndex", 0).toInt();
 
     if (!settings.contains("strThirdPartyTxUrls"))
@@ -500,7 +500,7 @@ void OptionsModel::setDisplayCurrencyIndex(const QVariant &value)
 
 QString OptionsModel::getDisplayCurrency()
 {
-    QString result = nDisplayCurrencyIndex ? QString(CurrencyUnits[nDisplayCurrencyIndex]) : "USDT";
+    QString result = nDisplayCurrencyIndex ? QString(CurrencyUnits[nDisplayCurrencyIndex]) : QString(CurrencyUnits[48]); // Index of 48 is USD
     return result;
 }
 
