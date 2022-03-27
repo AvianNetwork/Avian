@@ -58,7 +58,7 @@
     <string>New Address</string>
    </property>
    <property name="icon">
-    <iconset resource="../raven.qrc">
+    <iconset resource="../avian.qrc">
      <normaloff>:/icons/add</normaloff>:/icons/add</iconset>
    </property>
   </widget>
@@ -75,7 +75,7 @@
     <string notr="true"/>
    </property>
    <property name="pixmap">
-    <pixmap resource="../raven.qrc">:/icons/paper_wallet</pixmap>
+    <pixmap resource="../avian.qrc">:/icons/paper_wallet</pixmap>
    </property>
   </widget>
   <widget class="VerticalLabel" name="addressText">
@@ -980,7 +980,7 @@
     <string>Print</string>
    </property>
    <property name="icon">
-    <iconset resource="../raven.qrc">
+    <iconset resource="../avian.qrc">
      <normaloff>:/icons/receiving_addresses</normaloff>:/icons/receiving_addresses</iconset>
    </property>
   </widget>
@@ -1146,7 +1146,7 @@ p, li { white-space: pre-wrap; }
   </customwidget>
  </customwidgets>
  <resources>
-  <include location="../raven.qrc"/>
+  <include location="../avian.qrc"/>
  </resources>
  <connections>
   <connection>

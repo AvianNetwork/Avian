@@ -1,11 +1,11 @@
 // Copyright (c) 2011-2016 The Bitcoin Core developers
 // Copyright (c) 2017 The Raven Core developers
-// Copyright (c) 2021 The Avian Core developers
+// Copyright (c) 2021 The Raven Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef RAVEN_QT_GUICONSTANTS_H
-#define RAVEN_QT_GUICONSTANTS_H
+#ifndef AVIAN_QT_GUICONSTANTS_H
+#define AVIAN_QT_GUICONSTANTS_H
 
 /* Milliseconds between model updates */
 static const int MODEL_UPDATE_DELAY = 250;
@@ -13,8 +13,8 @@ static const int MODEL_UPDATE_DELAY = 250;
 /* AskPassphraseDialog -- Maximum passphrase length */
 static const int MAX_PASSPHRASE_SIZE = 1024;
 
-/* RavenGUI -- Size of icons in status bar */
-static const int STATUSBAR_ICONSIZE = 16;
+/* AvianGUI -- Size of icons in status bar */
+static const int STATUSBAR_ICONSIZE = 20;
 
 static const bool DEFAULT_SPLASHSCREEN = true;
 
@@ -30,6 +30,8 @@ static const bool DEFAULT_SPLASHSCREEN = true;
 #define COLOR_BAREADDRESS QColor(140, 140, 140)
 /* Transaction list -- TX status decoration - open until date */
 #define COLOR_TX_STATUS_OPENUNTILDATE QColor(64, 64, 255)
+/* Transaction list -- TX status decoration - offline */
+#define COLOR_TX_STATUS_OFFLINE QColor(192, 192, 192)
 /* Transaction list -- TX status decoration - danger, tx needs attention */
 #define COLOR_TX_STATUS_DANGER QColor(200, 100, 100)
 /* Transaction list -- TX status decoration - default color */
@@ -45,55 +47,57 @@ static const bool DEFAULT_SPLASHSCREEN = true;
 /** LIGHT MODE */
 /* Background color, very light gray */
 #define COLOR_BACKGROUND_LIGHT QColor("#fbfbfe")
-/* Ravencoin dark orange */
+/* Avian dark orange */
 #define COLOR_DARK_ORANGE QColor("#f05339")
-/* Ravencoin light orange */
+/* Avian light orange */
 #define COLOR_LIGHT_ORANGE QColor("#f79433")
-/* Ravencoin dark blue */
-#define COLOR_DARK_BLUE QColor("#002b26")
-/* Ravencoin light blue */
-#define COLOR_LIGHT_BLUE QColor("#002b27")
-/* Ravencoin asset text */
+/* Avian dark blue - Sidedar start */
+#define COLOR_DARK_BLUE QColor("#FFFFFF")
+/* Avian light blue - Sidebar end */
+#define COLOR_LIGHT_BLUE QColor("#FFFFFF")
+/* Avian dark green - Asset */
+#define COLOR_DARK_GREEN QColor("#2a737f")
+/* Avian light green - Asset */
+#define COLOR_LIGHT_GREEN QColor("#34f5c6")
+/* Avian asset text */
 #define COLOR_ASSET_TEXT QColor(255, 255, 255)
-/* Ravencoin shadow color - light mode */
+/* Avian shadow color - light mode */
 #define COLOR_SHADOW_LIGHT QColor("#e1e6f3")
 /* Toolbar not selected text color */
 #define COLOR_TOOLBAR_NOT_SELECTED_TEXT QColor("#FFFFFF")
 /* Toolbar selected text color */
 #define COLOR_TOOLBAR_SELECTED_TEXT COLOR_WHITE
+/* Send entries background color */
+#define COLOR_SENDENTRIES_BACKGROUND QColor("#fbfbfe")
 
 /** DARK MODE */
 /* Widget background color, dark mode */
-#define COLOR_WIDGET_BACKGROUND_DARK QColor("#1c2535")
-/* Ravencoin shadow color - dark mode */
-#define COLOR_SHADOW_DARK QColor("#0c1b3d")
-/* Ravencoin Light blue - dark mode - dark mode */
-#define COLOR_LIGHT_BLUE_DARK QColor("#1e2636")
-/* Ravencoin Dark blue - dark mode - dark mode */
-#define COLOR_DARK_BLUE_DARK QColor("#0b1018")
+#define COLOR_WIDGET_BACKGROUND_DARK QColor("#2E2E2E")
+/* Avian shadow color - dark mode */
+#define COLOR_SHADOW_DARK QColor("#1B1B1B")
+/* Avian Light blue - dark mode - dark mode */
+#define COLOR_LIGHT_BLUE_DARK QColor("#1D1D1D")
+/* Avian Dark blue - dark mode - dark mode */
+#define COLOR_DARK_BLUE_DARK QColor("#1D1D1D")
 /* Pricing widget background color */
-#define COLOR_PRICING_WIDGET QColor("#161e2d")
-/* Ravencoin dark mode administrator background color */
+#define COLOR_PRICING_WIDGET QColor("#2E2E2E")
+/* Avian dark mode administrator background color */
 #define COLOR_ADMIN_CARD_DARK COLOR_BLACK
-/* Ravencoin dark mode regular asset background color */
-#define COLOR_REGULAR_CARD_DARK_BLUE_DARK_MODE QColor("#06132a")
-/* Ravencoin dark mode regular asset background color */
-#define COLOR_REGULAR_CARD_LIGHT_BLUE_DARK_MODE QColor("#0e1b3b")
+/* Avian dark mode regular asset background color */
+#define COLOR_REGULAR_CARD_DARK_BLUE_DARK_MODE QColor("#2E2E2E")
+/* Avian dark mode regular asset background color */
+#define COLOR_REGULAR_CARD_LIGHT_BLUE_DARK_MODE QColor("#2E2E2E")
 /* Toolbar not selected text color */
 #define COLOR_TOOLBAR_NOT_SELECTED_TEXT_DARK_MODE QColor("#6c80c5")
 /* Toolbar selected text color */
 #define COLOR_TOOLBAR_SELECTED_TEXT_DARK_MODE QColor("#c5ccdf")
+/* Send entries background color dark mode */
+#define COLOR_SENDENTRIES_BACKGROUND_DARK QColor("#2E2E2E")
 
-
-/* Ravencoin label color as a string */
+/* Avian label color as a string */
 #define STRING_LABEL_COLOR "color: #000000"
 #define STRING_LABEL_COLOR_WHITE "color: #FFFFFF"
-
-
-
-
-
-
+#define STRING_LABEL_COLOR_WARNING "color: #FF8080"
 
 /* Tooltips longer than this (in characters) are converted into rich text,
    so that they can be word-wrapped.
@@ -114,4 +118,10 @@ static const int MAX_URI_LENGTH = 255;
 #define QAPP_APP_NAME_DEFAULT "Avian-Qt"
 #define QAPP_APP_NAME_TESTNET "Avian-Qt-testnet"
 
-#endif // RAVEN_QT_GUICONSTANTS_H
+/* Default third party browser urls */
+#define DEFAULT_THIRD_PARTY_BROWSERS "https://api.ravencoin.org/tx/%s|https://rvn.cryptoscope.io/tx/?txid=%s|https://blockbook.ravencoin.org/tx/%s|https://explorer.mangofarmassets.com/tx/%s|https://www.assetsexplorer.com/tx/%s|https://explorer.ravenland.org/tx/%s"
+
+/* Default IPFS viewer */
+#define DEFAULT_IPFS_VIEWER "https://ipfs.io/ipfs/%s"
+
+#endif // AVIAN_QT_GUICONSTANTS_H

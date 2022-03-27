@@ -1,11 +1,11 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
 // Copyright (c) 2009-2016 The Bitcoin Core developers
-// Copyright (c) 2017 The Raven Core developers
+// Copyright (c) 2017-2020 The Raven Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef RAVEN_WALLET_WALLETDB_H
-#define RAVEN_WALLET_WALLETDB_H
+#ifndef AVIAN_WALLET_WALLETDB_H
+#define AVIAN_WALLET_WALLETDB_H
 
 #include "amount.h"
 #include "primitives/transaction.h"
@@ -66,12 +66,20 @@ public:
     uint32_t nInternalChainCounter;
     CKeyID seed_id; //!< seed hash160
 
+    bool bUse_bip44;
+    SecureVector vchMnemonic;
+    SecureVector vchMnemonicPassphrase;
+    SecureVector vchSeed;
+
     static const int VERSION_HD_BASE        = 1;
     static const int VERSION_HD_CHAIN_SPLIT = 2;
-    static const int CURRENT_VERSION        = VERSION_HD_CHAIN_SPLIT;
+    static const int VERSION_HD_BIP44_BIP39 = 3;
+    static const int CURRENT_VERSION        = VERSION_HD_BIP44_BIP39;
     int nVersion;
 
-    CHDChain() { SetNull(); }
+    CWallet* pwallet;
+
+    CHDChain(CWallet* pw): pwallet(pw) { SetNull(); }
 
     ADD_SERIALIZE_METHODS;
     template <typename Stream, typename Operation>
@@ -80,9 +88,16 @@ public:
         READWRITE(this->nVersion);
         READWRITE(nExternalChainCounter);
         READWRITE(seed_id);
-        if (this->nVersion >= VERSION_HD_CHAIN_SPLIT)
+        if (this->nVersion >= VERSION_HD_CHAIN_SPLIT) {
             READWRITE(nInternalChainCounter);
+        }
+
+        if(VERSION_HD_BIP44_BIP39 == this->nVersion) {
+            READWRITE(bUse_bip44);
+        }
     }
+
+    void SetSeedFromSeedId();
 
     void SetNull()
     {
@@ -90,8 +105,17 @@ public:
         nExternalChainCounter = 0;
         nInternalChainCounter = 0;
         seed_id.SetNull();
+        bUse_bip44 = false;
     }
 
+    bool IsNull() { return seed_id.IsNull();}
+
+
+    void UseBip44( bool b = true)   { bUse_bip44 = b;}
+    bool IsBip44() const            { return bUse_bip44 == true;}
+
+
+    bool SetMnemonic(const SecureString& ssMnemonic, const SecureString& ssMnemonicPassphrase, SecureVector& vchSeed);
 };
 
 class CKeyMetadata
@@ -247,6 +271,16 @@ public:
     bool ReadVersion(int& nVersion);
     //! Write wallet version
     bool WriteVersion(int nVersion);
+
+    bool WriteBip39Words(const uint256& hash, const std::vector<unsigned char>& vchWords, bool fEncrypted);
+    bool WriteBip39Passphrase(const std::vector<unsigned char>& vchPassphrase, bool fEncrypted);
+    bool WriteBip39VchSeed(const std::vector<unsigned char>& vchSeed,  bool fEncrypted);
+    bool ReadBip39Words(uint256& hash, std::vector<unsigned char>& vchWords, bool fEncrypted);
+    bool ReadBip39Passphrase(std::vector<unsigned char>& vchPassphrase, bool fEncrypted);
+    bool ReadBip39VchSeed(std::vector<unsigned char>& vchSeed,  bool fEncrypted);
+    bool EraseBip39Words(bool fEncrypted);
+    bool EraseBip39Passphrase(bool fEncrypted);
+    bool EraseBip39VchSeed(bool fEncrypted);
 private:
     CDB batch;
     CWalletDBWrapper& m_dbw;
@@ -255,4 +289,4 @@ private:
 //! Compacts BDB state so that wallet.dat is self-contained (if there are changes)
 void MaybeCompactWalletDB();
 
-#endif // RAVEN_WALLET_WALLETDB_H
+#endif // AVIAN_WALLET_WALLETDB_H

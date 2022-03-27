@@ -1,25 +1,22 @@
 #!/usr/bin/env python3
 # Copyright (c) 2017 The Bitcoin Core developers
-# Copyright (c) 2017-2018 The Raven Core developers
+# Copyright (c) 2017-2020 The Raven Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
-"""Testing asset mempool use cases
 
-"""
-from test_framework.test_framework import RavenTestFramework
-from test_framework.util import *
+"""Testing asset mempool use cases"""
 
+from test_framework.test_framework import AvianTestFramework
+from test_framework.util import assert_equal, disconnect_all_nodes, connect_all_nodes_bi
 
-import string
-
-class AssetMempoolTest(RavenTestFramework):
+class AssetMempoolTest(AvianTestFramework):
     def set_test_params(self):
         self.setup_clean_chain = True
         self.num_nodes = 2
 
 
     def activate_assets(self):
-        self.log.info("Generating RVN and activating assets...")
+        self.log.info("Generating AVN and activating assets...")
         n0, n1 = self.nodes[0], self.nodes[1]
 
         n0.generate(1)
@@ -46,7 +43,7 @@ class AssetMempoolTest(RavenTestFramework):
         # Issue asset on chain 2 but keep it in the mempool. No mining
         n1.issue(asset_name)
 
-        connect_all_nodes_bi(self.nodes)
+        connect_all_nodes_bi(self.nodes, True)
 
         # Assert that the reorg was successful
         assert_equal(n0.getblockcount(), n1.getblockcount())
@@ -61,7 +58,6 @@ class AssetMempoolTest(RavenTestFramework):
         n0, n1 = self.nodes[0], self.nodes[1]
 
         disconnect_all_nodes(self.nodes)
-
         # Create new asset for testing
         asset_name = "MEMPOOL_2"
         n0.issue(asset_name)
@@ -69,8 +65,7 @@ class AssetMempoolTest(RavenTestFramework):
 
         # Reissue that asset
         address1 = n0.getnewaddress()
-        n0.reissue(asset_name=asset_name, qty=2000, to_address=address1, change_address='', \
-                   reissuable=True, new_unit=-1)
+        n0.reissue(asset_name=asset_name, qty=2000, to_address=address1, change_address='', reissuable=True, new_units=-1)
         n0.generate(15)
 
         # Get a transfer address
@@ -90,9 +85,9 @@ class AssetMempoolTest(RavenTestFramework):
         n1.generate(55)
 
         # Connect the nodes, a reorg should occur
-        connect_all_nodes_bi(self.nodes)
+        connect_all_nodes_bi(self.nodes, True)
 
-        # Asset the reorg occured
+        # Asset the reorg occurred
         assert_equal(n0.getblockcount(), n1.getblockcount())
         assert_equal(n0.getbestblockhash(), n1.getbestblockhash())
 
@@ -138,7 +133,7 @@ class AssetMempoolTest(RavenTestFramework):
         n1.issue(asset_name + '/SUB/SUB/SUB/SUB')
         assert_equal(17, n1.getmempoolinfo()['size'])
 
-        connect_all_nodes_bi(self.nodes)
+        connect_all_nodes_bi(self.nodes, True)
 
         # Assert that the reorg was successful
         assert_equal(n0.getblockcount(), n1.getblockcount())

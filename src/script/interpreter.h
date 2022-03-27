@@ -1,11 +1,11 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
 // Copyright (c) 2009-2016 The Bitcoin Core developers
-// Copyright (c) 2017 The Raven Core developers
+// Copyright (c) 2017-2019 The Raven Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef RAVEN_SCRIPT_INTERPRETER_H
-#define RAVEN_SCRIPT_INTERPRETER_H
+#ifndef AVIAN_SCRIPT_INTERPRETER_H
+#define AVIAN_SCRIPT_INTERPRETER_H
 
 #include "script_error.h"
 #include "primitives/transaction.h"
@@ -111,7 +111,7 @@ enum
     // Public keys in segregated witness scripts must be compressed
     //
             SCRIPT_VERIFY_WITNESS_PUBKEYTYPE = (1U << 15),
-
+            
     // Do we accept signature using SIGHASH_FORKID
     //
     SCRIPT_ENABLE_SIGHASH_FORKID = (1U << 16),
@@ -194,4 +194,4 @@ bool VerifyScript(const CScript &scriptSig, const CScript &scriptPubKey, const C
 
 size_t CountWitnessSigOps(const CScript &scriptSig, const CScript &scriptPubKey, const CScriptWitness *witness, unsigned int flags);
 
-#endif // RAVEN_SCRIPT_INTERPRETER_H
+#endif // AVIAN_SCRIPT_INTERPRETER_H

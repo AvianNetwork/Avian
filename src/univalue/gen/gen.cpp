@@ -1,5 +1,5 @@
 // Copyright 2014 BitPay Inc.
-// Copyright (c) 2017 The Raven Core developers
+// Copyright (c) 2017-2019 The Raven Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -42,8 +42,8 @@ static void initJsonEscape()
 static void outputEscape()
 {
 	printf(	"// Automatically generated file. Do not modify.\n"
-		"#ifndef RAVEN_UNIVALUE_UNIVALUE_ESCAPES_H\n"
-		"#define RAVEN_UNIVALUE_UNIVALUE_ESCAPES_H\n"
+		"#ifndef AVIAN_UNIVALUE_UNIVALUE_ESCAPES_H\n"
+		"#define AVIAN_UNIVALUE_UNIVALUE_ESCAPES_H\n"
 		"static const char *escapes[256] = {\n");
 
 	for (unsigned int i = 0; i < 256; i++) {
@@ -73,7 +73,7 @@ static void outputEscape()
 	}
 
 	printf(	"};\n"
-		"#endif // RAVEN_UNIVALUE_UNIVALUE_ESCAPES_H\n");
+		"#endif // AVIAN_UNIVALUE_UNIVALUE_ESCAPES_H\n");
 }
 
 int main (int argc, char *argv[])

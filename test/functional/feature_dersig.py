@@ -1,19 +1,21 @@
 #!/usr/bin/env python3
 # Copyright (c) 2015-2016 The Bitcoin Core developers
-# Copyright (c) 2017-2018 The Raven Core developers
+# Copyright (c) 2017-2020 The Raven Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
-"""Test BIP66 (DER SIG).
+
+"""
+Test BIP66 (DER SIG).
 
 Test that the DERSIG soft-fork activates at (regtest) height 1251.
 """
 
-from test_framework.test_framework import RavenTestFramework
-from test_framework.util import *
-from test_framework.mininode import *
+from io import BytesIO
+from test_framework.test_framework import AvianTestFramework
+from test_framework.util import p2p_port, assert_equal, hex_str_to_bytes
+from test_framework.mininode import CTransaction, NodeConnCB, NodeConn, NetworkThread, MsgBlock, wait_until, mininode_lock, MsgTx
 from test_framework.blocktools import create_coinbase, create_block
 from test_framework.script import CScript
-from io import BytesIO
 
 DERSIG_HEIGHT = 1251
 
@@ -24,15 +26,15 @@ REJECT_NONSTANDARD = 64
 
 # A canonical signature consists of:
 # <30> <total len> <02> <len R> <R> <02> <len S> <S> <hashtype>
-def unDERify(tx):
+def un_der_ify(tx):
     """
     Make the signature in vin 0 of a tx non-DER-compliant,
     by adding padding after the S-value.
     """
-    scriptSig = CScript(tx.vin[0].scriptSig)
+    script_sig = CScript(tx.vin[0].scriptSig)
     newscript = []
-    for i in scriptSig:
-        if (len(newscript) == 0):
+    for i in script_sig:
+        if len(newscript) == 0:
             newscript.append(i[0:-1] + b'\0' + i[-1:])
         else:
             newscript.append(i)
@@ -48,7 +50,7 @@ def create_transaction(node, coinbase, to_address, amount):
     tx.deserialize(BytesIO(hex_str_to_bytes(signresult['hex'])))
     return tx
 
-class BIP66Test(RavenTestFramework):
+class BIP66Test(AvianTestFramework):
     def set_test_params(self):
         self.num_nodes = 1
         self.extra_args = [['-promiscuousmempoolflags=1', '-whitelist=127.0.0.1']]
@@ -56,8 +58,7 @@ class BIP66Test(RavenTestFramework):
 
     def run_test(self):
         node0 = NodeConnCB()
-        connections = []
-        connections.append(NodeConn('127.0.0.1', p2p_port(0), self.nodes[0], node0))
+        connections = [NodeConn('127.0.0.1', p2p_port(0), self.nodes[0], node0)]
         node0.add_connection(connections[0])
         NetworkThread().start() # Start up network handling in another thread
 
@@ -70,9 +71,8 @@ class BIP66Test(RavenTestFramework):
 
         self.log.info("Test that a transaction with non-DER signature can still appear in a block")
 
-        spendtx = create_transaction(self.nodes[0], self.coinbase_blocks[0],
-                self.nodeaddress, 1.0)
-        unDERify(spendtx)
+        spendtx = create_transaction(self.nodes[0], self.coinbase_blocks[0], self.nodeaddress, 1.0)
+        un_der_ify(spendtx)
         spendtx.rehash()
 
         tip = self.nodes[0].getbestblockhash()
@@ -84,7 +84,7 @@ class BIP66Test(RavenTestFramework):
         block.rehash()
         block.solve()
 
-        node0.send_and_ping(msg_block(block))
+        node0.send_and_ping(MsgBlock(block))
         assert_equal(self.nodes[0].getbestblockhash(), block.hash)
 
         self.log.info("Test that blocks must now be at least version 3")
@@ -94,10 +94,10 @@ class BIP66Test(RavenTestFramework):
         block.nVersion = 2
         block.rehash()
         block.solve()
-        node0.send_and_ping(msg_block(block))
+        node0.send_and_ping(MsgBlock(block))
         assert_equal(int(self.nodes[0].getbestblockhash(), 16), tip)
 
-        wait_until(lambda: "reject" in node0.last_message.keys(), lock=mininode_lock)
+        wait_until(lambda: "reject" in node0.last_message.keys(), lock=mininode_lock, err_msg="last_message")
         with mininode_lock:
             assert_equal(node0.last_message["reject"].code, REJECT_OBSOLETE)
             assert_equal(node0.last_message["reject"].reason, b'bad-version(0x00000002)')
@@ -107,15 +107,14 @@ class BIP66Test(RavenTestFramework):
         self.log.info("Test that transactions with non-DER signatures cannot appear in a block")
         block.nVersion = 3
 
-        spendtx = create_transaction(self.nodes[0], self.coinbase_blocks[1],
-                self.nodeaddress, 1.0)
-        unDERify(spendtx)
+        spendtx = create_transaction(self.nodes[0], self.coinbase_blocks[1], self.nodeaddress, 1.0)
+        un_der_ify(spendtx)
         spendtx.rehash()
 
         # First we show that this tx is valid except for DERSIG by getting it
         # accepted to the mempool (which we can achieve with
         # -promiscuousmempoolflags).
-        node0.send_and_ping(msg_tx(spendtx))
+        node0.send_and_ping(MsgTx(spendtx))
         assert spendtx.hash in self.nodes[0].getrawmempool()
 
         # Now we verify that a block with this transaction is invalid.
@@ -124,10 +123,10 @@ class BIP66Test(RavenTestFramework):
         block.rehash()
         block.solve()
 
-        node0.send_and_ping(msg_block(block))
+        node0.send_and_ping(MsgBlock(block))
         assert_equal(int(self.nodes[0].getbestblockhash(), 16), tip)
 
-        wait_until(lambda: "reject" in node0.last_message.keys(), lock=mininode_lock)
+        wait_until(lambda: "reject" in node0.last_message.keys(), lock=mininode_lock, err_msg="last_message")
         with mininode_lock:
             # We can receive different reject messages depending on whether
             # aviand is running with multiple script check threads. If script
@@ -149,7 +148,7 @@ class BIP66Test(RavenTestFramework):
         block.rehash()
         block.solve()
 
-        node0.send_and_ping(msg_block(block))
+        node0.send_and_ping(MsgBlock(block))
         assert_equal(int(self.nodes[0].getbestblockhash(), 16), block.sha256)
 
 if __name__ == '__main__':

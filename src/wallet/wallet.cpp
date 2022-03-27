@@ -1,6 +1,6 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
 // Copyright (c) 2009-2016 The Bitcoin Core developers
-// Copyright (c) 2017 The Raven Core developers
+// Copyright (c) 2017-2020 The Raven Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -32,12 +32,12 @@
 #include "ui_interface.h"
 #include "utilmoneystr.h"
 #include "wallet/fees.h"
+#include "wallet/bip39.h"
 
 #include <assert.h>
 
 #include <boost/algorithm/string/replace.hpp>
 #include <boost/thread.hpp>
-#include <random>
 #include <tinyformat.h>
 
 #include "assets/assets.h"
@@ -51,6 +51,9 @@ bool fWalletRbf = DEFAULT_WALLET_RBF;
 
 const char * DEFAULT_WALLET_DAT = "wallet.dat";
 const uint32_t BIP32_HARDENED_KEY_LIMIT = 0x80000000;
+
+std::string my_words;
+std::string my_passphrase;
 
 /**
  * Fees smaller than this (in satoshi) are considered zero fee (for transaction creation)
@@ -174,48 +177,78 @@ CPubKey CWallet::GenerateNewKey(CWalletDB &walletdb, bool internal)
 
 void CWallet::DeriveNewChildKey(CWalletDB &walletdb, CKeyMetadata& metadata, CKey& secret, bool internal)
 {
-        // for now we use a fixed keypath scheme of m/0'/0'/k
-    CKey seed;                     //seed (256bit)
+    // for now we use a fixed keypath scheme of m/0'/0'/k
     CExtKey masterKey;             //hd master key
+
+    CExtKey purposeKey;             //key at m/purpose'
+    CExtKey coinTypeKey;            //key at m/purpose'/coin_type'
+
     CExtKey accountKey;            //key at m/0'
     CExtKey chainChildKey;         //key at m/0'/0' (external) or m/0'/1' (internal)
     CExtKey childKey;              //key at m/0'/0'/<n>'
 
+
+    uint32_t nAccountIndex = 0; // TODO add HDAccounts management
+
     // try to get the seed
-    if (!GetKey(hdChain.seed_id, seed))
-        throw std::runtime_error(std::string(__func__) + ": seed not found");
+    if (!hdChain.IsBip44()) {
+        CKey seed;                     //seed (256bit)
+        if (!GetKey(hdChain.seed_id, seed))
+            throw std::runtime_error(std::string(__func__) + ": seed not found");
+        masterKey.SetSeed(seed.begin(), seed.size());
+    } else {
+        masterKey.SetSeed(g_vchSeed.data(), g_vchSeed.size());
+    }
 
-    masterKey.SetSeed(seed.begin(), seed.size());
+    // Select which chain we are using depending on if this is a change address or not
+    uint32_t& nChildIndex = internal ? hdChain.nInternalChainCounter : hdChain.nExternalChainCounter;
 
-    // derive m/0'
-    // use hardened derivation (child keys >= 0x80000000 are hardened after bip32)
-    masterKey.Derive(accountKey, BIP32_HARDENED_KEY_LIMIT);
-
-    // derive m/0'/0' (external chain) OR m/0'/1' (internal chain)
-    assert(internal ? CanSupportFeature(FEATURE_HD_SPLIT) : true);
-    accountKey.Derive(chainChildKey, BIP32_HARDENED_KEY_LIMIT+(internal ? 1 : 0));
-
-    // derive child key at next index, skip keys already known to the wallet
     do {
-        // always derive hardened keys
-        // childIndex | BIP32_HARDENED_KEY_LIMIT = derive childIndex in hardened child-index-range
-        // example: 1 | BIP32_HARDENED_KEY_LIMIT == 0x80000001 == 2147483649
-        if (internal) {
-            chainChildKey.Derive(childKey, hdChain.nInternalChainCounter | BIP32_HARDENED_KEY_LIMIT);
-            metadata.hdKeypath = "m/0'/1'/" + std::to_string(hdChain.nInternalChainCounter) + "'";
-            hdChain.nInternalChainCounter++;
-        }
-        else {
-            chainChildKey.Derive(childKey, hdChain.nExternalChainCounter | BIP32_HARDENED_KEY_LIMIT);
-            metadata.hdKeypath = "m/0'/0'/" + std::to_string(hdChain.nExternalChainCounter) + "'";
-            hdChain.nExternalChainCounter++;
-        }
+
+			if(hdChain.IsBip44())
+			{
+				// Use BIP44 keypath scheme i.e. m / purpose' / coin_type' / account' / change / address_index
+
+				// derive m/purpose'
+				masterKey.Derive(purposeKey, 44 | BIP32_HARDENED_KEY_LIMIT);
+				// derive m/purpose'/coin_type'
+				purposeKey.Derive(coinTypeKey, Params().ExtCoinType() | BIP32_HARDENED_KEY_LIMIT);
+				// derive m/purpose'/coin_type'/account'
+				coinTypeKey.Derive(accountKey, nAccountIndex | BIP32_HARDENED_KEY_LIMIT);
+				// derive m/purpose'/coin_type'/account'/change
+				accountKey.Derive(chainChildKey, internal ? 1 : 0);
+				// derive m/purpose'/coin_type'/account'/change/address_index
+				chainChildKey.Derive(childKey, nChildIndex);
+			}
+			else
+			{
+				// Use BIP32 keypath scheme i.e. m / account' / change' / address_index'
+
+				// derive m/account'
+				masterKey.Derive(accountKey, nAccountIndex | BIP32_HARDENED_KEY_LIMIT);
+				// derive m/account'/change
+				accountKey.Derive(chainChildKey, BIP32_HARDENED_KEY_LIMIT + (internal ? 1 : 0));
+				// derive m/account'/change/address_index
+				chainChildKey.Derive(childKey, BIP32_HARDENED_KEY_LIMIT |  nChildIndex);
+			}
+
+        // increment childkey index
+        nChildIndex++;
     } while (HaveKey(childKey.key.GetPubKey().GetID()));
+
     secret = childKey.key;
+
+    if(hdChain.IsBip44())
+        metadata.hdKeypath = strprintf("m/44'/%d'/%d'/%d/%d", Params().ExtCoinType(), nAccountIndex, internal, nChildIndex - 1);
+    else
+        metadata.hdKeypath = strprintf("m/%d'/%d'/%d'", nAccountIndex, internal, nChildIndex - 1);
+
     metadata.hd_seed_id = hdChain.seed_id;
+
     // update the chain model in the database
     if (!walletdb.WriteHDChain(hdChain))
         throw std::runtime_error(std::string(__func__) + ": Writing HD chain model failed");
+
 }
 
 bool CWallet::AddKeyPubKeyWithDB(CWalletDB &walletdb, const CKey& secret, const CPubKey &pubkey)
@@ -289,6 +322,41 @@ bool CWallet::LoadKeyMetadata(const CTxDestination& keyID, const CKeyMetadata &m
 bool CWallet::LoadCryptedKey(const CPubKey &vchPubKey, const std::vector<unsigned char> &vchCryptedSecret)
 {
     return CCryptoKeyStore::AddCryptedKey(vchPubKey, vchCryptedSecret);
+}
+
+bool CWallet::LoadCryptedWords(const uint256& hash, const std::vector<unsigned char> &vchCryptedWords)
+{
+    return CCryptoKeyStore::AddCryptedWords(hash, vchCryptedWords);
+}
+
+bool CWallet::LoadCryptedPassphrase(const std::vector<unsigned char> &vchCryptedPassphrase)
+{
+    return CCryptoKeyStore::AddCryptedPassphrase(vchCryptedPassphrase);
+}
+
+bool CWallet::LoadCryptedVchSeed(const std::vector<unsigned char> &vchCryptedVchSeed)
+{
+    return CCryptoKeyStore::AddCryptedVchSeed(vchCryptedVchSeed);
+}
+
+bool CWallet::LoadWords(const uint256& hash, const std::vector<unsigned char> &vchWords)
+{
+    return CCryptoKeyStore::AddWords(hash, vchWords);
+}
+
+bool CWallet::LoadPassphrase(const std::vector<unsigned char> &vchPassphrase)
+{
+    return CCryptoKeyStore::AddPassphrase(vchPassphrase);
+}
+
+bool CWallet::LoadVchSeed(const std::vector<unsigned char> &vchSeed)
+{
+    return CCryptoKeyStore::AddVchSeed(vchSeed);
+}
+
+void CWallet::GetBip39Data(uint256& hash, std::vector<unsigned char> &vchWords, std::vector<unsigned char> &vchPassphrase, std::vector<unsigned char>& vchSeed)
+{
+    CCryptoKeyStore::GetBip39Data(hash, vchWords, vchPassphrase, vchSeed);
 }
 
 /**
@@ -377,8 +445,9 @@ bool CWallet::Unlock(const SecureString& strWalletPassphrase)
                 return false;
             if (!crypter.Decrypt(pMasterKey.second.vchCryptedKey, _vMasterKey))
                 continue; // try another master key
-            if (CCryptoKeyStore::Unlock(_vMasterKey))
+            if (CCryptoKeyStore::Unlock(_vMasterKey)) {
                 return true;
+            }
         }
     }
     return false;
@@ -647,6 +716,43 @@ bool CWallet::EncryptWallet(const SecureString& strWalletPassphrase)
             assert(false);
         }
 
+        if(hdChain.IsBip44()) {
+            pwalletdbEncryption->EraseBip39Words( false);
+            pwalletdbEncryption->EraseBip39Passphrase(false);
+            pwalletdbEncryption->EraseBip39VchSeed(false);
+
+            if (!EncryptBip39(_vMasterKey))
+            {
+                pwalletdbEncryption->TxnAbort();
+                delete pwalletdbEncryption;
+                // We now probably have half of our keys encrypted in memory, and half not...
+                // die and let the user reload the unencrypted wallet.
+                assert(false);
+            }
+
+            if (!pwalletdbEncryption->WriteBip39Words(nWordHash, vchCryptedBip39Words, true)) {
+                pwalletdbEncryption->TxnAbort();
+                delete pwalletdbEncryption;
+                assert(false);
+            }
+
+            if (!vchCryptedBip39Passphrase.empty()) {
+                if (!pwalletdbEncryption->WriteBip39Passphrase(vchCryptedBip39Passphrase, true)) {
+                    pwalletdbEncryption->TxnAbort();
+                    delete pwalletdbEncryption;
+                    assert(false);
+                }
+            }
+
+            if (!vchCryptedBip39VchSeed.empty()) {
+                if (!pwalletdbEncryption->WriteBip39VchSeed(vchCryptedBip39VchSeed, true)) {
+                    pwalletdbEncryption->TxnAbort();
+                    delete pwalletdbEncryption;
+                    assert(false);
+                }
+            }
+        }
+
         // Encryption was introduced in version 0.4.0
         SetMinVersion(FEATURE_WALLETCRYPT, pwalletdbEncryption, true);
 
@@ -664,19 +770,28 @@ bool CWallet::EncryptWallet(const SecureString& strWalletPassphrase)
         Unlock(strWalletPassphrase);
 
         // if we are using HD, replace the HD seed with a new one
-        if (IsHDEnabled()) {
+        if (IsHDEnabled() && !hdChain.IsBip44()) {
             if (!SetHDSeed(GenerateNewSeed())) {
                 return false;
             }
         }
 
-        NewKeyPool();
+        if (!hdChain.IsBip44())
+            NewKeyPool();
 
         Lock();
 
         // Need to completely rewrite the wallet file; if we don't, bdb might keep
         // bits of the unencrypted private key in slack space in the database file.
         dbw->Rewrite();
+
+        if (hdChain.IsBip44()) {
+            CWalletDB walletdb(*dbw);
+            walletdb.WriteBip39Words(nWordHash, vchCryptedBip39Words, true);
+            walletdb.WriteBip39VchSeed(vchCryptedBip39VchSeed, true);
+            if (!vchCryptedBip39Passphrase.empty())
+                walletdb.WriteBip39Passphrase(vchCryptedBip39Passphrase, true);
+        }
     }
     NotifyStatusChanged(this);
 
@@ -1395,9 +1510,49 @@ CAmount CWallet::GetChange(const CTransaction& tx) const
 
 CPubKey CWallet::GenerateNewSeed()
 {
-    CKey key;
-    key.MakeNewKey(true);
-    return DeriveNewSeed(key);
+    // If bip44 is not set to true on wallet creation
+    if (!hdChain.IsBip44()) {
+        hdChain.nVersion = CHDChain::VERSION_HD_CHAIN_SPLIT;
+        CKey key;
+        key.MakeNewKey(true);
+        return DeriveNewSeed(key);
+    }
+
+    CHDChain newHdChain(this);
+	newHdChain.UseBip44(hdChain.IsBip44());
+
+	// NOTE: empty mnemonic means "generate a new one for me"
+	std::string strMnemonic = gArgs.GetArg("-mnemonic", "");
+	// NOTE: default mnemonic passphrase is an empty string
+	std::string strMnemonicPassphrase = gArgs.GetArg("-mnemonicpassphrase", "");
+
+    if (!my_words.empty()) {
+        strMnemonic = my_words;
+    }
+
+    if (!my_passphrase.empty()) {
+        strMnemonicPassphrase = my_passphrase;
+    }
+
+	SecureString vchMnemonic(strMnemonic.begin(), strMnemonic.end());
+	SecureString vchMnemonicPassphrase(strMnemonicPassphrase.begin(), strMnemonicPassphrase.end());
+
+	SecureVector& vchSeed = newHdChain.vchSeed;
+	if (!newHdChain.SetMnemonic(vchMnemonic, vchMnemonicPassphrase, vchSeed))
+		throw std::runtime_error(std::string(__func__) + ": SetMnemonic failed");
+
+	g_vchSeed = std::vector<unsigned char>(vchSeed.begin(), vchSeed.end());
+
+	CPubKey seed(vchSeed.begin(), vchSeed.end());
+	newHdChain.seed_id = seed.GetID();
+
+	SetHDChain(newHdChain, false);
+
+	my_passphrase.clear();
+	my_words.clear();
+
+	return seed;
+
 }
 
 CPubKey CWallet::DeriveNewSeed(const CKey& key)
@@ -1433,7 +1588,7 @@ bool CWallet::SetHDSeed(const CPubKey& seed)
     // store the keyid (hash160) together with
     // the child index counter in the database
     // as a hdchain object
-    CHDChain newHdChain;
+    CHDChain newHdChain(this);
     newHdChain.nVersion = CanSupportFeature(FEATURE_HD_SPLIT) ? CHDChain::VERSION_HD_CHAIN_SPLIT : CHDChain::VERSION_HD_BASE;
     newHdChain.seed_id = seed.GetID();
     SetHDChain(newHdChain, false);
@@ -1456,10 +1611,54 @@ bool CWallet::IsHDEnabled() const
     return !hdChain.seed_id.IsNull();
 }
 
+bool CWallet::IsBip44Enabled() const
+{
+    return IsHDEnabled() && hdChain.bUse_bip44;
+}
+
 int64_t CWalletTx::GetTxTime() const
 {
     int64_t n = nTimeSmart;
     return n ? n : nTimeReceived;
+}
+
+int CWalletTx::GetRequestCount() const
+{
+    // Returns -1 if it wasn't being tracked
+    int nRequests = -1;
+    {
+        LOCK(pwallet->cs_wallet);
+        if (IsCoinBase())
+        {
+            // Generated block
+            if (!hashUnset())
+            {
+                std::map<uint256, int>::const_iterator mi = pwallet->mapRequestCount.find(hashBlock);
+                if (mi != pwallet->mapRequestCount.end())
+                    nRequests = (*mi).second;
+            }
+        }
+        else
+        {
+            // Did anyone request this transaction?
+            std::map<uint256, int>::const_iterator mi = pwallet->mapRequestCount.find(GetHash());
+            if (mi != pwallet->mapRequestCount.end())
+            {
+                nRequests = (*mi).second;
+
+                // How about the block it's in?
+                if (nRequests == 0 && !hashUnset())
+                {
+                    std::map<uint256, int>::const_iterator _mi = pwallet->mapRequestCount.find(hashBlock);
+                    if (_mi != pwallet->mapRequestCount.end())
+                        nRequests = (*_mi).second;
+                    else
+                        nRequests = 1; // If it's in someone else's block it must have got out
+                }
+            }
+        }
+    }
+    return nRequests;
 }
 
 void CWalletTx::GetAmounts(std::list<COutputEntry>& listReceived,
@@ -1482,7 +1681,7 @@ void CWalletTx::GetAmounts(std::list<COutputEntry>& listReceived,
     CAmount nDebit = GetDebit(filter);
     if (nDebit > 0) // debit>0 means we signed/sent this transaction
     {
-        CAmount nValueOut = tx->GetValueOut();
+        CAmount nValueOut = tx->GetValueOut(AreEnforcedValuesDeployed());
         nFee = nDebit - nValueOut;
     }
 
@@ -1526,7 +1725,7 @@ void CWalletTx::GetAmounts(std::list<COutputEntry>& listReceived,
                 listReceived.push_back(output);
         }
 
-        /** RVN START */
+        /** AVN START */
         if (AreAssetsDeployed()) {
             if (txout.scriptPubKey.IsAssetScript()) {
                 CAssetOutputEntry assetoutput;
@@ -1541,7 +1740,7 @@ void CWalletTx::GetAmounts(std::list<COutputEntry>& listReceived,
                     assetsReceived.emplace_back(assetoutput);
             }
         }
-        /** RVN END */
+        /** AVN END */
     }
 
 }
@@ -2145,7 +2344,7 @@ void CWallet::AvailableCoinsWithAssets(std::vector<COutput> &vCoins, std::map<st
     AvailableCoinsAll(vCoins, mapAssetCoins, true, AreAssetsDeployed(), fOnlySafe, coinControl, nMinimumAmount, nMaximumAmount, nMinimumSumAmount, nMaximumCount, nMinDepth, nMaxDepth);
 }
 
-void CWallet::AvailableCoinsAll(std::vector<COutput>& vCoins, std::map<std::string, std::vector<COutput> >& mapAssetCoins, bool fGetRVN, bool fGetAssets, bool fOnlySafe, const CCoinControl *coinControl, const CAmount& nMinimumAmount, const CAmount& nMaximumAmount, const CAmount& nMinimumSumAmount, const uint64_t& nMaximumCount, const int& nMinDepth, const int& nMaxDepth) const {
+void CWallet::AvailableCoinsAll(std::vector<COutput>& vCoins, std::map<std::string, std::vector<COutput> >& mapAssetCoins, bool fGetAVN, bool fGetAssets, bool fOnlySafe, const CCoinControl *coinControl, const CAmount& nMinimumAmount, const CAmount& nMaximumAmount, const CAmount& nMinimumSumAmount, const uint64_t& nMaximumCount, const int& nMinDepth, const int& nMaxDepth) const {
     vCoins.clear();
 
     {
@@ -2153,8 +2352,8 @@ void CWallet::AvailableCoinsAll(std::vector<COutput>& vCoins, std::map<std::stri
 
         CAmount nTotal = 0;
 
-        /** RVN START */
-        bool fRVNLimitHit = false;
+        /** AVN START */
+        bool fAVNLimitHit = false;
         // A set of the hashes that have already been used
         std::set<uint256> usedMempoolHashes;
 
@@ -2250,91 +2449,60 @@ void CWallet::AvailableCoinsAll(std::vector<COutput>& vCoins, std::map<std::stri
                 bool fSolvableIn = (mine & (ISMINE_SPENDABLE | ISMINE_WATCH_SOLVABLE)) != ISMINE_NO;
 
                 std::string address;
-                CAssetTransfer assetTransfer;
-                CNewAsset asset;
-                CReissueAsset reissue;
-                std::string ownerName;
-                bool fWasNewAssetOutPoint = false;
-                bool fWasTransferAssetOutPoint = false;
-                bool fWasOwnerAssetOutPoint = false;
-                bool fWasReissueAssetOutPoint = false;
-                std::string strAssetName;
 
                 // Looking for Asset Tx OutPoints Only
                 if (fGetAssets && AreAssetsDeployed() && isAssetScript) {
 
-                    if ( nType == TX_TRANSFER_ASSET) {
-                        if (TransferAssetFromScript(pcoin->tx->vout[i].scriptPubKey, assetTransfer, address)) {
-                            strAssetName = assetTransfer.strName;
-                            fWasTransferAssetOutPoint = true;
-                        }
-                    } else if ( nType == TX_NEW_ASSET && !fIsOwner) {
-                        if (AssetFromScript(pcoin->tx->vout[i].scriptPubKey, asset, address)) {
-                            strAssetName = asset.strName;
-                            fWasNewAssetOutPoint = true;
-                        }
-                    } else if ( nType == TX_NEW_ASSET && fIsOwner) {
-                        if (OwnerAssetFromScript(pcoin->tx->vout[i].scriptPubKey, ownerName, address)) {
-                            strAssetName = ownerName;
-                            fWasOwnerAssetOutPoint = true;
-                        }
-                    } else if ( nType == TX_REISSUE_ASSET) {
-                        if (ReissueAssetFromScript(pcoin->tx->vout[i].scriptPubKey, reissue, address)) {
-                            strAssetName = reissue.strName;
-                            fWasReissueAssetOutPoint = true;
-                        }
-                    } else {
+                    CAssetOutputEntry output_data;
+                    if (!GetAssetData(pcoin->tx->vout[i].scriptPubKey, output_data))
                         continue;
+
+                    address = EncodeDestination(output_data.destination);
+
+                    // If we already have the maximum amount or size for this asset, skip it
+                    if (setAssetMaxFound.count(output_data.assetName))
+                        continue;
+
+                    if (IsAssetNameAnRestricted(output_data.assetName)) {
+                        if (passets->CheckForAddressRestriction(output_data.assetName, address, true)) {
+                            continue;
+                        }
                     }
 
-                    if (fWasNewAssetOutPoint || fWasTransferAssetOutPoint || fWasOwnerAssetOutPoint || fWasReissueAssetOutPoint) {
+                    // Initialize the map vector is it doesn't exist yet
+                    if (!mapAssetCoins.count(output_data.assetName)) {
+                        std::vector<COutput> vOutput;
+                        mapAssetCoins.insert(std::make_pair(output_data.assetName, vOutput));
+                    }
 
-                        // If we already have the maximum amount or size for this asset, skip it
-                        if (setAssetMaxFound.count(strAssetName))
-                            continue;
+                    // Add the COutput to the map of available Asset Coins
+                    mapAssetCoins.at(output_data.assetName).push_back(
+                            COutput(pcoin, i, nDepth, fSpendableIn, fSolvableIn, safeTx));
 
-                        // Initialize the map vector is it doesn't exist yet
-                        if (!mapAssetCoins.count(strAssetName)) {
-                            std::vector<COutput> vOutput;
-                            mapAssetCoins.insert(std::make_pair(strAssetName, vOutput));
-                        }
+                    // Initialize the map of current asset totals
+                    if (!mapAssetTotals.count(output_data.assetName))
+                        mapAssetTotals[output_data.assetName] = 0;
 
-                        // Add the COutput to the map of available Asset Coins
-                        mapAssetCoins.at(strAssetName).push_back(
-                                COutput(pcoin, i, nDepth, fSpendableIn, fSolvableIn, safeTx));
+                    // Update the map of totals depending the which type of asset tx we are looking at
+                    mapAssetTotals[output_data.assetName] += output_data.nAmount;
 
-                        // Initialize the map of current asset totals
-                        if (!mapAssetTotals.count(strAssetName))
-                            mapAssetTotals[strAssetName] = 0;
+                    // Checks the sum amount of all UTXO's, and adds to the set of assets that we found the max for
+                    if (nMinimumSumAmount != MAX_MONEY) {
+                        if (mapAssetTotals[output_data.assetName] >= nMinimumSumAmount)
+                            setAssetMaxFound.insert(output_data.assetName);
+                    }
 
-                        // Update the map of totals depending the which type of asset tx we are looking at
-                        if (fWasNewAssetOutPoint)
-                            mapAssetTotals[strAssetName] += asset.nAmount;
-                        else if (fWasTransferAssetOutPoint)
-                            mapAssetTotals[strAssetName] += assetTransfer.nAmount;
-                        else if (fWasReissueAssetOutPoint)
-                            mapAssetTotals[strAssetName] += reissue.nAmount;
-                        else if (fWasOwnerAssetOutPoint)
-                            mapAssetTotals[strAssetName] = OWNER_ASSET_AMOUNT;
-
-                        // Checks the sum amount of all UTXO's, and adds to the set of assets that we found the max for
-                        if (nMinimumSumAmount != MAX_MONEY) {
-                            if (mapAssetTotals[strAssetName] >= nMinimumSumAmount)
-                                setAssetMaxFound.insert(strAssetName);
-                        }
-
-                        // Checks the maximum number of UTXO's, and addes to set of of asset that we found the max for
-                        if (nMaximumCount > 0 && mapAssetCoins[strAssetName].size() >= nMaximumCount) {
-                            setAssetMaxFound.insert(strAssetName);
-                        }
+                    // Checks the maximum number of UTXO's, and addes to set of of asset that we found the max for
+                    if (nMaximumCount > 0 && mapAssetCoins[output_data.assetName].size() >= nMaximumCount) {
+                        setAssetMaxFound.insert(output_data.assetName);
                     }
                 }
 
-                if (fGetRVN) { // Looking for RVN Tx OutPoints Only
-                    if (fRVNLimitHit) // We hit our limit
+                if (fGetAVN) { // Looking for AVN Tx OutPoints Only
+                    if (fAVNLimitHit) // We hit our limit
                         continue;
 
-                    // We only want RVN OutPoints. Don't include Asset OutPoints
+                    // We only want AVN OutPoints. Don't include Asset OutPoints
                     if (isAssetScript)
                         continue;
 
@@ -2345,23 +2513,23 @@ void CWallet::AvailableCoinsAll(std::vector<COutput>& vCoins, std::map<std::stri
                         nTotal += pcoin->tx->vout[i].nValue;
 
                         if (nTotal >= nMinimumSumAmount) {
-                            fRVNLimitHit = true;
+                            fAVNLimitHit = true;
                         }
                     }
 
                     // Checks the maximum number of UTXO's.
                     if (nMaximumCount > 0 && vCoins.size() >= nMaximumCount) {
-                        fRVNLimitHit = true;
+                        fAVNLimitHit = true;
                     }
                     continue;
                 }
             }
         }
-        /** RVN END */
+        /** AVN END */
     }
 }
 
-/** RVN START */
+/** AVN START */
 
 std::map<CTxDestination, std::vector<COutput>> CWallet::ListAssets() const
 {
@@ -2371,8 +2539,8 @@ std::map<CTxDestination, std::vector<COutput>> CWallet::ListAssets() const
     // CWalletTx objects, callers to this function really should acquire the
     // cs_wallet lock before calling it. However, the current caller doesn't
     // acquire this lock yet. There was an attempt to add the missing lock in
-    // https://github.com/RavenProject/Ravencoin/pull/10340, but that change has been
-    // postponed until after https://github.com/RavenProject/Ravencoin/pull/10244 to
+    // https://github.com/bitcoin/bitcoin/pull/10340, but that change has been
+    // postponed until after https://github.com/bitcoin/bitcoin/pull/10244 to
     // avoid adding some extra complexity to the Qt code.
 
     std::map<CTxDestination, std::vector<COutput>> result;
@@ -2413,7 +2581,7 @@ std::map<CTxDestination, std::vector<COutput>> CWallet::ListAssets() const
     return result;
 }
 
-/** RVN END */
+/** AVN END */
 
 std::map<CTxDestination, std::vector<COutput>> CWallet::ListCoins() const
 {
@@ -2423,8 +2591,8 @@ std::map<CTxDestination, std::vector<COutput>> CWallet::ListCoins() const
     // CWalletTx objects, callers to this function really should acquire the
     // cs_wallet lock before calling it. However, the current caller doesn't
     // acquire this lock yet. There was an attempt to add the missing lock in
-    // https://github.com/RavenProject/Ravencoin/pull/10340, but that change has been
-    // postponed until after https://github.com/RavenProject/Ravencoin/pull/10244 to
+    // https://github.com/bitcoin/bitcoin/pull/10340, but that change has been
+    // postponed until after https://github.com/bitcoin/bitcoin/pull/10244 to
     // avoid adding some extra complexity to the Qt code.
 
     std::map<CTxDestination, std::vector<COutput>> result;
@@ -2581,7 +2749,7 @@ bool CWallet::SelectCoinsMinConf(const CAmount& nTargetValue, const int nConfMin
     std::vector<CInputCoin> vValue;
     CAmount nTotalLower = 0;
 
-    Shuffle(vCoins.begin(), vCoins.end(), FastRandomContext());
+    random_shuffle(vCoins.begin(), vCoins.end(), GetRandInt);
 
     for (const COutput &output : vCoins)
     {
@@ -2745,7 +2913,7 @@ bool CWallet::SelectCoins(const std::vector<COutput>& vAvailableCoins, const CAm
     return res;
 }
 
-/** RVN START */
+/** AVN START */
 bool CWallet::CreateNewChangeAddress(CReserveKey& reservekey, CKeyID& keyID, std::string& strFailReason)
 {
     // Called with coin control doesn't have a change_address
@@ -2784,10 +2952,10 @@ bool CWallet::SelectAssetsMinConf(const CAmount& nTargetValue, const int nConfMi
     std::map<COutPoint, CAmount> mapValueAmount;
     CAmount nTotalLower = 0;
 
-    Shuffle(vCoins.begin(), vCoins.end(), FastRandomContext());
-
+    random_shuffle(vCoins.begin(), vCoins.end(), GetRandInt);
+    #pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
     for (const COutput &output : vCoins)
-        {
+    {
         if (!output.fSpendable)
             continue;
 
@@ -2808,8 +2976,6 @@ bool CWallet::SelectAssetsMinConf(const CAmount& nTargetValue, const int nConfMi
         int nType = -1;
         bool fIsOwner = false;
         if (!coin.txout.scriptPubKey.IsAssetScript(nType, fIsOwner)) {
-            // TODO - Remove std::cout this before mainnet release
-            std::cout << "This shouldn't be occuring: Non Asset Script pub key made it to the SelectAssetsMinConf function call. Look into this!" << std::endl;
             continue;
         }
 
@@ -2875,6 +3041,8 @@ bool CWallet::SelectAssetsMinConf(const CAmount& nTargetValue, const int nConfMi
         if (!coinLowestLarger || !coinLowestLargerAmount)
             return false;
         setCoinsRet.insert(coinLowestLarger.get());
+
+        #pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
         nValueRet += coinLowestLargerAmount.get();
         return true;
     }
@@ -2975,7 +3143,7 @@ bool CWallet::SelectAssets(const std::map<std::string, std::vector<COutput> >& m
     return true;
 }
 
-/** RVN END */
+/** AVN END */
 
 bool CWallet::SignTransaction(CMutableTransaction &tx)
 {
@@ -3114,8 +3282,7 @@ bool CWallet::CreateTransactionAll(const std::vector<CRecipient>& vecSend, CWall
                                    bool fTransferAsset, bool fReissueAsset, const CReissueAsset& reissueAsset,
                                    const AssetType& assetType, bool sign)
 {
-
-    /** RVN START */
+    /** AVN START */
     if (!AreAssetsDeployed() && (fTransferAsset || fNewAsset || fReissueAsset))
         return false;
 
@@ -3127,7 +3294,7 @@ bool CWallet::CreateTransactionAll(const std::vector<CRecipient>& vecSend, CWall
 
     if (fReissueAsset && (reissueAsset.IsNull() || !IsValidDestination(destination)))
         return error("%s : Tried reissuing an asset and the reissue data was null or the destination was invalid", __func__);
-    /** RVN END */
+    /** AVN END */
 
     CAmount nValue = 0;
     std::map<std::string, CAmount> mapAssetValue;
@@ -3135,8 +3302,8 @@ bool CWallet::CreateTransactionAll(const std::vector<CRecipient>& vecSend, CWall
     unsigned int nSubtractFeeFromAmount = 0;
     for (const auto& recipient : vecSend)
     {
-        /** RVN START */
-        if (fTransferAsset || fReissueAsset || assetType == AssetType::SUB || assetType == AssetType::UNIQUE) {
+        /** AVN START */
+        if (fTransferAsset || fReissueAsset || assetType == AssetType::SUB || assetType == AssetType::UNIQUE || assetType == AssetType::MSGCHANNEL || assetType == AssetType::SUB_QUALIFIER || assetType == AssetType::RESTRICTED) {
             CAssetTransfer assetTransfer;
             std::string address;
             if (TransferAssetFromScript(recipient.scriptPubKey, assetTransfer, address)) {
@@ -3151,7 +3318,7 @@ bool CWallet::CreateTransactionAll(const std::vector<CRecipient>& vecSend, CWall
                 mapAssetValue[assetTransfer.strName] += assetTransfer.nAmount;
             }
         }
-        /** RVN END */
+        /** AVN END */
 
         if (nValue < 0 || recipient.nAmount < 0)
         {
@@ -3213,18 +3380,19 @@ bool CWallet::CreateTransactionAll(const std::vector<CRecipient>& vecSend, CWall
         std::set<CInputCoin> setAssets;
         LOCK2(cs_main, cs_wallet);
         {
-            /** RVN START */
+            /** AVN START */
             std::vector<COutput> vAvailableCoins;
             std::map<std::string, std::vector<COutput> > mapAssetCoins;
-            if (fTransferAsset || fReissueAsset || assetType == AssetType::SUB || assetType == AssetType::UNIQUE)
+            if (fTransferAsset || fReissueAsset || assetType == AssetType::SUB || assetType == AssetType::UNIQUE || assetType == AssetType::MSGCHANNEL || assetType == AssetType::SUB_QUALIFIER || assetType == AssetType::RESTRICTED)
                 AvailableCoinsWithAssets(vAvailableCoins, mapAssetCoins, true, &coin_control);
             else
                 AvailableCoins(vAvailableCoins, true, &coin_control);
-            /** RVN END */
+            /** AVN END */
             // Create change script that will be used if we need change
             // TODO: pass in scriptChange instead of reservekey so
-            // change transaction isn't always pay-to-raven-address
+            // change transaction isn't always pay-to-avian-address
             CScript scriptChange;
+            CScript assetScriptChange;
 
             // coin control: send change to custom address
             if (!boost::get<CNoDestination>(&coin_control.destChange)) {
@@ -3238,6 +3406,14 @@ bool CWallet::CreateTransactionAll(const std::vector<CRecipient>& vecSend, CWall
 
                 scriptChange = GetScriptForDestination(keyID);
             }
+
+            /** AVN START */
+            if (!boost::get<CNoDestination>(&coin_control.assetDestChange)) {
+                assetScriptChange = GetScriptForDestination(coin_control.assetDestChange);
+            } else {
+                assetScriptChange = scriptChange;
+            }
+            /** AVN END */
 
             CTxOut change_prototype_txout(0, scriptChange);
             size_t change_prototype_size = GetSerializeSize(change_prototype_txout, SER_DISK, 0);
@@ -3267,6 +3443,15 @@ bool CWallet::CreateTransactionAll(const std::vector<CRecipient>& vecSend, CWall
                 {
                     CTxOut txout(recipient.nAmount, recipient.scriptPubKey);
 
+                    /** AVN START */
+                    // Check to see if you need to make an asset data outpoint OP_AVN_ASSET data
+                    if (recipient.scriptPubKey.IsNullAssetTxDataScript()) {
+                        assert(txout.nValue == 0);
+                        txNew.vout.push_back(txout);
+                        continue;
+                    }
+                    /** AVN END */
+
                     if (recipient.fSubtractFeeFromAmount)
                     {
                         assert(nSubtractFeeFromAmount != 0);
@@ -3279,7 +3464,7 @@ bool CWallet::CreateTransactionAll(const std::vector<CRecipient>& vecSend, CWall
                         }
                     }
 
-                    if (IsDust(txout, ::dustRelayFee) && !IsScriptTransferAsset(recipient.scriptPubKey)) /** RVN START */ /** RVN END */
+                    if (IsDust(txout, ::dustRelayFee) && !IsScriptTransferAsset(recipient.scriptPubKey)) /** AVN START */ /** AVN END */
                     {
                         if (recipient.fSubtractFeeFromAmount && nFeeRet > 0)
                         {
@@ -3293,6 +3478,7 @@ bool CWallet::CreateTransactionAll(const std::vector<CRecipient>& vecSend, CWall
                         }
                         return false;
                     }
+
                     txNew.vout.push_back(txout);
                 }
 
@@ -3306,7 +3492,7 @@ bool CWallet::CreateTransactionAll(const std::vector<CRecipient>& vecSend, CWall
                         return false;
                     }
 
-                    /** RVN START */
+                    /** AVN START */
                     if (AreAssetsDeployed()) {
                         setAssets.clear();
                         mapAssetsIn.clear();
@@ -3315,12 +3501,12 @@ bool CWallet::CreateTransactionAll(const std::vector<CRecipient>& vecSend, CWall
                             return false;
                         }
                     }
-                    /** RVN END */
+                    /** AVN END */
                 }
 
                 const CAmount nChange = nValueIn - nValueToSelect;
 
-                /** RVN START */
+                /** AVN START */
                 if (AreAssetsDeployed()) {
                     // Add the change for the assets
                     std::map<std::string, CAmount> mapAssetChange;
@@ -3332,17 +3518,82 @@ bool CWallet::CreateTransactionAll(const std::vector<CRecipient>& vecSend, CWall
 
                     for (auto assetChange : mapAssetChange) {
                         if (assetChange.second > 0) {
-                            CScript scriptAssetChange = scriptChange;
-                            CAssetTransfer assetTransfer(assetChange.first, assetChange.second);
+                            if (IsAssetNameAnRestricted(assetChange.first))
+                            {
+                                // Get the verifier string for the restricted asset
+                                CNullAssetTxVerifierString verifier;
+                                if (!passets->GetAssetVerifierStringIfExists(assetChange.first, verifier)) {
+                                    strFailReason = _("Verifier String for asset trasnfer, not found");
+                                    return false;
+                                }
 
-                            assetTransfer.ConstructTransaction(scriptAssetChange);
-                            CTxOut newAssetTxOut(0, scriptAssetChange);
+                                // Get the change address
+                                CTxDestination dest;
+                                if (!ExtractDestination(assetScriptChange, dest)) {
+                                    strFailReason = _("Failed to extract destination from change script");
+                                    return false;
+                                }
 
-                            txNew.vout.emplace_back(newAssetTxOut);
+                                std::string change_address = EncodeDestination(dest);
+                                bool fFoundValueChangeAddress = false;
+                                // Check the verifier string against the change address, if it fails, we will try to send the change back to the same input that created this transaction
+                                if (!ContextualCheckVerifierString(passets, verifier.verifier_string, change_address, strFailReason)) {
+                                    // Loop through all assets that are inputs into the transaction
+                                    for (auto asset: setAssets) {
+                                        if (asset.txout.scriptPubKey.IsAssetScript()) {
+                                            CAssetOutputEntry outputData;
+                                            if (!GetAssetData(asset.txout.scriptPubKey, outputData)) {
+                                                strFailReason = _("Failed to get asset data from script");
+                                                return false;
+                                            }
+
+                                            // If the asset names don't match, continue through the set of assets
+                                            if (outputData.assetName != assetChange.first)
+                                                continue;
+
+                                            std::string check_address = EncodeDestination(outputData.destination);
+
+                                            if (ContextualCheckVerifierString(passets, verifier.verifier_string, check_address, strFailReason)) {
+                                                fFoundValueChangeAddress = true;
+
+                                                CScript scriptAssetChange = GetScriptForDestination(outputData.destination);
+                                                CAssetTransfer assetTransfer(assetChange.first, assetChange.second);
+
+                                                assetTransfer.ConstructTransaction(scriptAssetChange);
+                                                CTxOut newAssetTxOut(0, scriptAssetChange);
+
+                                                txNew.vout.emplace_back(newAssetTxOut);
+                                                break;
+                                            }
+                                        }
+                                    }
+                                } else  {
+                                    fFoundValueChangeAddress = true;
+                                    CScript scriptAssetChange = assetScriptChange;
+                                    CAssetTransfer assetTransfer(assetChange.first, assetChange.second);
+
+                                    assetTransfer.ConstructTransaction(scriptAssetChange);
+                                    CTxOut newAssetTxOut(0, scriptAssetChange);
+
+                                    txNew.vout.emplace_back(newAssetTxOut);
+                                }
+                                if (!fFoundValueChangeAddress) {
+                                    strFailReason = _("Failed to find restricted asset change address from inputs");
+                                    return false;
+                                }
+                            } else {
+                                CScript scriptAssetChange = assetScriptChange;
+                                CAssetTransfer assetTransfer(assetChange.first, assetChange.second);
+
+                                assetTransfer.ConstructTransaction(scriptAssetChange);
+                                CTxOut newAssetTxOut(0, scriptAssetChange);
+
+                                txNew.vout.emplace_back(newAssetTxOut);
+                            }
                         }
                     }
                 }
-                /** RVN END */
+                /** AVN END */
 
                 if (nChange > 0)
                 {
@@ -3376,12 +3627,12 @@ bool CWallet::CreateTransactionAll(const std::vector<CRecipient>& vecSend, CWall
                     nChangePosInOut = -1;
                 }
 
-                /** RVN START */
+                /** AVN START */
                 if (AreAssetsDeployed()) {
                     if (fNewAsset) {
                         for (auto asset : assets) {
                             // Create the owner token output for non-unique assets
-                            if (assetType != AssetType::UNIQUE) {
+                            if (assetType != AssetType::UNIQUE && assetType != AssetType::MSGCHANNEL && assetType != AssetType::QUALIFIER && assetType != AssetType::SUB_QUALIFIER && assetType != AssetType::RESTRICTED) {
                                 CScript ownerScript = GetScriptForDestination(destination);
                                 asset.ConstructOwnerTransaction(ownerScript);
                                 CTxOut ownerTxOut(0, ownerScript);
@@ -3405,7 +3656,7 @@ bool CWallet::CreateTransactionAll(const std::vector<CRecipient>& vecSend, CWall
                         txNew.vout.push_back(reissueTxOut);
                     }
                 }
-                /** RVN END */
+                /** AVN END */
 
                 // Fill vin
                 //
@@ -3423,23 +3674,20 @@ bool CWallet::CreateTransactionAll(const std::vector<CRecipient>& vecSend, CWall
                     txNew.vin.push_back(CTxIn(coin.outpoint,CScript(),
                                               nSequence));
 
-                /** RVN START */
+                /** AVN START */
                 if (AreAssetsDeployed()) {
                     for (const auto &asset : setAssets)
                         txNew.vin.push_back(CTxIn(asset.outpoint, CScript(),
                                                   nSequence));
                 }
-                /** RVN END */
+                /** AVN END */
 
                 // Add the new asset inputs into the tempSet so the dummysigntx will add the correct amount of sigsß
                 std::set<CInputCoin> tempSet = setCoins;
                 tempSet.insert(setAssets.begin(), setAssets.end());
 
                 // Fill in dummy signatures for fee calculation.
-                if (!DummySignTx(txNew, tempSet)) {
-                    strFailReason = _("Signing transaction for fee calculation failed");
-                    return false;
-                }
+                DummySignTx(txNew, tempSet);
 
                 nBytes = GetVirtualTransactionSize(txNew);
 
@@ -3552,14 +3800,14 @@ bool CWallet::CreateTransactionAll(const std::vector<CRecipient>& vecSend, CWall
 
                 nIn++;
             }
-            /** RVN START */
+            /** AVN START */
             if (AreAssetsDeployed()) {
                 for (const auto &asset : setAssets) {
                     const CScript &scriptPubKey = asset.txout.scriptPubKey;
                     SignatureData sigdata;
 
                     if (!ProduceSignature(
-                            TransactionSignatureCreator(this, &txNewConst, nIn, asset.txout.nValue, nHashType),
+                            TransactionSignatureCreator(this, &txNewConst, nIn, asset.txout.nValue, SIGHASH_ALL),
                             scriptPubKey, sigdata)) {
                         strFailReason = _("Signing asset transaction failed");
                         return false;
@@ -3570,7 +3818,7 @@ bool CWallet::CreateTransactionAll(const std::vector<CRecipient>& vecSend, CWall
                     nIn++;
                 }
             }
-            /** RVN END */
+            /** AVN END */
         }
 
         // Embed the constructed transaction data in wtxNew.
@@ -3636,6 +3884,9 @@ bool CWallet::CommitTransaction(CWalletTx& wtxNew, CReserveKey& reservekey, CCon
             }
         }
 
+        // Track how many getdata requests our transaction gets
+        mapRequestCount[wtxNew.GetHash()] = 0;
+
         if (fBroadcastTransactions)
         {
             // Broadcast
@@ -3675,6 +3926,11 @@ bool CWallet::AddAccountingEntry(const CAccountingEntry& acentry, CWalletDB *pwa
     wtxOrdered.insert(std::make_pair(entry.nOrderPos, TxPair(nullptr, &entry)));
 
     return true;
+}
+
+bool CWallet::IsFirstRun()
+{
+    return mapKeys.empty() && mapCryptedKeys.empty() && mapWatchKeys.empty() && setWatchOnly.empty() && mapScripts.empty();
 }
 
 DBErrors CWallet::LoadWallet(bool& fFirstRunRet)
@@ -4358,8 +4614,8 @@ void CWallet::GetKeyBirthTimes(std::map<CTxDestination, int64_t> &mapKeyBirth) c
  *   the block time.
  *
  * For more information see CWalletTx::nTimeSmart,
- * https://raventalk.org/?topic=54527, or
- * https://github.com/RavenProject/Ravencoin/pull/1393.
+ * https://bitcointalk.org/?topic=54527, or
+ * https://github.com/bitcoin/bitcoin/pull/1393.
  */
 unsigned int CWallet::ComputeTimeSmart(const CWalletTx& wtx) const
 {
@@ -4457,7 +4713,7 @@ std::vector<std::string> CWallet::GetDestValues(const std::string& prefix) const
     return values;
 }
 
-CWallet* CWallet::CreateWalletFromFile(const std::string walletFile)
+CWallet* CWallet:: CreateWalletFromFile(const std::string walletFile)
 {
     // needed to restore wallet transaction meta data after -zapwallettxes
     std::vector<CWalletTx> vWtx;
@@ -4527,6 +4783,7 @@ CWallet* CWallet::CreateWalletFromFile(const std::string walletFile)
         walletInstance->SetMaxVersion(nMaxVersion);
     }
 
+
     if (fFirstRun)
     {
         // ensure this wallet.dat can only be opened by clients supporting HD with chain split and expects no default key
@@ -4534,12 +4791,27 @@ CWallet* CWallet::CreateWalletFromFile(const std::string walletFile)
             InitError(strprintf(_("Error creating %s: You can't create non-HD wallets with this version."), walletFile));
             return nullptr;
         }
+
         walletInstance->SetMinVersion(FEATURE_NO_DEFAULT_KEY);
 
+        walletInstance->UseBip44(gArgs.GetBoolArg("-bip44", true));
+        LogPrintf("parameter interaction: -bip44 wallet enabled: %s\n", gArgs.GetBoolArg("-bip44", true));
+
+        if (!walletInstance->hdChain.IsBip44()) {
+            CPubKey seed = walletInstance->GenerateNewSeed();
+            if (!walletInstance->SetHDSeed(seed))
+                throw std::runtime_error(std::string(__func__) + ": Storing HD seed failed");
+        }
+
+        // If this is the first run, show the bip44 gui to the user
+        if (walletInstance->hdChain.IsBip44()){
+            if (gArgs.GetArg("-mnemonic", "").empty() && gArgs.GetArg("-mnemonicpassphrase", "").empty())
+                uiInterface.ShowMnemonic(CClientUIInterface::MODAL);
+        }
+
         // generate a new seed
-        CPubKey seed = walletInstance->GenerateNewSeed();
-        if (!walletInstance->SetHDSeed(seed))
-            throw std::runtime_error(std::string(__func__) + ": Storing HD seed failed");
+        if (walletInstance->hdChain.IsBip44())
+            walletInstance->GenerateNewSeed();
 
         // Top up the keypool
         if (!walletInstance->TopUpKeyPool()) {
@@ -4567,6 +4839,39 @@ CWallet* CWallet::CreateWalletFromFile(const std::string walletFile)
 
     // Try to top up keypool. No-op if the wallet is locked.
     walletInstance->TopUpKeyPool();
+
+    if (walletInstance->hdChain.IsBip44() && fFirstRun) {
+        CWalletDB walletdb(walletInstance->GetDBHandle());
+
+        std::string strWords(walletInstance->hdChain.vchMnemonic.begin(), walletInstance->hdChain.vchMnemonic.end());
+        std::vector<unsigned char> vchWords(walletInstance->hdChain.vchMnemonic.begin(), walletInstance->hdChain.vchMnemonic.end());
+
+        auto hash = Hash(strWords.begin(), strWords.end());
+        if (!walletdb.WriteBip39Words(hash, vchWords, false)) {
+            InitError(_("Error writing bip 39 words to database"));
+            return nullptr;
+        }
+
+        walletInstance->LoadWords(hash, vchWords);
+
+        std::vector<unsigned char> vchSeed(walletInstance->hdChain.vchSeed.begin(), walletInstance->hdChain.vchSeed.end());
+        if (!walletdb.WriteBip39VchSeed(vchSeed, false)) {
+            InitError(_("Error writing bip 39 vchseed to database"));
+            return nullptr;
+        }
+
+        walletInstance->LoadVchSeed(vchSeed);
+
+        if (!walletInstance->hdChain.vchMnemonicPassphrase.empty()) {
+            std::vector<unsigned char> vchPassphrase(walletInstance->hdChain.vchMnemonicPassphrase.begin(), walletInstance->hdChain.vchMnemonicPassphrase.end());
+            if (!walletdb.WriteBip39Passphrase(vchPassphrase, false)) {
+                InitError(_("Error writing bip 39 passphrase to database"));
+                return nullptr;
+            }
+
+            walletInstance->LoadPassphrase(vchPassphrase);
+        }
+    }
 
     CBlockIndex *pindexRescan = chainActive.Genesis();
     if (!gArgs.GetBoolArg("-rescan", false))
@@ -4662,6 +4967,12 @@ void CWallet::postInitProcess(CScheduler& scheduler)
 bool CWallet::BackupWallet(const std::string& strDest)
 {
     return dbw->Backup(strDest);
+}
+
+void CWallet::UpdateMyRestrictedAssets(std::string& address, std::string& asset_name, int type, uint32_t date)
+{
+    LOCK(cs_wallet);
+    NotifyMyRestrictedAssetsChanged(this, address, asset_name, type, date);
 }
 
 CKeyPool::CKeyPool()

@@ -1,99 +1,98 @@
 # Copyright (c) 2013-2016 The Bitcoin Core developers
-# Copyright (c) 2017 The Raven Core developers
+# Copyright (c) 2017-2019 The Raven Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 bin_PROGRAMS += qt/avian-qt
 EXTRA_LIBRARIES += qt/libavianqt.a
 
-# raven qt core #
+# avian qt core #
 QT_TS = \
-  qt/locale/raven_af.ts \
-  qt/locale/raven_af_ZA.ts \
-  qt/locale/raven_ar.ts \
-  qt/locale/raven_be_BY.ts \
-  qt/locale/raven_bg_BG.ts \
-  qt/locale/raven_bg.ts \
-  qt/locale/raven_ca_ES.ts \
-  qt/locale/raven_ca.ts \
-  qt/locale/raven_ca@valencia.ts \
-  qt/locale/raven_cs.ts \
-  qt/locale/raven_cy.ts \
-  qt/locale/raven_da.ts \
-  qt/locale/raven_de.ts \
-  qt/locale/raven_el_GR.ts \
-  qt/locale/raven_el.ts \
-  qt/locale/raven_en_GB.ts \
-  qt/locale/raven_en.ts \
-  qt/locale/raven_eo.ts \
-  qt/locale/raven_es_AR.ts \
-  qt/locale/raven_es_CL.ts \
-  qt/locale/raven_es_CO.ts \
-  qt/locale/raven_es_DO.ts \
-  qt/locale/raven_es_ES.ts \
-  qt/locale/raven_es_MX.ts \
-  qt/locale/raven_es.ts \
-  qt/locale/raven_es_UY.ts \
-  qt/locale/raven_es_VE.ts \
-  qt/locale/raven_et_EE.ts \
-  qt/locale/raven_et.ts \
-  qt/locale/raven_eu_ES.ts \
-  qt/locale/raven_fa_IR.ts \
-  qt/locale/raven_fa.ts \
-  qt/locale/raven_fi.ts \
-  qt/locale/raven_fr_CA.ts \
-  qt/locale/raven_fr_FR.ts \
-  qt/locale/raven_fr.ts \
-  qt/locale/raven_gl.ts \
-  qt/locale/raven_he.ts \
-  qt/locale/raven_hi_IN.ts \
-  qt/locale/raven_hr.ts \
-  qt/locale/raven_hu.ts \
-  qt/locale/raven_id_ID.ts \
-  qt/locale/raven_it_IT.ts \
-  qt/locale/raven_it.ts \
-  qt/locale/raven_ja.ts \
-  qt/locale/raven_ka.ts \
-  qt/locale/raven_kk_KZ.ts \
-  qt/locale/raven_ko_KR.ts \
-  qt/locale/raven_ku_IQ.ts \
-  qt/locale/raven_ky.ts \
-  qt/locale/raven_la.ts \
-  qt/locale/raven_lt.ts \
-  qt/locale/raven_lv_LV.ts \
-  qt/locale/raven_mk_MK.ts \
-  qt/locale/raven_mn.ts \
-  qt/locale/raven_ms_MY.ts \
-  qt/locale/raven_nb.ts \
-  qt/locale/raven_ne.ts \
-  qt/locale/raven_nl.ts \
-  qt/locale/raven_pam.ts \
-  qt/locale/raven_pl.ts \
-  qt/locale/raven_pt_BR.ts \
-  qt/locale/raven_pt_PT.ts \
-  qt/locale/raven_ro_RO.ts \
-  qt/locale/raven_ro.ts \
-  qt/locale/raven_ru_RU.ts \
-  qt/locale/raven_ru.ts \
-  qt/locale/raven_sk.ts \
-  qt/locale/raven_sl_SI.ts \
-  qt/locale/raven_sq.ts \
-  qt/locale/raven_sr@latin.ts \
-  qt/locale/raven_sr.ts \
-  qt/locale/raven_sv.ts \
-  qt/locale/raven_ta.ts \
-  qt/locale/raven_th_TH.ts \
-  qt/locale/raven_tr_TR.ts \
-  qt/locale/raven_tr.ts \
-  qt/locale/raven_uk.ts \
-  qt/locale/raven_ur_PK.ts \
-  qt/locale/raven_uz@Cyrl.ts \
-  qt/locale/raven_vi.ts \
-  qt/locale/raven_vi_VN.ts \
-  qt/locale/raven_zh_CN.ts \
-  qt/locale/raven_zh_HK.ts \
-  qt/locale/raven_zh.ts \
-  qt/locale/raven_zh_TW.ts
+  qt/locale/avian_af.ts \
+  qt/locale/avian_af_ZA.ts \
+  qt/locale/avian_ar.ts \
+  qt/locale/avian_be_BY.ts \
+  qt/locale/avian_bg_BG.ts \
+  qt/locale/avian_bg.ts \
+  qt/locale/avian_ca_ES.ts \
+  qt/locale/avian_ca.ts \
+  qt/locale/avian_ca@valencia.ts \
+  qt/locale/avian_cs.ts \
+  qt/locale/avian_cy.ts \
+  qt/locale/avian_da.ts \
+  qt/locale/avian_de.ts \
+  qt/locale/avian_el_GR.ts \
+  qt/locale/avian_el.ts \
+  qt/locale/avian_en_GB.ts \
+  qt/locale/avian_en.ts \
+  qt/locale/avian_eo.ts \
+  qt/locale/avian_es_AR.ts \
+  qt/locale/avian_es_CL.ts \
+  qt/locale/avian_es_CO.ts \
+  qt/locale/avian_es_DO.ts \
+  qt/locale/avian_es_ES.ts \
+  qt/locale/avian_es_MX.ts \
+  qt/locale/avian_es.ts \
+  qt/locale/avian_es_UY.ts \
+  qt/locale/avian_es_VE.ts \
+  qt/locale/avian_et_EE.ts \
+  qt/locale/avian_et.ts \
+  qt/locale/avian_eu_ES.ts \
+  qt/locale/avian_fa_IR.ts \
+  qt/locale/avian_fa.ts \
+  qt/locale/avian_fi.ts \
+  qt/locale/avian_fr_CA.ts \
+  qt/locale/avian_fr_FR.ts \
+  qt/locale/avian_fr.ts \
+  qt/locale/avian_gl.ts \
+  qt/locale/avian_he.ts \
+  qt/locale/avian_hi_IN.ts \
+  qt/locale/avian_hr.ts \
+  qt/locale/avian_hu.ts \
+  qt/locale/avian_id_ID.ts \
+  qt/locale/avian_it_IT.ts \
+  qt/locale/avian_it.ts \
+  qt/locale/avian_ja.ts \
+  qt/locale/avian_ka.ts \
+  qt/locale/avian_kk_KZ.ts \
+  qt/locale/avian_ko_KR.ts \
+  qt/locale/avian_ku_IQ.ts \
+  qt/locale/avian_ky.ts \
+  qt/locale/avian_la.ts \
+  qt/locale/avian_lt.ts \
+  qt/locale/avian_lv_LV.ts \
+  qt/locale/avian_mk_MK.ts \
+  qt/locale/avian_mn.ts \
+  qt/locale/avian_ms_MY.ts \
+  qt/locale/avian_nb.ts \
+  qt/locale/avian_ne.ts \
+  qt/locale/avian_nl.ts \
+  qt/locale/avian_pl.ts \
+  qt/locale/avian_pt_BR.ts \
+  qt/locale/avian_pt_PT.ts \
+  qt/locale/avian_ro_RO.ts \
+  qt/locale/avian_ro.ts \
+  qt/locale/avian_ru_RU.ts \
+  qt/locale/avian_ru.ts \
+  qt/locale/avian_sk.ts \
+  qt/locale/avian_sl_SI.ts \
+  qt/locale/avian_sq.ts \
+  qt/locale/avian_sr@latin.ts \
+  qt/locale/avian_sr.ts \
+  qt/locale/avian_sv.ts \
+  qt/locale/avian_ta.ts \
+  qt/locale/avian_th_TH.ts \
+  qt/locale/avian_tr_TR.ts \
+  qt/locale/avian_tr.ts \
+  qt/locale/avian_uk.ts \
+  qt/locale/avian_ur_PK.ts \
+  qt/locale/avian_uz@Cyrl.ts \
+  qt/locale/avian_vi.ts \
+  qt/locale/avian_vi_VN.ts \
+  qt/locale/avian_zh_CN.ts \
+  qt/locale/avian_zh_HK.ts \
+  qt/locale/avian_zh.ts \
+  qt/locale/avian_zh_TW.ts
 
 QT_FORMS_UI = \
   qt/forms/addressbookpage.ui \
@@ -114,6 +113,8 @@ QT_FORMS_UI = \
   qt/forms/debugwindow.ui \
   qt/forms/addpeerdialog.ui \
   qt/forms/testpeerdialog.ui \
+  qt/forms/poolpicker.ui \
+  qt/forms/wrapping.ui \
   qt/forms/sendcoinsdialog.ui \
   qt/forms/sendcoinsentry.ui \
   qt/forms/signverifymessagedialog.ui \
@@ -121,8 +122,13 @@ QT_FORMS_UI = \
   qt/forms/assetsdialog.ui \
   qt/forms/createassetdialog.ui \
   qt/forms/reissueassetdialog.ui \
+  qt/forms/restrictedassetsdialog.ui \
+  qt/forms/restrictedassignqualifier.ui \
+  qt/forms/restrictedfreezeaddress.ui \
   qt/forms/sendassetsentry.ui \
-  qt/forms/mnemonicdialog.ui
+  qt/forms/mnemonicdialog1.ui \
+  qt/forms/mnemonicdialog2.ui \
+  qt/forms/mnemonicdialog3.ui
 
 QT_MOC_CPP = \
   qt/moc_addressbookpage.cpp \
@@ -132,10 +138,10 @@ QT_MOC_CPP = \
   qt/moc_assetcontroltreewidget.cpp \
   qt/moc_assetfilterproxy.cpp \
   qt/moc_bantablemodel.cpp \
-  qt/moc_ravenaddressvalidator.cpp \
-  qt/moc_ravenamountfield.cpp \
-  qt/moc_ravengui.cpp \
-  qt/moc_ravenunits.cpp \
+  qt/moc_avianaddressvalidator.cpp \
+  qt/moc_avianamountfield.cpp \
+  qt/moc_aviangui.cpp \
+  qt/moc_avianunits.cpp \
   qt/moc_callback.cpp \
   qt/moc_clientmodel.cpp \
   qt/moc_coincontroldialog.cpp \
@@ -155,6 +161,7 @@ QT_MOC_CPP = \
   qt/moc_optionsmodel.cpp \
   qt/moc_assettablemodel.cpp \
   qt/moc_overviewpage.cpp \
+  qt/moc_myrestrictedassettablemodel.cpp \
   qt/moc_peertablemodel.cpp \
   qt/moc_paymentserver.cpp \
   qt/moc_qvalidatedlineedit.cpp \
@@ -163,6 +170,8 @@ QT_MOC_CPP = \
   qt/moc_receiverequestdialog.cpp \
   qt/moc_recentrequeststablemodel.cpp \
   qt/moc_rpcconsole.cpp \
+  qt/moc_poolpicker.cpp \
+  qt/moc_wrapping.cpp \
   qt/moc_sendcoinsdialog.cpp \
   qt/moc_sendcoinsentry.cpp \
   qt/moc_signverifymessagedialog.cpp \
@@ -182,32 +191,34 @@ QT_MOC_CPP = \
   qt/moc_assetsdialog.cpp \
   qt/moc_createassetdialog.cpp \
   qt/moc_reissueassetdialog.cpp \
+  qt/moc_restrictedassetsdialog.cpp \
+  qt/moc_restrictedassignqualifier.cpp \
+  qt/moc_restrictedfreezeaddress.cpp \
   qt/moc_sendassetsentry.cpp \
   qt/moc_mnemonicdialog.cpp
 
-RAVEN_MM = \
+AVIAN_MM = \
   qt/macdockiconhandler.mm \
   qt/macnotificationhandler.mm
 
 QT_MOC = \
-  qt/raven.moc \
-  qt/ravenamountfield.moc \
+  qt/avian.moc \
+  qt/avianamountfield.moc \
   qt/callback.moc \
   qt/intro.moc \
   qt/overviewpage.moc \
-  qt/importkeysdialog.moc \
   qt/rpcconsole.moc
 
-QT_QRC_CPP = qt/qrc_raven.cpp
-QT_QRC = qt/raven.qrc
-QT_QRC_LOCALE_CPP = qt/qrc_raven_locale.cpp
-QT_QRC_LOCALE = qt/raven_locale.qrc
+QT_QRC_CPP = qt/qrc_avian.cpp
+QT_QRC = qt/avian.qrc
+QT_QRC_LOCALE_CPP = qt/qrc_avian_locale.cpp
+QT_QRC_LOCALE = qt/avian_locale.qrc
 
 PROTOBUF_CC = qt/paymentrequest.pb.cc
 PROTOBUF_H = qt/paymentrequest.pb.h
 PROTOBUF_PROTO = qt/paymentrequest.proto
 
-RAVEN_QT_H = \
+AVIAN_QT_H = \
   qt/addressbookpage.h \
   qt/addresstablemodel.h \
   qt/askpassphrasedialog.h \
@@ -218,15 +229,16 @@ RAVEN_QT_H = \
   qt/assetsdialog.h \
   qt/createassetdialog.h \
   qt/bantablemodel.h \
-  qt/ravenaddressvalidator.h \
-  qt/ravenamountfield.h \
-  qt/ravengui.h \
-  qt/ravenunits.h \
+  qt/avianaddressvalidator.h \
+  qt/avianamountfield.h \
+  qt/aviangui.h \
+  qt/avianunits.h \
   qt/callback.h \
   qt/clientmodel.h \
   qt/coincontroldialog.h \
   qt/coincontroltreewidget.h \
   qt/csvmodelwriter.h \
+  qt/currencyunits.h \
   qt/darkstyle.h \
   qt/editaddressdialog.h \
   qt/guiconstants.h \
@@ -236,6 +248,8 @@ RAVEN_QT_H = \
   qt/macdockiconhandler.h \
   qt/macnotificationhandler.h \
   qt/modaloverlay.h \
+  qt/myrestrictedassettablemodel.h \
+  qt/myrestrictedassetrecord.h \
   qt/networkstyle.h \
   qt/notificator.h \
   qt/openuridialog.h \
@@ -253,7 +267,11 @@ RAVEN_QT_H = \
   qt/receiverequestdialog.h \
   qt/recentrequeststablemodel.h \
   qt/reissueassetdialog.h \
+  qt/restrictedassetsdialog.h \
+  qt/restrictedassignqualifier.h \
+  qt/restrictedfreezeaddress.h \
   qt/rpcconsole.h \
+  qt/poolpicker.h \
   qt/sendassetsentry.h \
   qt/sendcoinsdialog.h \
   qt/sendcoinsentry.h \
@@ -266,6 +284,7 @@ RAVEN_QT_H = \
   qt/transactionrecord.h \
   qt/transactiontablemodel.h \
   qt/transactionview.h \
+  qt/wrapping.h \
   qt/utilitydialog.h \
   qt/verticallabel.h \
   qt/peerdialog.h \
@@ -289,10 +308,10 @@ RES_ICONS = \
   qt/res/icons/asset_manage_selected.png \
   qt/res/icons/asset_transfer.png \
   qt/res/icons/asset_transfer_selected.png \
-  qt/res/icons/avianlogo.png \
-  qt/res/icons/raven.ico \
-  qt/res/icons/raven_testnet.ico \
-  qt/res/icons/raven.png \
+  qt/res/icons/aviantext.png \
+  qt/res/icons/avian.ico \
+  qt/res/icons/avian_testnet.ico \
+  qt/res/icons/avian.png \
   qt/res/icons/chevron.png \
   qt/res/icons/clock1.png \
   qt/res/icons/clock2.png \
@@ -310,6 +329,8 @@ RES_ICONS = \
   qt/res/icons/editcopy.png \
   qt/res/icons/editpaste.png \
   qt/res/icons/export.png \
+  qt/res/icons/external_link.png \
+  qt/res/icons/external_link_dark.png \
   qt/res/icons/eye.png \
   qt/res/icons/eye_minus.png \
   qt/res/icons/eye_plus.png \
@@ -333,6 +354,8 @@ RES_ICONS = \
   qt/res/icons/receive_selected.png \
   qt/res/icons/refresh.png \
   qt/res/icons/remove.png \
+  qt/res/icons/restricted_asset.png \
+  qt/res/icons/restricted_asset_selected.png \
   qt/res/icons/send.png \
   qt/res/icons/send_selected.png \
   qt/res/icons/synced.png \
@@ -350,29 +373,214 @@ RES_ICONS = \
   qt/res/icons/verify.png \
   qt/res/icons/paper_wallet.png \
   qt/res/icons/print.png \
-  qt/res/darkstyle/icon_close.png \
-  qt/res/darkstyle/icon_restore.png \
-  qt/res/darkstyle/icon_undock.png \
-  qt/res/darkstyle/icon_branch_closed.png \
-  qt/res/darkstyle/icon_branch_end.png \
-  qt/res/darkstyle/icon_branch_more.png \
-  qt/res/darkstyle/icon_branch_open.png \
-  qt/res/darkstyle/icon_vline.png \
-  qt/res/darkstyle/icon_checkbox_checked.png \
-  qt/res/darkstyle/icon_checkbox_indeterminate.png \
-  qt/res/darkstyle/icon_checkbox_unchecked.png \
-  qt/res/darkstyle/icon_checkbox_checked_pressed.png \
-  qt/res/darkstyle/icon_checkbox_indeterminate_pressed.png \
-  qt/res/darkstyle/icon_checkbox_unchecked_pressed.png \
-  qt/res/darkstyle/icon_checkbox_checked_disabled.png \
-  qt/res/darkstyle/icon_checkbox_indeterminate_disabled.png \
-  qt/res/darkstyle/icon_checkbox_unchecked_disabled.png \
-  qt/res/darkstyle/icon_radiobutton_checked.png \
-  qt/res/darkstyle/icon_radiobutton_unchecked.png \
-  qt/res/darkstyle/icon_radiobutton_checked_pressed.png \
-  qt/res/darkstyle/icon_radiobutton_unchecked_pressed.png \
-  qt/res/darkstyle/icon_radiobutton_checked_disabled.png \
-  qt/res/darkstyle/icon_radiobutton_unchecked_disabled.png \
+  qt/res/darkstyle/arrow_down.png \
+  qt/res/darkstyle/arrow_down@2x.png \
+  qt/res/darkstyle/arrow_down_disabled.png \
+  qt/res/darkstyle/arrow_down_disabled@2x.png \
+  qt/res/darkstyle/arrow_down_focus.png \
+  qt/res/darkstyle/arrow_down_focus@2x.png \
+  qt/res/darkstyle/arrow_down_pressed.png \
+  qt/res/darkstyle/arrow_down_pressed@2x.png \
+  qt/res/darkstyle/arrow_left.png \
+  qt/res/darkstyle/arrow_left@2x.png \
+  qt/res/darkstyle/arrow_left_disabled.png \
+  qt/res/darkstyle/arrow_left_disabled@2x.png \
+  qt/res/darkstyle/arrow_left_focus.png \
+  qt/res/darkstyle/arrow_left_focus@2x.png \
+  qt/res/darkstyle/arrow_left_pressed.png \
+  qt/res/darkstyle/arrow_left_pressed@2x.png \
+  qt/res/darkstyle/arrow_right.png \
+  qt/res/darkstyle/arrow_right@2x.png \
+  qt/res/darkstyle/arrow_right_disabled.png \
+  qt/res/darkstyle/arrow_right_disabled@2x.png \
+  qt/res/darkstyle/arrow_right_focus.png \
+  qt/res/darkstyle/arrow_right_focus@2x.png \
+  qt/res/darkstyle/arrow_right_pressed.png \
+  qt/res/darkstyle/arrow_right_pressed@2x.png \
+  qt/res/darkstyle/arrow_up.png \
+  qt/res/darkstyle/arrow_up@2x.png \
+  qt/res/darkstyle/arrow_up_disabled.png \
+  qt/res/darkstyle/arrow_up_disabled@2x.png \
+  qt/res/darkstyle/arrow_up_focus.png \
+  qt/res/darkstyle/arrow_up_focus@2x.png \
+  qt/res/darkstyle/arrow_up_pressed.png \
+  qt/res/darkstyle/arrow_up_pressed@2x.png \
+  qt/res/darkstyle/base_icon.png \
+  qt/res/darkstyle/base_icon@2x.png \
+  qt/res/darkstyle/base_icon_disabled.png \
+  qt/res/darkstyle/base_icon_disabled@2x.png \
+  qt/res/darkstyle/base_icon_focus.png \
+  qt/res/darkstyle/base_icon_focus@2x.png \
+  qt/res/darkstyle/base_icon_pressed.png \
+  qt/res/darkstyle/base_icon_pressed@2x.png \
+  qt/res/darkstyle/branch_closed.png \
+  qt/res/darkstyle/branch_closed@2x.png \
+  qt/res/darkstyle/branch_closed_disabled.png \
+  qt/res/darkstyle/branch_closed_disabled@2x.png \
+  qt/res/darkstyle/branch_closed_focus.png \
+  qt/res/darkstyle/branch_closed_focus@2x.png \
+  qt/res/darkstyle/branch_closed_pressed.png \
+  qt/res/darkstyle/branch_closed_pressed@2x.png \
+  qt/res/darkstyle/branch_end.png \
+  qt/res/darkstyle/branch_end@2x.png \
+  qt/res/darkstyle/branch_end_disabled.png \
+  qt/res/darkstyle/branch_end_disabled@2x.png \
+  qt/res/darkstyle/branch_end_focus.png \
+  qt/res/darkstyle/branch_end_focus@2x.png \
+  qt/res/darkstyle/branch_end_pressed.png \
+  qt/res/darkstyle/branch_end_pressed@2x.png \
+  qt/res/darkstyle/branch_line.png \
+  qt/res/darkstyle/branch_line@2x.png \
+  qt/res/darkstyle/branch_line_disabled.png \
+  qt/res/darkstyle/branch_line_disabled@2x.png \
+  qt/res/darkstyle/branch_line_focus.png \
+  qt/res/darkstyle/branch_line_focus@2x.png \
+  qt/res/darkstyle/branch_line_pressed.png \
+  qt/res/darkstyle/branch_line_pressed@2x.png \
+  qt/res/darkstyle/branch_more.png \
+  qt/res/darkstyle/branch_more@2x.png \
+  qt/res/darkstyle/branch_more_disabled.png \
+  qt/res/darkstyle/branch_more_disabled@2x.png \
+  qt/res/darkstyle/branch_more_focus.png \
+  qt/res/darkstyle/branch_more_focus@2x.png \
+  qt/res/darkstyle/branch_more_pressed.png \
+  qt/res/darkstyle/branch_more_pressed@2x.png \
+  qt/res/darkstyle/branch_open.png \
+  qt/res/darkstyle/branch_open@2x.png \
+  qt/res/darkstyle/branch_open_disabled.png \
+  qt/res/darkstyle/branch_open_disabled@2x.png \
+  qt/res/darkstyle/branch_open_focus.png \
+  qt/res/darkstyle/branch_open_focus@2x.png \
+  qt/res/darkstyle/branch_open_pressed.png \
+  qt/res/darkstyle/branch_open_pressed@2x.png \
+  qt/res/darkstyle/checkbox_checked.png \
+  qt/res/darkstyle/checkbox_checked@2x.png \
+  qt/res/darkstyle/checkbox_checked_disabled.png \
+  qt/res/darkstyle/checkbox_checked_disabled@2x.png \
+  qt/res/darkstyle/checkbox_checked_focus.png \
+  qt/res/darkstyle/checkbox_checked_focus@2x.png \
+  qt/res/darkstyle/checkbox_checked_pressed.png \
+  qt/res/darkstyle/checkbox_checked_pressed@2x.png \
+  qt/res/darkstyle/checkbox_indeterminate.png \
+  qt/res/darkstyle/checkbox_indeterminate@2x.png \
+  qt/res/darkstyle/checkbox_indeterminate_disabled.png \
+  qt/res/darkstyle/checkbox_indeterminate_disabled@2x.png \
+  qt/res/darkstyle/checkbox_indeterminate_focus.png \
+  qt/res/darkstyle/checkbox_indeterminate_focus@2x.png \
+  qt/res/darkstyle/checkbox_indeterminate_pressed.png \
+  qt/res/darkstyle/checkbox_indeterminate_pressed@2x.png \
+  qt/res/darkstyle/checkbox_unchecked.png \
+  qt/res/darkstyle/checkbox_unchecked@2x.png \
+  qt/res/darkstyle/checkbox_unchecked_disabled.png \
+  qt/res/darkstyle/checkbox_unchecked_disabled@2x.png \
+  qt/res/darkstyle/checkbox_unchecked_focus.png \
+  qt/res/darkstyle/checkbox_unchecked_focus@2x.png \
+  qt/res/darkstyle/checkbox_unchecked_pressed.png \
+  qt/res/darkstyle/checkbox_unchecked_pressed@2x.png \
+  qt/res/darkstyle/line_horizontal.png \
+  qt/res/darkstyle/line_horizontal@2x.png \
+  qt/res/darkstyle/line_horizontal_disabled.png \
+  qt/res/darkstyle/line_horizontal_disabled@2x.png \
+  qt/res/darkstyle/line_horizontal_focus.png \
+  qt/res/darkstyle/line_horizontal_focus@2x.png \
+  qt/res/darkstyle/line_horizontal_pressed.png \
+  qt/res/darkstyle/line_horizontal_pressed@2x.png \
+  qt/res/darkstyle/line_vertical.png \
+  qt/res/darkstyle/line_vertical@2x.png \
+  qt/res/darkstyle/line_vertical_disabled.png \
+  qt/res/darkstyle/line_vertical_disabled@2x.png \
+  qt/res/darkstyle/line_vertical_focus.png \
+  qt/res/darkstyle/line_vertical_focus@2x.png \
+  qt/res/darkstyle/line_vertical_pressed.png \
+  qt/res/darkstyle/line_vertical_pressed@2x.png \
+  qt/res/darkstyle/radio_checked.png \
+  qt/res/darkstyle/radio_checked@2x.png \
+  qt/res/darkstyle/radio_checked_disabled.png \
+  qt/res/darkstyle/radio_checked_disabled@2x.png \
+  qt/res/darkstyle/radio_checked_focus.png \
+  qt/res/darkstyle/radio_checked_focus@2x.png \
+  qt/res/darkstyle/radio_checked_pressed.png \
+  qt/res/darkstyle/radio_checked_pressed@2x.png \
+  qt/res/darkstyle/radio_unchecked.png \
+  qt/res/darkstyle/radio_unchecked@2x.png \
+  qt/res/darkstyle/radio_unchecked_disabled.png \
+  qt/res/darkstyle/radio_unchecked_disabled@2x.png \
+  qt/res/darkstyle/radio_unchecked_focus.png \
+  qt/res/darkstyle/radio_unchecked_focus@2x.png \
+  qt/res/darkstyle/radio_unchecked_pressed.png \
+  qt/res/darkstyle/radio_unchecked_pressed@2x.png \
+  qt/res/darkstyle/toolbar_move_horizontal.png \
+  qt/res/darkstyle/toolbar_move_horizontal@2x.png \
+  qt/res/darkstyle/toolbar_move_horizontal_disabled.png \
+  qt/res/darkstyle/toolbar_move_horizontal_disabled@2x.png \
+  qt/res/darkstyle/toolbar_move_horizontal_focus.png \
+  qt/res/darkstyle/toolbar_move_horizontal_focus@2x.png \
+  qt/res/darkstyle/toolbar_move_horizontal_pressed.png \
+  qt/res/darkstyle/toolbar_move_horizontal_pressed@2x.png \
+  qt/res/darkstyle/toolbar_move_vertical.png \
+  qt/res/darkstyle/toolbar_move_vertical@2x.png \
+  qt/res/darkstyle/toolbar_move_vertical_disabled.png \
+  qt/res/darkstyle/toolbar_move_vertical_disabled@2x.png \
+  qt/res/darkstyle/toolbar_move_vertical_focus.png \
+  qt/res/darkstyle/toolbar_move_vertical_focus@2x.png \
+  qt/res/darkstyle/toolbar_move_vertical_pressed.png \
+  qt/res/darkstyle/toolbar_move_vertical_pressed@2x.png \
+  qt/res/darkstyle/toolbar_separator_horizontal.png \
+  qt/res/darkstyle/toolbar_separator_horizontal@2x.png \
+  qt/res/darkstyle/toolbar_separator_horizontal_disabled.png \
+  qt/res/darkstyle/toolbar_separator_horizontal_disabled@2x.png \
+  qt/res/darkstyle/toolbar_separator_horizontal_focus.png \
+  qt/res/darkstyle/toolbar_separator_horizontal_focus@2x.png \
+  qt/res/darkstyle/toolbar_separator_horizontal_pressed.png \
+  qt/res/darkstyle/toolbar_separator_horizontal_pressed@2x.png \
+  qt/res/darkstyle/toolbar_separator_vertical.png \
+  qt/res/darkstyle/toolbar_separator_vertical@2x.png \
+  qt/res/darkstyle/toolbar_separator_vertical_disabled.png \
+  qt/res/darkstyle/toolbar_separator_vertical_disabled@2x.png \
+  qt/res/darkstyle/toolbar_separator_vertical_focus.png \
+  qt/res/darkstyle/toolbar_separator_vertical_focus@2x.png \
+  qt/res/darkstyle/toolbar_separator_vertical_pressed.png \
+  qt/res/darkstyle/toolbar_separator_vertical_pressed@2x.png \
+  qt/res/darkstyle/transparent.png \
+  qt/res/darkstyle/transparent@2x.png \
+  qt/res/darkstyle/transparent_disabled.png \
+  qt/res/darkstyle/transparent_disabled@2x.png \
+  qt/res/darkstyle/transparent_focus.png \
+  qt/res/darkstyle/transparent_focus@2x.png \
+  qt/res/darkstyle/transparent_pressed.png \
+  qt/res/darkstyle/transparent_pressed@2x.png \
+  qt/res/darkstyle/window_close.png \
+  qt/res/darkstyle/window_close@2x.png \
+  qt/res/darkstyle/window_close_disabled.png \
+  qt/res/darkstyle/window_close_disabled@2x.png \
+  qt/res/darkstyle/window_close_focus.png \
+  qt/res/darkstyle/window_close_focus@2x.png \
+  qt/res/darkstyle/window_close_pressed.png \
+  qt/res/darkstyle/window_close_pressed@2x.png \
+  qt/res/darkstyle/window_grip.png \
+  qt/res/darkstyle/window_grip@2x.png \
+  qt/res/darkstyle/window_grip_disabled.png \
+  qt/res/darkstyle/window_grip_disabled@2x.png \
+  qt/res/darkstyle/window_grip_focus.png \
+  qt/res/darkstyle/window_grip_focus@2x.png \
+  qt/res/darkstyle/window_grip_pressed.png \
+  qt/res/darkstyle/window_grip_pressed@2x.png \
+  qt/res/darkstyle/window_minimize.png \
+  qt/res/darkstyle/window_minimize@2x.png \
+  qt/res/darkstyle/window_minimize_disabled.png \
+  qt/res/darkstyle/window_minimize_disabled@2x.png \
+  qt/res/darkstyle/window_minimize_focus.png \
+  qt/res/darkstyle/window_minimize_focus@2x.png \
+  qt/res/darkstyle/window_minimize_pressed.png \
+  qt/res/darkstyle/window_minimize_pressed@2x.png \
+  qt/res/darkstyle/window_undock.png \
+  qt/res/darkstyle/window_undock@2x.png \
+  qt/res/darkstyle/window_undock_disabled.png \
+  qt/res/darkstyle/window_undock_disabled@2x.png \
+  qt/res/darkstyle/window_undock_focus.png \
+  qt/res/darkstyle/window_undock_focus@2x.png \
+  qt/res/darkstyle/window_undock_pressed.png \
+  qt/res/darkstyle/window_undock_pressed@2x.png \
   qt/res/fonts/OpenSans-Bold.ttf \
   qt/res/fonts/OpenSans-BoldItalic.ttf \
   qt/res/fonts/OpenSans-ExtraBold.ttf \
@@ -382,15 +590,22 @@ RES_ICONS = \
   qt/res/fonts/OpenSans-LightItalic.ttf \
   qt/res/fonts/OpenSans-Regular.ttf \
   qt/res/fonts/OpenSans-SemiBold.ttf \
-  qt/res/fonts/OpenSans-SemiBoldItalic.ttf
+  qt/res/fonts/OpenSans-SemiBoldItalic.ttf \  
+  qt/res/fonts/Manrope-Bold.ttf \
+  qt/res/fonts/Manrope-ExtraBold.ttf \
+  qt/res/fonts/Manrope-ExtraLight.ttf \
+  qt/res/fonts/Manrope-Light.ttf \
+  qt/res/fonts/Manrope-Medium.ttf \
+  qt/res/fonts/Manrope-Regular.ttf \
+  qt/res/fonts/Manrope-SemiBold.ttf 
 
 
-RAVEN_QT_BASE_CPP = \
+AVIAN_QT_BASE_CPP = \
   qt/bantablemodel.cpp \
-  qt/ravenaddressvalidator.cpp \
-  qt/ravenamountfield.cpp \
-  qt/ravengui.cpp \
-  qt/ravenunits.cpp \
+  qt/avianaddressvalidator.cpp \
+  qt/avianamountfield.cpp \
+  qt/aviangui.cpp \
+  qt/avianunits.cpp \
   qt/clientmodel.cpp \
   qt/csvmodelwriter.cpp \
   qt/darkstyle.cpp \
@@ -407,16 +622,14 @@ RAVEN_QT_BASE_CPP = \
   qt/qvalidatedlineedit.cpp \
   qt/qvaluecombobox.cpp \
   qt/rpcconsole.cpp \
+  qt/poolpicker.cpp \
   qt/splashscreen.cpp \
   qt/trafficgraphwidget.cpp \
-  qt/utilitydialog.cpp \
-  qt/peerdialog.cpp \
-  qt/utilitydialog.cpp \
-  qt/verticallabel.cpp
+  qt/utilitydialog.cpp
 
-RAVEN_QT_WINDOWS_CPP = qt/winshutdownmonitor.cpp
+AVIAN_QT_WINDOWS_CPP = qt/winshutdownmonitor.cpp
 
-RAVEN_QT_WALLET_CPP = \
+AVIAN_QT_WALLET_CPP = \
   qt/addressbookpage.cpp \
   qt/addresstablemodel.cpp \
   qt/askpassphrasedialog.cpp \
@@ -431,12 +644,17 @@ RAVEN_QT_WALLET_CPP = \
   qt/openuridialog.cpp \
   qt/importkeysdialog.cpp \
   qt/overviewpage.cpp \
+  qt/myrestrictedassettablemodel.cpp \
+  qt/myrestrictedassetrecord.cpp \
   qt/paymentrequestplus.cpp \
   qt/paymentserver.cpp \
   qt/receivecoinsdialog.cpp \
   qt/receiverequestdialog.cpp \
   qt/recentrequeststablemodel.cpp \
   qt/reissueassetdialog.cpp \
+  qt/restrictedassetsdialog.cpp \
+  qt/restrictedassignqualifier.cpp \
+  qt/restrictedfreezeaddress.cpp \
   qt/sendassetsentry.cpp \
   qt/sendcoinsdialog.cpp \
   qt/sendcoinsentry.cpp \
@@ -447,35 +665,37 @@ RAVEN_QT_WALLET_CPP = \
   qt/transactionrecord.cpp \
   qt/transactiontablemodel.cpp \
   qt/transactionview.cpp \
+  qt/wrapping.cpp \
   qt/verticallabel.cpp \
+  qt/peerdialog.cpp \
   qt/walletframe.cpp \
   qt/walletmodel.cpp \
   qt/walletmodeltransaction.cpp \
   qt/walletview.cpp \
   qt/mnemonicdialog.cpp
 
-RAVEN_QT_CPP = $(RAVEN_QT_BASE_CPP)
+AVIAN_QT_CPP = $(AVIAN_QT_BASE_CPP)
 if TARGET_WINDOWS
-RAVEN_QT_CPP += $(RAVEN_QT_WINDOWS_CPP)
+AVIAN_QT_CPP += $(AVIAN_QT_WINDOWS_CPP)
 endif
 if ENABLE_WALLET
-RAVEN_QT_CPP += $(RAVEN_QT_WALLET_CPP)
+AVIAN_QT_CPP += $(AVIAN_QT_WALLET_CPP)
 endif
 
 RES_IMAGES = 
 
 RES_MOVIES = $(wildcard $(srcdir)/qt/res/movies/spinner-*.png)
 
-RAVEN_RC = qt/res/avian-qt-res.rc
+AVIAN_RC = qt/res/avian-qt-res.rc
 
-RAVEN_QT_INCLUDES = -I$(builddir)/qt -I$(srcdir)/qt -I$(srcdir)/qt/forms \
+AVIAN_QT_INCLUDES = -I$(builddir)/qt -I$(srcdir)/qt -I$(srcdir)/qt/forms \
   -I$(builddir)/qt/forms -DQT_NO_KEYWORDS
 
-qt_libavianqt_a_CPPFLAGS = $(AM_CPPFLAGS) $(RAVEN_INCLUDES) $(RAVEN_QT_INCLUDES) \
+qt_libavianqt_a_CPPFLAGS = $(AM_CPPFLAGS) $(AVIAN_INCLUDES) $(AVIAN_QT_INCLUDES) \
   $(QT_INCLUDES) $(QT_DBUS_INCLUDES) $(PROTOBUF_CFLAGS) $(QR_CFLAGS)
 qt_libavianqt_a_CXXFLAGS = $(AM_CXXFLAGS) $(QT_PIE_FLAGS)
 
-qt_libavianqt_a_SOURCES = $(RAVEN_QT_CPP) $(RAVEN_QT_H) $(QT_FORMS_UI) \
+qt_libavianqt_a_SOURCES = $(AVIAN_QT_CPP) $(AVIAN_QT_H) $(QT_FORMS_UI) \
   $(QT_QRC) $(QT_QRC_LOCALE) $(QT_TS) $(PROTOBUF_PROTO) $(RES_ICONS) $(RES_IMAGES) $(RES_MOVIES)
 
 nodist_qt_libavianqt_a_SOURCES = $(QT_MOC_CPP) $(QT_MOC) $(PROTOBUF_CC) \
@@ -495,16 +715,16 @@ $(QT_MOC): $(PROTOBUF_H)
 $(QT_MOC_CPP): $(PROTOBUF_H)
 
 # avian-qt binary #
-qt_avian_qt_CPPFLAGS = $(AM_CPPFLAGS) $(RAVEN_INCLUDES) $(RAVEN_QT_INCLUDES) \
+qt_avian_qt_CPPFLAGS = $(AM_CPPFLAGS) $(AVIAN_INCLUDES) $(AVIAN_QT_INCLUDES) \
   $(QT_INCLUDES) $(PROTOBUF_CFLAGS) $(QR_CFLAGS)
 qt_avian_qt_CXXFLAGS = $(AM_CXXFLAGS) $(QT_PIE_FLAGS)
 
-qt_avian_qt_SOURCES = qt/raven.cpp
+qt_avian_qt_SOURCES = qt/avian.cpp
 if TARGET_DARWIN
-  qt_avian_qt_SOURCES += $(RAVEN_MM)
+  qt_avian_qt_SOURCES += $(AVIAN_MM)
 endif
 if TARGET_WINDOWS
-  qt_avian_qt_SOURCES += $(RAVEN_RC)
+  qt_avian_qt_SOURCES += $(AVIAN_RC)
 endif
 qt_avian_qt_LDADD = qt/libavianqt.a $(LIBAVIAN_SERVER)
 if ENABLE_WALLET
@@ -524,34 +744,34 @@ QT_QM=$(QT_TS:.ts=.qm)
 
 SECONDARY: $(QT_QM)
 
-$(srcdir)/qt/ravenstrings.cpp: $(libavian_server_a_SOURCES) $(libavian_wallet_a_SOURCES) $(libavian_common_a_SOURCES) $(libavian_zmq_a_SOURCES) $(libavian_consensus_a_SOURCES) $(libavian_util_a_SOURCES)
+$(srcdir)/qt/avianstrings.cpp: $(libavian_server_a_SOURCES) $(libavian_wallet_a_SOURCES) $(libavian_common_a_SOURCES) $(libavian_zmq_a_SOURCES) $(libavian_consensus_a_SOURCES) $(libavian_util_a_SOURCES)
 	@test -n $(XGETTEXT) || echo "xgettext is required for updating translations"
 	$(AM_V_GEN) cd $(srcdir); XGETTEXT=$(XGETTEXT) PACKAGE_NAME="$(PACKAGE_NAME)" COPYRIGHT_HOLDERS="$(COPYRIGHT_HOLDERS)" COPYRIGHT_HOLDERS_SUBSTITUTION="$(COPYRIGHT_HOLDERS_SUBSTITUTION)" $(PYTHON) ../share/qt/extract_strings_qt.py $^
 
-translate: $(srcdir)/qt/ravenstrings.cpp $(QT_FORMS_UI) $(QT_FORMS_UI) $(RAVEN_QT_BASE_CPP) qt/raven.cpp $(RAVEN_QT_WINDOWS_CPP) $(RAVEN_QT_WALLET_CPP) $(RAVEN_QT_H) $(RAVEN_MM)
+translate: $(srcdir)/qt/avianstrings.cpp $(QT_FORMS_UI) $(QT_FORMS_UI) $(AVIAN_QT_BASE_CPP) qt/avian.cpp $(AVIAN_QT_WINDOWS_CPP) $(AVIAN_QT_WALLET_CPP) $(AVIAN_QT_H) $(AVIAN_MM)
 	@test -n $(LUPDATE) || echo "lupdate is required for updating translations"
-	$(AM_V_GEN) QT_SELECT=$(QT_SELECT) $(LUPDATE) $^ -locations relative -no-obsolete -ts $(srcdir)/qt/locale/raven_en.ts
+	$(AM_V_GEN) QT_SELECT=$(QT_SELECT) $(LUPDATE) $^ -locations relative -no-obsolete -ts $(srcdir)/qt/locale/avian_en.ts
 
 $(QT_QRC_LOCALE_CPP): $(QT_QRC_LOCALE) $(QT_QM)
 	@test -f $(RCC)
 	@cp -f $< $(@D)/temp_$(<F)
-	$(AM_V_GEN) QT_SELECT=$(QT_SELECT) $(RCC) -name raven_locale $(@D)/temp_$(<F) | \
+	$(AM_V_GEN) QT_SELECT=$(QT_SELECT) $(RCC) -name avian_locale $(@D)/temp_$(<F) | \
 	  $(SED) -e '/^\*\*.*Created:/d' -e '/^\*\*.*by:/d' > $@
 	@rm $(@D)/temp_$(<F)
 
 $(QT_QRC_CPP): $(QT_QRC) $(QT_FORMS_H) $(RES_ICONS) $(RES_IMAGES) $(RES_MOVIES) $(PROTOBUF_H)
 	@test -f $(RCC)
-	$(AM_V_GEN) QT_SELECT=$(QT_SELECT) $(RCC) -name raven $< | \
+	$(AM_V_GEN) QT_SELECT=$(QT_SELECT) $(RCC) -name avian $< | \
 	  $(SED) -e '/^\*\*.*Created:/d' -e '/^\*\*.*by:/d' > $@
 
 CLEAN_QT = $(nodist_qt_libavianqt_a_SOURCES) $(QT_QM) $(QT_FORMS_H) qt/*.gcda qt/*.gcno
 
 CLEANFILES += $(CLEAN_QT)
 
-raven_qt_clean: FORCE
+avian_qt_clean: FORCE
 	rm -f $(CLEAN_QT) $(qt_libavianqt_a_OBJECTS) $(qt_avian_qt_OBJECTS) qt/avian-qt$(EXEEXT) $(LIBAVIANQT)
 
-raven_qt : qt/avian-qt$(EXEEXT)
+avian_qt : qt/avian-qt$(EXEEXT)
 
 ui_%.h: %.ui
 	@test -f $(UIC)

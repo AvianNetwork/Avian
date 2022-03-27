@@ -3,8 +3,8 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef RAVEN_CHAINPARAMSBASE_H
-#define RAVEN_CHAINPARAMSBASE_H
+#ifndef AVIAN_CHAINPARAMSBASE_H
+#define AVIAN_CHAINPARAMSBASE_H
 
 #include <memory>
 #include <string>
@@ -12,7 +12,7 @@
 
 /**
  * CBaseChainParams defines the base parameters (shared between avian-cli and aviand)
- * of a given instance of the Raven system.
+ * of a given instance of the Avian system.
  */
 class CBaseChainParams
 {
@@ -61,4 +61,4 @@ void SelectBaseParams(const std::string& chain);
  */
 std::string ChainNameFromCommandLine();
 
-#endif // RAVEN_CHAINPARAMSBASE_H
+#endif // AVIAN_CHAINPARAMSBASE_H

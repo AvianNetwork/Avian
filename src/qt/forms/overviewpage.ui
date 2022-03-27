@@ -86,7 +86,7 @@
             <item>
              <layout class="QHBoxLayout" name="horizontalLayout_4">
               <item>
-               <widget class="QLabel" name="rvnBalancesLabel">
+               <widget class="QLabel" name="avnBalancesLabel">
                 <property name="font">
                  <font>
                   <weight>75</weight>
@@ -173,7 +173,7 @@
                  <string>Mined balance in watch-only addresses that has not yet matured</string>
                 </property>
                 <property name="text">
-                 <string notr="true">0.000 000 00 RVN</string>
+                 <string notr="true">0.000 000 00 AVN</string>
                 </property>
                 <property name="alignment">
                  <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
@@ -218,7 +218,7 @@
                  <string>Your current balance in watch-only addresses</string>
                 </property>
                 <property name="text">
-                 <string notr="true">0.000 000 00 RVN</string>
+                 <string notr="true">0.000 000 00 AVN</string>
                 </property>
                 <property name="alignment">
                  <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
@@ -243,7 +243,7 @@
                  <string>Total of transactions that have yet to be confirmed, and do not yet count toward the spendable balance</string>
                 </property>
                 <property name="text">
-                 <string notr="true">0.000 000 00 RVN</string>
+                 <string notr="true">0.000 000 00 AVN</string>
                 </property>
                 <property name="alignment">
                  <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
@@ -304,7 +304,7 @@
                  <string>Current total balance in watch-only addresses</string>
                 </property>
                 <property name="text">
-                 <string notr="true">0.000 000 00 RVN</string>
+                 <string notr="true">0.000 000 00 AVN</string>
                 </property>
                 <property name="alignment">
                  <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
@@ -346,7 +346,7 @@
                  <string>Your current total balance</string>
                 </property>
                 <property name="text">
-                 <string notr="true">0.000 000 00 RVN</string>
+                 <string notr="true">0.000 000 00 AVN</string>
                 </property>
                 <property name="alignment">
                  <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
@@ -371,7 +371,7 @@
                  <string>Your current spendable balance</string>
                 </property>
                 <property name="text">
-                 <string notr="true">0.000 000 00 RVN</string>
+                 <string notr="true">0.000 000 00 AVN</string>
                 </property>
                 <property name="alignment">
                  <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
@@ -410,7 +410,7 @@
                  <string>Mined balance that has not yet matured</string>
                 </property>
                 <property name="text">
-                 <string notr="true">0.000 000 00 RVN</string>
+                 <string notr="true">0.000 000 00 AVN</string>
                 </property>
                 <property name="alignment">
                  <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
@@ -435,7 +435,7 @@
                  <string>Unconfirmed transactions to watch-only addresses</string>
                 </property>
                 <property name="text">
-                 <string notr="true">0.000 000 00 RVN</string>
+                 <string notr="true">0.000 000 00 AVN</string>
                 </property>
                 <property name="alignment">
                  <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
@@ -652,7 +652,7 @@
          <item>
           <widget class="QFrame" name="frame_2">
            <property name="sizePolicy">
-            <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+            <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
              <horstretch>0</horstretch>
              <verstretch>0</verstretch>
             </sizepolicy>
@@ -762,19 +762,6 @@
            </layout>
           </widget>
          </item>
-         <item>
-          <spacer name="verticalSpacer_2">
-           <property name="orientation">
-            <enum>Qt::Vertical</enum>
-           </property>
-           <property name="sizeHint" stdset="0">
-            <size>
-             <width>20</width>
-             <height>40</height>
-            </size>
-           </property>
-          </spacer>
-         </item>
         </layout>
        </item>
       </layout>
@@ -802,6 +789,8 @@
    </item>
   </layout>
  </widget>
- <resources/>
+  <resources>
+  <include location="../avian.qrc"/>
+ </resources>
  <connections/>
 </ui>
