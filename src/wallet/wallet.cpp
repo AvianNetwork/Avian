@@ -3807,7 +3807,7 @@ bool CWallet::CreateTransactionAll(const std::vector<CRecipient>& vecSend, CWall
                     SignatureData sigdata;
 
                     if (!ProduceSignature(
-                            TransactionSignatureCreator(this, &txNewConst, nIn, asset.txout.nValue, SIGHASH_ALL),
+                            TransactionSignatureCreator(this, &txNewConst, nIn, asset.txout.nValue, nHashType),
                             scriptPubKey, sigdata)) {
                         strFailReason = _("Signing asset transaction failed");
                         return false;

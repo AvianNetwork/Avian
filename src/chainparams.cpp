@@ -409,7 +409,7 @@ public:
         nMinReorganizationPeers = 4;
         nMinReorganizationAge = 60 * 60 * 12; // 12 hours
 
-        nAssetActivationHeight = 3031; // Asset activated block height
+        nAssetActivationHeight = 0; // Asset activated block height
         nMessagingActivationBlock = 0; // Messaging activated block height
         nRestrictedActivationBlock = 0; // Restricted activated block height
         /** AVN End **/
