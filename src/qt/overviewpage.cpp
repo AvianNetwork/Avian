@@ -679,9 +679,6 @@ void OverviewPage::setWalletModel(WalletModel *model)
         ui->listAssets->setModel(assetFilter.get());
         ui->listAssets->setAutoFillBackground(false);
 
-        ui->assetVerticalSpaceWidget->setStyleSheet("background-color: transparent");
-        ui->assetVerticalSpaceWidget2->setStyleSheet("background-color: transparent");
-
         // Keep up to date with wallet
         setBalance(model->getBalance(), model->getUnconfirmedBalance(), model->getImmatureBalance(),
                    model->getWatchBalance(), model->getWatchUnconfirmedBalance(), model->getWatchImmatureBalance());
@@ -733,18 +730,10 @@ void OverviewPage::showAssets()
         ui->assetFrame->show();
         ui->assetBalanceLabel->show();
         ui->labelAssetStatus->show();
-
-        // Disable the vertical space so that listAssets goes to the bottom of the screen
-        ui->assetVerticalSpaceWidget->hide();
-        ui->assetVerticalSpaceWidget2->hide();
     } else {
         ui->assetFrame->hide();
         ui->assetBalanceLabel->hide();
         ui->labelAssetStatus->hide();
-
-        // This keeps the AVN balance grid from expanding and looking terrible when asset balance is hidden
-        ui->assetVerticalSpaceWidget->show();
-        ui->assetVerticalSpaceWidget2->show();
     }
 }
 
