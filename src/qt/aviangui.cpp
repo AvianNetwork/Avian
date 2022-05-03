@@ -166,6 +166,7 @@ AvianGUI::AvianGUI(const PlatformStyle *_platformStyle, const NetworkStyle *netw
     platformStyle(_platformStyle)
 
 {
+    GUIUtil::restoreWindowGeometry("nWindow", QSize(850, 550), this);
     QSettings settings;
     if (!restoreGeometry(settings.value("MainWindowGeometry").toByteArray())) {
         // Restore failed (perhaps missing setting), center the window
