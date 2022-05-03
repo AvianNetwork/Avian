@@ -166,12 +166,7 @@ AvianGUI::AvianGUI(const PlatformStyle *_platformStyle, const NetworkStyle *netw
     platformStyle(_platformStyle)
 
 {
-    GUIUtil::restoreWindowGeometry("nWindow", QSize(850, 550), this);
-    QSettings settings;
-    if (!restoreGeometry(settings.value("MainWindowGeometry").toByteArray())) {
-        // Restore failed (perhaps missing setting), center the window
-        move(QApplication::desktop()->availableGeometry().center() - frameGeometry().center());
-    }
+    GUIUtil::restoreWindowGeometry("MainWindowGeometry", QSize(850, 550), this);
 
     QString windowTitle = tr(PACKAGE_NAME) + " - ";
 #ifdef ENABLE_WALLET
@@ -324,9 +319,8 @@ AvianGUI::~AvianGUI()
 {
     // Unsubscribe from notifications from core
     unsubscribeFromCoreSignals();
-
-    QSettings settings;
-    settings.setValue("MainWindowGeometry", saveGeometry());
+    
+    GUIUtil::saveWindowGeometry("MainWindowGeometry", this);
     if(trayIcon) // Hide tray icon, as deleting will let it linger until quit (on Ubuntu)
         trayIcon->hide();
 #ifdef Q_OS_MAC
