@@ -501,9 +501,9 @@ bool CBlockTreeDB::LoadBlockIndexGuts(const Consensus::ConsensusParams& consensu
                 pindexNew->nNonce         = diskindex.nNonce;
                 pindexNew->nStatus        = diskindex.nStatus;
                 pindexNew->nTx            = diskindex.nTx;
-
-                if (!CheckProofOfWork(pindexNew->GetBlockHeader(), consensusParams))
-                    return error("%s: CheckProofOfWork failed: %s", __func__, pindexNew->ToString());
+                // TODO: replace this check with something faster
+                //if (!CheckProofOfWork(pindexNew->GetBlockHeader(), consensusParams))
+                //    return error("%s: CheckProofOfWork failed: %s", __func__, pindexNew->ToString());
 
                 pcursor->Next();
             } else {
