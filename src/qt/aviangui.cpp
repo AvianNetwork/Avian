@@ -167,7 +167,6 @@ AvianGUI::AvianGUI(const PlatformStyle *_platformStyle, const NetworkStyle *netw
 
 {
     GUIUtil::restoreWindowGeometry("MainWindowGeometry", QSize(850, 550), this);
-    setMinimumSize(600, 350);
 
     QString windowTitle = tr(PACKAGE_NAME) + " - ";
 #ifdef ENABLE_WALLET

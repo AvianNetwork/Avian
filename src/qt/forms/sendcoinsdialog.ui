@@ -6,9 +6,15 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1049</width>
-    <height>920</height>
+    <width>983</width>
+    <height>785</height>
    </rect>
+  </property>
+  <property name="sizePolicy">
+   <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+    <horstretch>0</horstretch>
+    <verstretch>0</verstretch>
+   </sizepolicy>
   </property>
   <property name="windowTitle">
    <string>Send Coins</string>
@@ -604,11 +610,11 @@
          <rect>
           <x>0</x>
           <y>0</y>
-          <width>943</width>
-          <height>263</height>
+          <width>875</width>
+          <height>105</height>
          </rect>
         </property>
-        <layout class="QVBoxLayout" name="verticalLayout_2" stretch="0,0">
+        <layout class="QVBoxLayout" name="verticalLayout_2" stretch="0">
          <property name="leftMargin">
           <number>0</number>
          </property>
@@ -622,24 +628,24 @@
           <number>0</number>
          </property>
          <item>
-          <layout class="QVBoxLayout" name="entries">
+          <layout class="QVBoxLayout" name="entries" stretch="0">
            <property name="spacing">
             <number>6</number>
            </property>
+           <item>
+            <spacer name="verticalSpacer">
+             <property name="orientation">
+              <enum>Qt::Vertical</enum>
+             </property>
+             <property name="sizeHint" stdset="0">
+              <size>
+               <width>20</width>
+               <height>40</height>
+              </size>
+             </property>
+            </spacer>
+           </item>
           </layout>
-         </item>
-         <item>
-          <spacer name="verticalSpacer">
-           <property name="orientation">
-            <enum>Qt::Vertical</enum>
-           </property>
-           <property name="sizeHint" stdset="0">
-            <size>
-             <width>20</width>
-             <height>1000</height>
-            </size>
-           </property>
-          </spacer>
          </item>
         </layout>
        </widget>
@@ -1281,15 +1287,15 @@
  </widget>
  <customwidgets>
   <customwidget>
-   <class>QValidatedLineEdit</class>
-   <extends>QLineEdit</extends>
-   <header>qvalidatedlineedit.h</header>
-  </customwidget>
-  <customwidget>
    <class>AvianAmountField</class>
    <extends>QLineEdit</extends>
    <header>avianamountfield.h</header>
    <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>QValidatedLineEdit</class>
+   <extends>QLineEdit</extends>
+   <header>qvalidatedlineedit.h</header>
   </customwidget>
  </customwidgets>
  <resources>
