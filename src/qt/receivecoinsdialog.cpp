@@ -145,14 +145,10 @@ void ReceiveCoinsDialog::setupRequestFrame(const PlatformStyle *platformStyle)
     ui->reqLabel->setFont(GUIUtil::getSubLabelFont());
     ui->reqAmount->setFont(GUIUtil::getSubLabelFont());
     ui->reqMessage->setFont(GUIUtil::getSubLabelFont());
-    ui->receiveButton->setFont(GUIUtil::getSubLabelFont());
-    ui->clearButton->setFont(GUIUtil::getSubLabelFont());
-    ui->recentRequestsView->setFont(GUIUtil::getSubLabelFont());
     ui->showRequestButton->setFont(GUIUtil::getSubLabelFont());
     ui->removeRequestButton->setFont(GUIUtil::getSubLabelFont());
     ui->label_5->setFont(GUIUtil::getSubLabelFont());
 
-    ui->label_6->setFont(GUIUtil::getSubLabelFontBolded());
 }
 
 void ReceiveCoinsDialog::setupHistoryFrame(const PlatformStyle *platformStyle)
@@ -160,9 +156,12 @@ void ReceiveCoinsDialog::setupHistoryFrame(const PlatformStyle *platformStyle)
     /** Update the coincontrol frame */
     ui->frame->setStyleSheet(QString(".QFrame {background-color: %1; border: none;}").arg(platformStyle->WidgetBackGroundColor().name()));
     /** Create the shadow effects on the frames */
+    ui->label_6->setFont(GUIUtil::getSubLabelFontBolded());
+    ui->recentRequestsView->setFont(GUIUtil::getSubLabelFont());
+    ui->receiveButton->setFont(GUIUtil::getSubLabelFont());
+    ui->clearButton->setFont(GUIUtil::getSubLabelFont());
 
     ui->frame->setGraphicsEffect(GUIUtil::getShadowEffect());
-
     contextMenu->setFont(GUIUtil::getSubLabelFont());
 
 }
