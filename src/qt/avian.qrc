@@ -346,4 +346,11 @@
         <file alias="manrope-regular">res/fonts/Manrope-Regular.ttf</file>
         <file alias="manrope-semibold">res/fonts/Manrope-SemiBold.ttf</file>
     </qresource>
+    <qresource prefix="/css">
+        <file alias="scrollbars">res/css/scrollbars.css</file>
+    </qresource>
+    <qresource prefix="/themes">
+        <file alias="Dark">res/css/dark.css</file>
+        <file alias="Light">res/css/light.css</file>
+    </qresource>    
 </RCC>

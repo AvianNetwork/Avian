@@ -686,6 +686,11 @@ RES_IMAGES =
 
 RES_MOVIES = $(wildcard $(srcdir)/qt/res/movies/spinner-*.png)
 
+RES_CSS = \
+  qt/res/css/dark.css \
+  qt/res/css/light.css \
+  qt/res/css/scrollbars.css
+
 AVIAN_RC = qt/res/avian-qt-res.rc
 
 AVIAN_QT_INCLUDES = -I$(builddir)/qt -I$(srcdir)/qt -I$(srcdir)/qt/forms \
