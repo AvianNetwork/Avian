@@ -114,6 +114,13 @@ QIcon PlatformStyle::SingleColorIcon(const QString& filename) const
     return ColorizeIcon(filename, SingleColor());
 }
 
+QIcon PlatformStyle::SingleColorIcon(const QString& filename, const QColor& color) const
+{
+    if (!colorizeIcons)
+        return QIcon(filename);
+    return ColorizeIcon(filename, color);
+}
+
 QIcon PlatformStyle::SingleColorIconOnOff(const QString& filenameOn, const QString& filenameOff) const
 {
     QIcon icon;
@@ -153,12 +160,12 @@ QIcon PlatformStyle::OrangeColorIcon(const QIcon& icon) const
 
 QIcon PlatformStyle::TextColorIcon(const QString& filename) const
 {
-    return ColorizeIcon(filename, TextColor());
+    return ColorizeIcon(filename, ToolBarSelectedTextColor());
 }
 
 QIcon PlatformStyle::TextColorIcon(const QIcon& icon) const
 {
-    return ColorizeIcon(icon, TextColor());
+    return ColorizeIcon(icon, ToolBarSelectedTextColor());
 }
 
 QColor PlatformStyle::TextColor() const
@@ -206,7 +213,7 @@ QColor PlatformStyle::WidgetBackGroundColor() const
     if (darkModeEnabled)
         return COLOR_WIDGET_BACKGROUND_DARK;
 
-    return COLOR_WHITE;
+    return COLOR_WIDGET_BACKGROUND;
 }
 
 QColor PlatformStyle::SendEntriesBackGroundColor() const
@@ -253,12 +260,32 @@ QColor PlatformStyle::DarkOrangeColor() const
     return COLOR_DARK_ORANGE;
 }
 
+QColor PlatformStyle:: Avian_18A7B7() const
+{
+    return COLOR_AVIAN_18A7B7;
+}
+
+QColor PlatformStyle:: Avian_19827B() const
+{
+    return COLOR_AVIAN_19827B;
+}
+
+QColor PlatformStyle:: Avian_2B737F() const
+{
+    return COLOR_AVIAN_2B737F;
+}
+
+QColor PlatformStyle:: Avian_34E2D6() const
+{
+    return COLOR_AVIAN_34E2D6;
+}
+
 QColor PlatformStyle::SingleColor() const
 {
     if (darkModeEnabled)
         return COLOR_ASSET_TEXT; // WHITE (black -> white)
 
-    return singleColor;
+    return COLOR_AVIAN_34E2D6;
 }
 
 QColor PlatformStyle::AssetTxColor() const

@@ -43,6 +43,7 @@
 
 #include <boost/thread.hpp>
 #include "darkstyle.h"
+#include "lightstyle.h"
 
 #include <QApplication>
 #include <QDebug>
@@ -428,8 +429,8 @@ void AvianApplication::createOptionsModel(bool resetSettings)
 void AvianApplication::createWindow(const NetworkStyle *networkStyle)
 {
     window = new AvianGUI(platformStyle, networkStyle, 0);
-    window->setMinimumSize(200,200);
-    window->setBaseSize(640,640);
+    //window->setMinimumSize(800,800);
+    //window->setBaseSize(640,640);
 
     pollShutdownTimer = new QTimer(window);
     connect(pollShutdownTimer, SIGNAL(timeout()), window, SLOT(detectShutdown()));
@@ -744,7 +745,7 @@ int main(int argc, char *argv[])
         app.setStyle(new DarkStyle);
         darkModeEnabled = true;
     } else {
-        app.setStyle("");
+        app.setStyle(new LightStyle);
     }
 
     // Subscribe to global signals from core

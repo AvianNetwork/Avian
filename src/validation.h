@@ -599,8 +599,10 @@ bool DumpMempool();
 /** Load the mempool from disk. */
 bool LoadMempool();
 
-/** RVN START */
+/** AVN START */
 bool AreAssetsDeployed();
+
+bool AreFlightPlansDeployed();
 
 bool AreMessagesDeployed();
 
@@ -624,6 +626,6 @@ bool IsMessagingActive(unsigned int nBlockNumber);
 bool IsRestrictedActive(unsigned int nBlockNumber);
 
 CAssetsCache* GetCurrentAssetCache();
-/** RVN END */
+/** AVN END */
 
 #endif // RAVEN_VALIDATION_H

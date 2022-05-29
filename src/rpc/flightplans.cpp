@@ -34,6 +34,10 @@
 
 UniValue call_function(const JSONRPCRequest& request)
 {
+    if (!AreFlightPlansDeployed())
+        throw std::runtime_error(
+            "Coming soon: Avian flight plan function will be available in a future release.\n");
+
     if (request.fHelp || request.params.size() < 2)
         throw std::runtime_error(
             "call_function\n"

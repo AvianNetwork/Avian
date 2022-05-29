@@ -141,10 +141,7 @@ void RestrictedAssetsDialog::setupStyling(const PlatformStyle *platformStyle)
     ui->tabFrame->setGraphicsEffect(GUIUtil::getShadowEffect());
 
     /** Add label color and font */
-    ui->labelAssetBalance->setStyleSheet(STRING_LABEL_COLOR);
     ui->labelAssetBalance->setFont(GUIUtil::getTopLabelFont());
-
-    ui->labelAddressList->setStyleSheet(STRING_LABEL_COLOR);
     ui->labelAddressList->setFont(GUIUtil::getTopLabelFont());
 }
 

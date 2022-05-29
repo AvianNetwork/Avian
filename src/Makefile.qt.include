@@ -148,6 +148,7 @@ QT_MOC_CPP = \
   qt/moc_coincontroltreewidget.cpp \
   qt/moc_csvmodelwriter.cpp \
   qt/moc_darkstyle.cpp \
+  qt/moc_lightstyle.cpp \
   qt/moc_editaddressdialog.cpp \
   qt/moc_guiutil.cpp \
   qt/moc_intro.cpp \
@@ -240,6 +241,7 @@ AVIAN_QT_H = \
   qt/csvmodelwriter.h \
   qt/currencyunits.h \
   qt/darkstyle.h \
+  qt/lightstyle.h \
   qt/editaddressdialog.h \
   qt/guiconstants.h \
   qt/guiutil.h \
@@ -372,215 +374,9 @@ RES_ICONS = \
   qt/res/icons/warning.png \
   qt/res/icons/verify.png \
   qt/res/icons/paper_wallet.png \
-  qt/res/icons/print.png \
-  qt/res/darkstyle/arrow_down.png \
-  qt/res/darkstyle/arrow_down@2x.png \
-  qt/res/darkstyle/arrow_down_disabled.png \
-  qt/res/darkstyle/arrow_down_disabled@2x.png \
-  qt/res/darkstyle/arrow_down_focus.png \
-  qt/res/darkstyle/arrow_down_focus@2x.png \
-  qt/res/darkstyle/arrow_down_pressed.png \
-  qt/res/darkstyle/arrow_down_pressed@2x.png \
-  qt/res/darkstyle/arrow_left.png \
-  qt/res/darkstyle/arrow_left@2x.png \
-  qt/res/darkstyle/arrow_left_disabled.png \
-  qt/res/darkstyle/arrow_left_disabled@2x.png \
-  qt/res/darkstyle/arrow_left_focus.png \
-  qt/res/darkstyle/arrow_left_focus@2x.png \
-  qt/res/darkstyle/arrow_left_pressed.png \
-  qt/res/darkstyle/arrow_left_pressed@2x.png \
-  qt/res/darkstyle/arrow_right.png \
-  qt/res/darkstyle/arrow_right@2x.png \
-  qt/res/darkstyle/arrow_right_disabled.png \
-  qt/res/darkstyle/arrow_right_disabled@2x.png \
-  qt/res/darkstyle/arrow_right_focus.png \
-  qt/res/darkstyle/arrow_right_focus@2x.png \
-  qt/res/darkstyle/arrow_right_pressed.png \
-  qt/res/darkstyle/arrow_right_pressed@2x.png \
-  qt/res/darkstyle/arrow_up.png \
-  qt/res/darkstyle/arrow_up@2x.png \
-  qt/res/darkstyle/arrow_up_disabled.png \
-  qt/res/darkstyle/arrow_up_disabled@2x.png \
-  qt/res/darkstyle/arrow_up_focus.png \
-  qt/res/darkstyle/arrow_up_focus@2x.png \
-  qt/res/darkstyle/arrow_up_pressed.png \
-  qt/res/darkstyle/arrow_up_pressed@2x.png \
-  qt/res/darkstyle/base_icon.png \
-  qt/res/darkstyle/base_icon@2x.png \
-  qt/res/darkstyle/base_icon_disabled.png \
-  qt/res/darkstyle/base_icon_disabled@2x.png \
-  qt/res/darkstyle/base_icon_focus.png \
-  qt/res/darkstyle/base_icon_focus@2x.png \
-  qt/res/darkstyle/base_icon_pressed.png \
-  qt/res/darkstyle/base_icon_pressed@2x.png \
-  qt/res/darkstyle/branch_closed.png \
-  qt/res/darkstyle/branch_closed@2x.png \
-  qt/res/darkstyle/branch_closed_disabled.png \
-  qt/res/darkstyle/branch_closed_disabled@2x.png \
-  qt/res/darkstyle/branch_closed_focus.png \
-  qt/res/darkstyle/branch_closed_focus@2x.png \
-  qt/res/darkstyle/branch_closed_pressed.png \
-  qt/res/darkstyle/branch_closed_pressed@2x.png \
-  qt/res/darkstyle/branch_end.png \
-  qt/res/darkstyle/branch_end@2x.png \
-  qt/res/darkstyle/branch_end_disabled.png \
-  qt/res/darkstyle/branch_end_disabled@2x.png \
-  qt/res/darkstyle/branch_end_focus.png \
-  qt/res/darkstyle/branch_end_focus@2x.png \
-  qt/res/darkstyle/branch_end_pressed.png \
-  qt/res/darkstyle/branch_end_pressed@2x.png \
-  qt/res/darkstyle/branch_line.png \
-  qt/res/darkstyle/branch_line@2x.png \
-  qt/res/darkstyle/branch_line_disabled.png \
-  qt/res/darkstyle/branch_line_disabled@2x.png \
-  qt/res/darkstyle/branch_line_focus.png \
-  qt/res/darkstyle/branch_line_focus@2x.png \
-  qt/res/darkstyle/branch_line_pressed.png \
-  qt/res/darkstyle/branch_line_pressed@2x.png \
-  qt/res/darkstyle/branch_more.png \
-  qt/res/darkstyle/branch_more@2x.png \
-  qt/res/darkstyle/branch_more_disabled.png \
-  qt/res/darkstyle/branch_more_disabled@2x.png \
-  qt/res/darkstyle/branch_more_focus.png \
-  qt/res/darkstyle/branch_more_focus@2x.png \
-  qt/res/darkstyle/branch_more_pressed.png \
-  qt/res/darkstyle/branch_more_pressed@2x.png \
-  qt/res/darkstyle/branch_open.png \
-  qt/res/darkstyle/branch_open@2x.png \
-  qt/res/darkstyle/branch_open_disabled.png \
-  qt/res/darkstyle/branch_open_disabled@2x.png \
-  qt/res/darkstyle/branch_open_focus.png \
-  qt/res/darkstyle/branch_open_focus@2x.png \
-  qt/res/darkstyle/branch_open_pressed.png \
-  qt/res/darkstyle/branch_open_pressed@2x.png \
-  qt/res/darkstyle/checkbox_checked.png \
-  qt/res/darkstyle/checkbox_checked@2x.png \
-  qt/res/darkstyle/checkbox_checked_disabled.png \
-  qt/res/darkstyle/checkbox_checked_disabled@2x.png \
-  qt/res/darkstyle/checkbox_checked_focus.png \
-  qt/res/darkstyle/checkbox_checked_focus@2x.png \
-  qt/res/darkstyle/checkbox_checked_pressed.png \
-  qt/res/darkstyle/checkbox_checked_pressed@2x.png \
-  qt/res/darkstyle/checkbox_indeterminate.png \
-  qt/res/darkstyle/checkbox_indeterminate@2x.png \
-  qt/res/darkstyle/checkbox_indeterminate_disabled.png \
-  qt/res/darkstyle/checkbox_indeterminate_disabled@2x.png \
-  qt/res/darkstyle/checkbox_indeterminate_focus.png \
-  qt/res/darkstyle/checkbox_indeterminate_focus@2x.png \
-  qt/res/darkstyle/checkbox_indeterminate_pressed.png \
-  qt/res/darkstyle/checkbox_indeterminate_pressed@2x.png \
-  qt/res/darkstyle/checkbox_unchecked.png \
-  qt/res/darkstyle/checkbox_unchecked@2x.png \
-  qt/res/darkstyle/checkbox_unchecked_disabled.png \
-  qt/res/darkstyle/checkbox_unchecked_disabled@2x.png \
-  qt/res/darkstyle/checkbox_unchecked_focus.png \
-  qt/res/darkstyle/checkbox_unchecked_focus@2x.png \
-  qt/res/darkstyle/checkbox_unchecked_pressed.png \
-  qt/res/darkstyle/checkbox_unchecked_pressed@2x.png \
-  qt/res/darkstyle/line_horizontal.png \
-  qt/res/darkstyle/line_horizontal@2x.png \
-  qt/res/darkstyle/line_horizontal_disabled.png \
-  qt/res/darkstyle/line_horizontal_disabled@2x.png \
-  qt/res/darkstyle/line_horizontal_focus.png \
-  qt/res/darkstyle/line_horizontal_focus@2x.png \
-  qt/res/darkstyle/line_horizontal_pressed.png \
-  qt/res/darkstyle/line_horizontal_pressed@2x.png \
-  qt/res/darkstyle/line_vertical.png \
-  qt/res/darkstyle/line_vertical@2x.png \
-  qt/res/darkstyle/line_vertical_disabled.png \
-  qt/res/darkstyle/line_vertical_disabled@2x.png \
-  qt/res/darkstyle/line_vertical_focus.png \
-  qt/res/darkstyle/line_vertical_focus@2x.png \
-  qt/res/darkstyle/line_vertical_pressed.png \
-  qt/res/darkstyle/line_vertical_pressed@2x.png \
-  qt/res/darkstyle/radio_checked.png \
-  qt/res/darkstyle/radio_checked@2x.png \
-  qt/res/darkstyle/radio_checked_disabled.png \
-  qt/res/darkstyle/radio_checked_disabled@2x.png \
-  qt/res/darkstyle/radio_checked_focus.png \
-  qt/res/darkstyle/radio_checked_focus@2x.png \
-  qt/res/darkstyle/radio_checked_pressed.png \
-  qt/res/darkstyle/radio_checked_pressed@2x.png \
-  qt/res/darkstyle/radio_unchecked.png \
-  qt/res/darkstyle/radio_unchecked@2x.png \
-  qt/res/darkstyle/radio_unchecked_disabled.png \
-  qt/res/darkstyle/radio_unchecked_disabled@2x.png \
-  qt/res/darkstyle/radio_unchecked_focus.png \
-  qt/res/darkstyle/radio_unchecked_focus@2x.png \
-  qt/res/darkstyle/radio_unchecked_pressed.png \
-  qt/res/darkstyle/radio_unchecked_pressed@2x.png \
-  qt/res/darkstyle/toolbar_move_horizontal.png \
-  qt/res/darkstyle/toolbar_move_horizontal@2x.png \
-  qt/res/darkstyle/toolbar_move_horizontal_disabled.png \
-  qt/res/darkstyle/toolbar_move_horizontal_disabled@2x.png \
-  qt/res/darkstyle/toolbar_move_horizontal_focus.png \
-  qt/res/darkstyle/toolbar_move_horizontal_focus@2x.png \
-  qt/res/darkstyle/toolbar_move_horizontal_pressed.png \
-  qt/res/darkstyle/toolbar_move_horizontal_pressed@2x.png \
-  qt/res/darkstyle/toolbar_move_vertical.png \
-  qt/res/darkstyle/toolbar_move_vertical@2x.png \
-  qt/res/darkstyle/toolbar_move_vertical_disabled.png \
-  qt/res/darkstyle/toolbar_move_vertical_disabled@2x.png \
-  qt/res/darkstyle/toolbar_move_vertical_focus.png \
-  qt/res/darkstyle/toolbar_move_vertical_focus@2x.png \
-  qt/res/darkstyle/toolbar_move_vertical_pressed.png \
-  qt/res/darkstyle/toolbar_move_vertical_pressed@2x.png \
-  qt/res/darkstyle/toolbar_separator_horizontal.png \
-  qt/res/darkstyle/toolbar_separator_horizontal@2x.png \
-  qt/res/darkstyle/toolbar_separator_horizontal_disabled.png \
-  qt/res/darkstyle/toolbar_separator_horizontal_disabled@2x.png \
-  qt/res/darkstyle/toolbar_separator_horizontal_focus.png \
-  qt/res/darkstyle/toolbar_separator_horizontal_focus@2x.png \
-  qt/res/darkstyle/toolbar_separator_horizontal_pressed.png \
-  qt/res/darkstyle/toolbar_separator_horizontal_pressed@2x.png \
-  qt/res/darkstyle/toolbar_separator_vertical.png \
-  qt/res/darkstyle/toolbar_separator_vertical@2x.png \
-  qt/res/darkstyle/toolbar_separator_vertical_disabled.png \
-  qt/res/darkstyle/toolbar_separator_vertical_disabled@2x.png \
-  qt/res/darkstyle/toolbar_separator_vertical_focus.png \
-  qt/res/darkstyle/toolbar_separator_vertical_focus@2x.png \
-  qt/res/darkstyle/toolbar_separator_vertical_pressed.png \
-  qt/res/darkstyle/toolbar_separator_vertical_pressed@2x.png \
-  qt/res/darkstyle/transparent.png \
-  qt/res/darkstyle/transparent@2x.png \
-  qt/res/darkstyle/transparent_disabled.png \
-  qt/res/darkstyle/transparent_disabled@2x.png \
-  qt/res/darkstyle/transparent_focus.png \
-  qt/res/darkstyle/transparent_focus@2x.png \
-  qt/res/darkstyle/transparent_pressed.png \
-  qt/res/darkstyle/transparent_pressed@2x.png \
-  qt/res/darkstyle/window_close.png \
-  qt/res/darkstyle/window_close@2x.png \
-  qt/res/darkstyle/window_close_disabled.png \
-  qt/res/darkstyle/window_close_disabled@2x.png \
-  qt/res/darkstyle/window_close_focus.png \
-  qt/res/darkstyle/window_close_focus@2x.png \
-  qt/res/darkstyle/window_close_pressed.png \
-  qt/res/darkstyle/window_close_pressed@2x.png \
-  qt/res/darkstyle/window_grip.png \
-  qt/res/darkstyle/window_grip@2x.png \
-  qt/res/darkstyle/window_grip_disabled.png \
-  qt/res/darkstyle/window_grip_disabled@2x.png \
-  qt/res/darkstyle/window_grip_focus.png \
-  qt/res/darkstyle/window_grip_focus@2x.png \
-  qt/res/darkstyle/window_grip_pressed.png \
-  qt/res/darkstyle/window_grip_pressed@2x.png \
-  qt/res/darkstyle/window_minimize.png \
-  qt/res/darkstyle/window_minimize@2x.png \
-  qt/res/darkstyle/window_minimize_disabled.png \
-  qt/res/darkstyle/window_minimize_disabled@2x.png \
-  qt/res/darkstyle/window_minimize_focus.png \
-  qt/res/darkstyle/window_minimize_focus@2x.png \
-  qt/res/darkstyle/window_minimize_pressed.png \
-  qt/res/darkstyle/window_minimize_pressed@2x.png \
-  qt/res/darkstyle/window_undock.png \
-  qt/res/darkstyle/window_undock@2x.png \
-  qt/res/darkstyle/window_undock_disabled.png \
-  qt/res/darkstyle/window_undock_disabled@2x.png \
-  qt/res/darkstyle/window_undock_focus.png \
-  qt/res/darkstyle/window_undock_focus@2x.png \
-  qt/res/darkstyle/window_undock_pressed.png \
-  qt/res/darkstyle/window_undock_pressed@2x.png \
+  qt/res/icons/print.png
+
+RES_FONTS = \  
   qt/res/fonts/OpenSans-Bold.ttf \
   qt/res/fonts/OpenSans-BoldItalic.ttf \
   qt/res/fonts/OpenSans-ExtraBold.ttf \
@@ -591,14 +387,85 @@ RES_ICONS = \
   qt/res/fonts/OpenSans-Regular.ttf \
   qt/res/fonts/OpenSans-SemiBold.ttf \
   qt/res/fonts/OpenSans-SemiBoldItalic.ttf \  
-  qt/res/fonts/Manrope-Bold.ttf \
-  qt/res/fonts/Manrope-ExtraBold.ttf \
-  qt/res/fonts/Manrope-ExtraLight.ttf \
-  qt/res/fonts/Manrope-Light.ttf \
-  qt/res/fonts/Manrope-Medium.ttf \
-  qt/res/fonts/Manrope-Regular.ttf \
-  qt/res/fonts/Manrope-SemiBold.ttf 
+  qt/res/fonts/KonnectBlack.otf \
+  qt/res/fonts/KonnectBlackItalic.otf \
+  qt/res/fonts/KonnectBold.otf \
+  qt/res/fonts/KonnectBoldItalic.otf \
+  qt/res/fonts/KonnectExtraBold.otf \
+  qt/res/fonts/KonnectExtraBoldItalic.otf \
+  qt/res/fonts/KonnectHairline.otf \
+  qt/res/fonts/KonnectHairlineItalic.otf \
+  qt/res/fonts/KonnectItalic.otf \
+  qt/res/fonts/KonnectLight.otf \
+  qt/res/fonts/KonnectLightItalic.otf \
+  qt/res/fonts/KonnectMedium.otf \
+  qt/res/fonts/KonnectMediumItalic.otf \
+  qt/res/fonts/KonnectRegular.otf \
+  qt/res/fonts/KonnectSemiBold.otf \
+  qt/res/fonts/KonnectSemiBoldItalic.otf \
+  qt/res/fonts/KonnectThin.otf \
+  qt/res/fonts/KonnectThinItalic.otf
 
+RES_IMAGES = \
+  qt/res/images/arrow_down_dark.png \
+  qt/res/images/arrow_down_light.png \
+  qt/res/images/arrow_left_dark.png \
+  qt/res/images/arrow_left_light.png \
+  qt/res/images/arrow_right_dark.png \
+  qt/res/images/arrow_right_light.png \
+  qt/res/images/arrow_up_dark.png \
+  qt/res/images/arrow_up_light.png \
+  qt/res/images/arrow_light_down_normal.png \
+  qt/res/images/arrow_light_down_hover.png \
+  qt/res/images/arrow_light_left_normal.png \
+  qt/res/images/arrow_light_left_hover.png \
+  qt/res/images/arrow_light_right_normal.png \
+  qt/res/images/arrow_light_right_hover.png \
+  qt/res/images/arrow_light_up_normal.png \
+  qt/res/images/arrow_light_up_hover.png \
+  qt/res/images/checkbox_normal_dark.png \
+  qt/res/images/checkbox_normal_hover_dark.png \
+  qt/res/images/checkbox_normal_disabled_dark.png \
+  qt/res/images/checkbox_checked_dark.png \
+  qt/res/images/checkbox_checked_hover_dark.png \
+  qt/res/images/checkbox_checked_disabled_dark.png \
+  qt/res/images/checkbox_partly_checked_dark.png \
+  qt/res/images/checkbox_partly_checked_hover_dark.png \
+  qt/res/images/checkbox_partly_checked_disabled_dark.png \
+  qt/res/images/checkbox_normal_light.png \
+  qt/res/images/checkbox_normal_hover_light.png \
+  qt/res/images/checkbox_normal_disabled_light.png \
+  qt/res/images/checkbox_checked_light.png \
+  qt/res/images/checkbox_checked_hover_light.png \
+  qt/res/images/checkbox_checked_disabled_light.png \
+  qt/res/images/checkbox_partly_checked_light.png \
+  qt/res/images/checkbox_partly_checked_hover_light.png \
+  qt/res/images/checkbox_partly_checked_disabled_light.png \
+  qt/res/images/radio_normal_dark.png \
+  qt/res/images/radio_normal_hover_dark.png \
+  qt/res/images/radio_checked_dark.png \
+  qt/res/images/radio_checked_hover_dark.png \
+  qt/res/images/radio_normal_disabled_dark.png \
+  qt/res/images/radio_checked_disabled_dark.png \
+  qt/res/images/radio_normal_light.png \
+  qt/res/images/radio_normal_hover_light.png \
+  qt/res/images/radio_checked_light.png \
+  qt/res/images/radio_checked_hover_light.png \
+  qt/res/images/radio_normal_disabled_light.png \
+  qt/res/images/radio_checked_disabled_light.png \
+  qt/res/images/toolbar_move_horizontal.png \
+  qt/res/images/toolbar_move_vertical.png \
+  qt/res/images/toolbar_separator_horizontal.png \
+  qt/res/images/toolbar_separator_vertical.png \
+  qt/res/images/toolbar_move_horizontal_dark.png \
+  qt/res/images/toolbar_move_vertical_dark.png \
+  qt/res/images/toolbar_separator_horizontal_dark.png \
+  qt/res/images/toolbar_separator_vertical_dark.png
+  
+RES_CSS = \
+  qt/res/css/general.css \
+  qt/res/css/Dark.css \
+  qt/res/css/Light.css
 
 AVIAN_QT_BASE_CPP = \
   qt/bantablemodel.cpp \
@@ -609,6 +476,7 @@ AVIAN_QT_BASE_CPP = \
   qt/clientmodel.cpp \
   qt/csvmodelwriter.cpp \
   qt/darkstyle.cpp \
+  qt/lightstyle.cpp \
   qt/guiutil.cpp \
   qt/intro.cpp \
   qt/modaloverlay.cpp \
@@ -682,8 +550,6 @@ if ENABLE_WALLET
 AVIAN_QT_CPP += $(AVIAN_QT_WALLET_CPP)
 endif
 
-RES_IMAGES = 
-
 RES_MOVIES = $(wildcard $(srcdir)/qt/res/movies/spinner-*.png)
 
 AVIAN_RC = qt/res/avian-qt-res.rc
@@ -696,7 +562,7 @@ qt_libavianqt_a_CPPFLAGS = $(AM_CPPFLAGS) $(AVIAN_INCLUDES) $(AVIAN_QT_INCLUDES)
 qt_libavianqt_a_CXXFLAGS = $(AM_CXXFLAGS) $(QT_PIE_FLAGS)
 
 qt_libavianqt_a_SOURCES = $(AVIAN_QT_CPP) $(AVIAN_QT_H) $(QT_FORMS_UI) \
-  $(QT_QRC) $(QT_QRC_LOCALE) $(QT_TS) $(PROTOBUF_PROTO) $(RES_ICONS) $(RES_IMAGES) $(RES_MOVIES)
+  $(QT_QRC) $(QT_QRC_LOCALE) $(QT_TS) $(PROTOBUF_PROTO) $(RES_ICONS) $(RES_FONTS) $(RES_CSS) $(RES_IMAGES) $(RES_MOVIES)
 
 nodist_qt_libavianqt_a_SOURCES = $(QT_MOC_CPP) $(QT_MOC) $(PROTOBUF_CC) \
   $(PROTOBUF_H) $(QT_QRC_CPP) $(QT_QRC_LOCALE_CPP)
@@ -759,7 +625,7 @@ $(QT_QRC_LOCALE_CPP): $(QT_QRC_LOCALE) $(QT_QM)
 	  $(SED) -e '/^\*\*.*Created:/d' -e '/^\*\*.*by:/d' > $@
 	@rm $(@D)/temp_$(<F)
 
-$(QT_QRC_CPP): $(QT_QRC) $(QT_FORMS_H) $(RES_ICONS) $(RES_IMAGES) $(RES_MOVIES) $(PROTOBUF_H)
+$(QT_QRC_CPP): $(QT_QRC) $(QT_FORMS_H) $(RES_ICONS) $(RES_FONTS) $(RES_CSS) $(RES_IMAGES) $(RES_MOVIES) $(PROTOBUF_H)
 	@test -f $(RCC)
 	$(AM_V_GEN) QT_SELECT=$(QT_SELECT) $(RCC) -name avian $< | \
 	  $(SED) -e '/^\*\*.*Created:/d' -e '/^\*\*.*by:/d' > $@

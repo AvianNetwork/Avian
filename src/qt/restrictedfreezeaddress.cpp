@@ -49,16 +49,9 @@ FreezeAddress::FreezeAddress(const PlatformStyle *_platformStyle, QWidget *paren
     connect(ui->checkBoxChangeAddress, SIGNAL(stateChanged(int)), this, SLOT(dataChanged()));
     connect(ui->checkBoxChangeAddress, SIGNAL(stateChanged(int)), this, SLOT(changeAddressChanged(int)));
 
-    ui->labelRestricted->setStyleSheet(STRING_LABEL_COLOR);
     ui->labelRestricted->setFont(GUIUtil::getTopLabelFont());
-
-    ui->labelAddress->setStyleSheet(STRING_LABEL_COLOR);
     ui->labelAddress->setFont(GUIUtil::getTopLabelFont());
-
-    ui->labelAssetData->setStyleSheet(STRING_LABEL_COLOR);
     ui->labelAssetData->setFont(GUIUtil::getTopLabelFont());
-
-    ui->checkBoxChangeAddress->setStyleSheet(QString(".QCheckBox{ %1; }").arg(STRING_LABEL_COLOR));
 
     ui->lineEditChangeAddress->hide();
 }

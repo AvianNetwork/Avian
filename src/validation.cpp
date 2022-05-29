@@ -5881,6 +5881,17 @@ bool AreAssetsDeployed()
     return fAssetsIsActive;
 }
 
+bool AreFlightPlansDeployed()
+{
+    if (fFlightPlansIsActive)
+        return true;
+
+    if ((chainActive.Tip() != nullptr) && chainActive.Tip()->nTime > Params().GetConsensus().nFlightPlansActivationTime)
+        fFlightPlansIsActive = true;
+
+    return fFlightPlansIsActive;
+}
+
 bool IsRip5Active()
 {
     if (fRip5IsActive)

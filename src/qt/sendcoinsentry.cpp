@@ -14,6 +14,7 @@
 #include "walletmodel.h"
 #include "guiconstants.h"
 #include "darkstyle.h"
+#include "lightstyle.h"
 
 #include <QGraphicsDropShadowEffect>
 #include <QApplication>
@@ -61,7 +62,6 @@ SendCoinsEntry::SendCoinsEntry(const PlatformStyle *_platformStyle, QWidget *par
     ui->labellLabel->setFont(GUIUtil::getSubLabelFont());
     ui->amountLabel->setFont(GUIUtil::getSubLabelFont());
     ui->messageLabel->setFont(GUIUtil::getSubLabelFont());
-
     ui->payTo->setFont(GUIUtil::getSubLabelFont());
     ui->addAsLabel->setFont(GUIUtil::getSubLabelFont());
     ui->payAmount->setFont(GUIUtil::getSubLabelFont());

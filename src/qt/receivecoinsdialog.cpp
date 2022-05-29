@@ -40,10 +40,10 @@ ReceiveCoinsDialog::ReceiveCoinsDialog(const PlatformStyle *_platformStyle, QWid
         ui->showRequestButton->setIcon(QIcon());
         ui->removeRequestButton->setIcon(QIcon());
     } else {
-        ui->clearButton->setIcon(_platformStyle->SingleColorIcon(":/icons/remove"));
-        ui->receiveButton->setIcon(_platformStyle->SingleColorIcon(":/icons/receiving_addresses"));
-        ui->showRequestButton->setIcon(_platformStyle->SingleColorIcon(":/icons/edit"));
-        ui->removeRequestButton->setIcon(_platformStyle->SingleColorIcon(":/icons/remove"));
+        ui->clearButton->setIcon(_platformStyle->SingleColorIcon(":/icons/remove", COLOR_AVIAN_18A7B7));
+        ui->receiveButton->setIcon(_platformStyle->SingleColorIcon(":/icons/receiving_addresses", COLOR_WHITE));
+        ui->showRequestButton->setIcon(_platformStyle->SingleColorIcon(":/icons/edit", COLOR_AVIAN_18A7B7));
+        ui->removeRequestButton->setIcon(_platformStyle->SingleColorIcon(":/icons/remove",COLOR_AVIAN_18A7B7));
     }
 
     // context menu actions
@@ -136,12 +136,12 @@ void ReceiveCoinsDialog::setupRequestFrame(const PlatformStyle *platformStyle)
 
     ui->frame2->setGraphicsEffect(GUIUtil::getShadowEffect());
 
-
     ui->label_2->setFont(GUIUtil::getSubLabelFont());
     ui->label->setFont(GUIUtil::getSubLabelFont());
     ui->label_3->setFont(GUIUtil::getSubLabelFont());
     ui->label_4->setFont(GUIUtil::getSubLabelFont());
     ui->label_7->setFont(GUIUtil::getSubLabelFont());
+
     ui->reqLabel->setFont(GUIUtil::getSubLabelFont());
     ui->reqAmount->setFont(GUIUtil::getSubLabelFont());
     ui->reqMessage->setFont(GUIUtil::getSubLabelFont());

@@ -49,7 +49,7 @@ TransactionView::TransactionView(const PlatformStyle *platformStyle, QWidget *pa
     setContentsMargins(0,0,0,0);
 
     QHBoxLayout *hlayout = new QHBoxLayout();
-    hlayout->setContentsMargins(0,0,0,0);
+    hlayout->setContentsMargins(40,40,40,0);
 
     if (platformStyle->getUseExtraSpacing()) {
         hlayout->setSpacing(5);
@@ -142,7 +142,7 @@ TransactionView::TransactionView(const PlatformStyle *platformStyle, QWidget *pa
     asset_typing_delay->setInterval(input_filter_delay);
 
     QVBoxLayout *vlayout = new QVBoxLayout(this);
-    vlayout->setContentsMargins(0,0,0,0);
+    vlayout->setContentsMargins(40,0,40,40);
     vlayout->setSpacing(0);
 
     QTableView *view = new QTableView(this);

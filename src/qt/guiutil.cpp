@@ -93,11 +93,11 @@ QFont getSubLabelFont()
 {
     QFont labelSubFont;
 #if !defined(Q_OS_MAC)
-    labelSubFont.setFamily("Manrope");
+    labelSubFont.setFamily("Konnect");
 #endif
     labelSubFont.setWeight(QFont::Weight::ExtraLight);
     labelSubFont.setLetterSpacing(QFont::SpacingType::AbsoluteSpacing, -0.6);
-    labelSubFont.setPixelSize(14);
+    labelSubFont.setPixelSize(12);
     return labelSubFont;
 }
 
@@ -105,11 +105,11 @@ QFont getSubLabelFontBolded()
 {
     QFont labelSubFont;
 #if !defined(Q_OS_MAC)
-    labelSubFont.setFamily("Manrope");
+    labelSubFont.setFamily("Konnect Bold");
 #endif
     labelSubFont.setWeight(QFont::Weight::Bold);
     labelSubFont.setLetterSpacing(QFont::SpacingType::AbsoluteSpacing, -0.6);
-    labelSubFont.setPixelSize(14);
+    labelSubFont.setPixelSize(12);
     return labelSubFont;
 }
 
@@ -117,7 +117,7 @@ QFont getTopLabelFontBolded()
 {
     QFont labelTopFont;
 #if !defined(Q_OS_MAC)
-    labelTopFont.setFamily("Manrope");
+    labelTopFont.setFamily("Konnect Bold");
 #endif
     labelTopFont.setWeight(QFont::Weight::Bold);
     labelTopFont.setLetterSpacing(QFont::SpacingType::AbsoluteSpacing, -0.6);
@@ -129,7 +129,7 @@ QFont getTopLabelFont(int weight, int pxsize)
 {
     QFont labelTopFont;
 #if !defined(Q_OS_MAC)
-    labelTopFont.setFamily("Manrope");
+    labelTopFont.setFamily("Konnect");
 #endif
     labelTopFont.setWeight(weight);
     labelTopFont.setLetterSpacing(QFont::SpacingType::AbsoluteSpacing, -0.6);
@@ -141,7 +141,7 @@ QFont getTopLabelFont()
 {
     QFont labelTopFont;
 #if !defined(Q_OS_MAC)
-    labelTopFont.setFamily("Manrope");
+    labelTopFont.setFamily("Konnect");
 #endif
     labelTopFont.setWeight(QFont::Weight::Light);
     labelTopFont.setLetterSpacing(QFont::SpacingType::AbsoluteSpacing, -0.6);

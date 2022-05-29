@@ -116,217 +116,11 @@
         <file alias="spinner-034">res/movies/spinner-034.png</file>
         <file alias="spinner-035">res/movies/spinner-035.png</file>
     </qresource>
-    <qresource prefix="/darkstyle">
-        <file alias="qss">res/darkstyle/darkstyle.qss</file>
-        <file>res/darkstyle/arrow_down.png</file>
-        <file>res/darkstyle/arrow_down@2x.png</file>
-        <file>res/darkstyle/arrow_down_disabled.png</file>
-        <file>res/darkstyle/arrow_down_disabled@2x.png</file>
-        <file>res/darkstyle/arrow_down_focus.png</file>
-        <file>res/darkstyle/arrow_down_focus@2x.png</file>
-        <file>res/darkstyle/arrow_down_pressed.png</file>
-        <file>res/darkstyle/arrow_down_pressed@2x.png</file>
-        <file>res/darkstyle/arrow_left.png</file>
-        <file>res/darkstyle/arrow_left@2x.png</file>
-        <file>res/darkstyle/arrow_left_disabled.png</file>
-        <file>res/darkstyle/arrow_left_disabled@2x.png</file>
-        <file>res/darkstyle/arrow_left_focus.png</file>
-        <file>res/darkstyle/arrow_left_focus@2x.png</file>
-        <file>res/darkstyle/arrow_left_pressed.png</file>
-        <file>res/darkstyle/arrow_left_pressed@2x.png</file>
-        <file>res/darkstyle/arrow_right.png</file>
-        <file>res/darkstyle/arrow_right@2x.png</file>
-        <file>res/darkstyle/arrow_right_disabled.png</file>
-        <file>res/darkstyle/arrow_right_disabled@2x.png</file>
-        <file>res/darkstyle/arrow_right_focus.png</file>
-        <file>res/darkstyle/arrow_right_focus@2x.png</file>
-        <file>res/darkstyle/arrow_right_pressed.png</file>
-        <file>res/darkstyle/arrow_right_pressed@2x.png</file>
-        <file>res/darkstyle/arrow_up.png</file>
-        <file>res/darkstyle/arrow_up@2x.png</file>
-        <file>res/darkstyle/arrow_up_disabled.png</file>
-        <file>res/darkstyle/arrow_up_disabled@2x.png</file>
-        <file>res/darkstyle/arrow_up_focus.png</file>
-        <file>res/darkstyle/arrow_up_focus@2x.png</file>
-        <file>res/darkstyle/arrow_up_pressed.png</file>
-        <file>res/darkstyle/arrow_up_pressed@2x.png</file>
-        <file>res/darkstyle/base_icon.png</file>
-        <file>res/darkstyle/base_icon@2x.png</file>
-        <file>res/darkstyle/base_icon_disabled.png</file>
-        <file>res/darkstyle/base_icon_disabled@2x.png</file>
-        <file>res/darkstyle/base_icon_focus.png</file>
-        <file>res/darkstyle/base_icon_focus@2x.png</file>
-        <file>res/darkstyle/base_icon_pressed.png</file>
-        <file>res/darkstyle/base_icon_pressed@2x.png</file>
-        <file>res/darkstyle/branch_closed.png</file>
-        <file>res/darkstyle/branch_closed@2x.png</file>
-        <file>res/darkstyle/branch_closed_disabled.png</file>
-        <file>res/darkstyle/branch_closed_disabled@2x.png</file>
-        <file>res/darkstyle/branch_closed_focus.png</file>
-        <file>res/darkstyle/branch_closed_focus@2x.png</file>
-        <file>res/darkstyle/branch_closed_pressed.png</file>
-        <file>res/darkstyle/branch_closed_pressed@2x.png</file>
-        <file>res/darkstyle/branch_end.png</file>
-        <file>res/darkstyle/branch_end@2x.png</file>
-        <file>res/darkstyle/branch_end_disabled.png</file>
-        <file>res/darkstyle/branch_end_disabled@2x.png</file>
-        <file>res/darkstyle/branch_end_focus.png</file>
-        <file>res/darkstyle/branch_end_focus@2x.png</file>
-        <file>res/darkstyle/branch_end_pressed.png</file>
-        <file>res/darkstyle/branch_end_pressed@2x.png</file>
-        <file>res/darkstyle/branch_line.png</file>
-        <file>res/darkstyle/branch_line@2x.png</file>
-        <file>res/darkstyle/branch_line_disabled.png</file>
-        <file>res/darkstyle/branch_line_disabled@2x.png</file>
-        <file>res/darkstyle/branch_line_focus.png</file>
-        <file>res/darkstyle/branch_line_focus@2x.png</file>
-        <file>res/darkstyle/branch_line_pressed.png</file>
-        <file>res/darkstyle/branch_line_pressed@2x.png</file>
-        <file>res/darkstyle/branch_more.png</file>
-        <file>res/darkstyle/branch_more@2x.png</file>
-        <file>res/darkstyle/branch_more_disabled.png</file>
-        <file>res/darkstyle/branch_more_disabled@2x.png</file>
-        <file>res/darkstyle/branch_more_focus.png</file>
-        <file>res/darkstyle/branch_more_focus@2x.png</file>
-        <file>res/darkstyle/branch_more_pressed.png</file>
-        <file>res/darkstyle/branch_more_pressed@2x.png</file>
-        <file>res/darkstyle/branch_open.png</file>
-        <file>res/darkstyle/branch_open@2x.png</file>
-        <file>res/darkstyle/branch_open_disabled.png</file>
-        <file>res/darkstyle/branch_open_disabled@2x.png</file>
-        <file>res/darkstyle/branch_open_focus.png</file>
-        <file>res/darkstyle/branch_open_focus@2x.png</file>
-        <file>res/darkstyle/branch_open_pressed.png</file>
-        <file>res/darkstyle/branch_open_pressed@2x.png</file>
-        <file>res/darkstyle/checkbox_checked.png</file>
-        <file>res/darkstyle/checkbox_checked@2x.png</file>
-        <file>res/darkstyle/checkbox_checked_disabled.png</file>
-        <file>res/darkstyle/checkbox_checked_disabled@2x.png</file>
-        <file>res/darkstyle/checkbox_checked_focus.png</file>
-        <file>res/darkstyle/checkbox_checked_focus@2x.png</file>
-        <file>res/darkstyle/checkbox_checked_pressed.png</file>
-        <file>res/darkstyle/checkbox_checked_pressed@2x.png</file>
-        <file>res/darkstyle/checkbox_indeterminate.png</file>
-        <file>res/darkstyle/checkbox_indeterminate@2x.png</file>
-        <file>res/darkstyle/checkbox_indeterminate_disabled.png</file>
-        <file>res/darkstyle/checkbox_indeterminate_disabled@2x.png</file>
-        <file>res/darkstyle/checkbox_indeterminate_focus.png</file>
-        <file>res/darkstyle/checkbox_indeterminate_focus@2x.png</file>
-        <file>res/darkstyle/checkbox_indeterminate_pressed.png</file>
-        <file>res/darkstyle/checkbox_indeterminate_pressed@2x.png</file>
-        <file>res/darkstyle/checkbox_unchecked.png</file>
-        <file>res/darkstyle/checkbox_unchecked@2x.png</file>
-        <file>res/darkstyle/checkbox_unchecked_disabled.png</file>
-        <file>res/darkstyle/checkbox_unchecked_disabled@2x.png</file>
-        <file>res/darkstyle/checkbox_unchecked_focus.png</file>
-        <file>res/darkstyle/checkbox_unchecked_focus@2x.png</file>
-        <file>res/darkstyle/checkbox_unchecked_pressed.png</file>
-        <file>res/darkstyle/checkbox_unchecked_pressed@2x.png</file>
-        <file>res/darkstyle/line_horizontal.png</file>
-        <file>res/darkstyle/line_horizontal@2x.png</file>
-        <file>res/darkstyle/line_horizontal_disabled.png</file>
-        <file>res/darkstyle/line_horizontal_disabled@2x.png</file>
-        <file>res/darkstyle/line_horizontal_focus.png</file>
-        <file>res/darkstyle/line_horizontal_focus@2x.png</file>
-        <file>res/darkstyle/line_horizontal_pressed.png</file>
-        <file>res/darkstyle/line_horizontal_pressed@2x.png</file>
-        <file>res/darkstyle/line_vertical.png</file>
-        <file>res/darkstyle/line_vertical@2x.png</file>
-        <file>res/darkstyle/line_vertical_disabled.png</file>
-        <file>res/darkstyle/line_vertical_disabled@2x.png</file>
-        <file>res/darkstyle/line_vertical_focus.png</file>
-        <file>res/darkstyle/line_vertical_focus@2x.png</file>
-        <file>res/darkstyle/line_vertical_pressed.png</file>
-        <file>res/darkstyle/line_vertical_pressed@2x.png</file>
-        <file>res/darkstyle/radio_checked.png</file>
-        <file>res/darkstyle/radio_checked@2x.png</file>
-        <file>res/darkstyle/radio_checked_disabled.png</file>
-        <file>res/darkstyle/radio_checked_disabled@2x.png</file>
-        <file>res/darkstyle/radio_checked_focus.png</file>
-        <file>res/darkstyle/radio_checked_focus@2x.png</file>
-        <file>res/darkstyle/radio_checked_pressed.png</file>
-        <file>res/darkstyle/radio_checked_pressed@2x.png</file>
-        <file>res/darkstyle/radio_unchecked.png</file>
-        <file>res/darkstyle/radio_unchecked@2x.png</file>
-        <file>res/darkstyle/radio_unchecked_disabled.png</file>
-        <file>res/darkstyle/radio_unchecked_disabled@2x.png</file>
-        <file>res/darkstyle/radio_unchecked_focus.png</file>
-        <file>res/darkstyle/radio_unchecked_focus@2x.png</file>
-        <file>res/darkstyle/radio_unchecked_pressed.png</file>
-        <file>res/darkstyle/radio_unchecked_pressed@2x.png</file>
-        <file>res/darkstyle/toolbar_move_horizontal.png</file>
-        <file>res/darkstyle/toolbar_move_horizontal@2x.png</file>
-        <file>res/darkstyle/toolbar_move_horizontal_disabled.png</file>
-        <file>res/darkstyle/toolbar_move_horizontal_disabled@2x.png</file>
-        <file>res/darkstyle/toolbar_move_horizontal_focus.png</file>
-        <file>res/darkstyle/toolbar_move_horizontal_focus@2x.png</file>
-        <file>res/darkstyle/toolbar_move_horizontal_pressed.png</file>
-        <file>res/darkstyle/toolbar_move_horizontal_pressed@2x.png</file>
-        <file>res/darkstyle/toolbar_move_vertical.png</file>
-        <file>res/darkstyle/toolbar_move_vertical@2x.png</file>
-        <file>res/darkstyle/toolbar_move_vertical_disabled.png</file>
-        <file>res/darkstyle/toolbar_move_vertical_disabled@2x.png</file>
-        <file>res/darkstyle/toolbar_move_vertical_focus.png</file>
-        <file>res/darkstyle/toolbar_move_vertical_focus@2x.png</file>
-        <file>res/darkstyle/toolbar_move_vertical_pressed.png</file>
-        <file>res/darkstyle/toolbar_move_vertical_pressed@2x.png</file>
-        <file>res/darkstyle/toolbar_separator_horizontal.png</file>
-        <file>res/darkstyle/toolbar_separator_horizontal@2x.png</file>
-        <file>res/darkstyle/toolbar_separator_horizontal_disabled.png</file>
-        <file>res/darkstyle/toolbar_separator_horizontal_disabled@2x.png</file>
-        <file>res/darkstyle/toolbar_separator_horizontal_focus.png</file>
-        <file>res/darkstyle/toolbar_separator_horizontal_focus@2x.png</file>
-        <file>res/darkstyle/toolbar_separator_horizontal_pressed.png</file>
-        <file>res/darkstyle/toolbar_separator_horizontal_pressed@2x.png</file>
-        <file>res/darkstyle/toolbar_separator_vertical.png</file>
-        <file>res/darkstyle/toolbar_separator_vertical@2x.png</file>
-        <file>res/darkstyle/toolbar_separator_vertical_disabled.png</file>
-        <file>res/darkstyle/toolbar_separator_vertical_disabled@2x.png</file>
-        <file>res/darkstyle/toolbar_separator_vertical_focus.png</file>
-        <file>res/darkstyle/toolbar_separator_vertical_focus@2x.png</file>
-        <file>res/darkstyle/toolbar_separator_vertical_pressed.png</file>
-        <file>res/darkstyle/toolbar_separator_vertical_pressed@2x.png</file>
-        <file>res/darkstyle/transparent.png</file>
-        <file>res/darkstyle/transparent@2x.png</file>
-        <file>res/darkstyle/transparent_disabled.png</file>
-        <file>res/darkstyle/transparent_disabled@2x.png</file>
-        <file>res/darkstyle/transparent_focus.png</file>
-        <file>res/darkstyle/transparent_focus@2x.png</file>
-        <file>res/darkstyle/transparent_pressed.png</file>
-        <file>res/darkstyle/transparent_pressed@2x.png</file>
-        <file>res/darkstyle/window_close.png</file>
-        <file>res/darkstyle/window_close@2x.png</file>
-        <file>res/darkstyle/window_close_disabled.png</file>
-        <file>res/darkstyle/window_close_disabled@2x.png</file>
-        <file>res/darkstyle/window_close_focus.png</file>
-        <file>res/darkstyle/window_close_focus@2x.png</file>
-        <file>res/darkstyle/window_close_pressed.png</file>
-        <file>res/darkstyle/window_close_pressed@2x.png</file>
-        <file>res/darkstyle/window_grip.png</file>
-        <file>res/darkstyle/window_grip@2x.png</file>
-        <file>res/darkstyle/window_grip_disabled.png</file>
-        <file>res/darkstyle/window_grip_disabled@2x.png</file>
-        <file>res/darkstyle/window_grip_focus.png</file>
-        <file>res/darkstyle/window_grip_focus@2x.png</file>
-        <file>res/darkstyle/window_grip_pressed.png</file>
-        <file>res/darkstyle/window_grip_pressed@2x.png</file>
-        <file>res/darkstyle/window_minimize.png</file>
-        <file>res/darkstyle/window_minimize@2x.png</file>
-        <file>res/darkstyle/window_minimize_disabled.png</file>
-        <file>res/darkstyle/window_minimize_disabled@2x.png</file>
-        <file>res/darkstyle/window_minimize_focus.png</file>
-        <file>res/darkstyle/window_minimize_focus@2x.png</file>
-        <file>res/darkstyle/window_minimize_pressed.png</file>
-        <file>res/darkstyle/window_minimize_pressed@2x.png</file>
-        <file>res/darkstyle/window_undock.png</file>
-        <file>res/darkstyle/window_undock@2x.png</file>
-        <file>res/darkstyle/window_undock_disabled.png</file>
-        <file>res/darkstyle/window_undock_disabled@2x.png</file>
-        <file>res/darkstyle/window_undock_focus.png</file>
-        <file>res/darkstyle/window_undock_focus@2x.png</file>
-        <file>res/darkstyle/window_undock_pressed.png</file>
-        <file>res/darkstyle/window_undock_pressed@2x.png</file>
-    </qresource>
+    <qresource prefix="/css">
+        <file alias="general">res/css/general.css</file>
+        <file alias="Dark">res/css/Dark.css</file>
+        <file alias="Light">res/css/Light.css</file>
+    </qresource>    
     <qresource prefix="/fonts">
         <file alias="opensans-bold">res/fonts/OpenSans-Bold.ttf</file>
         <file alias="opensans-bolditalic">res/fonts/OpenSans-BoldItalic.ttf</file>
@@ -338,12 +132,80 @@
         <file alias="opensans-regular">res/fonts/OpenSans-Regular.ttf</file>
         <file alias="opensans-semibold">res/fonts/OpenSans-SemiBold.ttf</file>
         <file alias="opensans-semibolditalic">res/fonts/OpenSans-SemiBoldItalic.ttf</file>
-        <file alias="manrope-bold">res/fonts/Manrope-Bold.ttf</file>
-        <file alias="manrope-extrabold">res/fonts/Manrope-ExtraBold.ttf</file>
-        <file alias="manrope-extralight">res/fonts/Manrope-ExtraLight.ttf</file>
-        <file alias="manrope-light">res/fonts/Manrope-Light.ttf</file>
-        <file alias="manrope-medium">res/fonts/Manrope-Medium.ttf</file>
-        <file alias="manrope-regular">res/fonts/Manrope-Regular.ttf</file>
-        <file alias="manrope-semibold">res/fonts/Manrope-SemiBold.ttf</file>
+        <file alias="Konnect-black">res/fonts/KonnectBlack.otf</file>
+        <file alias="konnect-blackitalic">res/fonts/KonnectBlackItalic.otf</file>
+        <file alias="konnect-bold">res/fonts/KonnectBold.otf</file>
+        <file alias="konnect-bolditalic">res/fonts/KonnectBoldItalic.otf</file>
+        <file alias="konnect-extrabold">res/fonts/KonnectExtraBold.otf</file>
+        <file alias="konnect-extrabolditalic">res/fonts/KonnectExtraBoldItalic.otf</file>
+        <file alias="konnect-hairline">res/fonts/KonnectHairline.otf</file>
+        <file alias="konnect-hairlineitalic">res/fonts/KonnectHairlineItalic.otf</file>
+        <file alias="konnect-italic">res/fonts/KonnectItalic.otf</file>
+        <file alias="konnect-light">res/fonts/KonnectLight.otf</file>
+        <file alias="konnect-lightitalic">res/fonts/KonnectLightItalic.otf</file>
+        <file alias="konnect-medium">res/fonts/KonnectMedium.otf</file>
+        <file alias="konnect-mediumitalic">res/fonts/KonnectMediumItalic.otf</file>
+        <file alias="konnect-regular">res/fonts/KonnectRegular.otf</file>
+        <file alias="konnect-semibold">res/fonts/KonnectSemiBold.otf</file>
+        <file alias="konnect-semibolditalic">res/fonts/KonnectSemiBoldItalic.otf</file>
+        <file alias="konnect-thin">res/fonts/KonnectThin.otf</file>
+        <file alias="konnect-thinitalic">res/fonts/KonnectThinItalic.otf</file>
     </qresource>
+    <qresource prefix="/images">
+        <file alias="arrow_down_dark">res/images/arrow_down_dark.png</file>
+        <file alias="arrow_down_light">res/images/arrow_down_light.png</file>
+        <file alias="arrow_left_dark">res/images/arrow_left_dark.png</file>
+        <file alias="arrow_left_light">res/images/arrow_left_light.png</file>
+        <file alias="arrow_right_dark">res/images/arrow_right_dark.png</file>
+        <file alias="arrow_right_light">res/images/arrow_right_light.png</file>
+        <file alias="arrow_up_dark">res/images/arrow_up_dark.png</file>
+        <file alias="arrow_up_light">res/images/arrow_up_light.png</file>
+        <file alias="arrow_light_down_normal">res/images/arrow_light_down_normal.png</file>
+        <file alias="arrow_light_down_hover">res/images/arrow_light_down_hover.png</file>
+        <file alias="arrow_light_left_normal">res/images/arrow_light_left_normal.png</file>
+        <file alias="arrow_light_left_hover">res/images/arrow_light_left_hover.png</file>
+        <file alias="arrow_light_right_normal">res/images/arrow_light_right_normal.png</file>
+        <file alias="arrow_light_right_hover">res/images/arrow_light_right_hover.png</file>
+        <file alias="arrow_light_up_normal">res/images/arrow_light_up_normal.png</file>
+        <file alias="arrow_light_up_hover">res/images/arrow_light_up_hover.png</file>
+        <file alias="checkbox_normal_dark">res/images/checkbox_normal_dark.png</file>
+        <file alias="checkbox_normal_hover_dark">res/images/checkbox_normal_hover_dark.png</file>
+        <file alias="checkbox_normal_disabled_dark">res/images/checkbox_normal_disabled_dark.png</file>
+        <file alias="checkbox_checked_dark">res/images/checkbox_checked_dark.png</file>
+        <file alias="checkbox_checked_hover_dark">res/images/checkbox_checked_hover_dark.png</file>
+        <file alias="checkbox_checked_disabled_dark">res/images/checkbox_checked_disabled_dark.png</file>
+        <file alias="checkbox_partly_checked_dark">res/images/checkbox_partly_checked_dark.png</file>
+        <file alias="checkbox_partly_checked_hover_dark">res/images/checkbox_partly_checked_hover_dark.png</file>
+        <file alias="checkbox_partly_checked_disabled_dark">res/images/checkbox_partly_checked_disabled_dark.png</file>
+        <file alias="checkbox_normal_light">res/images/checkbox_normal_light.png</file>
+        <file alias="checkbox_normal_hover_light">res/images/checkbox_normal_hover_light.png</file>
+        <file alias="checkbox_normal_disabled_light">res/images/checkbox_normal_disabled_light.png</file>
+        <file alias="checkbox_checked_light">res/images/checkbox_checked_light.png</file>
+        <file alias="checkbox_checked_hover_light">res/images/checkbox_checked_hover_light.png</file>
+        <file alias="checkbox_checked_disabled_light">res/images/checkbox_checked_disabled_light.png</file>
+        <file alias="checkbox_partly_checked_light">res/images/checkbox_partly_checked_light.png</file>
+        <file alias="checkbox_partly_checked_hover_light">res/images/checkbox_partly_checked_hover_light.png</file>
+        <file alias="checkbox_partly_checked_disabled_light">res/images/checkbox_partly_checked_disabled_dark.png</file>
+        <file alias="radio_normal_dark">res/images/radio_normal_dark.png</file>
+        <file alias="radio_normal_hover_dark">res/images/radio_normal_hover_dark.png</file>
+        <file alias="radio_checked_dark">res/images/radio_checked_dark.png</file>
+        <file alias="radio_checked_hover_dark">res/images/radio_checked_hover_dark.png</file>
+        <file alias="radio_normal_disabled_dark">res/images/radio_normal_disabled_dark.png</file>
+        <file alias="radio_checked_disabled_dark">res/images/radio_checked_disabled_dark.png</file>
+        <file alias="radio_normal_light">res/images/radio_normal_light.png</file>
+        <file alias="radio_normal_hover_light">res/images/radio_normal_hover_light.png</file>
+        <file alias="radio_checked_light">res/images/radio_checked_light.png</file>
+        <file alias="radio_checked_hover_light">res/images/radio_checked_hover_light.png</file>
+        <file alias="radio_normal_disabled_light">res/images/radio_normal_disabled_light.png</file>
+        <file alias="radio_checked_disabled_light">res/images/radio_checked_disabled_light.png</file>
+        <file alias="toolbar_move_horizontal">res/images/toolbar_move_horizontal.png</file>
+        <file alias="toolbar_move_vertical">res/images/toolbar_move_vertical.png</file>
+        <file alias="toolbar_separator_horizontal">res/images/toolbar_separator_horizontal.png</file>
+        <file alias="toolbar_separator_vertical">res/images/toolbar_separator_vertical.png</file>
+        <file alias="toolbar_move_horizontal_dark">res/images/toolbar_move_horizontal_dark.png</file>
+        <file alias="toolbar_move_vertical_dark">res/images/toolbar_move_vertical_dark.png</file>
+        <file alias="toolbar_separator_horizontal_dark">res/images/toolbar_separator_horizontal_dark.png</file>
+        <file alias="toolbar_separator_vertical_dark">res/images/toolbar_separator_vertical_dark.png</file>
+    </qresource>
+
 </RCC>

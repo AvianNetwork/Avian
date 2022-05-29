@@ -44,19 +44,10 @@ AssignQualifier::AssignQualifier(const PlatformStyle *_platformStyle, QWidget *p
     connect(ui->assetComboBox, SIGNAL(currentIndexChanged(int)), this, SLOT(dataChanged()));
     connect(ui->assignTypeComboBox, SIGNAL(currentIndexChanged(int)), this, SLOT(dataChanged()));
 
-    ui->labelQualifier->setStyleSheet(STRING_LABEL_COLOR);
     ui->labelQualifier->setFont(GUIUtil::getTopLabelFont());
-
-    ui->labelAddress->setStyleSheet(STRING_LABEL_COLOR);
     ui->labelAddress->setFont(GUIUtil::getTopLabelFont());
-
-    ui->labelAssignType->setStyleSheet(STRING_LABEL_COLOR);
     ui->labelAssignType ->setFont(GUIUtil::getTopLabelFont());
-
-    ui->labelAssetData->setStyleSheet(STRING_LABEL_COLOR);
     ui->labelAssetData ->setFont(GUIUtil::getTopLabelFont());
-
-    ui->checkBoxChangeAddress->setStyleSheet(QString(".QCheckBox{ %1; }").arg(STRING_LABEL_COLOR));
 
     ui->lineEditChangeAddress->hide();
 }

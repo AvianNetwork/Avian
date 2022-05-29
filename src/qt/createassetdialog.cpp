@@ -296,27 +296,20 @@ void CreateAssetDialog::setUpValues()
 
 void CreateAssetDialog::setupCoinControlFrame(const PlatformStyle *platformStyle)
 {
+
     /** Update the assetcontrol frame */
     ui->frameCoinControl->setStyleSheet(QString(".QFrame {background-color: %1; padding-top: 10px; padding-right: 5px; border: none;}").arg(platformStyle->WidgetBackGroundColor().name()));
     ui->widgetCoinControl->setStyleSheet(".QWidget {background-color: transparent;}");
+
     /** Create the shadow effects on the frames */
-
     ui->frameCoinControl->setGraphicsEffect(GUIUtil::getShadowEffect());
-
     ui->labelCoinControlFeatures->setFont(GUIUtil::getTopLabelFont());
-
     ui->labelCoinControlQuantityText->setFont(GUIUtil::getSubLabelFont());
-
     ui->labelCoinControlAmountText->setFont(GUIUtil::getSubLabelFont());
-
     ui->labelCoinControlFeeText->setFont(GUIUtil::getSubLabelFont());
-
     ui->labelCoinControlAfterFeeText->setFont(GUIUtil::getSubLabelFont());
-
     ui->labelCoinControlBytesText->setFont(GUIUtil::getSubLabelFont());
-
     ui->labelCoinControlLowOutputText->setFont(GUIUtil::getSubLabelFont());
-
     ui->labelCoinControlChangeText->setFont(GUIUtil::getSubLabelFont());
 }
 
@@ -326,31 +319,24 @@ void CreateAssetDialog::setupAssetDataView(const PlatformStyle *platformStyle)
 
     ui->frameAssetData->setStyleSheet(QString(".QFrame {background-color: %1; padding-top: 10px; padding-right: 5px; border: none;}").arg(platformStyle->WidgetBackGroundColor().name()));
     ui->frameAssetData->setGraphicsEffect(GUIUtil::getShadowEffect());
-
     ui->assetTypeLabel->setFont(GUIUtil::getSubLabelFont());
-
     ui->assetNameLabel->setFont(GUIUtil::getSubLabelFont());
-
     ui->addressLabel->setFont(GUIUtil::getSubLabelFont());
-
     ui->quantityLabel->setFont(GUIUtil::getSubLabelFont());
-
     ui->unitsLabel->setFont(GUIUtil::getSubLabelFont());
-
     ui->labelVerifierString->setFont(GUIUtil::getSubLabelFont());
-
 }
 
 void CreateAssetDialog::setupFeeControl(const PlatformStyle *platformStyle)
 {
+
     /** Update the coincontrol frame */
     ui->frameFee->setStyleSheet(QString(".QFrame {background-color: %1; padding-top: 10px; padding-right: 5px; border: none;}").arg(platformStyle->WidgetBackGroundColor().name()));
-    /** Create the shadow effects on the frames */
 
+    /** Create the shadow effects on the frames */
     ui->frameFee->setGraphicsEffect(GUIUtil::getShadowEffect());
 
     ui->labelFeeHeadline->setFont(GUIUtil::getSubLabelFont());
-    
     ui->buttonChooseFee->setFont(GUIUtil::getSubLabelFont());
     ui->fallbackFeeWarningLabel->setFont(GUIUtil::getSubLabelFont());
     ui->buttonMinimizeFee->setFont(GUIUtil::getSubLabelFont());

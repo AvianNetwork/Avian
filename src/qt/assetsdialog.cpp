@@ -61,9 +61,9 @@ AssetsDialog::AssetsDialog(const PlatformStyle *_platformStyle, QWidget *parent)
         ui->clearButton->setIcon(QIcon());
         ui->sendButton->setIcon(QIcon());
     } else {
-        ui->addButton->setIcon(_platformStyle->SingleColorIcon(":/icons/add"));
-        ui->clearButton->setIcon(_platformStyle->SingleColorIcon(":/icons/remove"));
-        ui->sendButton->setIcon(_platformStyle->SingleColorIcon(":/icons/send"));
+        ui->addButton->setIcon(_platformStyle->SingleColorIcon(":/icons/add", COLOR_AVIAN_18A7B7));
+        ui->clearButton->setIcon(_platformStyle->SingleColorIcon(":/icons/remove", COLOR_AVIAN_18A7B7));
+        ui->sendButton->setIcon(_platformStyle->SingleColorIcon(":/icons/send", COLOR_WHITE));
     }
 
     GUIUtil::setupAddressWidget(ui->lineEditAssetControlChange, this);
@@ -235,36 +235,16 @@ void AssetsDialog::setupAssetControlFrame(const PlatformStyle *platformStyle)
 
     ui->frameAssetControl->setGraphicsEffect(GUIUtil::getShadowEffect());
 
-    ui->labelAssetControlFeatures->setStyleSheet(STRING_LABEL_COLOR);
     ui->labelAssetControlFeatures->setFont(GUIUtil::getTopLabelFont());
-
-    ui->labelAssetControlQuantityText->setStyleSheet(STRING_LABEL_COLOR);
     ui->labelAssetControlQuantityText->setFont(GUIUtil::getSubLabelFont());
-
-    ui->labelAssetControlAmountText->setStyleSheet(STRING_LABEL_COLOR);
     ui->labelAssetControlAmountText->setFont(GUIUtil::getSubLabelFont());
-
-    ui->labelAssetControlFeeText->setStyleSheet(STRING_LABEL_COLOR);
     ui->labelAssetControlFeeText->setFont(GUIUtil::getSubLabelFont());
-
-    ui->labelAssetControlAfterFeeText->setStyleSheet(STRING_LABEL_COLOR);
     ui->labelAssetControlAfterFeeText->setFont(GUIUtil::getSubLabelFont());
-
-    ui->labelAssetControlBytesText->setStyleSheet(STRING_LABEL_COLOR);
     ui->labelAssetControlBytesText->setFont(GUIUtil::getSubLabelFont());
-
-    ui->labelAssetControlLowOutputText->setStyleSheet(STRING_LABEL_COLOR);
     ui->labelAssetControlLowOutputText->setFont(GUIUtil::getSubLabelFont());
-
-    ui->labelAssetControlChangeText->setStyleSheet(STRING_LABEL_COLOR);
     ui->labelAssetControlChangeText->setFont(GUIUtil::getSubLabelFont());
 
-    // Align the other labels next to the input buttons to the text in the same height
-    ui->labelAssetControlAutomaticallySelected->setStyleSheet(STRING_LABEL_COLOR);
-
     // Align the Custom change address checkbox
-    ui->checkBoxAssetControlChange->setStyleSheet(QString(".QCheckBox{ %1; }").arg(STRING_LABEL_COLOR));
-
     ui->labelAssetControlQuantity->setFont(GUIUtil::getSubLabelFont());
     ui->labelAssetControlAmount->setFont(GUIUtil::getSubLabelFont());
     ui->labelAssetControlFee->setFont(GUIUtil::getSubLabelFont());
@@ -298,14 +278,7 @@ void AssetsDialog::setupFeeControl(const PlatformStyle *platformStyle)
 
     ui->frameFee->setGraphicsEffect(GUIUtil::getShadowEffect());
 
-    ui->labelFeeHeadline->setStyleSheet(STRING_LABEL_COLOR);
     ui->labelFeeHeadline->setFont(GUIUtil::getSubLabelFont());
-
-    ui->labelSmartFee3->setStyleSheet(STRING_LABEL_COLOR);
-    ui->labelCustomPerKilobyte->setStyleSheet(QString(".QLabel{ %1; }").arg(STRING_LABEL_COLOR));
-    ui->radioSmartFee->setStyleSheet(STRING_LABEL_COLOR);
-    ui->radioCustomFee->setStyleSheet(STRING_LABEL_COLOR);
-    ui->checkBoxMinimumFee->setStyleSheet(QString(".QCheckBox{ %1; }").arg(STRING_LABEL_COLOR));
 
     ui->buttonChooseFee->setFont(GUIUtil::getSubLabelFont());
     ui->fallbackFeeWarningLabel->setFont(GUIUtil::getSubLabelFont());

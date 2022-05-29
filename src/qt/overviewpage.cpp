@@ -182,7 +182,7 @@ public:
 
         bool admin = index.data(AssetTableModel::AdministratorRole).toBool();
 
-        /** Need to know the heigh to the pixmap. If it is 0 we don't we dont own this asset so dont have room for the icon */
+        /** Need to know the heigh to the pixmap. If it is 0 we dont own this asset so dont have room for the icon */
         int nIconSize = admin ? pixmap.height() : 0;
         int nIPFSIconSize = ipfspixmap.height();
         int extraNameSpacing = 12;
@@ -213,21 +213,21 @@ public:
 
         // Select the color of the gradient
         if (admin) {
-            if (darkModeEnabled) {
-                gradient.setColorAt(0, COLOR_ADMIN_CARD_DARK);
-                gradient.setColorAt(1, COLOR_ADMIN_CARD_DARK);
-            } else {
-                gradient.setColorAt(0, COLOR_DARK_ORANGE);
-                gradient.setColorAt(1, COLOR_LIGHT_ORANGE);
-            }
+            //if (darkModeEnabled) {
+            //    gradient.setColorAt(0, COLOR_ADMIN_CARD_DARK);
+            //    gradient.setColorAt(1, COLOR_ADMIN_CARD_DARK);
+            //} else {
+                gradient.setColorAt(0, COLOR_AVIAN_19827B);
+                gradient.setColorAt(1, COLOR_AVIAN_18A7B7);
+           // }
         } else {
-            if (darkModeEnabled) {
-                gradient.setColorAt(0, COLOR_REGULAR_CARD_LIGHT_BLUE_DARK_MODE);
-                gradient.setColorAt(1, COLOR_REGULAR_CARD_DARK_BLUE_DARK_MODE);
-            } else {
-                gradient.setColorAt(0, COLOR_LIGHT_GREEN);
-                gradient.setColorAt(1, COLOR_DARK_GREEN);
-            }
+            //if (darkModeEnabled) {
+            //    gradient.setColorAt(0, COLOR_REGULAR_CARD_LIGHT_BLUE_DARK_MODE);
+            //    gradient.setColorAt(1, COLOR_REGULAR_CARD_DARK_BLUE_DARK_MODE);
+            //} else {
+                gradient.setColorAt(0, COLOR_AVIAN_2B737F);
+                gradient.setColorAt(1, COLOR_AVIAN_34E2D6);
+            //}
         }
 
         // Using 4 are the radius because the pixels are solid
@@ -248,7 +248,7 @@ public:
         /** Create the font that is used for painting the asset name */
         QFont nameFont;
 #if !defined(Q_OS_MAC)
-        nameFont.setFamily("Manrope");
+        nameFont.setFamily("Konnect");
 #endif
         nameFont.setPixelSize(18);
         nameFont.setWeight(QFont::Weight::Normal);
@@ -257,7 +257,7 @@ public:
         /** Create the font that is used for painting the asset amount */
         QFont amountFont;
 #if !defined(Q_OS_MAC)
-        amountFont.setFamily("Manrope");
+        amountFont.setFamily("Konnect");
 #endif
         amountFont.setPixelSize(14);
         amountFont.setWeight(QFont::Weight::Normal);
@@ -269,8 +269,8 @@ public:
 
         // Setup the pens
         QColor textColor = COLOR_WHITE;
-        if (darkModeEnabled)
-            textColor = COLOR_TOOLBAR_SELECTED_TEXT_DARK_MODE;
+        //if (darkModeEnabled)
+        //    textColor = COLOR_TOOLBAR_SELECTED_TEXT_DARK_MODE;
 
         QPen penName(textColor);
 
@@ -407,7 +407,7 @@ OverviewPage::OverviewPage(const PlatformStyle *platformStyle, QWidget *parent) 
 
     /** Create the search bar for assets */
     ui->assetSearch->setAttribute(Qt::WA_MacShowFocusRect, 0);
-    ui->assetSearch->setStyleSheet(QString(".QLineEdit {border: 1px solid %1; border-radius: 5px;}").arg(COLOR_LABELS.name()));
+    //ui->assetSearch->setStyleSheet(QString(".QLineEdit {border: 1px solid %1; border-radius: 5px;}").arg(COLOR_LABELS.name()));
     ui->assetSearch->setAlignment(Qt::AlignVCenter);
     QFont font = ui->assetSearch->font();
     font.setPointSize(12);
@@ -679,9 +679,6 @@ void OverviewPage::setWalletModel(WalletModel *model)
         ui->listAssets->setModel(assetFilter.get());
         ui->listAssets->setAutoFillBackground(false);
 
-        ui->assetVerticalSpaceWidget->setStyleSheet("background-color: transparent");
-        ui->assetVerticalSpaceWidget2->setStyleSheet("background-color: transparent");
-
         // Keep up to date with wallet
         setBalance(model->getBalance(), model->getUnconfirmedBalance(), model->getImmatureBalance(),
                    model->getWatchBalance(), model->getWatchUnconfirmedBalance(), model->getWatchImmatureBalance());
@@ -733,18 +730,10 @@ void OverviewPage::showAssets()
         ui->assetFrame->show();
         ui->assetBalanceLabel->show();
         ui->labelAssetStatus->show();
-
-        // Disable the vertical space so that listAssets goes to the bottom of the screen
-        ui->assetVerticalSpaceWidget->hide();
-        ui->assetVerticalSpaceWidget2->hide();
     } else {
         ui->assetFrame->hide();
         ui->assetBalanceLabel->hide();
         ui->labelAssetStatus->hide();
-
-        // This keeps the AVN balance grid from expanding and looking terrible when asset balance is hidden
-        ui->assetVerticalSpaceWidget->show();
-        ui->assetVerticalSpaceWidget2->show();
     }
 }
 

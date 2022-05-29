@@ -20,6 +20,8 @@
 #include <QFont>
 #include <QFile>
 
+class AvianGUI;
+
 class DarkStyle : public QProxyStyle
 {
 Q_OBJECT

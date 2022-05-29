@@ -18,6 +18,8 @@
 #include <QMenu>
 #include <QPoint>
 #include <QSystemTrayIcon>
+#include <QComboBox>
+#include <QDateTime>
 
 class ClientModel;
 class NetworkStyle;
@@ -100,7 +102,7 @@ private:
     QProgressDialog *progressDialog;
 
     QMenuBar *appMenuBar;
-    QFrame *frameBlocks;
+    QFrame *frameBlocks;    
     QAction *overviewAction;
     QAction *historyAction;
     QAction *quitAction;
