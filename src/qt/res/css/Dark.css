@@ -155,11 +155,6 @@ color: #ccc;
 background-color: transparent;
 }
 
-QLabel:disabled {
-border: 0px solid #303030;
-color: #9DA9B5;
-}
-
 .QCheckBox { /* Checkbox Labels */
 color:#ccc;
 font-size:13px;	
@@ -182,6 +177,7 @@ color: #aaa;
 
 .QLineEdit:focus {
 background-color:#686868;
+color: #000;
 border: 1px solid #2b737f;
 }
 
@@ -778,10 +774,6 @@ border:1px solid #9e9e9e;
 
 QWidget#AddressBookPage QTableView { /* Address Listing */
 font-size:13px;
-}
-
-QWidget#AddressBookPage QTableView::item {
-color: #aaa;
 }
 
 QWidget#AddressBookPage QHeaderView::section { /* Min width for Windows fix */
@@ -1472,8 +1464,8 @@ QWidget#ReceiveCoinsDialog .QFrame#frame2 .QLabel#label_2 { /* Label Label */
 background-color:transparent;
 min-width:102px;
 color:#ccc;
-/*font-weight:bold;
-font-size:11px;*/
+font-weight:bold;
+font-size:14px;
 padding-right:5px;
 }
 
@@ -1481,8 +1473,8 @@ QWidget#ReceiveCoinsDialog .QFrame#frame2 .QLabel#label { /* Amount Label */
 background-color:transparent;
 min-width:102px;
 color:#ccc;
-/*font-weight:bold;
-font-size:11px;*/
+font-weight:bold;
+font-size:14px;
 padding-right:5px;
 }
 
@@ -1490,10 +1482,19 @@ QWidget#ReceiveCoinsDialog .QFrame#frame2 .QLabel#label_3 { /* Message Label */
 background-color:transparent;
 min-width:102px;
 color:#ccc;
-/*font-weight:bold;
-font-size:11px;*/
+font-weight:bold;
+font-size:14px;
 padding-right:5px;
 }
+
+QWidget#ReceiveCoinsDialog .QFrame#frame2 .QLabel#label_5 { /* Payment Label */
+background-color:transparent;
+min-width:102px;
+color:#ccc;
+font-size:14px;
+padding-right:5px;
+}
+    
 
 QWidget#ReceiveCoinsDialog .QFrame#frame2 QPushButton#clearButton { /* Clear Button */
 background-color:qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1, stop: .01 #f6f6f6, stop: .1 rgba(250, 250, 250, 128), stop: .95 rgba(250, 250, 250, 255), stop: 1 #ebebeb);
@@ -1566,9 +1567,6 @@ font-size:18px;
 min-height:30px;
 }
 
-QWidget#ReceiveCoinsDialog .QFrame#frame QTableView#recentRequestsView::item { /* Recent Requests Table */
-color: #aaa;
-}
 /* RECEIVE COINS DIALOG */
 
 QDialog#ReceiveRequestDialog {

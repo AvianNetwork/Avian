@@ -154,10 +154,6 @@ color: #333333;
 background-color: transparent;
 }
 
-QLabel:disabled {
-border: 0px solid #303030;
-color: #9DA9B5;
-}
 .QCheckBox { /* Checkbox Labels */
 color:#333333;
 font-size:13px;	
@@ -179,9 +175,9 @@ background-color:#fcfcfc;
 
 .QLineEdit:focus {
 background-color:#e7e7e7;
+color:#000;
 border: 1px solid #18a7b7;
 }
-    
 
 .QLineEdit:!focus {
 font-size:13px;
@@ -877,10 +873,6 @@ QWidget#RPCConsole QWidget#tab_peers QLabel#peerHeading { /* Peers Info Header *
 color: #18a7b7;
 }
 
-QWidget#RPCConsole QWidget#tab_peers QTableView { /* Peers Tables */
-color: #aaa;
-}
-
 /* HELP MENU */
 
 /* Command Line Options Dialog */
@@ -1464,8 +1456,8 @@ QWidget#ReceiveCoinsDialog .QFrame#frame2 .QLabel#label_2 { /* Label Label */
 background-color:transparent;
 min-width:102px;
 color:#333;
-/*font-weight:bold;
-font-size:11px;*/
+font-weight:bold;
+font-size:14px;
 padding-right:5px;
 }
 
@@ -1473,8 +1465,8 @@ QWidget#ReceiveCoinsDialog .QFrame#frame2 .QLabel#label { /* Amount Label */
 background-color:transparent;
 min-width:102px;
 color:#333;
-/*font-weight:bold;
-font-size:11px;*/
+font-weight:bold;
+font-size:14px;
 padding-right:5px;
 }
 
@@ -1482,8 +1474,16 @@ QWidget#ReceiveCoinsDialog .QFrame#frame2 .QLabel#label_3 { /* Message Label */
 background-color:transparent;
 min-width:102px;
 color:#333;
-/*font-weight:bold;
-font-size:11px;*/
+font-weight:bold;
+font-size:14px;
+padding-right:5px;
+}
+
+QWidget#ReceiveCoinsDialog .QFrame#frame2 .QLabel#label_5 { /* Payment Label */
+background-color:transparent;
+min-width:102px;
+color:#333;
+font-size:11px;
 padding-right:5px;
 }
 
@@ -1557,9 +1557,6 @@ font-size:18px;
 min-height:30px;
 }
 
-QWidget#ReceiveCoinsDialog .QFrame#frame QTableView#recentRequestsView::item { /* Recent Requests Table */
-color: #aaa;
-}
 /* RECEIVE COINS DIALOG */
 
 QDialog#ReceiveRequestDialog {
