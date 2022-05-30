@@ -377,8 +377,7 @@ void AvianGUI::loadFonts()
 void AvianGUI::createActions()
 {
     QFont font = QFont();
-    font.setPixelSize(22);
-    font.setLetterSpacing(QFont::SpacingType::AbsoluteSpacing, -0.43);
+    font.setPixelSize(14);
 #if !defined(Q_OS_MAC)
     font.setFamily("Konnect");
 #endif
@@ -754,7 +753,6 @@ void AvianGUI::createToolBars()
         QFont currentMarketFont;
         currentMarketFont.setFamily("Konnect");
         currentMarketFont.setWeight(QFont::Weight::Normal);
-        currentMarketFont.setLetterSpacing(QFont::SpacingType::AbsoluteSpacing, -0.6);
         currentMarketFont.setPixelSize(18);
 
         // Set the pricing information

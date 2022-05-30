@@ -252,7 +252,6 @@ public:
 #endif
         nameFont.setPixelSize(18);
         nameFont.setWeight(QFont::Weight::Normal);
-        nameFont.setLetterSpacing(QFont::SpacingType::AbsoluteSpacing, -0.4);
 
         /** Create the font that is used for painting the asset amount */
         QFont amountFont;
@@ -261,7 +260,6 @@ public:
 #endif
         amountFont.setPixelSize(14);
         amountFont.setWeight(QFont::Weight::Normal);
-        amountFont.setLetterSpacing(QFont::SpacingType::AbsoluteSpacing, -0.3);
 
         /** Get the name and formatted amount from the data */
         QString name = index.data(AssetTableModel::AssetNameRole).toString();
