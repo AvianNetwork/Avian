@@ -177,6 +177,12 @@ padding: 0px 3px 0px 3px;
 background-color:#fcfcfc;
 }
 
+.QLineEdit:focus {
+background-color:#e7e7e7;
+border: 1px solid #18a7b7;
+}
+    
+
 .QLineEdit:!focus {
 font-size:13px;
 }
@@ -188,7 +194,6 @@ background-color:#f2f2f2;
 QWidget { /* override text selection background color for all text widgets */
 selection-background-color: #999;
 }
-
 
 QProgressBar {
 background-color: #c7c7c7;
@@ -1965,6 +1970,9 @@ font-size:18px;
 min-height:30px;
 }
 
+.AvianAmountField {
+font-size:11px;
+}
 
 /******************************************************
 TransactionView

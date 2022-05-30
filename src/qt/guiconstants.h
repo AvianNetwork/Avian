@@ -19,7 +19,7 @@ static const int STATUSBAR_ICONSIZE = 20;
 static const bool DEFAULT_SPLASHSCREEN = true;
 
 /* Invalid field background style */
-#define STYLE_INVALID "background:#FF8080; border: 1px solid lightgray; padding: 0px;"
+#define STYLE_INVALID "border: 1px solid red; padding: 0px;"
 #define STYLE_VALID "border: 1px solid lightgray; padding: 0px;"
 
 /* Transaction list -- unconfirmed transaction */

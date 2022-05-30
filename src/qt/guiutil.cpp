@@ -96,7 +96,7 @@ QFont getSubLabelFont()
     labelSubFont.setFamily("Konnect");
 #endif
     labelSubFont.setWeight(QFont::Weight::ExtraLight);
-    labelSubFont.setPixelSize(12);
+    labelSubFont.setPixelSize(13);
     return labelSubFont;
 }
 
@@ -107,7 +107,7 @@ QFont getSubLabelFontBolded()
     labelSubFont.setFamily("Konnect");
 #endif
     labelSubFont.setWeight(QFont::Weight::Bold);
-    labelSubFont.setPixelSize(12);
+    labelSubFont.setPixelSize(13);
     return labelSubFont;
 }
 
