@@ -160,7 +160,7 @@ color: #9DA9B5;
 }
 .QCheckBox { /* Checkbox Labels */
 color:#333333;
-font-size:12px;	
+font-size:13px;	
 background-color:transparent;
 }
 
@@ -178,7 +178,7 @@ background-color:#fcfcfc;
 }
 
 .QLineEdit:!focus {
-font-size:12px;
+font-size:13px;
 }
 
 .QValidatedLineEdit:disabled, .QLineEdit:disabled {
@@ -264,7 +264,7 @@ border:1px solid #19827b;
 padding: 0px 5px 0px 5px;
 background:transparent;
 min-height:31px;
-font-size:12px;
+font-size:13px;
 color:#818181;
 }
 
@@ -503,7 +503,7 @@ border:0px solid #fff;
 QTableView::item { /* Table Item */
 background-color:#dfdfdf;
 color:#333;
-font-size:12px;
+font-size:14px;
 }
 
 QTableView::item:alternate { 
@@ -761,7 +761,7 @@ border:1px solid #9e9e9e;
 }
 
 QWidget#AddressBookPage QTableView { /* Address Listing */
-font-size:12px;
+font-size:13px;
 }
 
 QWidget#AddressBookPage QHeaderView::section { /* Min width for Windows fix */
@@ -933,13 +933,13 @@ margin-left:3px;
 
 QWidget#OverviewPage .QFrame#frame .QLabel#labelSpendable { /* Spendable Header */
 qproperty-alignment: 'AlignVCenter | AlignLeft';
-font-size:12px;
+font-size:14px;
 margin-left:18px;
 }
 
 QWidget#OverviewPage .QFrame#frame .QLabel#labelWatchonly { /* Watch-only Header */
 qproperty-alignment: 'AlignVCenter | AlignLeft';
-font-size:12px;
+font-size:14px;
 margin-left:16px;
 }
 
@@ -949,27 +949,24 @@ background-color:transparent;
 margin-right:5px;
 padding-right:5px;
 font-size:14px;
-font-weight: bold;
 min-height:35px;
 }
 
 QWidget#OverviewPage .QFrame#frame .QLabel#labelBalance { /* Available Balance */
 qproperty-alignment: 'AlignVCenter | AlignLeft';
-color:#18a7b7;
-font-size:16px;
-font-weight: bold;
+font-size:14px;
 margin-left:0px;
 }
 
 QWidget#OverviewPage .QFrame#frame .QLabel#labelWatchAvailable { /* Watch-only Balance */
 qproperty-alignment: 'AlignVCenter | AlignLeft';
-font-size:12px;
+font-size:14px;
 margin-left:16px;
 }
 
 QWidget#OverviewPage .QFrame#frame .QLabel#labelPendingText { /* Pending Balance Label */
 qproperty-alignment: 'AlignVCenter | AlignRight';
-font-size:12px;
+font-size:14px;
 background-color:transparent;
 margin-right:5px;
 padding-right:5px;
@@ -977,19 +974,19 @@ padding-right:5px;
 
 QWidget#OverviewPage .QFrame#frame .QLabel#labelUnconfirmed { /* Pending Balance */
 qproperty-alignment: 'AlignVCenter | AlignLeft';
-font-size:12px;
+font-size:14px;
 margin-left:0px;
 }
 
 QWidget#OverviewPage .QFrame#frame .QLabel#labelWatchPending { /* Watch-only Pending Balance */
 qproperty-alignment: 'AlignVCenter | AlignLeft';
-font-size:12px;
+font-size:14px;
 margin-left:16px;
 }
 
 QWidget#OverviewPage .QFrame#frame .QLabel#labelImmatureText { /* Immature Balance Label */
 qproperty-alignment: 'AlignVCenter | AlignRight';
-font-size:12px;
+font-size:14px;
 background-color:transparent;
 margin-right:5px;
 padding-right:5px;
@@ -997,33 +994,38 @@ padding-right:5px;
 
 QWidget#OverviewPage .QFrame#frame .QLabel#labelImmature { /* Immature Balance */
 qproperty-alignment: 'AlignVCenter | AlignLeft';
-font-size:12px;
+font-size:14px;
 margin-left:0px;
 }
 
 QWidget#OverviewPage .QFrame#frame .QLabel#labelWatchImmature { /* Watch-only Immature Balance */
 qproperty-alignment: 'AlignVCenter | AlignLeft';
-font-size:12px;
+font-size:14px;
 margin-left:16px;
 }
 
 QWidget#OverviewPage .QFrame#frame .QLabel#labelTotalText { /* Total Balance Label */
 qproperty-alignment: 'AlignVCenter | AlignRight';
-font-size:12px;
+font-size:14px;
 background-color:transparent;
+font-weight: bold;
 margin-right:5px;
 padding-right:5px;
 }
 
 QWidget#OverviewPage .QFrame#frame .QLabel#labelTotal { /* Total Balance */
 qproperty-alignment: 'AlignVCenter | AlignLeft';
-font-size:12px;
+color:#18a7b7;
+font-weight: bold;
+font-size:14px;
 margin-left:0px;
 }
 
 QWidget#OverviewPage .QFrame#frame .QLabel#labelWatchTotal { /* Watch-only Total Balance */
 qproperty-alignment: 'AlignVCenter | AlignLeft';
-font-size:12px;
+color:#18a7b7;
+font-weight: bold;
+font-size:14px;
 margin-left:16px;
 }
 
@@ -1057,7 +1059,7 @@ min-height:16px;
 
 QWidget#OverviewPage .QFrame#frame_2 QListView { /* Transaction List */
 font-weight:normal;
-font-size:12px;
+font-size:13px;
 margin-top:12px;
 margin-left:0px; /* CSS Voodoo - set to -66px to hide default transaction icons */
 }
@@ -1280,7 +1282,7 @@ QStackedWidget#SendCoinsEntry .QFrame#SendCoins > .QLabel { /* Send Coin Entry L
 background-color:transparent;;
 min-width:102px;
 font-weight:normal;
-font-size:12px;
+font-size:13px;
 color:#333;
 min-height:25px;
 margin-right:5px;
