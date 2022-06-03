@@ -332,7 +332,7 @@
         <translation>Besig met herindeksering van blokke op hardeskyf...</translation>
     </message>
     <message>
-        <source>Send coins to a Avian address</source>
+        <source>Send coins to an Avian address</source>
         <translation>Stuur munte na 'n Avian adres</translation>
     </message>
     <message>

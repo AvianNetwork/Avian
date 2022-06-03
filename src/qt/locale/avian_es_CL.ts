@@ -144,7 +144,7 @@
         <translation>Cargando el index de bloques...</translation>
     </message>
     <message>
-        <source>Send coins to a Avian address</source>
+        <source>Send coins to an Avian address</source>
         <translation>Enviar monedas a una dirección avian</translation>
     </message>
     <message>

@@ -96,35 +96,11 @@ SendAssetsEntry::SendAssetsEntry(const PlatformStyle *_platformStyle, const QStr
 
     fShowAdministratorList = false;
 
-    this->setStyleSheet(QString(".SendAssetsEntry {background-color: %1; padding-top: 10px; padding-right: 30px; border: none;}").arg(platformStyle->SendEntriesBackGroundColor().name()));
-
     this->setGraphicsEffect(GUIUtil::getShadowEffect());
-
-    ui->assetBoxLabel->setFont(GUIUtil::getSubLabelFont());
-
-    ui->payToLabel->setFont(GUIUtil::getSubLabelFont());
-
-    ui->labellLabel->setFont(GUIUtil::getSubLabelFont());
-
-    ui->amountLabel->setFont(GUIUtil::getSubLabelFont());
-
-    ui->messageLabel->setFont(GUIUtil::getSubLabelFont());
 
     ui->payAssetAmount->setUnit(MAX_UNIT);
     ui->payAssetAmount->setDisabled(false);
-
-    ui->assetSelectionBox->setFont(GUIUtil::getSubLabelFont());
-    ui->administratorCheckbox->setFont(GUIUtil::getSubLabelFont());
-    ui->payTo->setFont(GUIUtil::getSubLabelFont());
-    ui->addAsLabel->setFont(GUIUtil::getSubLabelFont());
-    ui->payAssetAmount->setFont(GUIUtil::getSubLabelFont());
-    ui->messageTextLabel->setFont(GUIUtil::getSubLabelFont());
-    ui->assetAmountLabel->setFont(GUIUtil::getSubLabelFont());
-    ui->ownershipWarningMessage->setFont(GUIUtil::getSubLabelFont());
-
     ui->memoBox->installEventFilter(this);
-    ui->memoLabel->setFont(GUIUtil::getSubLabelFont());
-    ui->memoBox->setFont(GUIUtil::getSubLabelFont());
 }
 
 SendAssetsEntry::~SendAssetsEntry()

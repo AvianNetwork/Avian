@@ -190,10 +190,7 @@ QVariant AssetTableModel::data(const QModelIndex &index, int role) const
 
             QPixmap pixmap;
 
-            if (darkModeEnabled)
-                pixmap = QPixmap::fromImage(QImage(":/icons/asset_administrator_dark"));
-            else
-                pixmap = QPixmap::fromImage(QImage(":/icons/asset_administrator"));
+            pixmap = QPixmap::fromImage(QImage(":/icons/asset_administrator"));
 
             return pixmap;
         }

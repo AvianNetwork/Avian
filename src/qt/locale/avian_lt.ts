@@ -156,7 +156,7 @@
         <translation>Blokai iš naujo indeksuojami...</translation>
     </message>
     <message>
-        <source>Send coins to a Avian address</source>
+        <source>Send coins to an Avian address</source>
         <translation>Siųsti monetas Avian adresui</translation>
     </message>
     <message>

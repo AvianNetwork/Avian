@@ -204,7 +204,7 @@
         <translation>Poustvarjam kazalo blokov na disku ...</translation>
     </message>
     <message>
-        <source>Send coins to a Avian address</source>
+        <source>Send coins to an Avian address</source>
         <translation>Izvedite plačilo na naslov Avian</translation>
     </message>
     <message>

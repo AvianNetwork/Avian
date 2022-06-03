@@ -172,10 +172,10 @@ public:
         case CT_UPDATED:
             // Miscellaneous updates -- nothing to do, status update will take care of this, and is only computed for
             // visible transactions.
-            for (int i = lowerIndex; i < upperIndex; i++) {
-                TransactionRecord *rec = &cachedWallet[i];
-                rec->status.needsUpdate = true;
-            }
+            //for (int i = lowerIndex; i < upperIndex; i++) {
+            //    TransactionRecord *rec = &cachedWallet[i];
+            //    rec->status.needsUpdate = true;
+            //}
             break;
         }
     }
@@ -584,7 +584,7 @@ QVariant TransactionTableModel::data(const QModelIndex &index, int role) const
     case Qt::DecorationRole:
     {
         QIcon icon = qvariant_cast<QIcon>(index.data(RawDecorationRole));
-        return platformStyle->TextColorIcon(icon);
+        return platformStyle->TextColorIcon(icon, COLOR_AVIAN_2B737F);
     }
     case Qt::DisplayRole:
         switch (column) {

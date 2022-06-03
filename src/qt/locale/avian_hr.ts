@@ -176,7 +176,7 @@
         <translation>Re-indeksiranje blokova na disku...</translation>
     </message>
     <message>
-        <source>Send coins to a Avian address</source>
+        <source>Send coins to an Avian address</source>
         <translation>Slanje novca na avian adresu</translation>
     </message>
     <message>

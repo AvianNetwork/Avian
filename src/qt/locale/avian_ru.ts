@@ -340,7 +340,7 @@
         <translation>Идёт переиндексация блоков на диске...</translation>
     </message>
     <message>
-        <source>Send coins to a Avian address</source>
+        <source>Send coins to an Avian address</source>
         <translation>Отправить монеты на указанный адрес Avian</translation>
     </message>
     <message>

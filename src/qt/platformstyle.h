@@ -38,13 +38,23 @@ public:
     QColor LightOrangeColor() const;
     QColor DarkOrangeColor() const;
     QColor AssetTxColor() const;
+    QColor Avian_18A7B7() const;
+    QColor Avian_19827B() const;
+    QColor Avian_2B737F() const;
+    QColor Avian_34E2D6() const;
 
 
     /** Colorize an image (given filename) with the icon color */
     QImage SingleColorImage(const QString& filename) const;
 
+    /** Colorize an image (given filename) with the icon color */
+    QImage SingleColorImage(const QString& filename, const QColor& color) const;
+
     /** Colorize an icon (given filename) with the icon color */
     QIcon SingleColorIcon(const QString& filename) const;
+
+    /** Colorize an icon (given filename) with the icon color */
+    QIcon SingleColorIcon(const QString& filename, const QColor& color) const;
 
     /** Colorize an icon (given object) with the icon color */
     QIcon SingleColorIcon(const QIcon& icon) const;
@@ -58,8 +68,14 @@ public:
     /** Colorize an icon (given filename) with the text color */
     QIcon TextColorIcon(const QString& filename) const;
 
+    /** Colorize an icon (given filename) with the text color */
+    QIcon TextColorIcon(const QString& filename, const QColor& color) const;
+
     /** Colorize an icon (given object) with the text color */
     QIcon TextColorIcon(const QIcon& icon) const;
+
+    /** Colorize an icon (given object) with the text color */
+    QIcon TextColorIcon(const QIcon& icon, const QColor& color) const;
 
     /** Colorize an icon (given filename) with the color dark orange */
     QIcon OrangeColorIcon(const QString& filename) const;

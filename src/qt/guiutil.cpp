@@ -54,6 +54,8 @@
 #include <QThread>
 #include <QMouseEvent>
 #include <QPainter>
+#include <QString>
+#include <QTextStream>
 
 #if QT_VERSION < QT_VERSION_CHECK(5, 0, 0)
 #include <QUrl>
@@ -89,6 +91,11 @@ extern double NSAppKitVersionNumber;
 
 namespace GUIUtil {
 
+static QString stylesheetDirectory = ":css";
+static QString darkTheme = "darkTheme";
+static QString lightTheme = "lightTheme";
+static CCriticalSection cs_css;    
+
 QFont getSubLabelFont()
 {
     QFont labelSubFont;
@@ -96,8 +103,7 @@ QFont getSubLabelFont()
     labelSubFont.setFamily("Manrope");
 #endif
     labelSubFont.setWeight(QFont::Weight::ExtraLight);
-    labelSubFont.setLetterSpacing(QFont::SpacingType::AbsoluteSpacing, -0.6);
-    labelSubFont.setPixelSize(14);
+    labelSubFont.setPixelSize(13);
     return labelSubFont;
 }
 
@@ -108,8 +114,7 @@ QFont getSubLabelFontBolded()
     labelSubFont.setFamily("Manrope");
 #endif
     labelSubFont.setWeight(QFont::Weight::Bold);
-    labelSubFont.setLetterSpacing(QFont::SpacingType::AbsoluteSpacing, -0.6);
-    labelSubFont.setPixelSize(14);
+    labelSubFont.setPixelSize(13);
     return labelSubFont;
 }
 
@@ -120,7 +125,6 @@ QFont getTopLabelFontBolded()
     labelTopFont.setFamily("Manrope");
 #endif
     labelTopFont.setWeight(QFont::Weight::Bold);
-    labelTopFont.setLetterSpacing(QFont::SpacingType::AbsoluteSpacing, -0.6);
     labelTopFont.setPixelSize(18);
     return labelTopFont;
 }
@@ -132,7 +136,6 @@ QFont getTopLabelFont(int weight, int pxsize)
     labelTopFont.setFamily("Manrope");
 #endif
     labelTopFont.setWeight(weight);
-    labelTopFont.setLetterSpacing(QFont::SpacingType::AbsoluteSpacing, -0.6);
     labelTopFont.setPixelSize(pxsize);
     return labelTopFont;
 }
@@ -144,7 +147,6 @@ QFont getTopLabelFont()
     labelTopFont.setFamily("Manrope");
 #endif
     labelTopFont.setWeight(QFont::Weight::Light);
-    labelTopFont.setLetterSpacing(QFont::SpacingType::AbsoluteSpacing, -0.6);
     labelTopFont.setPixelSize(18);
     return labelTopFont;
 }
@@ -208,7 +210,7 @@ void setupAddressWidget(QValidatedLineEdit *widget, QWidget *parent)
 {
     parent->setFocusProxy(widget);
 
-    widget->setFont(getSubLabelFont());
+    widget->setFont(fixedPitchFont());
 #if QT_VERSION >= 0x040700
     // We don't want translators to use own addresses in translations
     // and this is the only place, where this address is supplied.
@@ -711,9 +713,9 @@ TableViewLastColumnResizingFixer::TableViewLastColumnResizingFixer(QTableView* t
     lastColumnIndex = columnCount - 1;
     secondToLastColumnIndex = columnCount - 2;
     tableView->horizontalHeader()->setMinimumSectionSize(allColumnsMinimumWidth);
-    setViewHeaderResizeMode(columnCount - 3, QHeaderView::ResizeToContents);
-    setViewHeaderResizeMode(secondToLastColumnIndex, QHeaderView::ResizeToContents);
-    setViewHeaderResizeMode(lastColumnIndex, QHeaderView::Stretch);
+    setViewHeaderResizeMode(columnCount - 3, QHeaderView::Interactive);
+    setViewHeaderResizeMode(secondToLastColumnIndex, QHeaderView::Interactive);
+    setViewHeaderResizeMode(lastColumnIndex, QHeaderView::Interactive);
 }
 
 #ifdef WIN32
@@ -968,6 +970,29 @@ bool SetStartOnSystemStartup(bool fAutoStart) { return false; }
 
 #endif
 
+void saveWindowGeometry(const QString& strSetting, QWidget *parent)
+{
+    QSettings settings;
+    settings.setValue(strSetting + "Pos", parent->pos());
+    settings.setValue(strSetting + "Size", parent->size());
+}
+
+void restoreWindowGeometry(const QString& strSetting, const QSize& defaultSize, QWidget *parent)
+{
+    QSettings settings;
+    QPoint pos = settings.value(strSetting + "Pos").toPoint();
+    QSize size = settings.value(strSetting + "Size", defaultSize).toSize();
+
+    if (!pos.x() && !pos.y()) {
+        QRect screen = QApplication::desktop()->screenGeometry();
+        pos.setX((screen.width() - size.width()) / 2);
+        pos.setY((screen.height() - size.height()) / 2);
+    }
+
+    parent->resize(size);
+    parent->move(pos);
+}
+
 void setClipboard(const QString& str)
 {
     QApplication::clipboard()->setText(str, QClipboard::Clipboard);
@@ -1187,5 +1212,25 @@ QImage GetImage(const QLabel* label)
 #endif
 }
 
+void loadTheme(bool darkmode)
+{
+    AssertLockNotHeld(cs_css);
+    LOCK(cs_css);
+
+    QString fileName = stylesheetDirectory + "/"; 
+    if(darkmode) {
+        fileName += darkTheme; 
+    } else {
+        fileName += lightTheme; 
+    }
+    QFile qFile(fileName);
+    if (!qFile.open(QFile::ReadOnly)) {
+        throw std::runtime_error(strprintf("%s: Failed to open file: %s", __func__, fileName.toStdString()));
+    }
+
+    QString strStyle = QLatin1String(qFile.readAll());
+
+    qApp->setStyleSheet(strStyle);
+}
 
 } // namespace GUIUtil

@@ -76,10 +76,7 @@ public:
         QRect amountRect(mainRect.left() + xspace, mainRect.top()+ypad, mainRect.width() - xspace, halfheight);
         QRect addressRect(mainRect.left() + xspace, mainRect.top()+ypad+halfheight, mainRect.width() - xspace, halfheight);
 
-        if (darkModeEnabled)
-            icon = platformStyle->SingleColorIcon(icon, COLOR_TOOLBAR_NOT_SELECTED_TEXT);
-        else
-            icon = platformStyle->SingleColorIcon(icon, STRING_LABEL_COLOR);
+        icon = platformStyle->SingleColorIcon(icon, COLOR_AVIAN_18A7B7);
         icon.paint(painter, decorationRect);
 
         QDateTime date = index.data(TransactionTableModel::DateRole).toDateTime();
@@ -182,7 +179,7 @@ public:
 
         bool admin = index.data(AssetTableModel::AdministratorRole).toBool();
 
-        /** Need to know the heigh to the pixmap. If it is 0 we don't we dont own this asset so dont have room for the icon */
+        /** Need to know the heigh to the pixmap. If it is 0 we dont own this asset so dont have room for the icon */
         int nIconSize = admin ? pixmap.height() : 0;
         int nIPFSIconSize = ipfspixmap.height();
         int extraNameSpacing = 12;
@@ -213,21 +210,21 @@ public:
 
         // Select the color of the gradient
         if (admin) {
-            if (darkModeEnabled) {
-                gradient.setColorAt(0, COLOR_ADMIN_CARD_DARK);
-                gradient.setColorAt(1, COLOR_ADMIN_CARD_DARK);
-            } else {
-                gradient.setColorAt(0, COLOR_DARK_ORANGE);
-                gradient.setColorAt(1, COLOR_LIGHT_ORANGE);
-            }
+            //if (darkModeEnabled) {
+            //    gradient.setColorAt(0, COLOR_ADMIN_CARD_DARK);
+            //    gradient.setColorAt(1, COLOR_ADMIN_CARD_DARK);
+            //} else {
+                gradient.setColorAt(0, COLOR_AVIAN_19827B);
+                gradient.setColorAt(1, COLOR_AVIAN_18A7B7);
+           // }
         } else {
-            if (darkModeEnabled) {
-                gradient.setColorAt(0, COLOR_REGULAR_CARD_LIGHT_BLUE_DARK_MODE);
-                gradient.setColorAt(1, COLOR_REGULAR_CARD_DARK_BLUE_DARK_MODE);
-            } else {
-                gradient.setColorAt(0, COLOR_LIGHT_GREEN);
-                gradient.setColorAt(1, COLOR_DARK_GREEN);
-            }
+            //if (darkModeEnabled) {
+            //    gradient.setColorAt(0, COLOR_REGULAR_CARD_LIGHT_BLUE_DARK_MODE);
+            //    gradient.setColorAt(1, COLOR_REGULAR_CARD_DARK_BLUE_DARK_MODE);
+            //} else {
+                gradient.setColorAt(0, COLOR_AVIAN_2B737F);
+                gradient.setColorAt(1, COLOR_AVIAN_34E2D6);
+            //}
         }
 
         // Using 4 are the radius because the pixels are solid
@@ -252,7 +249,6 @@ public:
 #endif
         nameFont.setPixelSize(18);
         nameFont.setWeight(QFont::Weight::Normal);
-        nameFont.setLetterSpacing(QFont::SpacingType::AbsoluteSpacing, -0.4);
 
         /** Create the font that is used for painting the asset amount */
         QFont amountFont;
@@ -261,7 +257,6 @@ public:
 #endif
         amountFont.setPixelSize(14);
         amountFont.setWeight(QFont::Weight::Normal);
-        amountFont.setLetterSpacing(QFont::SpacingType::AbsoluteSpacing, -0.3);
 
         /** Get the name and formatted amount from the data */
         QString name = index.data(AssetTableModel::AssetNameRole).toString();
@@ -269,8 +264,8 @@ public:
 
         // Setup the pens
         QColor textColor = COLOR_WHITE;
-        if (darkModeEnabled)
-            textColor = COLOR_TOOLBAR_SELECTED_TEXT_DARK_MODE;
+        //if (darkModeEnabled)
+        //    textColor = COLOR_TOOLBAR_SELECTED_TEXT_DARK_MODE;
 
         QPen penName(textColor);
 
@@ -374,40 +369,14 @@ OverviewPage::OverviewPage(const PlatformStyle *platformStyle, QWidget *parent) 
     connect(ui->labelAssetStatus, SIGNAL(clicked()), this, SLOT(handleOutOfSyncWarningClicks()));
     connect(ui->labelTransactionsStatus, SIGNAL(clicked()), this, SLOT(handleOutOfSyncWarningClicks()));
 
-    /** Set the overview page background colors, and the frames colors and padding */
-    ui->assetFrame->setStyleSheet(QString(".QFrame {background-color: %1; padding-top: 10px; padding-right: 5px; border-radius: 10px;}").arg(platformStyle->WidgetBackGroundColor().name()));
-    ui->frame->setStyleSheet(QString(".QFrame {background-color: %1; padding-bottom: 10px; padding-right: 5px; border-radius: 10px;}").arg(platformStyle->WidgetBackGroundColor().name()));
-    ui->frame_2->setStyleSheet(QString(".QFrame {background-color: %1; padding-left: 5px; border-radius: 10px;}").arg(platformStyle->WidgetBackGroundColor().name()));
-
     /** Create the shadow effects on the frames */
     ui->assetFrame->setGraphicsEffect(GUIUtil::getShadowEffect());
     ui->frame->setGraphicsEffect(GUIUtil::getShadowEffect());
     ui->frame_2->setGraphicsEffect(GUIUtil::getShadowEffect());
 
-    /** Update the labels font */
-    ui->avnBalancesLabel->setFont(GUIUtil::getTopLabelFont());
-    ui->assetBalanceLabel->setFont(GUIUtil::getTopLabelFont());
-    ui->recentTransactionsLabel->setFont(GUIUtil::getTopLabelFont());
-
-    /** Update the sub labels font */
-    ui->labelBalanceText->setFont(GUIUtil::getSubLabelFont());
-    ui->labelPendingText->setFont(GUIUtil::getSubLabelFont());
-    ui->labelImmatureText->setFont(GUIUtil::getSubLabelFont());
-    ui->labelSpendable->setFont(GUIUtil::getSubLabelFont());
-    ui->labelWatchonly->setFont(GUIUtil::getSubLabelFont());
-    ui->labelBalance->setFont(GUIUtil::getSubLabelFont());
-    ui->labelUnconfirmed->setFont(GUIUtil::getSubLabelFont());
-    ui->labelImmature->setFont(GUIUtil::getSubLabelFont());
-    ui->labelWatchAvailable->setFont(GUIUtil::getSubLabelFont());
-    ui->labelWatchPending->setFont(GUIUtil::getSubLabelFont());
-    ui->labelWatchImmature->setFont(GUIUtil::getSubLabelFont());
-    ui->labelTotalText->setFont(GUIUtil::getSubLabelFont());
-    ui->labelTotal->setFont(GUIUtil::getTopLabelFontBolded());
-    ui->labelWatchTotal->setFont(GUIUtil::getTopLabelFontBolded());
-
     /** Create the search bar for assets */
     ui->assetSearch->setAttribute(Qt::WA_MacShowFocusRect, 0);
-    ui->assetSearch->setStyleSheet(QString(".QLineEdit {border: 1px solid %1; border-radius: 5px;}").arg(COLOR_LABELS.name()));
+    //ui->assetSearch->setStyleSheet(QString(".QLineEdit {border: 1px solid %1; border-radius: 5px;}").arg(COLOR_LABELS.name()));
     ui->assetSearch->setAlignment(Qt::AlignVCenter);
     QFont font = ui->assetSearch->font();
     font.setPointSize(12);
@@ -679,9 +648,6 @@ void OverviewPage::setWalletModel(WalletModel *model)
         ui->listAssets->setModel(assetFilter.get());
         ui->listAssets->setAutoFillBackground(false);
 
-        ui->assetVerticalSpaceWidget->setStyleSheet("background-color: transparent");
-        ui->assetVerticalSpaceWidget2->setStyleSheet("background-color: transparent");
-
         // Keep up to date with wallet
         setBalance(model->getBalance(), model->getUnconfirmedBalance(), model->getImmatureBalance(),
                    model->getWatchBalance(), model->getWatchUnconfirmedBalance(), model->getWatchImmatureBalance());
@@ -733,18 +699,10 @@ void OverviewPage::showAssets()
         ui->assetFrame->show();
         ui->assetBalanceLabel->show();
         ui->labelAssetStatus->show();
-
-        // Disable the vertical space so that listAssets goes to the bottom of the screen
-        ui->assetVerticalSpaceWidget->hide();
-        ui->assetVerticalSpaceWidget2->hide();
     } else {
         ui->assetFrame->hide();
         ui->assetBalanceLabel->hide();
         ui->labelAssetStatus->hide();
-
-        // This keeps the AVN balance grid from expanding and looking terrible when asset balance is hidden
-        ui->assetVerticalSpaceWidget->show();
-        ui->assetVerticalSpaceWidget2->show();
     }
 }
 

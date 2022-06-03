@@ -340,7 +340,7 @@
         <translation>Ponowne indeksowanie bloków na dysku...</translation>
     </message>
     <message>
-        <source>Send coins to a Avian address</source>
+        <source>Send coins to an Avian address</source>
         <translation>Wyślij monety na adres avianowy</translation>
     </message>
     <message>

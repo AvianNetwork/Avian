@@ -121,6 +121,11 @@ Intro::Intro(QWidget *parent) :
     thread(0),
     signalled(false)
 {
+
+    QSettings settings;
+    // load stylesheet
+    GUIUtil::loadTheme(settings.value("fDarkModeEnabled", false).toBool());
+
     ui->setupUi(this);
     ui->welcomeLabel->setText(ui->welcomeLabel->text().arg(tr(PACKAGE_NAME)));
     ui->storageLabel->setText(ui->storageLabel->text().arg(tr(PACKAGE_NAME)));

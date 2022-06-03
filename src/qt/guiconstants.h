@@ -19,7 +19,7 @@ static const int STATUSBAR_ICONSIZE = 20;
 static const bool DEFAULT_SPLASHSCREEN = true;
 
 /* Invalid field background style */
-#define STYLE_INVALID "background:#FF8080; border: 1px solid lightgray; padding: 0px;"
+#define STYLE_INVALID "border: 1px solid red; padding: 0px;"
 #define STYLE_VALID "border: 1px solid lightgray; padding: 0px;"
 
 /* Transaction list -- unconfirmed transaction */
@@ -39,6 +39,12 @@ static const bool DEFAULT_SPLASHSCREEN = true;
 /* Widget Background color - default color */
 #define COLOR_WHITE QColor(255, 255, 255)
 
+#define COLOR_AVIAN_2B737F QColor("#2B737F")
+#define COLOR_AVIAN_19827B QColor("#19827B")
+#define COLOR_AVIAN_18A7B7 QColor("#18A7B7")
+#define COLOR_AVIAN_34E2D6 QColor("#34E2D6")
+
+
 #define COLOR_WALLETFRAME_SHADOW QColor(0,0,0,71)
 
 /* Color of labels */
@@ -46,15 +52,17 @@ static const bool DEFAULT_SPLASHSCREEN = true;
 
 /** LIGHT MODE */
 /* Background color, very light gray */
-#define COLOR_BACKGROUND_LIGHT QColor("#fbfbfe")
+#define COLOR_BACKGROUND_LIGHT QColor("#ffffff")
+/* Widget background color */
+#define COLOR_WIDGET_BACKGROUND QColor("#ffffff")
 /* Avian dark orange */
 #define COLOR_DARK_ORANGE QColor("#f05339")
 /* Avian light orange */
 #define COLOR_LIGHT_ORANGE QColor("#f79433")
 /* Avian dark blue - Sidedar start */
-#define COLOR_DARK_BLUE QColor("#FFFFFF")
+#define COLOR_DARK_BLUE QColor("#3d3d3d")
 /* Avian light blue - Sidebar end */
-#define COLOR_LIGHT_BLUE QColor("#FFFFFF")
+#define COLOR_LIGHT_BLUE QColor("#3d3d3d")
 /* Avian dark green - Asset */
 #define COLOR_DARK_GREEN QColor("#2a737f")
 /* Avian light green - Asset */
@@ -62,13 +70,13 @@ static const bool DEFAULT_SPLASHSCREEN = true;
 /* Avian asset text */
 #define COLOR_ASSET_TEXT QColor(255, 255, 255)
 /* Avian shadow color - light mode */
-#define COLOR_SHADOW_LIGHT QColor("#e1e6f3")
+#define COLOR_SHADOW_LIGHT QColor("#999999")
 /* Toolbar not selected text color */
-#define COLOR_TOOLBAR_NOT_SELECTED_TEXT QColor("#FFFFFF")
+#define COLOR_TOOLBAR_NOT_SELECTED_TEXT QColor("#e8e6e6")
 /* Toolbar selected text color */
-#define COLOR_TOOLBAR_SELECTED_TEXT COLOR_WHITE
+#define COLOR_TOOLBAR_SELECTED_TEXT QColor("#000000")
 /* Send entries background color */
-#define COLOR_SENDENTRIES_BACKGROUND QColor("#fbfbfe")
+#define COLOR_SENDENTRIES_BACKGROUND QColor("#ffffff")
 
 /** DARK MODE */
 /* Widget background color, dark mode */
@@ -90,14 +98,14 @@ static const bool DEFAULT_SPLASHSCREEN = true;
 /* Toolbar not selected text color */
 #define COLOR_TOOLBAR_NOT_SELECTED_TEXT_DARK_MODE QColor("#6c80c5")
 /* Toolbar selected text color */
-#define COLOR_TOOLBAR_SELECTED_TEXT_DARK_MODE QColor("#c5ccdf")
+#define COLOR_TOOLBAR_SELECTED_TEXT_DARK_MODE QColor("#ffffff")
 /* Send entries background color dark mode */
 #define COLOR_SENDENTRIES_BACKGROUND_DARK QColor("#2E2E2E")
 
 /* Avian label color as a string */
 #define STRING_LABEL_COLOR "color: #000000"
 #define STRING_LABEL_COLOR_WHITE "color: #FFFFFF"
-#define STRING_LABEL_COLOR_WARNING "color: #FF8080"
+#define STRING_LABEL_COLOR_WARNING "color: #ff6666"
 
 /* Tooltips longer than this (in characters) are converted into rich text,
    so that they can be word-wrapped.

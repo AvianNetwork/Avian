@@ -332,7 +332,7 @@
         <translation>إعادة الفهرسة الكتل على القرص ...</translation>
     </message>
     <message>
-        <source>Send coins to a Avian address</source>
+        <source>Send coins to an Avian address</source>
         <translation>ارسل عملات الى عنوان بيتكوين</translation>
     </message>
     <message>

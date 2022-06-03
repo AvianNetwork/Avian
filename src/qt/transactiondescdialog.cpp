@@ -20,7 +20,6 @@ TransactionDescDialog::TransactionDescDialog(const QModelIndex &idx, QWidget *pa
     QString desc = idx.data(TransactionTableModel::LongDescriptionRole).toString();
     ui->detailText->setHtml(desc);
 
-    ui->detailText->setFont(GUIUtil::getSubLabelFont());
 }
 
 TransactionDescDialog::~TransactionDescDialog()

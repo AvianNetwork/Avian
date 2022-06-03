@@ -129,23 +129,10 @@ RestrictedAssetsDialog::~RestrictedAssetsDialog()
 
 void RestrictedAssetsDialog::setupStyling(const PlatformStyle *platformStyle)
 {
-    /** Update the restrictedassets frame */
-    ui->frameAssetBalance->setStyleSheet(QString(".QFrame {background-color: %1; padding-top: 10px; padding-right: 5px; border: none;}").arg(platformStyle->WidgetBackGroundColor().name()));
-    ui->frameAddressList->setStyleSheet(QString(".QFrame {background-color: %1; padding-top: 10px; padding-right: 5px; border: none;}").arg(platformStyle->WidgetBackGroundColor().name()));
-
-    ui->tabFrame->setStyleSheet(QString(".QFrame {background-color: %1; padding-top: 10px; padding-right: 5px; border: none;}").arg(platformStyle->WidgetBackGroundColor().name()));
-
     /** Create the shadow effects on the frames */
     ui->frameAssetBalance->setGraphicsEffect(GUIUtil::getShadowEffect());
     ui->frameAddressList->setGraphicsEffect(GUIUtil::getShadowEffect());
     ui->tabFrame->setGraphicsEffect(GUIUtil::getShadowEffect());
-
-    /** Add label color and font */
-    ui->labelAssetBalance->setStyleSheet(STRING_LABEL_COLOR);
-    ui->labelAssetBalance->setFont(GUIUtil::getTopLabelFont());
-
-    ui->labelAddressList->setStyleSheet(STRING_LABEL_COLOR);
-    ui->labelAddressList->setFont(GUIUtil::getTopLabelFont());
 }
 
 
@@ -166,9 +153,6 @@ void RestrictedAssetsDialog::setBalance(const CAmount& balance, const CAmount& u
     Q_UNUSED(watchBalance);
     Q_UNUSED(watchUnconfirmedBalance);
     Q_UNUSED(watchImmatureBalance);
-
-    ui->labelBalance->setFont(GUIUtil::getSubLabelFont());
-    ui->label->setFont(GUIUtil::getSubLabelFont());
 
     if(model && model->getOptionsModel())
     {

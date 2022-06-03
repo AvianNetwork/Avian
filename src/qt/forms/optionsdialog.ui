@@ -6,9 +6,15 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>617</width>
-    <height>446</height>
+    <width>762</width>
+    <height>544</height>
    </rect>
+  </property>
+  <property name="sizePolicy">
+   <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+    <horstretch>0</horstretch>
+    <verstretch>0</verstretch>
+   </sizepolicy>
   </property>
   <property name="windowTitle">
    <string>Options</string>
@@ -23,10 +29,6 @@
       <number>0</number>
      </property>
      <widget class="QWidget" name="tabMain">
-      <attribute name="icon">
-       <iconset resource="../avian.qrc">
-        <normaloff>:/icons/options</normaloff>:/icons/options</iconset>
-      </attribute>
       <attribute name="title">
        <string>&amp;Main</string>
       </attribute>
@@ -137,10 +139,6 @@
       </layout>
      </widget>
      <widget class="QWidget" name="tabWallet">
-      <attribute name="icon">
-       <iconset resource="../avian.qrc">
-        <normaloff>:/icons/key</normaloff>:/icons/key</iconset>
-      </attribute>
       <attribute name="title">
        <string>W&amp;allet</string>
       </attribute>
@@ -197,10 +195,6 @@
       </layout>
      </widget>
      <widget class="QWidget" name="tabNetwork">
-      <attribute name="icon">
-       <iconset resource="../avian.qrc">
-        <normaloff>:/icons/connect_4</normaloff>:/icons/connect_4</iconset>
-      </attribute>
       <attribute name="title">
        <string>&amp;Network</string>
       </attribute>
@@ -519,10 +513,6 @@
       </layout>
      </widget>
      <widget class="QWidget" name="tabWindow">
-      <attribute name="icon">
-       <iconset resource="../avian.qrc">
-        <normaloff>:/icons/debugwindow</normaloff>:/icons/debugwindow</iconset>
-      </attribute>
       <attribute name="title">
        <string>&amp;Window</string>
       </attribute>
@@ -573,10 +563,6 @@
       </layout>
      </widget>
      <widget class="QWidget" name="tabDisplay">
-      <attribute name="icon">
-       <iconset resource="../avian.qrc">
-        <normaloff>:/icons/editpaste</normaloff>:/icons/editpaste</iconset>
-      </attribute>
       <attribute name="title">
        <string>&amp;Display</string>
       </attribute>
@@ -625,6 +611,12 @@
            <property name="toolTip">
             <string>Choose the default subdivision unit to show in the interface and when sending coins.</string>
            </property>
+           <property name="maxCount">
+            <number>1000</number>
+           </property>
+           <property name="sizeAdjustPolicy">
+            <enum>QComboBox::AdjustToContents</enum>
+           </property>
           </widget>
          </item>
         </layout>
@@ -648,6 +640,12 @@
           <widget class="QValueComboBox" name="currencyUnitIndex">
            <property name="toolTip">
             <string>Choose which currency to display the realtime value of AVN in (ie: BTC/AVN).</string>
+           </property>
+           <property name="maxCount">
+            <number>1000</number>
+           </property>
+           <property name="sizeAdjustPolicy">
+            <enum>QComboBox::AdjustToContents</enum>
            </property>
           </widget>
          </item>

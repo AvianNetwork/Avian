@@ -192,7 +192,7 @@
         <translation>დისკზე ბლოკების რეინდექსაცია...</translation>
     </message>
     <message>
-        <source>Send coins to a Avian address</source>
+        <source>Send coins to an Avian address</source>
         <translation>მონეტების გაგზავნა Avian-მისამართზე</translation>
     </message>
     <message>

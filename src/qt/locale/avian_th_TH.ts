@@ -180,7 +180,7 @@
         <translation>กำลังทำดัชนี ที่เก็บบล็อก ใหม่ ในดิสก์...</translation>
     </message>
     <message>
-        <source>Send coins to a Avian address</source>
+        <source>Send coins to an Avian address</source>
         <translation>ส่ง coins ไปยัง ที่เก็บ Avian</translation>
     </message>
     <message>

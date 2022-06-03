@@ -85,7 +85,8 @@ private:
     QAction *bumpFeeAction;
 
     QWidget *createDateRangeWidget();
-
+    void updateCalendarWidgets();
+    
     GUIUtil::TableViewLastColumnResizingFixer *columnResizingFixer;
 
     virtual void resizeEvent(QResizeEvent* event);

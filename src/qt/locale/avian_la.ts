@@ -116,7 +116,7 @@
         <translation>Recreans indicem frustorum in disco...</translation>
     </message>
     <message>
-        <source>Send coins to a Avian address</source>
+        <source>Send coins to an Avian address</source>
         <translation>Mitte nummos ad inscriptionem Avian</translation>
     </message>
     <message>

@@ -13,7 +13,6 @@
 #include "platformstyle.h"
 #include "walletmodel.h"
 #include "guiconstants.h"
-#include "darkstyle.h"
 
 #include <QGraphicsDropShadowEffect>
 #include <QApplication>
@@ -44,7 +43,7 @@ SendCoinsEntry::SendCoinsEntry(const PlatformStyle *_platformStyle, QWidget *par
     // normal avian address field
     GUIUtil::setupAddressWidget(ui->payTo, this);
     // just a label for displaying avian address(es)
-    ui->payTo_is->setFont(GUIUtil::getSubLabelFont());
+    ui->payTo_is->setFont(GUIUtil::fixedPitchFont());
 
     // Connect signals
     connect(ui->payAmount, SIGNAL(valueChanged()), this, SIGNAL(payAmountChanged()));
@@ -53,19 +52,8 @@ SendCoinsEntry::SendCoinsEntry(const PlatformStyle *_platformStyle, QWidget *par
     connect(ui->deleteButton_is, SIGNAL(clicked()), this, SLOT(deleteClicked()));
     connect(ui->deleteButton_s, SIGNAL(clicked()), this, SLOT(deleteClicked()));
 
-    this->setStyleSheet(QString(".SendCoinsEntry {background-color: %1; padding-top: 10px; padding-right: 30px; border: none;}").arg(platformStyle->SendEntriesBackGroundColor().name()));
-
     this->setGraphicsEffect(GUIUtil::getShadowEffect());
 
-    ui->payToLabel->setFont(GUIUtil::getSubLabelFont());
-    ui->labellLabel->setFont(GUIUtil::getSubLabelFont());
-    ui->amountLabel->setFont(GUIUtil::getSubLabelFont());
-    ui->messageLabel->setFont(GUIUtil::getSubLabelFont());
-
-    ui->payTo->setFont(GUIUtil::getSubLabelFont());
-    ui->addAsLabel->setFont(GUIUtil::getSubLabelFont());
-    ui->payAmount->setFont(GUIUtil::getSubLabelFont());
-    ui->messageTextLabel->setFont(GUIUtil::getSubLabelFont());
 }
 
 SendCoinsEntry::~SendCoinsEntry()

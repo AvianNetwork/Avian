@@ -228,8 +228,8 @@
         <translation>Reindexing blocks on disk...</translation>
     </message>
     <message>
-        <source>Send coins to a Avian address</source>
-        <translation>Send coins to a Avian address</translation>
+        <source>Send coins to an Avian address</source>
+        <translation>Send coins to an Avian address</translation>
     </message>
     <message>
         <source>Backup wallet to another location</source>

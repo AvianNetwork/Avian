@@ -160,6 +160,9 @@ public:
         // Avian Assets
         consensus.nAssetActivationTime = 999999999999ULL; // TODO
 
+        // Avian Flight Plans
+        consensus.nFlightPlansActivationTime = 999999999999ULL; // TODO
+
         // The best chain should have at least this much work.
         consensus.nMinimumChainWork = uint256S("0x0000000000000000000000000000000000000000000000000000000000000002");
 
@@ -325,6 +328,9 @@ public:
         // Avian Assets
         consensus.nAssetActivationTime = 1645104453; // Feb 17, 2022
 
+        // Avian Flight Plans
+        consensus.nFlightPlansActivationTime = 1645104453; // Feb 17, 2022
+
         // The best chain should have at least this much work.
         consensus.nMinimumChainWork = uint256S("0x0000000000000000000000000000000000000000000000000000000000000002");
 
@@ -459,6 +465,9 @@ public:
 
         // Avian Assets
         consensus.nAssetActivationTime = 1;
+
+        // Avian Flight Plans
+        consensus.nFlightPlansActivationTime = 1;
 
         // The best chain should have at least this much work.
         consensus.nMinimumChainWork = uint256S("0x00");

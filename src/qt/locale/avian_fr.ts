@@ -340,7 +340,7 @@
         <translation>Réindexation des blocs sur le disque...</translation>
     </message>
     <message>
-        <source>Send coins to a Avian address</source>
+        <source>Send coins to an Avian address</source>
         <translation>Envoyer des pièces à une adresse Avian</translation>
     </message>
     <message>

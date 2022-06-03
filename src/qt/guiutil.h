@@ -8,6 +8,7 @@
 
 #include "amount.h"
 #include "fs.h"
+#include <memory>
 
 #include <QEvent>
 #include <QHeaderView>
@@ -17,6 +18,9 @@
 #include <QString>
 #include <QTableView>
 #include <QLabel>
+#include <QStyledItemDelegate>
+
+#include <boost/filesystem.hpp>
 
 class QValidatedLineEdit;
 class SendCoinsRecipient;
@@ -207,6 +211,14 @@ namespace GUIUtil
 
     bool GetStartOnSystemStartup();
     bool SetStartOnSystemStartup(bool fAutoStart);
+
+    /** Save window size and position */
+    void saveWindowGeometry(const QString& strSetting, QWidget *parent);
+    /** Restore window size and position */
+    void restoreWindowGeometry(const QString& strSetting, const QSize &defaultSizeIn, QWidget *parent);
+
+    /* load stylesheet */
+    void loadTheme(bool darkmode = false);
 
     /* Convert QString to OS specific boost path through UTF-8 */
     fs::path qstringToBoostPath(const QString &path);

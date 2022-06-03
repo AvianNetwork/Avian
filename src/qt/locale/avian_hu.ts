@@ -842,7 +842,7 @@
         <translation type="vanished">Lemezen lévő blokkok újraindexelése...</translation>
     </message>
     <message>
-        <source>Send coins to a Avian address</source>
+        <source>Send coins to an Avian address</source>
         <translation type="vanished">Avian küldése megadott címre</translation>
     </message>
     <message>

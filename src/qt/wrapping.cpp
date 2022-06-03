@@ -53,12 +53,6 @@ WrapPage::WrapPage(const PlatformStyle *platformStyle, QWidget *parent) :
     ui->wrapFrame->setGraphicsEffect(GUIUtil::getShadowEffect());
     ui->unwrapFrame->setGraphicsEffect(GUIUtil::getShadowEffect());
 
-    /** Set fonts */
-    ui->wrapTitle->setFont(GUIUtil::getTopLabelFont());
-    ui->amount->setFont(GUIUtil::getTopLabelFont());
-    ui->labelBalance->setFont(GUIUtil::getTopLabelFont());
-    ui->label->setFont(GUIUtil::getTopLabelFont());
-
     /** Connect signals */
     connect(ui->wrapButton, SIGNAL(clicked()), this, SLOT(wrapped_clicked()));
 }
@@ -101,9 +95,6 @@ void WrapPage::setBalance(const CAmount& balance, const CAmount& unconfirmedBala
     Q_UNUSED(watchBalance);
     Q_UNUSED(watchUnconfirmedBalance);
     Q_UNUSED(watchImmatureBalance);
-
-    ui->labelBalance->setFont(GUIUtil::getSubLabelFont());
-    ui->label->setFont(GUIUtil::getSubLabelFont());
 
     if(model && model->getOptionsModel())
     {

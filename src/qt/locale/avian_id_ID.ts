@@ -336,7 +336,7 @@
         <translation>Mengindex ulang blok di dalam disk...</translation>
     </message>
     <message>
-        <source>Send coins to a Avian address</source>
+        <source>Send coins to an Avian address</source>
         <translation>Kirim koin ke alamat Avian</translation>
     </message>
     <message>

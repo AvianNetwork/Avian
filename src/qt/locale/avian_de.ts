@@ -340,7 +340,7 @@
         <translation>Reindiziere Blöcke auf Datenträger...</translation>
     </message>
     <message>
-        <source>Send coins to a Avian address</source>
+        <source>Send coins to an Avian address</source>
         <translation>Avians an eine Avian-Adresse überweisen</translation>
     </message>
     <message>

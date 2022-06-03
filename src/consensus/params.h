@@ -82,6 +82,10 @@ struct ConsensusParams {
 
     // AVN Assets
     uint32_t nAssetActivationTime;
+
+    // AVN Flight Plans
+    uint32_t nFlightPlansActivationTime;
+
 };
 } // namespace Consensus
 

@@ -148,7 +148,7 @@
         <translation>Дискдаги блоклар қайта индексланмоқда...</translation>
     </message>
     <message>
-        <source>Send coins to a Avian address</source>
+        <source>Send coins to an Avian address</source>
         <translation>Тангаларни Avian манзилига жўнатиш</translation>
     </message>
     <message>

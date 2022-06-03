@@ -340,7 +340,7 @@
         <translation>Genindekserer blokke på disken…</translation>
     </message>
     <message>
-        <source>Send coins to a Avian address</source>
+        <source>Send coins to an Avian address</source>
         <translation>Send avians til en Avian-adresse</translation>
     </message>
     <message>

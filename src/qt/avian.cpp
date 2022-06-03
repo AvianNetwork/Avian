@@ -42,7 +42,6 @@
 #include <stdint.h>
 
 #include <boost/thread.hpp>
-#include "darkstyle.h"
 
 #include <QApplication>
 #include <QDebug>
@@ -428,8 +427,8 @@ void AvianApplication::createOptionsModel(bool resetSettings)
 void AvianApplication::createWindow(const NetworkStyle *networkStyle)
 {
     window = new AvianGUI(platformStyle, networkStyle, 0);
-    window->setMinimumSize(200,200);
-    window->setBaseSize(640,640);
+    //window->setMinimumSize(800,800);
+    //window->setBaseSize(640,640);
 
     pollShutdownTimer = new QTimer(window);
     connect(pollShutdownTimer, SIGNAL(timeout()), window, SLOT(detectShutdown()));
@@ -643,7 +642,11 @@ int main(int argc, char *argv[])
     QApplication::setOrganizationName(QAPP_ORG_NAME);
     QApplication::setOrganizationDomain(QAPP_ORG_DOMAIN);
     QApplication::setApplicationName(QAPP_APP_NAME_DEFAULT);
-    GUIUtil::SubstituteFonts(GetLangTerritory());
+    
+    //GUIUtil::SubstituteFonts(GetLangTerritory());
+    QFontDatabase::addApplicationFont(":/fonts/manrope-regular");
+    QFontDatabase::addApplicationFont(":/fonts/manrope-bold");
+
 
     /// 4. Initialization of translations, so that intro dialog is in user's language
     // Now that QSettings are accessible, initialize translations
@@ -741,10 +744,7 @@ int main(int argc, char *argv[])
     app.createOptionsModel(gArgs.IsArgSet("-resetguisettings"));
 
     if (app.getOptionsModel()->getDarkModeEnabled()) {
-        app.setStyle(new DarkStyle);
         darkModeEnabled = true;
-    } else {
-        app.setStyle("");
     }
 
     // Subscribe to global signals from core

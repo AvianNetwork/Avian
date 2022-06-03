@@ -116,7 +116,7 @@
         <translation>Reindexando bloques en el disco...</translation>
     </message>
     <message>
-        <source>Send coins to a Avian address</source>
+        <source>Send coins to an Avian address</source>
         <translation>Enviar monedas a una dirección Avian</translation>
     </message>
     <message>

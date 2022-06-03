@@ -312,7 +312,7 @@
         <translation>正在為磁碟區塊重建索引...</translation>
     </message>
     <message>
-        <source>Send coins to a Avian address</source>
+        <source>Send coins to an Avian address</source>
         <translation>付款至一個 Avian 位址</translation>
     </message>
     <message>

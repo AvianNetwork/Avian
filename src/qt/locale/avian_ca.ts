@@ -336,7 +336,7 @@
         <translation>S'estan reindexant els blocs al disc...</translation>
     </message>
     <message>
-        <source>Send coins to a Avian address</source>
+        <source>Send coins to an Avian address</source>
         <translation>Envia monedes a una adreça Avian</translation>
     </message>
     <message>

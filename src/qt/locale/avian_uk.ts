@@ -340,7 +340,7 @@
         <translation>Переіндексація блоків на диску ...</translation>
     </message>
     <message>
-        <source>Send coins to a Avian address</source>
+        <source>Send coins to an Avian address</source>
         <translation>Відправити монети на вказану адресу</translation>
     </message>
     <message>

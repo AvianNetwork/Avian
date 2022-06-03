@@ -340,7 +340,7 @@
         <translation>正在为数据块重建索引...</translation>
     </message>
     <message>
-        <source>Send coins to a Avian address</source>
+        <source>Send coins to an Avian address</source>
         <translation>向一个Avian地址发送Avian</translation>
     </message>
     <message>

@@ -224,7 +224,7 @@
         <translation>Φόρτωση ευρετηρίου μπλοκ στον σκληρο δισκο...</translation>
     </message>
     <message>
-        <source>Send coins to a Avian address</source>
+        <source>Send coins to an Avian address</source>
         <translation>Στείλε νομίσματα σε μια διεύθυνση avian</translation>
     </message>
     <message>

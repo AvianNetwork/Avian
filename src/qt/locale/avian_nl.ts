@@ -340,7 +340,7 @@
         <translation>Bezig met herindexeren van blokken op harde schijf...</translation>
     </message>
     <message>
-        <source>Send coins to a Avian address</source>
+        <source>Send coins to an Avian address</source>
         <translation>Verstuur munten naar een Avianadres</translation>
     </message>
     <message>

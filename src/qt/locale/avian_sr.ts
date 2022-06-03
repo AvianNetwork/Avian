@@ -132,7 +132,7 @@
         <translation>Промени &amp;лозинку...</translation>
     </message>
     <message>
-        <source>Send coins to a Avian address</source>
+        <source>Send coins to an Avian address</source>
         <translation>Пошаљите новац на avian адресу</translation>
     </message>
     <message>

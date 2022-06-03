@@ -41,7 +41,6 @@
 #include "ui_interface.h"
 #include "util.h"
 #include "core_io.h"
-#include "darkstyle.h"
 
 #include <iostream>
 
@@ -64,6 +63,7 @@
 #include <QMessageBox>
 #include <QMimeData>
 #include <QProgressDialog>
+#include <QScreen>
 #include <QSettings>
 #include <QShortcut>
 #include <QStackedWidget>
@@ -72,6 +72,7 @@
 #include <QTimer>
 #include <QToolBar>
 #include <QVBoxLayout>
+#include <QComboBox>
 
 #include <QJsonDocument>
 #include <QJsonParseError>
@@ -86,6 +87,7 @@
 #include <QUrlQuery>
 #include <tinyformat.h>
 #include <QFontDatabase>
+#include <QDesktopServices>
 
 #endif
 
@@ -167,10 +169,9 @@ AvianGUI::AvianGUI(const PlatformStyle *_platformStyle, const NetworkStyle *netw
 
 {
     QSettings settings;
-    if (!restoreGeometry(settings.value("MainWindowGeometry").toByteArray())) {
-        // Restore failed (perhaps missing setting), center the window
-        move(QApplication::desktop()->availableGeometry().center() - frameGeometry().center());
-    }
+    // load stylesheet
+    GUIUtil::loadTheme(settings.value("fDarkModeEnabled", false).toBool());
+    GUIUtil::restoreWindowGeometry("MainWindowGeometry", QSize(850, 550), this);
 
     QString windowTitle = tr(PACKAGE_NAME) + " - ";
 #ifdef ENABLE_WALLET
@@ -252,13 +253,20 @@ AvianGUI::AvianGUI(const PlatformStyle *_platformStyle, const NetworkStyle *netw
     frameBlocks = new QFrame();
     frameBlocks->setContentsMargins(0,0,0,0);
     frameBlocks->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Preferred);
+    frameBlocks->setStyleSheet("background-color: transparent; color: #ffffff;");
     QHBoxLayout *frameBlocksLayout = new QHBoxLayout(frameBlocks);
-    frameBlocksLayout->setContentsMargins(0,0,0,0);
-    frameBlocksLayout->setSpacing(2);
+    frameBlocksLayout->setContentsMargins(3,0,3,0);
+    frameBlocksLayout->setSpacing(3);
     unitDisplayControl = new UnitDisplayStatusBarControl(platformStyle);
     labelWalletEncryptionIcon = new QLabel();
+    labelWalletEncryptionIcon->setObjectName("labelWalletEncryptionIcon");    
+    labelWalletEncryptionIcon->setStyleSheet(".Qlabel { background-color: transparent; color: #ffffff;}");
     labelWalletHDStatusIcon = new QLabel();
+    labelWalletHDStatusIcon->setObjectName("labelWalletHDStatusIcon");    
+    labelWalletHDStatusIcon->setStyleSheet(".Qlabel { background-color: transparent; color: #ffffff;}");
     connectionsControl = new GUIUtil::ClickableLabel();
+    connectionsControl->setObjectName("connectionsControl");    
+    connectionsControl->setStyleSheet(".Qlabel { background-color: transparent; color: #ffffff;}");
 
     labelBlocksIcon = new GUIUtil::ClickableLabel();
     labelBlocksIcon->setContentsMargins(15,0,55,0);
@@ -271,6 +279,7 @@ AvianGUI::AvianGUI(const PlatformStyle *_platformStyle, const NetworkStyle *netw
     }
     frameBlocksLayout->addWidget(connectionsControl);
     frameBlocksLayout->addWidget(labelBlocksIcon);
+
 
     // Progress bar and label for blocks download
     progressBarLabel = new QLabel();
@@ -291,9 +300,7 @@ AvianGUI::AvianGUI(const PlatformStyle *_platformStyle, const NetworkStyle *netw
     statusBar()->addWidget(progressBarLabel);
     statusBar()->addWidget(progressBar);
     statusBar()->addWidget(unitDisplayControl);
-
-    if(darkModeEnabled)
-        statusBar()->setStyleSheet(QString(".QStatusBar{background-color: %1; border-top: 1px solid %2;}").arg(platformStyle->TopWidgetBackGroundColor().name(), platformStyle->TextColor().name()));
+   
 
     // Install event filter to be able to catch status tip events (QEvent::StatusTip)
     this->installEventFilter(this);
@@ -324,8 +331,8 @@ AvianGUI::~AvianGUI()
     // Unsubscribe from notifications from core
     unsubscribeFromCoreSignals();
 
-    QSettings settings;
-    settings.setValue("MainWindowGeometry", saveGeometry());
+    GUIUtil::saveWindowGeometry("MainWindowGeometry", this);
+
     if(trayIcon) // Hide tray icon, as deleting will let it linger until quit (on Ubuntu)
         trayIcon->hide();
 #ifdef Q_OS_MAC
@@ -338,17 +345,9 @@ AvianGUI::~AvianGUI()
 
 void AvianGUI::loadFonts()
 {
-    // Open Sans font
-    QFontDatabase::addApplicationFont(":/fonts/opensans-bold");
-    QFontDatabase::addApplicationFont(":/fonts/opensans-bolditalic");
-    QFontDatabase::addApplicationFont(":/fonts/opensans-extrabold");
-    QFontDatabase::addApplicationFont(":/fonts/opensans-extrabolditalic");
-    QFontDatabase::addApplicationFont(":/fonts/opensans-italic");
-    QFontDatabase::addApplicationFont(":/fonts/opensans-light");
-    QFontDatabase::addApplicationFont(":/fonts/opensans-lightitalic");
-    QFontDatabase::addApplicationFont(":/fonts/opensans-regular");
-    QFontDatabase::addApplicationFont(":/fonts/opensans-semibold");
-    QFontDatabase::addApplicationFont(":/fonts/opensans-semibolditalic");
+     // Konnect font
+    QFontDatabase::addApplicationFont(":/fonts/konnect-bold");
+    QFontDatabase::addApplicationFont(":/fonts/konnect-regular");
 
     // Manrope font
     QFontDatabase::addApplicationFont(":/fonts/manrope-bold");
@@ -357,14 +356,13 @@ void AvianGUI::loadFonts()
     QFontDatabase::addApplicationFont(":/fonts/manrope-light");
     QFontDatabase::addApplicationFont(":/fonts/manrope-medium");
     QFontDatabase::addApplicationFont(":/fonts/manrope-regular");
-    QFontDatabase::addApplicationFont(":/fonts/manrope-semibold");
+    QFontDatabase::addApplicationFont(":/fonts/manrope-semibold");    
 }
 
 void AvianGUI::createActions()
 {
     QFont font = QFont();
-    font.setPixelSize(22);
-    font.setLetterSpacing(QFont::SpacingType::AbsoluteSpacing, -0.43);
+    font.setPixelSize(14);
 #if !defined(Q_OS_MAC)
     font.setFamily("Manrope");
 #endif
@@ -372,7 +370,7 @@ void AvianGUI::createActions()
 
     QActionGroup *tabGroup = new QActionGroup(this);
 
-    overviewAction = new QAction(platformStyle->SingleColorIconOnOff(":/icons/overview_selected", ":/icons/overview"), tr(""), this);
+    overviewAction = new QAction(platformStyle->SingleColorIconOnOff(":/icons/overview_selected", ":/icons/overview"), tr("&Overview"), this);
     overviewAction->setStatusTip(tr("Show general overview of wallet"));
     overviewAction->setToolTip(overviewAction->statusTip());
     overviewAction->setCheckable(true);
@@ -380,8 +378,8 @@ void AvianGUI::createActions()
     overviewAction->setFont(font);
     tabGroup->addAction(overviewAction);
 
-    sendCoinsAction = new QAction(platformStyle->SingleColorIconOnOff(":/icons/send_selected", ":/icons/send"), tr(""), this);
-    sendCoinsAction->setStatusTip(tr("Send coins to a Avian address"));
+    sendCoinsAction = new QAction(platformStyle->SingleColorIconOnOff(":/icons/send_selected", ":/icons/send"), tr("&Send"), this);
+    sendCoinsAction->setStatusTip(tr("Send coins to an Avian address"));
     sendCoinsAction->setToolTip(sendCoinsAction->statusTip());
     sendCoinsAction->setCheckable(true);
     sendCoinsAction->setShortcut(QKeySequence(Qt::ALT + Qt::Key_2));
@@ -392,7 +390,7 @@ void AvianGUI::createActions()
     sendCoinsMenuAction->setStatusTip(sendCoinsAction->statusTip());
     sendCoinsMenuAction->setToolTip(sendCoinsMenuAction->statusTip());
 
-    receiveCoinsAction = new QAction(platformStyle->SingleColorIconOnOff(":/icons/receiving_addresses_selected", ":/icons/receiving_addresses"), tr(""), this);
+    receiveCoinsAction = new QAction(platformStyle->SingleColorIconOnOff(":/icons/receiving_addresses_selected", ":/icons/receiving_addresses"), tr("&Receive"), this);
     receiveCoinsAction->setStatusTip(tr("Request payments (generates QR codes and avian: URIs)"));
     receiveCoinsAction->setToolTip(receiveCoinsAction->statusTip());
     receiveCoinsAction->setCheckable(true);
@@ -404,7 +402,7 @@ void AvianGUI::createActions()
     receiveCoinsMenuAction->setStatusTip(receiveCoinsAction->statusTip());
     receiveCoinsMenuAction->setToolTip(receiveCoinsMenuAction->statusTip());
 
-    historyAction = new QAction(platformStyle->SingleColorIconOnOff(":/icons/history_selected", ":/icons/history"), tr(""), this);
+    historyAction = new QAction(platformStyle->SingleColorIconOnOff(":/icons/history_selected", ":/icons/history"), tr("&Transactions"), this);
     historyAction->setStatusTip(tr("Browse transaction history"));
     historyAction->setToolTip(historyAction->statusTip());
     historyAction->setCheckable(true);
@@ -413,7 +411,7 @@ void AvianGUI::createActions()
     tabGroup->addAction(historyAction);
 
     /** AVN START */
-    transferAssetAction = new QAction(platformStyle->SingleColorIconOnOff(":/icons/asset_transfer_selected", ":/icons/asset_transfer"), tr(""), this);
+    transferAssetAction = new QAction(platformStyle->SingleColorIconOnOff(":/icons/asset_transfer_selected", ":/icons/asset_transfer"), tr("&Transfer Assets"), this);
     transferAssetAction->setStatusTip(tr("Transfer assets to AVN addresses"));
     transferAssetAction->setToolTip(transferAssetAction->statusTip());
     transferAssetAction->setCheckable(true);
@@ -421,7 +419,7 @@ void AvianGUI::createActions()
     transferAssetAction->setFont(font);
     tabGroup->addAction(transferAssetAction);
 
-    createAssetAction = new QAction(platformStyle->SingleColorIconOnOff(":/icons/asset_create_selected", ":/icons/asset_create"), tr(""), this);
+    createAssetAction = new QAction(platformStyle->SingleColorIconOnOff(":/icons/asset_create_selected", ":/icons/asset_create"), tr("&Create Assets"), this);
     createAssetAction->setStatusTip(tr("Create new main/sub/unique assets"));
     createAssetAction->setToolTip(createAssetAction->statusTip());
     createAssetAction->setCheckable(true);
@@ -429,7 +427,7 @@ void AvianGUI::createActions()
     createAssetAction->setFont(font);
     tabGroup->addAction(createAssetAction);
 
-    manageAssetAction = new QAction(platformStyle->SingleColorIconOnOff(":/icons/asset_manage_selected", ":/icons/asset_manage"), tr(""), this);
+    manageAssetAction = new QAction(platformStyle->SingleColorIconOnOff(":/icons/asset_manage_selected", ":/icons/asset_manage"), tr("&Manage Assets"), this);
     manageAssetAction->setStatusTip(tr("Manage assets you are the administrator of"));
     manageAssetAction->setToolTip(manageAssetAction->statusTip());
     manageAssetAction->setCheckable(true);
@@ -437,7 +435,7 @@ void AvianGUI::createActions()
     manageAssetAction->setFont(font);
     tabGroup->addAction(manageAssetAction);
 
-    messagingAction = new QAction(platformStyle->SingleColorIcon(":/icons/editcopy"), tr(""), this);
+    messagingAction = new QAction(platformStyle->SingleColorIcon(":/icons/editcopy"), tr("&Messaging"), this);
     messagingAction->setStatusTip(tr("Coming Soon"));
     messagingAction->setToolTip(messagingAction->statusTip());
     messagingAction->setCheckable(true);
@@ -445,7 +443,7 @@ void AvianGUI::createActions()
     messagingAction->setFont(font);
     tabGroup->addAction(messagingAction);
 
-    votingAction = new QAction(platformStyle->SingleColorIcon(":/icons/edit"), tr(""), this);
+    votingAction = new QAction(platformStyle->SingleColorIcon(":/icons/edit"), tr("&Voting"), this);
     votingAction->setStatusTip(tr("Coming Soon"));
     votingAction->setToolTip(votingAction->statusTip());
     votingAction->setCheckable(true);
@@ -497,60 +495,60 @@ void AvianGUI::createActions()
     // TODO add voting actions to go to voting page when clicked
 #endif // ENABLE_WALLET
 
-    quitAction = new QAction(platformStyle->TextColorIcon(":/icons/quit"), tr("E&xit"), this);
+    quitAction = new QAction(tr("E&xit"), this);
     quitAction->setStatusTip(tr("Quit application"));
     quitAction->setShortcut(QKeySequence(Qt::CTRL + Qt::Key_Q));
     quitAction->setMenuRole(QAction::QuitRole);
-    aboutAction = new QAction(platformStyle->TextColorIcon(":/icons/about"), tr("&About %1").arg(tr(PACKAGE_NAME)), this);
+    aboutAction = new QAction(tr("&About %1").arg(tr(PACKAGE_NAME)), this);
     aboutAction->setStatusTip(tr("Show information about %1").arg(tr(PACKAGE_NAME)));
     aboutAction->setMenuRole(QAction::AboutRole);
     aboutAction->setEnabled(false);
-    aboutQtAction = new QAction(platformStyle->TextColorIcon(":/icons/about_qt"), tr("About &Qt"), this);
+    aboutQtAction = new QAction(tr("About &Qt"), this);
     aboutQtAction->setStatusTip(tr("Show information about Qt"));
     aboutQtAction->setMenuRole(QAction::AboutQtRole);
-    optionsAction = new QAction(platformStyle->TextColorIcon(":/icons/options"), tr("&Options..."), this);
+    optionsAction = new QAction(tr("&Options..."), this);
     optionsAction->setStatusTip(tr("Modify configuration options for %1").arg(tr(PACKAGE_NAME)));
     optionsAction->setMenuRole(QAction::PreferencesRole);
     optionsAction->setEnabled(false);
-    toggleHideAction = new QAction(platformStyle->TextColorIcon(":/icons/about"), tr("&Show / Hide"), this);
+    toggleHideAction = new QAction(tr("&Show / Hide"), this);
     toggleHideAction->setStatusTip(tr("Show or hide the main Window"));
 
-    encryptWalletAction = new QAction(platformStyle->TextColorIcon(":/icons/lock_closed"), tr("&Encrypt Wallet..."), this);
+    encryptWalletAction = new QAction(tr("&Encrypt Wallet..."), this);
     encryptWalletAction->setStatusTip(tr("Encrypt the private keys that belong to your wallet"));
     encryptWalletAction->setCheckable(true);
-    backupWalletAction = new QAction(platformStyle->TextColorIcon(":/icons/filesave"), tr("&Backup Wallet..."), this);
+    backupWalletAction = new QAction(tr("&Backup Wallet..."), this);
     backupWalletAction->setStatusTip(tr("Backup wallet to another location"));
-    changePassphraseAction = new QAction(platformStyle->TextColorIcon(":/icons/key"), tr("&Change Passphrase..."), this);
+    changePassphraseAction = new QAction(tr("&Change Passphrase..."), this);
     changePassphraseAction->setStatusTip(tr("Change the passphrase used for wallet encryption"));
-    getMyWordsAction = new QAction(platformStyle->TextColorIcon(":/icons/key"), tr("&Get my words..."), this);
+    getMyWordsAction = new QAction(tr("&Get my words..."), this);
     getMyWordsAction->setStatusTip(tr("Show the recoverywords for this wallet"));
-    signMessageAction = new QAction(platformStyle->TextColorIcon(":/icons/edit"), tr("Sign &message..."), this);
+    signMessageAction = new QAction(tr("Sign &message..."), this);
     signMessageAction->setStatusTip(tr("Sign messages with your Avian addresses to prove you own them"));
-    verifyMessageAction = new QAction(platformStyle->TextColorIcon(":/icons/verify"), tr("&Verify message..."), this);
+    verifyMessageAction = new QAction(tr("&Verify message..."), this);
     verifyMessageAction->setStatusTip(tr("Verify messages to ensure they were signed with specified Avian addresses"));
-    paperWalletAction = new QAction(platformStyle->TextColorIcon(":/icons/print"), tr("&Print paper wallets"), this);
+    paperWalletAction = new QAction(tr("&Print paper wallets"), this);
     paperWalletAction->setStatusTip(tr("Print paper wallets"));
 
-    openRPCConsoleAction = new QAction(platformStyle->TextColorIcon(":/icons/debugwindow"), tr("&Debug window"), this);
+    openRPCConsoleAction = new QAction(tr("&Debug window"), this);
     openRPCConsoleAction->setStatusTip(tr("Open debugging and diagnostic console"));
     // initially disable the debug window menu item
     openRPCConsoleAction->setEnabled(false);
 
-    openPoolPicker = new QAction(platformStyle->TextColorIcon(":/icons/external_link"), tr("&Pool Picker"), this);
+    openPoolPicker = new QAction(tr("&Pool Picker"), this);
     openPoolPicker->setStatusTip(tr("Open pool picker"));
 
-    usedSendingAddressesAction = new QAction(platformStyle->TextColorIcon(":/icons/address-book"), tr("&Sending addresses..."), this);
+    usedSendingAddressesAction = new QAction(tr("&Sending addresses..."), this);
     usedSendingAddressesAction->setStatusTip(tr("Show the list of used sending addresses and labels"));
-    usedReceivingAddressesAction = new QAction(platformStyle->TextColorIcon(":/icons/address-book"), tr("&Receiving addresses..."), this);
+    usedReceivingAddressesAction = new QAction(tr("&Receiving addresses..."), this);
     usedReceivingAddressesAction->setStatusTip(tr("Show the list of used receiving addresses and labels"));
 
-    openAction = new QAction(platformStyle->TextColorIcon(":/icons/open"), tr("Open &URI..."), this);
+    openAction = new QAction(tr("Open &URI..."), this);
     openAction->setStatusTip(tr("Open a avian: URI or payment request"));
 
-    importPrivateKeyAction = new QAction(platformStyle->TextColorIcon(":/icons/key"), tr("&Import Private Key..."), this);
+    importPrivateKeyAction = new QAction(tr("&Import Private Key..."), this);
     importPrivateKeyAction->setStatusTip(tr("Import a Avian private key"));
 
-    showHelpMessageAction = new QAction(platformStyle->TextColorIcon(":/icons/info"), tr("&Command-line options"), this);
+    showHelpMessageAction = new QAction(tr("&Command-line options"), this);
     showHelpMessageAction->setMenuRole(QAction::NoRole);
     showHelpMessageAction->setStatusTip(tr("Show the %1 help message to get a list with possible Avian command-line options").arg(tr(PACKAGE_NAME)));
 
@@ -633,7 +631,7 @@ void AvianGUI::createMenuBar()
     help->addSeparator();
     // TODO: pool picker
     // help->addAction(openPoolPicker);
-    help->addSeparator();
+    //help->addSeparator();
     help->addAction(aboutAction);
     help->addAction(aboutQtAction);
 }
@@ -734,13 +732,8 @@ void AvianGUI::createToolBars()
         // Set the headers widget options
         headerWidget->setContentsMargins(0,0,0,50);
         headerWidget->setStyleSheet(widgetBackgroundSytleSheet);
+        headerWidget->setGraphicsEffect(GUIUtil::getShadowEffect());
         headerWidget->setFixedHeight(75);
-
-        QFont currentMarketFont;
-        currentMarketFont.setFamily("Manrope");
-        currentMarketFont.setWeight(QFont::Weight::Normal);
-        currentMarketFont.setLetterSpacing(QFont::SpacingType::AbsoluteSpacing, -0.6);
-        currentMarketFont.setPixelSize(18);
 
         // Set the pricing information
         QHBoxLayout* priceLayout = new QHBoxLayout(headerWidget);
@@ -750,31 +743,26 @@ void AvianGUI::createToolBars()
         labelCurrentMarket->setContentsMargins(50,0,0,0);
         labelCurrentMarket->setFixedHeight(75);
         labelCurrentMarket->setAlignment(Qt::AlignVCenter);
-        labelCurrentMarket->setStyleSheet(platformStyle->TextColor().name());
-        labelCurrentMarket->setFont(currentMarketFont);
+        labelCurrentMarket->setObjectName("labelCurrentMarket");
         labelCurrentMarket->setText(tr("Avian (AVN) Market Price"));
 
         QString currentPriceStyleSheet = ".QLabel{color: %1;}";
         labelCurrentPrice->setContentsMargins(25,0,0,0);
         labelCurrentPrice->setFixedHeight(75);
         labelCurrentPrice->setAlignment(Qt::AlignVCenter);
-        labelCurrentPrice->setStyleSheet(platformStyle->TextColor().name());
-        labelCurrentPrice->setFont(currentMarketFont);
+        labelCurrentPrice->setObjectName("labelCurrentPrice");
 
         QLabel* labelBtcAVN = new QLabel();
         labelBtcAVN->setText("USDT / AVN");
         labelBtcAVN->setContentsMargins(15,0,0,0);
         labelBtcAVN->setFixedHeight(75);
         labelBtcAVN->setAlignment(Qt::AlignVCenter);
-        labelBtcAVN->setStyleSheet(platformStyle->TextColor().name());
-        labelBtcAVN->setFont(currentMarketFont);
+        labelBtcAVN->setObjectName("labelBtcAVN");
 
         // Style progress text
         progressBarLabel->setContentsMargins(15,0,0,0);
         progressBarLabel->setFixedHeight(75);
         progressBarLabel->setAlignment(Qt::AlignVCenter);
-        progressBarLabel->setStyleSheet(platformStyle->TextColor().name());
-        progressBarLabel->setFont(currentMarketFont);
 
         priceLayout->setGeometry(headerWidget->rect());
         priceLayout->addWidget(labelCurrentMarket, 0, Qt::AlignVCenter | Qt::AlignLeft);
@@ -787,7 +775,9 @@ void AvianGUI::createToolBars()
         // Create the layout for widget to the right of the tool bar
         QVBoxLayout* mainFrameLayout = new QVBoxLayout(mainWalletWidget);
         mainFrameLayout->addWidget(headerWidget);
+#ifdef ENABLE_WALLET
         mainFrameLayout->addWidget(walletFrame);
+#endif
         mainFrameLayout->setDirection(QBoxLayout::TopToBottom);
         mainFrameLayout->setContentsMargins(QMargins());
 
@@ -949,7 +939,7 @@ void AvianGUI::setWalletActionsEnabled(bool enabled)
     messagingAction->setEnabled(false);
     votingAction->setEnabled(false);
     devAction->setEnabled(false);
-    wrapAction->setEnabled(enabled);
+    wrapAction->setEnabled(false);
     /** AVN END */
 }
 
@@ -1425,14 +1415,16 @@ void AvianGUI::checkAssets()
         createAssetAction->setDisabled(false);
         createAssetAction->setToolTip(tr("Create new main/sub/unique assets"));
         manageAssetAction->setDisabled(false);
-        }
+        manageAssetAction->setStatusTip(tr("Manage assets you are the administrator of"));
+    }
     else {
         transferAssetAction->setDisabled(true);
         transferAssetAction->setToolTip(tr("Assets not yet active"));
         createAssetAction->setDisabled(true);
         createAssetAction->setToolTip(tr("Assets not yet active"));
         manageAssetAction->setDisabled(true);
-        }
+        manageAssetAction->setToolTip(tr("Assets not yet active"));
+    }
 }
 #endif // ENABLE_WALLET
 
@@ -1673,7 +1665,7 @@ UnitDisplayStatusBarControl::UnitDisplayStatusBarControl(const PlatformStyle *pl
     }
     setMinimumSize(max_width, 0);
     setAlignment(Qt::AlignRight | Qt::AlignVCenter);
-    setStyleSheet(QString("QLabel { color : %1; }").arg(platformStyle->DarkOrangeColor().name()));
+    setStyleSheet(QString("QLabel { color : %1; }").arg(platformStyle->Avian_18A7B7().name()));
 }
 
 /** So that it responds to button clicks */
@@ -1692,7 +1684,7 @@ void UnitDisplayStatusBarControl::createContextMenu(const PlatformStyle *platfor
         menuAction->setData(QVariant(u));
         menu->addAction(menuAction);
     }
-    menu->setStyleSheet(QString("QMenu::item{ color: %1; } QMenu::item:selected{ color: %2;}").arg(platformStyle->DarkOrangeColor().name(), platformStyle->TextColor().name()));
+    menu->setStyleSheet(QString("QMenu::item{ color: %1; } QMenu::item:selected{ color: %2; border: none;}").arg(platformStyle->Avian_2B737F().name(), platformStyle->Avian_2B737F().name()));
     connect(menu,SIGNAL(triggered(QAction*)),this,SLOT(onMenuSelection(QAction*)));
 }
 

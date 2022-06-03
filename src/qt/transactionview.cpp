@@ -40,6 +40,7 @@
 #include <QUrl>
 #include <QVBoxLayout>
 #include <QGraphicsDropShadowEffect>
+#include <QCalendarWidget>
 
 TransactionView::TransactionView(const PlatformStyle *platformStyle, QWidget *parent) :
     QWidget(parent), model(0), transactionProxyModel(0),
@@ -49,7 +50,7 @@ TransactionView::TransactionView(const PlatformStyle *platformStyle, QWidget *pa
     setContentsMargins(0,0,0,0);
 
     QHBoxLayout *hlayout = new QHBoxLayout();
-    hlayout->setContentsMargins(0,0,0,0);
+    hlayout->setContentsMargins(40,40,40,0);
 
     if (platformStyle->getUseExtraSpacing()) {
         hlayout->setSpacing(5);
@@ -142,7 +143,7 @@ TransactionView::TransactionView(const PlatformStyle *platformStyle, QWidget *pa
     asset_typing_delay->setInterval(input_filter_delay);
 
     QVBoxLayout *vlayout = new QVBoxLayout(this);
-    vlayout->setContentsMargins(0,0,0,0);
+    vlayout->setContentsMargins(40,0,40,40);
     vlayout->setSpacing(0);
 
     QTableView *view = new QTableView(this);
@@ -163,7 +164,7 @@ TransactionView::TransactionView(const PlatformStyle *platformStyle, QWidget *pa
     view->setContextMenuPolicy(Qt::CustomContextMenu);
 
     view->installEventFilter(this);
-    view->setStyleSheet(".QTableView { border: none;}");
+    //view->setStyleSheet(".QTableView { border: none;}");
 
     transactionView = view;
     transactionView->setObjectName("transactionView");
@@ -229,15 +230,6 @@ TransactionView::TransactionView(const PlatformStyle *platformStyle, QWidget *pa
     // Trigger the call to show the assets table if assets are active
     showingAssets = false;
     showAssets();
-
-    dateWidget->setFont(GUIUtil::getSubLabelFont());
-    typeWidget->setFont(GUIUtil::getSubLabelFont());
-    addressWidget->setFont(GUIUtil::getSubLabelFont());
-    amountWidget->setFont(GUIUtil::getSubLabelFont());
-    assetNameWidget->setFont(GUIUtil::getSubLabelFont());
-    contextMenu->setFont(GUIUtil::getSubLabelFont());
-    transactionView->setFont(GUIUtil::getSubLabelFont());
-
 }
 
 void TransactionView::setModel(WalletModel *_model)
@@ -645,6 +637,7 @@ QWidget *TransactionView::createDateRangeWidget()
     connect(dateFrom, SIGNAL(dateChanged(QDate)), this, SLOT(dateRangeChanged()));
     connect(dateTo, SIGNAL(dateChanged(QDate)), this, SLOT(dateRangeChanged()));
 
+    updateCalendarWidgets();
     return dateRangeWidget;
 }
 
@@ -653,8 +646,22 @@ void TransactionView::dateRangeChanged()
     if(!transactionProxyModel)
         return;
     transactionProxyModel->setDateRange(
-            GUIUtil::StartOfDay(dateFrom->date()),
-            GUIUtil::StartOfDay(dateTo->date()).addDays(1));
+            QDateTime(dateFrom->date()),
+            QDateTime(dateTo->date()).addDays(1));
+}
+
+void TransactionView::updateCalendarWidgets()
+{
+    auto adjustWeekEndColors = [](QCalendarWidget* w) {
+        QTextCharFormat format = w->weekdayTextFormat(Qt::Saturday);
+        format.setForeground(QBrush(QColor(61,57,57), Qt::SolidPattern));
+
+        w->setWeekdayTextFormat(Qt::Saturday, format);
+        w->setWeekdayTextFormat(Qt::Sunday, format);
+    };
+
+    adjustWeekEndColors(dateFrom->calendarWidget());
+    adjustWeekEndColors(dateTo->calendarWidget());
 }
 
 void TransactionView::focusTransaction(const QModelIndex &idx)

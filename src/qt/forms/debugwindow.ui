@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>740</width>
-    <height>510</height>
+    <width>875</width>
+    <height>656</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -20,10 +20,6 @@
       <number>0</number>
      </property>
      <widget class="QWidget" name="tab_info">
-      <attribute name="icon">
-       <iconset resource="../avian.qrc">
-        <normaloff>:/icons/info</normaloff>:/icons/info</iconset>
-      </attribute>
       <attribute name="title">
        <string>&amp;Information</string>
       </attribute>
@@ -401,10 +397,6 @@
       </layout>
      </widget>
      <widget class="QWidget" name="tab_console">
-      <attribute name="icon">
-       <iconset resource="../avian.qrc">
-        <normaloff>:/icons/debugwindow</normaloff>:/icons/debugwindow</iconset>
-      </attribute>
       <attribute name="title">
        <string>&amp;Console</string>
       </attribute>
@@ -600,10 +592,6 @@
       </layout>
      </widget>
      <widget class="QWidget" name="tab_nettraffic">
-      <attribute name="icon">
-       <iconset resource="../avian.qrc">
-        <normaloff>:/icons/connect_4</normaloff>:/icons/connect_4</iconset>
-      </attribute>
       <attribute name="title">
        <string>&amp;Network Traffic</string>
       </attribute>
@@ -857,10 +845,6 @@
       </layout>
      </widget>
      <widget class="QWidget" name="tab_peers">
-      <attribute name="icon">
-       <iconset resource="../avian.qrc">
-        <normaloff>:/icons/connect_1</normaloff>:/icons/connect_1</iconset>
-      </attribute>
       <attribute name="title">
        <string>&amp;Peers</string>
       </attribute>
@@ -904,6 +888,9 @@
            </property>
            <property name="tabKeyNavigation">
             <bool>false</bool>
+           </property>
+           <property name="alternatingRowColors">
+            <bool>true</bool>
            </property>
            <property name="sortingEnabled">
             <bool>true</bool>
@@ -1020,6 +1007,9 @@
            </property>
            <property name="tabKeyNavigation">
             <bool>false</bool>
+           </property>
+           <property name="alternatingRowColors">
+            <bool>true</bool>
            </property>
            <property name="sortingEnabled">
             <bool>true</bool>

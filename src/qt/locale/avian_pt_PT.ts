@@ -340,7 +340,7 @@
         <translation>A reindexar os blocos no disco...</translation>
     </message>
     <message>
-        <source>Send coins to a Avian address</source>
+        <source>Send coins to an Avian address</source>
         <translation>Enviar moedas para um endereço Avian</translation>
     </message>
     <message>
