@@ -197,6 +197,7 @@ QCalendarWidget QToolButton {
 
 #qt_calendar_navigationbar {
     background-color: #2b737f;
+    color: #FFFFFF;
 }
 
 #qt_calendar_navigationbar,
@@ -1290,7 +1291,7 @@ QWidget .QFrame#frame .QLabel#labelWatchonly {
     margin-left: 16px;
 }
 
-QWidget .QFrame#frame .QLabel#labelBalance { 
+QWidget .QFrame#frame .QLabel#labelBalanceText { 
     qproperty-alignment: 'AlignVCenter | AlignLeft';
     margin-bottom: -1px;
     margin-left: 0px;
