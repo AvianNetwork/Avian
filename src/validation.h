@@ -516,7 +516,7 @@ extern CCoinsViewCache *pcoinsTip;
 /** Global variable that points to the active block tree (protected by cs_main) */
 extern CBlockTreeDB *pblocktree;
 
-/** RVN START */
+/** AVN START */
 /** Global variable that point to the active assets database (protected by cs_main) */
 extern CAssetsDB *passetsdb;
 
@@ -566,7 +566,7 @@ extern CSnapshotRequestDB *pSnapshotRequestDb;
 extern CAssetSnapshotDB *pAssetSnapshotDb;
 
 extern CDistributeSnapshotRequestDB *pDistributeSnapshotDb;
-/** RVN END */
+/** AVN END */
 
 /**
  * Return the spend height, which is one more than the inputs.GetBestBlock().

@@ -233,9 +233,12 @@ public:
         };
 
         chainTxData = ChainTxData{
-	        0,
-            0,
-            0
+            // Update as we know more about the contents of the Avian chain
+            // Stats as of 00000001ce6a1f7137c09b2279fdadc7c23249cef47f666e9df4f6c16187598d block 770056
+            1654373937, // * UNIX timestamp of last known number of transactions
+            1057391,     // * total number of transactions between genesis and that timestamp
+                        //   (the tx=... number in the SetBestChain debug.log lines)
+            0.022        // * estimated number of transactions per second after that timestamp
         };
 
         /** AVN Start **/
@@ -377,9 +380,12 @@ public:
         };
 
         chainTxData = ChainTxData{
-	        0,
-            0,
-            0
+            // Update as we know more about the contents of the Avian chain
+            // Stats as of 0000cd2943664b4bda8be6e80351f9ff022475ae6a341a868babc4efd846000d block 42000
+            1654349227, // * UNIX timestamp of last known number of transactions
+            66085,     // * total number of transactions between genesis and that timestamp
+                       //   (the tx=... number in the SetBestChain debug.log lines)
+            0.001      // * estimated number of transactions per second after that timestamp
         };
 	    
         /** AVN Start **/

@@ -199,7 +199,6 @@ QCalendarWidget QToolButton {
 
 #qt_calendar_navigationbar {
     background-color: #2b737f;
-    color: #FFFFFF;
 }
 
 #qt_calendar_navigationbar,
@@ -1168,7 +1167,7 @@ QDialog#Intro QPushButton#ellipsisButton {
 QWidget#bgWidget {
     padding-left: 10px;
     padding-right: 10px;
-    background: rgba(255,255,255,140);
+    background: rgba(0,0,0,220);
 }
 
 QWidget#bgWidget .QLabel#warningIcon {
@@ -1179,6 +1178,7 @@ QWidget#bgWidget .QLabel#warningIcon {
 QWidget#contentWidget QLabel#numberOfBlocksLeft,
 QWidget#contentWidget QLabel#newestBlockDate,
 QWidget#contentWidget QLabel#progressIncreasePerH,
+QWidget#contentWidget QLabel#percentageProgress,
 QWidget#contentWidget QLabel#expectedTimeLeft,
 QWidget#contentWidget QLabel#infoText {
     background-color: #2E2E2E;
@@ -1241,7 +1241,7 @@ QDialog#OptionsDialog QLabel#label_3 {
 
 QDialog#OptionsDialog #line,
 QDialog#OptionsDialog #frame {
-    border-top: 1px solid;
+    border-top: 1px solid #f4f4f4;
 }
 
 QDialog#OptionsDialog QGroupBox {
@@ -1256,6 +1256,14 @@ QDialog#OptionsDialog QLabel#overriddenByCommandLineInfoLabel {
 /* OverviewPage */
 QWidget#OverviewPage > .QLabel {
     font: 13pt 'Manrope';    
+}
+
+QWidget#OverviewPage #line,
+QWidget#OverviewPage #line_2,
+QWidget#OverviewPage #line_3,
+QWidget#OverviewPage #assetBalanceLine,
+QWidget#OverviewPage #lineWatchBalance {
+    border-top: 1px solid #f4f4f4;
 }
 
 QWidget#OverviewPage QLabel#labelAlerts {
@@ -1274,14 +1282,9 @@ QWidget#OverviewPage QLabel#labelAlerts {
 
 /* OverviewPage Balances */
 
-QWidget .QFrame#frame .QLabel#avnBalancesLabel,
-QWidget .QFrame#frame .QLabel#label { 
+QWidget .QFrame#frame .QLabel#avnBalancesLabel {
     margin-right: 5px;
     font-weight: bold;
-}
-
-QWidget .QFrame#frame .QLabel#label {
-    margin-top: 10px;
 }
 
 QWidget .QFrame#frame .QPushButton#labelWalletStatus { 
@@ -1298,7 +1301,7 @@ QWidget .QFrame#frame .QLabel#labelWatchonly {
     margin-left: 16px;
 }
 
-QWidget .QFrame#frame .QLabel#labelBalanceText { 
+QWidget .QFrame#frame .QLabel#labelBalance { 
     qproperty-alignment: 'AlignVCenter | AlignLeft';
     margin-bottom: -1px;
     margin-left: 0px;
@@ -1320,7 +1323,7 @@ QWidget .QFrame#frame .QLabel#labelWatchAvailable {
 }
 
 QWidget .QFrame#frame .QLabel#labelPendingText,
-QWidget .QFrame#frame .QLabel#label {
+QWidget .QFrame#frame .QLabel#labelBalanceText {
     qproperty-alignment: 'AlignVCenter | AlignRight';
     min-width: 100px;
     margin-right: 5px;
@@ -1566,12 +1569,16 @@ QDialog#SendCoinsDialog QLabel#labelCoinControlAmountText,
 QDialog#SendCoinsDialog QLabel#labelCoinControlLowOutputText,
 QDialog#SendCoinsDialog QLabel#labelCoinControlFeeText,
 QDialog#SendCoinsDialog QLabel#labelCoinControlAfterFeeText,
-QDialog#SendCoinsDialog QLabel#labelCoinControlChangeText,
-QDialog#SendCoinsDialog QLabel#labelFeeHeadline,
-QDialog#SendCoinsDialog QLabel#fallbackFeeWarningLabel {
+QDialog#SendCoinsDialog QLabel#labelCoinControlChangeText {
     font-weight: bold;
 }
 
+QDialog#SendCoinsDialog QLabel#labelFeeHeadline,
+QDialog#SendCoinsDialog QLabel#fallbackFeeWarningLabel {
+    qproperty-alignment: 'AlignVCenter';
+    height: 28px;
+    font-weight: bold;
+}
 
 QDialog#SendCoinsDialog QLabel#labelBalance {
     margin-right: 10px;
@@ -1659,12 +1666,16 @@ QDialog#CreateAssetDialog QLabel#labelCoinControlAmountText,
 QDialog#CreateAssetDialog QLabel#labelCoinControlLowOutputText,
 QDialog#CreateAssetDialog QLabel#labelCoinControlFeeText,
 QDialog#CreateAssetDialog QLabel#labelCoinControlAfterFeeText,
-QDialog#CreateAssetDialog QLabel#labelCoinControlChangeText,
-QDialog#CreateAssetDialog QLabel#labelFeeHeadline,
-QDialog#CreateAssetDialog QLabel#fallbackFeeWarningLabel {
+QDialog#CreateAssetDialog QLabel#labelCoinControlChangeText {
     font-weight: bold;
 }
 
+QDialog#CreateAssetDialog QLabel#labelFeeHeadline,
+QDialog#CreateAssetDialog QLabel#fallbackFeeWarningLabel {
+    qproperty-alignment: 'AlignVCenter';
+    height: 28px;
+    font-weight: bold;
+}
 
 QDialog#CreateAssetDialog QLabel#labelBalance {
     margin-right: 10px;
@@ -1731,12 +1742,16 @@ QDialog#AssetsDialog QLabel#labelAssetControlAmountText,
 QDialog#AssetsDialog QLabel#labelAssetControlLowOutputText,
 QDialog#AssetsDialog QLabel#labelAssetControlFeeText,
 QDialog#AssetsDialog QLabel#labelAssetControlAfterFeeText,
-QDialog#AssetsDialog QLabel#labelAssetControlChangeText,
-QDialog#AssetsDialog QLabel#labelFeeHeadline,
-QDialog#AssetsDialog QLabel#fallbackFeeWarningLabel {
+QDialog#AssetsDialog QLabel#labelAssetControlChangeText {
     font-weight: bold;
 }
 
+QDialog#AssetsDialog QLabel#labelFeeHeadline,
+QDialog#AssetsDialog QLabel#fallbackFeeWarningLabel {
+    qproperty-alignment: 'AlignVCenter';
+    height: 28px;
+    font-weight: bold;
+}
 
 QDialog#AssetsDialog QLabel#labelBalance {
     margin-right: 10px;
