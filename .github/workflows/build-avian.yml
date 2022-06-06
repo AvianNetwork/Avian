@@ -7,7 +7,7 @@ on:
   pull_request:
     branches:
       - master
-      - develop
+      - dev
       - release*
     paths-ignore:
       - 'binaries/**'
