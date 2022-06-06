@@ -57,8 +57,8 @@ else
     echo "----------------------------------------"
 
     cd /tmp
-    curl -O http://avian-build-resources.avian.network/${OS}/avian-${OS}-dependencies.tar.gz
-    curl -O http://avian-build-resources.avian.network/${OS}/SHASUM
+    curl -O https://avian-build-resources.avn.network/${OS}/avian-${OS}-dependencies.tar.gz
+    curl -O https://avian-build-resources.avn.network/${OS}/SHASUM
     if [[ $(sha256sum -c /tmp/SHASUM) ]]; then
         cd ${GITHUB_WORKSPACE}/depends
         tar zxvf /tmp/avian-${OS}-dependencies.tar.gz
