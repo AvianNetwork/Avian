@@ -65,8 +65,8 @@ jobs:
     - name: Build Avian
       run: make -j2
 
-    - name: Check Binary Security
-      run: ${SCRIPTS}/05-binary-checks.sh ${{ MATRIX.OS }} ${{ GITHUB.WORKSPACE }}
+#    - name: Check Binary Security
+#      run: ${SCRIPTS}/05-binary-checks.sh ${{ MATRIX.OS }} ${{ GITHUB.WORKSPACE }}
 
     - name: Package Up the Build
       run: ${SCRIPTS}/06-package.sh ${{ MATRIX.OS }} ${{ GITHUB.WORKSPACE }} ${{ GITHUB.BASE_REF }} ${{ GITHUB.REF }}
