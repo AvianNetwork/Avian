@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
 
-
 OS=${1}
 
 if [[ ! ${OS} ]]; then
