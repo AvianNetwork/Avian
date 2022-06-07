@@ -15,7 +15,7 @@
 #include "util.h"
 #include "validation.h"
 
-#include "test/test_avian.h"
+#include "test/test_raven.h"
 
 #include <stdint.h>
 

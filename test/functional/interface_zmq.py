@@ -1,20 +1,20 @@
 #!/usr/bin/env python3
 # Copyright (c) 2015-2016 The Bitcoin Core developers
-# Copyright (c) 2017-2020 The Raven Core developers
+# Copyright (c) 2017-2018 The Raven Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
-
-
 """Test the ZMQ notification interface."""
-
 import configparser
 import os
 import struct
-from test_framework.test_framework import AvianTestFramework, SkipTest
-from test_framework.util import assert_equal, hash256, x16_hash_block
 
+from test_framework.test_framework import RavenTestFramework, SkipTest
+from test_framework.util import (assert_equal,
+                                 bytes_to_hex_str,
+                                 hash256,
+                                 hash_block,
+                                )
 
-# noinspection PyUnresolvedReferences
 class ZMQSubscriber:
     def __init__(self, socket, topic):
         self.sequence = 0
@@ -34,8 +34,7 @@ class ZMQSubscriber:
         return body
 
 
-# noinspection PyUnresolvedReferences
-class ZMQTest(AvianTestFramework):
+class ZMQTest (RavenTestFramework):
     def set_test_params(self):
         self.num_nodes = 2
 
@@ -46,7 +45,7 @@ class ZMQTest(AvianTestFramework):
         except ImportError:
             raise SkipTest("python3-zmq module not available.")
 
-        # Check that avian has been built with ZMQ enabled.
+        # Check that raven has been built with ZMQ enabled.
         config = configparser.ConfigParser()
         if not self.options.configfile:
             self.options.configfile = os.path.abspath(os.path.join(os.path.dirname(__file__), "../config.ini"))
@@ -95,18 +94,19 @@ class ZMQTest(AvianTestFramework):
             txid = self.hashtx.receive()
 
             # Should receive the coinbase raw transaction.
-            hex_data = self.rawtx.receive()
-            assert_equal(hash256(hex_data).hex(), self.nodes[1].getrawtransaction(txid.hex(), True)["hash"])
+            hex = self.rawtx.receive()
+            assert_equal(bytes_to_hex_str(hash256(hex)),
+                         self.nodes[1].getrawtransaction(bytes_to_hex_str(txid), True)["hash"])
 
             # Should receive the generated block hash.
-            hash_data = self.hashblock.receive().hex()
-            assert_equal(genhashes[x], hash_data)
+            hash = bytes_to_hex_str(self.hashblock.receive())
+            assert_equal(genhashes[x], hash)
             # The block should only have the coinbase txid.
-            assert_equal([txid.hex()], self.nodes[1].getblock(hash_data)["tx"])
+            assert_equal([bytes_to_hex_str(txid)], self.nodes[1].getblock(hash)["tx"])
 
             # Should receive the generated raw block.
             block = self.rawblock.receive()
-            assert_equal(genhashes[x], x16_hash_block(block[:80].hex(), "2"))
+            assert_equal(genhashes[x], hash_block(bytes_to_hex_str(block[:80])))
 
         self.log.info("Wait for tx from second node")
         payment_txid = self.nodes[1].sendtoaddress(self.nodes[0].getnewaddress(), 1.0)
@@ -114,12 +114,11 @@ class ZMQTest(AvianTestFramework):
 
         # Should receive the broadcasted txid.
         txid = self.hashtx.receive()
-        assert_equal(payment_txid, txid.hex())
+        assert_equal(payment_txid, bytes_to_hex_str(txid))
 
         # Should receive the broadcasted raw transaction.
-        hex_data = self.rawtx.receive()
-        assert_equal(payment_txid, hash256(hex_data).hex())
-
+        hex = self.rawtx.receive()
+        assert_equal(payment_txid, bytes_to_hex_str(hash256(hex)))
 
 if __name__ == '__main__':
     ZMQTest().main()

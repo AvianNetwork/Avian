@@ -13,7 +13,7 @@
 #include "arith_uint256.h"
 #include <string>
 #include "version.h"
-#include "test/test_avian.h"
+#include "test/test_raven.h"
 
 BOOST_FIXTURE_TEST_SUITE(arith_uint256_tests, BasicTestingSetup)
 

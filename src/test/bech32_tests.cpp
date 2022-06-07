@@ -2,7 +2,7 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include "test/test_avian.h"
+#include "test/test_raven.h"
 
 #include <boost/test/unit_test.hpp>
 

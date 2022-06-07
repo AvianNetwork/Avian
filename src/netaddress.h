@@ -1,10 +1,10 @@
 // Copyright (c) 2009-2016 The Bitcoin Core developers
-// Copyright (c) 2017-2019 The Raven Core developers
+// Copyright (c) 2017 The Raven Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef AVIAN_NETADDRESS_H
-#define AVIAN_NETADDRESS_H
+#ifndef RAVEN_NETADDRESS_H
+#define RAVEN_NETADDRESS_H
 
 #if defined(HAVE_CONFIG_H)
 #include "config/avian-config.h"
@@ -33,7 +33,7 @@ class CNetAddr
 {
     protected:
         unsigned char ip[16]; // in network byte order
-        uint32_t scopeId; // for scoped/link-local ipv6 addresses
+        uint32_t scopeId{0}; // for scoped/link-local ipv6 addresses
 
     public:
         CNetAddr();
@@ -175,4 +175,4 @@ class CService : public CNetAddr
         }
 };
 
-#endif // AVIAN_NETADDRESS_H
+#endif // RAVEN_NETADDRESS_H

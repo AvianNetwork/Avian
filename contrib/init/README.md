@@ -5,7 +5,7 @@ Upstart: aviand.conf
 OpenRC:  aviand.openrc
          aviand.openrcconf
 CentOS:  aviand.init
-OS X:    org.avian.aviand.plist
+OS X:    org.raven.aviand.plist
 ```
 have been made available to assist packagers in creating node packages here.
 

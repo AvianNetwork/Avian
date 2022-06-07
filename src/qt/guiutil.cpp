@@ -1,12 +1,12 @@
 // Copyright (c) 2011-2016 The Bitcoin Core developers
-// Copyright (c) 2017-2019 The Raven Core developers
+// Copyright (c) 2017 The Raven Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include "guiutil.h"
 
-#include "avianaddressvalidator.h"
-#include "avianunits.h"
+#include "ravenaddressvalidator.h"
+#include "ravenunits.h"
 #include "qvalidatedlineedit.h"
 #include "walletmodel.h"
 
@@ -54,26 +54,19 @@
 #include <QThread>
 #include <QMouseEvent>
 #include <QPainter>
-#include <QString>
-#include <QTextStream>
+#include <QPainterPath>
 
-#if QT_VERSION < QT_VERSION_CHECK(5, 0, 0)
+#if QT_VERSION < 0x050000
 #include <QUrl>
 #else
 #include <QUrlQuery>
 #endif
 
-#if QT_VERSION >= QT_VERSION_CHECK(5, 2, 0)
+#if QT_VERSION >= 0x50200
 #include <QFontDatabase>
 #endif
 
-#if QT_VERSION < QT_VERSION_CHECK(5, 11, 0)
-#define QTversionPreFiveEleven
-#endif
-
-#ifdef WIN32
 static fs::detail::utf8_codecvt_facet utf8;
-#endif
 
 #if defined(Q_OS_MAC)
 extern double NSAppKitVersionNumber;
@@ -91,19 +84,15 @@ extern double NSAppKitVersionNumber;
 
 namespace GUIUtil {
 
-static QString stylesheetDirectory = ":css";
-static QString darkTheme = "darkTheme";
-static QString lightTheme = "lightTheme";
-static CCriticalSection cs_css;    
-
 QFont getSubLabelFont()
 {
     QFont labelSubFont;
 #if !defined(Q_OS_MAC)
-    labelSubFont.setFamily("Manrope");
+    labelSubFont.setFamily("Open Sans");
 #endif
     labelSubFont.setWeight(QFont::Weight::ExtraLight);
-    labelSubFont.setPixelSize(13);
+    labelSubFont.setLetterSpacing(QFont::SpacingType::AbsoluteSpacing, -0.6);
+    labelSubFont.setPixelSize(14);
     return labelSubFont;
 }
 
@@ -111,10 +100,11 @@ QFont getSubLabelFontBolded()
 {
     QFont labelSubFont;
 #if !defined(Q_OS_MAC)
-    labelSubFont.setFamily("Manrope");
+    labelSubFont.setFamily("Open Sans");
 #endif
     labelSubFont.setWeight(QFont::Weight::Bold);
-    labelSubFont.setPixelSize(13);
+    labelSubFont.setLetterSpacing(QFont::SpacingType::AbsoluteSpacing, -0.6);
+    labelSubFont.setPixelSize(14);
     return labelSubFont;
 }
 
@@ -122,9 +112,10 @@ QFont getTopLabelFontBolded()
 {
     QFont labelTopFont;
 #if !defined(Q_OS_MAC)
-    labelTopFont.setFamily("Manrope");
+    labelTopFont.setFamily("Open Sans");
 #endif
     labelTopFont.setWeight(QFont::Weight::Bold);
+    labelTopFont.setLetterSpacing(QFont::SpacingType::AbsoluteSpacing, -0.6);
     labelTopFont.setPixelSize(18);
     return labelTopFont;
 }
@@ -133,9 +124,10 @@ QFont getTopLabelFont(int weight, int pxsize)
 {
     QFont labelTopFont;
 #if !defined(Q_OS_MAC)
-    labelTopFont.setFamily("Manrope");
+    labelTopFont.setFamily("Open Sans");
 #endif
     labelTopFont.setWeight(weight);
+    labelTopFont.setLetterSpacing(QFont::SpacingType::AbsoluteSpacing, -0.6);
     labelTopFont.setPixelSize(pxsize);
     return labelTopFont;
 }
@@ -144,18 +136,16 @@ QFont getTopLabelFont()
 {
     QFont labelTopFont;
 #if !defined(Q_OS_MAC)
-    labelTopFont.setFamily("Manrope");
+    labelTopFont.setFamily("Open Sans");
 #endif
     labelTopFont.setWeight(QFont::Weight::Light);
+    labelTopFont.setLetterSpacing(QFont::SpacingType::AbsoluteSpacing, -0.6);
     labelTopFont.setPixelSize(18);
     return labelTopFont;
 }
 
 QGraphicsDropShadowEffect* getShadowEffect()
 {
-#if defined(Q_OS_MAC)
-    return nullptr;
-#endif
     QGraphicsDropShadowEffect *shadow = new QGraphicsDropShadowEffect;
     shadow->setBlurRadius(50);
     shadow->setColor(darkModeEnabled ? COLOR_SHADOW_DARK : COLOR_SHADOW_LIGHT);
@@ -210,15 +200,15 @@ void setupAddressWidget(QValidatedLineEdit *widget, QWidget *parent)
 {
     parent->setFocusProxy(widget);
 
-    widget->setFont(fixedPitchFont());
+    widget->setFont(getSubLabelFont());
 #if QT_VERSION >= 0x040700
     // We don't want translators to use own addresses in translations
     // and this is the only place, where this address is supplied.
     widget->setPlaceholderText(QObject::tr("Enter a Avian address (e.g. %1)").arg(
         QString::fromStdString(DummyAddress(Params()))));
 #endif
-    widget->setValidator(new AvianAddressEntryValidator(parent));
-    widget->setCheckValidator(new AvianAddressCheckValidator(parent));
+    widget->setValidator(new RavenAddressEntryValidator(parent));
+    widget->setCheckValidator(new RavenAddressCheckValidator(parent));
 }
 
 void setupAmountWidget(QLineEdit *widget, QWidget *parent)
@@ -230,10 +220,10 @@ void setupAmountWidget(QLineEdit *widget, QWidget *parent)
     widget->setAlignment(Qt::AlignRight|Qt::AlignVCenter);
 }
 
-bool parseAvianURI(const QUrl &uri, SendCoinsRecipient *out)
+bool parseRavenURI(const QUrl &uri, SendCoinsRecipient *out)
 {
     // return if URI is not valid or is no avian: URI
-    if(!uri.isValid() || uri.scheme() != QString("avian"))
+    if(!uri.isValid() || uri.scheme() != QString("raven"))
         return false;
 
     SendCoinsRecipient rv;
@@ -273,7 +263,7 @@ bool parseAvianURI(const QUrl &uri, SendCoinsRecipient *out)
         {
             if(!i->second.isEmpty())
             {
-                if(!AvianUnits::parse(AvianUnits::AVN, i->second, &rv.amount))
+                if(!RavenUnits::parse(RavenUnits::RVN, i->second, &rv.amount))
                 {
                     return false;
                 }
@@ -291,7 +281,7 @@ bool parseAvianURI(const QUrl &uri, SendCoinsRecipient *out)
     return true;
 }
 
-bool parseAvianURI(QString uri, SendCoinsRecipient *out)
+bool parseRavenURI(QString uri, SendCoinsRecipient *out)
 {
     // Convert avian:// to avian:
     //
@@ -302,17 +292,17 @@ bool parseAvianURI(QString uri, SendCoinsRecipient *out)
         uri.replace(0, 10, "avian:");
     }
     QUrl uriInstance(uri);
-    return parseAvianURI(uriInstance, out);
+    return parseRavenURI(uriInstance, out);
 }
 
-QString formatAvianURI(const SendCoinsRecipient &info)
+QString formatRavenURI(const SendCoinsRecipient &info)
 {
     QString ret = QString("avian:%1").arg(info.address);
     int paramCount = 0;
 
     if (info.amount)
     {
-        ret += QString("?amount=%1").arg(AvianUnits::format(AvianUnits::AVN, info.amount, false, AvianUnits::separatorNever));
+        ret += QString("?amount=%1").arg(RavenUnits::format(RavenUnits::RVN, info.amount, false, RavenUnits::separatorNever));
         paramCount++;
     }
 
@@ -502,9 +492,9 @@ void openDebugLogfile()
         QDesktopServices::openUrl(QUrl::fromLocalFile(boostPathToQString(pathDebug)));
 }
 
-bool openAvianConf()
+bool openRavenConf()
 {
-    boost::filesystem::path pathConfig = GetConfigFile(AVIAN_CONF_FILENAME);
+    boost::filesystem::path pathConfig = GetConfigFile(RAVEN_CONF_FILENAME);
 
     /* Create the file */
     boost::filesystem::ofstream configFile(pathConfig, std::ios_base::app);
@@ -554,26 +544,6 @@ void SubstituteFonts(const QString& language)
 #endif
 }
 
-    SyncWarningMessage::SyncWarningMessage(QWidget *parent) :
-        QDialog(parent)
-{
-
-}
-
-    bool SyncWarningMessage::showTransactionSyncWarningMessage()
-    {
-        QMessageBox::StandardButton reply;
-        reply = QMessageBox::warning(this, tr("Warning: transaction while syncing wallet!"), tr("You are trying to send a transaction while your wallet is not fully synced. This is not recommended because the transaction might get stuck in your wallet. Are you sure you want to proceed?\n\nRecommended action: Fully sync your wallet before sending a transaction.\n"),
-                                      QMessageBox::Yes|QMessageBox::No);
-
-        if (reply == QMessageBox::Yes) {
-            return true;
-        } else {
-            return false;
-        }
-    }
-
-
 ToolTipToRichTextFilter::ToolTipToRichTextFilter(int _size_threshold, QObject *parent) :
     QObject(parent),
     size_threshold(_size_threshold)
@@ -599,139 +569,20 @@ bool ToolTipToRichTextFilter::eventFilter(QObject *obj, QEvent *evt)
     return QObject::eventFilter(obj, evt);
 }
 
-void TableViewLastColumnResizingFixer::connectViewHeadersSignals()
-{
-    connect(tableView->horizontalHeader(), SIGNAL(sectionResized(int,int,int)), this, SLOT(on_sectionResized(int,int,int)));
-    connect(tableView->horizontalHeader(), SIGNAL(geometriesChanged()), this, SLOT(on_geometriesChanged()));
-}
-
-// We need to disconnect these while handling the resize events, otherwise we can enter infinite loops.
-void TableViewLastColumnResizingFixer::disconnectViewHeadersSignals()
-{
-    disconnect(tableView->horizontalHeader(), SIGNAL(sectionResized(int,int,int)), this, SLOT(on_sectionResized(int,int,int)));
-    disconnect(tableView->horizontalHeader(), SIGNAL(geometriesChanged()), this, SLOT(on_geometriesChanged()));
-}
-
-// Setup the resize mode, handles compatibility for Qt5 and below as the method signatures changed.
-// Refactored here for readability.
-void TableViewLastColumnResizingFixer::setViewHeaderResizeMode(int logicalIndex, QHeaderView::ResizeMode resizeMode)
-{
-#if QT_VERSION < 0x050000
-    tableView->horizontalHeader()->setResizeMode(logicalIndex, resizeMode);
-#else
-    tableView->horizontalHeader()->setSectionResizeMode(logicalIndex, resizeMode);
-#endif
-}
-
-void TableViewLastColumnResizingFixer::resizeColumn(int nColumnIndex, int width)
-{
-    tableView->setColumnWidth(nColumnIndex, width);
-    tableView->horizontalHeader()->resizeSection(nColumnIndex, width);
-}
-
-int TableViewLastColumnResizingFixer::getColumnsWidth()
-{
-    int nColumnsWidthSum = 0;
-    for (int i = 0; i < columnCount; i++)
-    {
-        nColumnsWidthSum += tableView->horizontalHeader()->sectionSize(i);
-    }
-    return nColumnsWidthSum;
-}
-
-int TableViewLastColumnResizingFixer::getAvailableWidthForColumn(int column)
-{
-    int nResult = lastColumnMinimumWidth;
-    int nTableWidth = tableView->horizontalHeader()->width();
-
-    if (nTableWidth > 0)
-    {
-        int nOtherColsWidth = getColumnsWidth() - tableView->horizontalHeader()->sectionSize(column);
-        nResult = std::max(nResult, nTableWidth - nOtherColsWidth);
-    }
-
-    return nResult;
-}
-
-// Make sure we don't make the columns wider than the table's viewport width.
-void TableViewLastColumnResizingFixer::adjustTableColumnsWidth()
-{
-    disconnectViewHeadersSignals();
-    resizeColumn(lastColumnIndex, getAvailableWidthForColumn(lastColumnIndex));
-    connectViewHeadersSignals();
-
-    int nTableWidth = tableView->horizontalHeader()->width();
-    int nColsWidth = getColumnsWidth();
-    if (nColsWidth > nTableWidth)
-    {
-        resizeColumn(secondToLastColumnIndex,getAvailableWidthForColumn(secondToLastColumnIndex));
-    }
-}
-
-// Make column use all the space available, useful during window resizing.
-void TableViewLastColumnResizingFixer::stretchColumnWidth(int column)
-{
-    disconnectViewHeadersSignals();
-    resizeColumn(column, getAvailableWidthForColumn(column));
-    connectViewHeadersSignals();
-}
-
-// When a section is resized this is a slot-proxy for ajustAmountColumnWidth().
-void TableViewLastColumnResizingFixer::on_sectionResized(int logicalIndex, int oldSize, int newSize)
-{
-    adjustTableColumnsWidth();
-    int remainingWidth = getAvailableWidthForColumn(logicalIndex);
-    if (newSize > remainingWidth)
-    {
-       resizeColumn(logicalIndex, remainingWidth);
-    }
-}
-
-// When the table's geometry is ready, we manually perform the stretch of the "Message" column,
-// as the "Stretch" resize mode does not allow for interactive resizing.
-void TableViewLastColumnResizingFixer::on_geometriesChanged()
-{
-    if ((getColumnsWidth() - this->tableView->horizontalHeader()->width()) != 0)
-    {
-        disconnectViewHeadersSignals();
-        resizeColumn(secondToLastColumnIndex, getAvailableWidthForColumn(secondToLastColumnIndex));
-        connectViewHeadersSignals();
-    }
-}
-
-/**
- * Initializes all internal variables and prepares the
- * the resize modes of the last 2 columns of the table and
- */
-TableViewLastColumnResizingFixer::TableViewLastColumnResizingFixer(QTableView* table, int lastColMinimumWidth, int allColsMinimumWidth, QObject *parent) :
-    QObject(parent),
-    tableView(table),
-    lastColumnMinimumWidth(lastColMinimumWidth),
-    allColumnsMinimumWidth(allColsMinimumWidth)
-{
-    columnCount = tableView->horizontalHeader()->count();
-    lastColumnIndex = columnCount - 1;
-    secondToLastColumnIndex = columnCount - 2;
-    tableView->horizontalHeader()->setMinimumSectionSize(allColumnsMinimumWidth);
-    setViewHeaderResizeMode(columnCount - 3, QHeaderView::Interactive);
-    setViewHeaderResizeMode(secondToLastColumnIndex, QHeaderView::Interactive);
-    setViewHeaderResizeMode(lastColumnIndex, QHeaderView::Interactive);
-}
-
 #ifdef WIN32
 fs::path static StartupShortcutPath()
 {
     std::string chain = ChainNameFromCommandLine();
     if (chain == CBaseChainParams::MAIN)
-        return GetSpecialFolderPath(CSIDL_STARTUP) / "Avian.lnk";
+        return GetSpecialFolderPath(CSIDL_STARTUP) / "Raven.lnk";
     if (chain == CBaseChainParams::TESTNET) // Remove this special case when CBaseChainParams::TESTNET = "testnet4"
-        return GetSpecialFolderPath(CSIDL_STARTUP) / "Avian (testnet).lnk";
-    return GetSpecialFolderPath(CSIDL_STARTUP) / strprintf("Avian (%s).lnk", chain);
+        return GetSpecialFolderPath(CSIDL_STARTUP) / "Raven (testnet).lnk";
+    return GetSpecialFolderPath(CSIDL_STARTUP) / strprintf("Raven (%s).lnk", chain);
 }
 
 bool GetStartOnSystemStartup()
 {
-    // check for Avian*.lnk
+    // check for Raven*.lnk
     return fs::exists(StartupShortcutPath());
 }
 
@@ -821,8 +672,8 @@ fs::path static GetAutostartFilePath()
 {
     std::string chain = ChainNameFromCommandLine();
     if (chain == CBaseChainParams::MAIN)
-        return GetAutostartDir() / "avian.desktop";
-    return GetAutostartDir() / strprintf("avian-%s.lnk", chain);
+        return GetAutostartDir() / "raven.desktop";
+    return GetAutostartDir() / strprintf("raven-%s.lnk", chain);
 }
 
 bool GetStartOnSystemStartup()
@@ -862,13 +713,13 @@ bool SetStartOnSystemStartup(bool fAutoStart)
         if (!optionFile.good())
             return false;
         std::string chain = ChainNameFromCommandLine();
-        // Write a avian.desktop file to the autostart directory:
+        // Write a raven.desktop file to the autostart directory:
         optionFile << "[Desktop Entry]\n";
         optionFile << "Type=Application\n";
         if (chain == CBaseChainParams::MAIN)
-            optionFile << "Name=Avian\n";
+            optionFile << "Name=Raven\n";
         else
-            optionFile << strprintf("Name=Avian (%s)\n", chain);
+            optionFile << strprintf("Name=Raven (%s)\n", chain);
         optionFile << "Exec=" << pszExePath << strprintf(" -min -testnet=%d -regtest=%d\n", gArgs.GetBoolArg("-testnet", false), gArgs.GetBoolArg("-regtest", false));
         optionFile << "Terminal=false\n";
         optionFile << "Hidden=false\n";
@@ -894,7 +745,7 @@ LSSharedFileListItemRef findStartupItemInList(LSSharedFileListRef list, CFURLRef
         return nullptr;
     }
     
-    // loop through the list of startup items and try to find the avian app
+    // loop through the list of startup items and try to find the raven app
     for(int i = 0; i < CFArrayGetCount(listSnapshot); i++) {
         LSSharedFileListItemRef item = (LSSharedFileListItemRef)CFArrayGetValueAtIndex(listSnapshot, i);
         UInt32 resolutionFlags = kLSSharedFileListNoUserInteraction | kLSSharedFileListDoNotMountVolumes;
@@ -928,38 +779,38 @@ LSSharedFileListItemRef findStartupItemInList(LSSharedFileListRef list, CFURLRef
 
 bool GetStartOnSystemStartup()
 {
-    CFURLRef avianAppUrl = CFBundleCopyBundleURL(CFBundleGetMainBundle());
-    if (avianAppUrl == nullptr) {
+    CFURLRef ravenAppUrl = CFBundleCopyBundleURL(CFBundleGetMainBundle());
+    if (ravenAppUrl == nullptr) {
         return false;
     }
     
     LSSharedFileListRef loginItems = LSSharedFileListCreate(nullptr, kLSSharedFileListSessionLoginItems, nullptr);
-    LSSharedFileListItemRef foundItem = findStartupItemInList(loginItems, avianAppUrl);
+    LSSharedFileListItemRef foundItem = findStartupItemInList(loginItems, ravenAppUrl);
 
-    CFRelease(avianAppUrl);
+    CFRelease(ravenAppUrl);
     return !!foundItem; // return boolified object
 }
 
 bool SetStartOnSystemStartup(bool fAutoStart)
 {
-    CFURLRef avianAppUrl = CFBundleCopyBundleURL(CFBundleGetMainBundle());
-    if (avianAppUrl == nullptr) {
+    CFURLRef ravenAppUrl = CFBundleCopyBundleURL(CFBundleGetMainBundle());
+    if (ravenAppUrl == nullptr) {
         return false;
     }
     
     LSSharedFileListRef loginItems = LSSharedFileListCreate(nullptr, kLSSharedFileListSessionLoginItems, nullptr);
-    LSSharedFileListItemRef foundItem = findStartupItemInList(loginItems, avianAppUrl);
+    LSSharedFileListItemRef foundItem = findStartupItemInList(loginItems, ravenAppUrl);
 
     if(fAutoStart && !foundItem) {
-        // add avian app to startup item list
-        LSSharedFileListInsertItemURL(loginItems, kLSSharedFileListItemBeforeFirst, nullptr, nullptr, avianAppUrl, nullptr, nullptr);
+        // add raven app to startup item list
+        LSSharedFileListInsertItemURL(loginItems, kLSSharedFileListItemBeforeFirst, nullptr, nullptr, ravenAppUrl, nullptr, nullptr);
     }
     else if(!fAutoStart && foundItem) {
         // remove item
         LSSharedFileListItemRemove(loginItems, foundItem);
     }
     
-    CFRelease(avianAppUrl);
+    CFRelease(ravenAppUrl);
     return true;
 }
 #pragma GCC diagnostic pop
@@ -970,29 +821,6 @@ bool SetStartOnSystemStartup(bool fAutoStart) { return false; }
 
 #endif
 
-void saveWindowGeometry(const QString& strSetting, QWidget *parent)
-{
-    QSettings settings;
-    settings.setValue(strSetting + "Pos", parent->pos());
-    settings.setValue(strSetting + "Size", parent->size());
-}
-
-void restoreWindowGeometry(const QString& strSetting, const QSize& defaultSize, QWidget *parent)
-{
-    QSettings settings;
-    QPoint pos = settings.value(strSetting + "Pos").toPoint();
-    QSize size = settings.value(strSetting + "Size", defaultSize).toSize();
-
-    if (!pos.x() && !pos.y()) {
-        QRect screen = QApplication::desktop()->screenGeometry();
-        pos.setX((screen.width() - size.width()) / 2);
-        pos.setY((screen.height() - size.height()) / 2);
-    }
-
-    parent->resize(size);
-    parent->move(pos);
-}
-
 void setClipboard(const QString& str)
 {
     QApplication::clipboard()->setText(str, QClipboard::Clipboard);
@@ -1001,20 +829,12 @@ void setClipboard(const QString& str)
 
 fs::path qstringToBoostPath(const QString &path)
 {
-#ifdef WIN32
     return fs::path(path.toStdString(), utf8);
-#else
-    return fs::path(path.toStdString());
-#endif
 }
 
 QString boostPathToQString(const fs::path &path)
 {
-#ifdef WIN32
     return QString::fromStdString(path.string(utf8));
-#else
-    return QString::fromStdString(path.string());
-#endif
 }
 
 QString formatDurationStr(int secs)
@@ -1150,24 +970,16 @@ void concatenate(QPainter* painter, QString& catString, int static_width, int le
     int start_name_length = catString.size();
 
     // Get the length of the dots
-    #ifndef QTversionPreFiveEleven
-    	int dots_width = painter->fontMetrics().horizontalAdvance("...");
-    #else
-    	int dots_width = painter->fontMetrics().width("...");
-    #endif
+    int dots_width = painter->fontMetrics().width("...");
 
     // Add the dots width to the amount width
     static_width += dots_width;
 
     // Start concatenation loop, end loop if name is at three characters
-    while (catString.size() > 3)
-    {
+    while (catString.size() > 3) {
         // Get the text width of the current name
-        #ifndef QTversionPreFiveEleven
-        	int text_width = painter->fontMetrics().horizontalAdvance(catString);
-        #else
-        	int text_width = painter->fontMetrics().width(catString);
-        #endif
+        int text_width = painter->fontMetrics().width(catString);
+
         // Check to see if the text width is going to overlap the amount width if it doesn't break the loop
         if (left_side + text_width < right_size - static_width)
             break;
@@ -1179,58 +991,6 @@ void concatenate(QPainter* painter, QString& catString, int static_width, int le
     // Add the ... if the name was concatenated
     if (catString.size() != start_name_length)
         catString.append("...");
-}
-
-QDateTime StartOfDay(const QDate& date)
-{
-#if (QT_VERSION >= QT_VERSION_CHECK(5, 14, 0))
-    return date.startOfDay();
-#else
-    return QDateTime(date);
-#endif
-}
-
-bool HasPixmap(const QLabel* label)
-{
-#if (QT_VERSION >= QT_VERSION_CHECK(5, 15, 0))
-    return !label->pixmap(Qt::ReturnByValue).isNull();
-#else
-    return label->pixmap() != nullptr;
-#endif
-}
-
-QImage GetImage(const QLabel* label)
-{
-    if (!HasPixmap(label)) {
-        return QImage();
-    }
-
-#if (QT_VERSION >= QT_VERSION_CHECK(5, 15, 0))
-    return label->pixmap(Qt::ReturnByValue).toImage();
-#else
-    return label->pixmap()->toImage();
-#endif
-}
-
-void loadTheme(bool darkmode)
-{
-    AssertLockNotHeld(cs_css);
-    LOCK(cs_css);
-
-    QString fileName = stylesheetDirectory + "/"; 
-    if(darkmode) {
-        fileName += darkTheme; 
-    } else {
-        fileName += lightTheme; 
-    }
-    QFile qFile(fileName);
-    if (!qFile.open(QFile::ReadOnly)) {
-        throw std::runtime_error(strprintf("%s: Failed to open file: %s", __func__, fileName.toStdString()));
-    }
-
-    QString strStyle = QLatin1String(qFile.readAll());
-
-    qApp->setStyleSheet(strStyle);
 }
 
 } // namespace GUIUtil

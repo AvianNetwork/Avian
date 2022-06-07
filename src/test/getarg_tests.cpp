@@ -4,7 +4,7 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include "util.h"
-#include "test/test_avian.h"
+#include "test/test_raven.h"
 
 #include <string>
 #include <vector>
@@ -21,7 +21,7 @@ BOOST_FIXTURE_TEST_SUITE(getarg_tests, BasicTestingSetup)
             boost::split(vecArg, strArg, boost::is_space(), boost::token_compress_on);
 
         // Insert dummy executable name:
-        vecArg.insert(vecArg.begin(), "testavian");
+        vecArg.insert(vecArg.begin(), "testraven");
 
         // Convert to char*:
         std::vector<const char *> vecChar;

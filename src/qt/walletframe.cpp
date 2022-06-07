@@ -1,20 +1,21 @@
 // Copyright (c) 2011-2016 The Bitcoin Core developers
-// Copyright (c) 2017-2019 The Raven Core developers
+// Copyright (c) 2017 The Raven Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include "walletframe.h"
 
-#include "aviangui.h"
+#include "ravengui.h"
 #include "walletview.h"
 
 #include <cassert>
 #include <cstdio>
+#include <iostream>
 
 #include <QHBoxLayout>
 #include <QLabel>
 
-WalletFrame::WalletFrame(const PlatformStyle *_platformStyle, AvianGUI *_gui) :
+WalletFrame::WalletFrame(const PlatformStyle *_platformStyle, RavenGUI *_gui) :
     QFrame(_gui),
     gui(_gui),
     platformStyle(_platformStyle)
@@ -46,7 +47,7 @@ bool WalletFrame::addWallet(const QString& name, WalletModel *walletModel)
         return false;
 
     WalletView *walletView = new WalletView(platformStyle, this);
-    walletView->setAvianGUI(gui);
+    walletView->setRavenGUI(gui);
     walletView->setClientModel(clientModel);
     walletView->setWalletModel(walletModel);
     walletView->showOutOfSyncWarning(bOutOfSync);
@@ -195,14 +196,6 @@ void WalletFrame::importPrivateKey()
         walletView->importPrivateKey();
 }
 
-void WalletFrame::getMyWords()
-{
-    WalletView *walletView = currentWalletView();
-    if (walletView)
-        walletView->getMyWords();
-}
-
-
 void WalletFrame::usedSendingAddresses()
 {
     WalletView *walletView = currentWalletView();
@@ -227,7 +220,7 @@ void WalletFrame::outOfSyncWarningClicked()
     Q_EMIT requestedSyncWarningInfo();
 }
 
-/** AVN START */
+/** RVN START */
 void WalletFrame::gotoAssetsPage()
 {
     QMap<QString, WalletView*>::const_iterator i;
@@ -247,18 +240,4 @@ void WalletFrame::gotoManageAssetsPage()
     QMap<QString, WalletView*>::const_iterator i;
     for (i = mapWalletViews.constBegin(); i != mapWalletViews.constEnd(); ++i)
         i.value()->gotoManageAssetsPage();
-}
-
-void WalletFrame::gotoRestrictedAssetsPage()
-{
-    QMap<QString, WalletView*>::const_iterator i;
-    for (i = mapWalletViews.constBegin(); i != mapWalletViews.constEnd(); ++i)
-        i.value()->gotoRestrictedAssetsPage();
-}
-
-void WalletFrame::gotoWrapPage()
-{
-    QMap<QString, WalletView*>::const_iterator i;
-    for (i = mapWalletViews.constBegin(); i != mapWalletViews.constEnd(); ++i)
-        i.value()->gotoWrapPage();
 }

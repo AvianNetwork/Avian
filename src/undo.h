@@ -1,11 +1,11 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
 // Copyright (c) 2009-2016 The Bitcoin Core developers
-// Copyright (c) 2017-2019 The Raven Core developers
+// Copyright (c) 2017 The Raven Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef AVIAN_UNDO_H
-#define AVIAN_UNDO_H
+#ifndef RAVEN_UNDO_H
+#define RAVEN_UNDO_H
 
 #include "compressor.h" 
 #include "consensus/consensus.h"
@@ -62,11 +62,11 @@ public:
 };
 
 static const size_t MIN_TRANSACTION_INPUT_WEIGHT = WITNESS_SCALE_FACTOR * ::GetSerializeSize(CTxIn(), SER_NETWORK, PROTOCOL_VERSION);
-/** AVN START */
+/** RVN START */
 // Deprecated for RIP2 implementation
 //static const size_t MAX_INPUTS_PER_BLOCK = /*fAssetsIsActive ? MAX_BLOCK_WEIGHT_RIP2 / MIN_TRANSACTION_INPUT_WEIGHT :*/ MAX_BLOCK_WEIGHT / MIN_TRANSACTION_INPUT_WEIGHT;
 
-/** AVN END */
+/** RVN END */
 
 /** Undo information for a CTransaction */
 class CTxUndo
@@ -120,4 +120,4 @@ public:
     }
 };
 
-#endif // AVIAN_UNDO_H
+#endif // RAVEN_UNDO_H

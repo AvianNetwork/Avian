@@ -1,7 +1,7 @@
 Description
 ------------
 
-This directory contains data-driven tests for various aspects of Avian.
+This directory contains data-driven tests for various aspects of Raven.
 
 License
 --------

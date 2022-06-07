@@ -1,10 +1,10 @@
 // Copyright (c) 2012-2016 The Bitcoin Core developers
-// Copyright (c) 2017-2019 The Raven Core developers
+// Copyright (c) 2017 The Raven Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef AVIAN_DBWRAPPER_H
-#define AVIAN_DBWRAPPER_H
+#ifndef RAVEN_DBWRAPPER_H
+#define RAVEN_DBWRAPPER_H
 
 #include "clientversion.h"
 #include "fs.h"
@@ -341,4 +341,4 @@ public:
 
 };
 
-#endif // AVIAN_DBWRAPPER_H
+#endif // RAVEN_DBWRAPPER_H

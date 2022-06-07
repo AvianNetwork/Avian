@@ -1,5 +1,5 @@
 // Copyright 2014 BitPay Inc.
-// Copyright 2015 Avian Core Developers
+// Copyright 2015 Raven Core Developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -167,9 +167,7 @@ public:
     bool get_bool() const;
     const std::string& get_str() const;
     int get_int() const;
-    uint32_t get_uint() const;
     int64_t get_int64() const;
-    uint64_t get_uint64() const;
     double get_real() const;
     const UniValue& get_obj() const;
     const UniValue& get_array() const;

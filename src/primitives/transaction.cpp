@@ -1,10 +1,9 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
 // Copyright (c) 2009-2016 The Bitcoin Core developers
-// Copyright (c) 2017-2020 The Raven Core developers
+// Copyright (c) 2017 The Raven Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include <streams.h>
 #include "primitives/transaction.h"
 
 #include "hash.h"
@@ -14,13 +13,6 @@
 std::string COutPoint::ToString() const
 {
     return strprintf("COutPoint(%s, %u)", hash.ToString().substr(0,10), n);
-}
-
-std::string COutPoint::ToSerializedString() const
-{
-    CDataStream stream(PROTOCOL_VERSION, SER_DISK);
-    stream << *this;
-    return stream.str();
 }
 
 CTxIn::CTxIn(COutPoint prevoutIn, CScript scriptSigIn, uint32_t nSequenceIn)
@@ -89,20 +81,10 @@ CTransaction::CTransaction() : vin(), vout(), nVersion(CTransaction::CURRENT_VER
 CTransaction::CTransaction(const CMutableTransaction &tx) : vin(tx.vin), vout(tx.vout), nVersion(tx.nVersion), nLockTime(tx.nLockTime), hash(ComputeHash()) {}
 CTransaction::CTransaction(CMutableTransaction &&tx) : vin(std::move(tx.vin)), vout(std::move(tx.vout)), nVersion(tx.nVersion), nLockTime(tx.nLockTime), hash(ComputeHash()) {}
 
-CAmount CTransaction::GetValueOut(const bool fAreEnforcedValues) const
+CAmount CTransaction::GetValueOut() const
 {
     CAmount nValueOut = 0;
     for (const auto& tx_out : vout) {
-
-        // Stop doing this check after Enforced Values BIP goes active
-        if (!fAreEnforcedValues) {
-            // Because we don't want to deal with assets messing up this calculation
-            // If this is an asset tx, we should move onto the next output in the transaction
-            // This will also help with processing speed of transaction that contain a large amounts of asset outputs in a transaction
-            if (tx_out.scriptPubKey.IsAssetScript())
-                continue;
-        }
-        
         nValueOut += tx_out.nValue;
         if (!MoneyRange(tx_out.nValue) || !MoneyRange(nValueOut))
             throw std::runtime_error(std::string(__func__) + ": value out of range");

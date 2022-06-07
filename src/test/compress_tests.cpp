@@ -5,7 +5,7 @@
 
 #include "compressor.h"
 #include "util.h"
-#include "test/test_avian.h"
+#include "test/test_raven.h"
 
 #include <stdint.h>
 

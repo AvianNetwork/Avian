@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
 # Copyright (c) 2014-2016 The Bitcoin Core developers
-# Copyright (c) 2017-2020 The Raven Core developers
+# Copyright (c) 2017-2018 The Raven Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
-
 """Test the fundrawtransaction RPC."""
 
-from test_framework.test_framework import AvianTestFramework
-from test_framework.util import connect_nodes_bi, assert_equal, Decimal, assert_raises_rpc_error, assert_greater_than, count_bytes, assert_fee_amount, assert_greater_than_or_equal
+from test_framework.test_framework import RavenTestFramework
+from test_framework.util import *
+from pprint import *
+
 
 def get_unspent(listunspent, amount):
     for utx in listunspent:
@@ -15,7 +16,7 @@ def get_unspent(listunspent, amount):
             return utx
     raise AssertionError('Could not find unspent with amount={}'.format(amount))
 
-class RawTransactionsTest(AvianTestFramework):
+class RawTransactionsTest(RavenTestFramework):
     def set_test_params(self):
         self.num_nodes = 4
         self.setup_clean_chain = True
@@ -50,9 +51,9 @@ class RawTransactionsTest(AvianTestFramework):
         self.sync_all()
 
         # ensure that setting changePosition in fundraw with an exact match is handled properly
-        raw_match = self.nodes[2].createrawtransaction([], {self.nodes[2].getnewaddress():5000})
-        raw_match = self.nodes[2].fundrawtransaction(raw_match, {"changePosition":1, "subtractFeeFromOutputs":[0]})
-        assert_equal(raw_match["changepos"], -1)
+        rawmatch = self.nodes[2].createrawtransaction([], {self.nodes[2].getnewaddress():5000})
+        rawmatch = self.nodes[2].fundrawtransaction(rawmatch, {"changePosition":1, "subtractFeeFromOutputs":[0]})
+        assert_equal(rawmatch["changepos"], -1)
 
         watchonly_address = self.nodes[0].getnewaddress()
         watchonly_pubkey = self.nodes[0].validateaddress(watchonly_address)["pubkey"]
@@ -74,10 +75,9 @@ class RawTransactionsTest(AvianTestFramework):
         inputs  = [ ]
         outputs = { self.nodes[0].getnewaddress() : 1.0 }
         rawtx   = self.nodes[2].createrawtransaction(inputs, outputs)
-        self.nodes[2].decoderawtransaction(rawtx)
+        dec_tx  = self.nodes[2].decoderawtransaction(rawtx)
         rawtxfund = self.nodes[2].fundrawtransaction(rawtx)
         fee = rawtxfund['fee']
-        assert_greater_than(fee, 0.0, err_msg="Fee Greater Than Zero")
         dec_tx  = self.nodes[2].decoderawtransaction(rawtxfund['hex'])
         assert(len(dec_tx['vin']) > 0) #test that we have enough inputs
 
@@ -87,11 +87,10 @@ class RawTransactionsTest(AvianTestFramework):
         inputs  = [ ]
         outputs = { self.nodes[0].getnewaddress() : 2.2 }
         rawtx   = self.nodes[2].createrawtransaction(inputs, outputs)
-        self.nodes[2].decoderawtransaction(rawtx)
+        dec_tx  = self.nodes[2].decoderawtransaction(rawtx)
 
         rawtxfund = self.nodes[2].fundrawtransaction(rawtx)
         fee = rawtxfund['fee']
-        assert_greater_than(fee, 0.0, err_msg="Fee Greater Than Zero")
         dec_tx  = self.nodes[2].decoderawtransaction(rawtxfund['hex'])
         assert(len(dec_tx['vin']) > 0) #test if we have enough inputs
 
@@ -101,11 +100,10 @@ class RawTransactionsTest(AvianTestFramework):
         inputs  = [ ]
         outputs = { self.nodes[0].getnewaddress() : 2.6 }
         rawtx   = self.nodes[2].createrawtransaction(inputs, outputs)
-        self.nodes[2].decoderawtransaction(rawtx)
+        dec_tx  = self.nodes[2].decoderawtransaction(rawtx)
 
         rawtxfund = self.nodes[2].fundrawtransaction(rawtx)
         fee = rawtxfund['fee']
-        assert_greater_than(fee, 0.0, err_msg="Fee Greater Than Zero")
         dec_tx  = self.nodes[2].decoderawtransaction(rawtxfund['hex'])
         assert(len(dec_tx['vin']) > 0)
         assert_equal(dec_tx['vin'][0]['scriptSig']['hex'], '')
@@ -117,11 +115,10 @@ class RawTransactionsTest(AvianTestFramework):
         inputs  = [ ]
         outputs = { self.nodes[0].getnewaddress() : 2.6, self.nodes[1].getnewaddress() : 2.5 }
         rawtx   = self.nodes[2].createrawtransaction(inputs, outputs)
-        self.nodes[2].decoderawtransaction(rawtx)
+        dec_tx  = self.nodes[2].decoderawtransaction(rawtx)
 
         rawtxfund = self.nodes[2].fundrawtransaction(rawtx)
         fee = rawtxfund['fee']
-        assert_greater_than(fee, 0.0, err_msg="Fee Greater Than Zero")
         dec_tx  = self.nodes[2].decoderawtransaction(rawtxfund['hex'])
         totalOut = 0
         for out in dec_tx['vout']:
@@ -149,7 +146,7 @@ class RawTransactionsTest(AvianTestFramework):
         for out in dec_tx['vout']:
             totalOut += out['value']
 
-        assert_equal(fee + totalOut, utx['amount']) #compare vin total and totalOut+fee
+        assert_equal(fee + totalOut, utx['amount']) #compare vin total and totalout+fee
 
 
         #####################################################################
@@ -237,7 +234,6 @@ class RawTransactionsTest(AvianTestFramework):
 
         rawtxfund = self.nodes[2].fundrawtransaction(rawtx)
         fee = rawtxfund['fee']
-        assert_greater_than(fee, 0.0, err_msg="Fee Greater Than Zero")
         dec_tx  = self.nodes[2].decoderawtransaction(rawtxfund['hex'])
         totalOut = 0
         matchingOuts = 0
@@ -269,7 +265,6 @@ class RawTransactionsTest(AvianTestFramework):
 
         rawtxfund = self.nodes[2].fundrawtransaction(rawtx)
         fee = rawtxfund['fee']
-        assert_greater_than(fee, 0.0, err_msg="Fee Greater Than Zero")
         dec_tx  = self.nodes[2].decoderawtransaction(rawtxfund['hex'])
         totalOut = 0
         matchingOuts = 0
@@ -303,7 +298,6 @@ class RawTransactionsTest(AvianTestFramework):
 
         rawtxfund = self.nodes[2].fundrawtransaction(rawtx)
         fee = rawtxfund['fee']
-        assert_greater_than(fee, 0.0, err_msg="Fee Greater Than Zero")
         dec_tx  = self.nodes[2].decoderawtransaction(rawtxfund['hex'])
         totalOut = 0
         matchingOuts = 0
@@ -328,7 +322,7 @@ class RawTransactionsTest(AvianTestFramework):
 
         #compare fee
         feeDelta = Decimal(fundedTx['fee']) - Decimal(signedFee)
-        assert(0 <= feeDelta <= feeTolerance)
+        assert(feeDelta >= 0 and feeDelta <= feeTolerance)
         ############################################################
 
         ############################################################
@@ -343,7 +337,7 @@ class RawTransactionsTest(AvianTestFramework):
 
         #compare fee
         feeDelta = Decimal(fundedTx['fee']) - Decimal(signedFee)
-        assert(0 <= feeDelta <= feeTolerance)
+        assert(feeDelta >= 0 and feeDelta <= feeTolerance)
         ############################################################
 
 
@@ -370,7 +364,7 @@ class RawTransactionsTest(AvianTestFramework):
 
         #compare fee
         feeDelta = Decimal(fundedTx['fee']) - Decimal(signedFee)
-        assert(0 <= feeDelta <= feeTolerance)
+        assert(feeDelta >= 0 and feeDelta <= feeTolerance)
         ############################################################
 
 
@@ -403,7 +397,7 @@ class RawTransactionsTest(AvianTestFramework):
 
         #compare fee
         feeDelta = Decimal(fundedTx['fee']) - Decimal(signedFee)
-        assert(0 <= feeDelta <= feeTolerance)
+        assert(feeDelta >= 0 and feeDelta <= feeTolerance)
         ############################################################
 
 
@@ -420,8 +414,8 @@ class RawTransactionsTest(AvianTestFramework):
         mSigObj = self.nodes[2].addmultisigaddress(2, [addr1Obj['pubkey'], addr2Obj['pubkey']])
 
 
-        # send 1.2 AVN to msig addr
-        self.nodes[0].sendtoaddress(mSigObj, 1.2)
+        # send 1.2 RVN to msig addr
+        txId = self.nodes[0].sendtoaddress(mSigObj, 1.2)
         self.sync_all()
         self.nodes[1].generate(1)
         self.sync_all()
@@ -433,7 +427,7 @@ class RawTransactionsTest(AvianTestFramework):
         fundedTx = self.nodes[2].fundrawtransaction(rawtx)
 
         signedTx = self.nodes[2].signrawtransaction(fundedTx['hex'])
-        self.nodes[2].sendrawtransaction(signedTx['hex'])
+        txId = self.nodes[2].sendrawtransaction(signedTx['hex'])
         self.sync_all()
         self.nodes[1].generate(1)
         self.sync_all()
@@ -463,9 +457,12 @@ class RawTransactionsTest(AvianTestFramework):
         # drain the keypool
         self.nodes[1].getnewaddress()
         self.nodes[1].getrawchangeaddress()
+        inputs = []
+        outputs = {self.nodes[0].getnewaddress():1.1}
+        rawtx = self.nodes[1].createrawtransaction(inputs, outputs)
         # fund a transaction that requires a new key for the change output
         # creating the key must be impossible because the wallet is locked
-        assert_raises_rpc_error(-12, "Keypool ran out, please call keypoolrefill first", self.nodes[1].getnewaddress)
+        assert_raises_rpc_error(-4, "Keypool ran out, please call keypoolrefill first", self.nodes[1].fundrawtransaction, rawtx)
 
         #refill the keypool
         self.nodes[1].walletpassphrase("test", 100)
@@ -484,7 +481,7 @@ class RawTransactionsTest(AvianTestFramework):
         #now we need to unlock
         self.nodes[1].walletpassphrase("test", 600)
         signedTx = self.nodes[1].signrawtransaction(fundedTx['hex'])
-        self.nodes[1].sendrawtransaction(signedTx['hex'])
+        txId = self.nodes[1].sendrawtransaction(signedTx['hex'])
         self.nodes[1].generate(1)
         self.sync_all()
 
@@ -503,7 +500,7 @@ class RawTransactionsTest(AvianTestFramework):
         self.sync_all()
 
         for i in range(0,20):
-            self.nodes[0].sendtoaddress(self.nodes[1].getnewaddress(), 0.1)
+            self.nodes[0].sendtoaddress(self.nodes[1].getnewaddress(), 0.01)
         self.nodes[0].generate(1)
         self.sync_all()
 
@@ -519,7 +516,7 @@ class RawTransactionsTest(AvianTestFramework):
 
         #compare fee
         feeDelta = Decimal(fundedTx['fee']) - Decimal(signedFee)
-        assert(0 <= feeDelta <= feeTolerance * 19) #~19 inputs
+        assert(feeDelta >= 0 and feeDelta <= feeTolerance*19) #~19 inputs
 
 
         #############################################
@@ -533,7 +530,7 @@ class RawTransactionsTest(AvianTestFramework):
         self.sync_all()
 
         for i in range(0,20):
-            self.nodes[0].sendtoaddress(self.nodes[1].getnewaddress(), 0.1)
+            self.nodes[0].sendtoaddress(self.nodes[1].getnewaddress(), 0.01)
         self.nodes[0].generate(1)
         self.sync_all()
 
@@ -545,7 +542,7 @@ class RawTransactionsTest(AvianTestFramework):
         rawtx = self.nodes[1].createrawtransaction(inputs, outputs)
         fundedTx = self.nodes[1].fundrawtransaction(rawtx)
         fundedAndSignedTx = self.nodes[1].signrawtransaction(fundedTx['hex'])
-        self.nodes[1].sendrawtransaction(fundedAndSignedTx['hex'])
+        txId = self.nodes[1].sendrawtransaction(fundedAndSignedTx['hex'])
         self.sync_all()
         self.nodes[0].generate(1)
         self.sync_all()
@@ -619,10 +616,11 @@ class RawTransactionsTest(AvianTestFramework):
 
         inputs = []
         outputs = {self.nodes[3].getnewaddress() : 1}
+        pprint(self.nodes[3].getbalance())
         rawtx = self.nodes[3].createrawtransaction(inputs, outputs)
         result = self.nodes[3].fundrawtransaction(rawtx) # uses DEFAULT_TRANSACTION_MINFEE
-        result2 = self.nodes[3].fundrawtransaction(rawtx, {"feeRate": 2*0.01})
-        result3 = self.nodes[3].fundrawtransaction(rawtx, {"feeRate": 10*0.01})
+        result2 = self.nodes[3].fundrawtransaction(rawtx, {"feeRate": 2*0.0005})
+        result3 = self.nodes[3].fundrawtransaction(rawtx, {"feeRate": 10*0.0005})
         result_fee_rate = result['fee'] * 1000 / count_bytes(result['hex'])
         assert_fee_amount(result['fee'], count_bytes(result['hex']), result_fee_rate)
         assert_fee_amount(result2['fee'], count_bytes(result2['hex']), 2 * result_fee_rate)
@@ -639,9 +637,9 @@ class RawTransactionsTest(AvianTestFramework):
             if out['value'] > 1.0:
                 changeaddress += out['scriptPubKey']['addresses'][0]
         assert(changeaddress != "")
-        next_addr = self.nodes[3].getnewaddress()
+        nextaddr = self.nodes[3].getnewaddress()
         # Now the change address key should be removed from the keypool
-        assert(changeaddress != next_addr)
+        assert(changeaddress != nextaddr)
 
         ######################################
         # Test subtractFeeFromOutputs option #

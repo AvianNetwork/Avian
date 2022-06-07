@@ -1,10 +1,10 @@
 // Copyright (c) 2011-2016 The Bitcoin Core developers
-// Copyright (c) 2017-2019 The Raven Core developers
+// Copyright (c) 2017 The Raven Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef AVIAN_QT_PAYMENTSERVER_H
-#define AVIAN_QT_PAYMENTSERVER_H
+#ifndef RAVEN_QT_PAYMENTSERVER_H
+#define RAVEN_QT_PAYMENTSERVER_H
 
 // This class handles payment requests from clicking on
 // avian: URIs
@@ -146,4 +146,4 @@ private:
     OptionsModel *optionsModel;
 };
 
-#endif // AVIAN_QT_PAYMENTSERVER_H
+#endif // RAVEN_QT_PAYMENTSERVER_H

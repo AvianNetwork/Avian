@@ -1,15 +1,14 @@
 // Copyright (c) 2015-2016 The Bitcoin Core developers
-// Copyright (c) 2017-2019 The Raven Core developers
+// Copyright (c) 2017 The Raven Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef AVIAN_ZMQ_ZMQPUBLISHNOTIFIER_H
-#define AVIAN_ZMQ_ZMQPUBLISHNOTIFIER_H
+#ifndef RAVEN_ZMQ_ZMQPUBLISHNOTIFIER_H
+#define RAVEN_ZMQ_ZMQPUBLISHNOTIFIER_H
 
 #include "zmqabstractnotifier.h"
 
 class CBlockIndex;
-class CMessage;
 
 class CZMQAbstractPublishNotifier : public CZMQAbstractNotifier
 {
@@ -54,10 +53,4 @@ public:
     bool NotifyTransaction(const CTransaction &transaction) override;
 };
 
-class CZMQPublishNewAssetMessageNotifier : public CZMQAbstractPublishNotifier
-{
-public:
-    bool NotifyMessage(const CMessage& message) override;
-};
-
-#endif // AVIAN_ZMQ_ZMQPUBLISHNOTIFIER_H
+#endif // RAVEN_ZMQ_ZMQPUBLISHNOTIFIER_H

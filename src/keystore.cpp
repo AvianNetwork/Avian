@@ -1,6 +1,6 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
 // Copyright (c) 2009-2016 The Bitcoin Core developers
-// Copyright (c) 2017-2020 The Raven Core developers
+// Copyright (c) 2017 The Raven Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -111,36 +111,4 @@ bool CBasicKeyStore::HaveWatchOnly() const
 {
     LOCK(cs_KeyStore);
     return (!setWatchOnly.empty());
-}
-
-
-bool CBasicKeyStore::AddWords(const uint256& p_hash, const std::vector<unsigned char>& p_vchWords)
-{
-    LOCK(cs_KeyStore);
-    nWordHash = p_hash;
-    vchWords = p_vchWords;
-    return true;
-}
-
-bool CBasicKeyStore::AddPassphrase(const std::vector<unsigned char>& p_vchPassphrase)
-{
-    LOCK(cs_KeyStore);
-    vchPassphrase = p_vchPassphrase;
-    return true;
-}
-
-void CBasicKeyStore::GetBip39Data(uint256& p_hash, std::vector<unsigned char>& p_vchWords, std::vector<unsigned char>& p_vchPassphrase, std::vector<unsigned char>& p_vchSeed)
-{
-    LOCK(cs_KeyStore);
-    p_hash = nWordHash;
-    p_vchWords = vchWords;
-    p_vchPassphrase = vchPassphrase;
-    p_vchSeed = g_vchSeed;
-}
-
-bool CBasicKeyStore::AddVchSeed(const std::vector<unsigned char>& p_vchSeed)
-{
-    LOCK(cs_KeyStore);
-    g_vchSeed = p_vchSeed;
-    return true;
 }

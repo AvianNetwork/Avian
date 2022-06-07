@@ -1,10 +1,10 @@
 // Copyright (c) 2011-2016 The Bitcoin Core developers
-// Copyright (c) 2017-2020 The Raven Core developers
+// Copyright (c) 2017 The Raven Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef AVIAN_QT_WALLETMODEL_H
-#define AVIAN_QT_WALLETMODEL_H
+#ifndef RAVEN_QT_WALLETMODEL_H
+#define RAVEN_QT_WALLETMODEL_H
 
 #include "paymentrequestplus.h"
 #include "walletmodeltransaction.h"
@@ -23,7 +23,6 @@ class RecentRequestsTableModel;
 class TransactionTableModel;
 class AssetTableModel;
 class WalletModelTransaction;
-class MyRestrictedAssetsTableModel;
 
 class CCoinControl;
 class CKeyID;
@@ -162,7 +161,7 @@ public:
     }
 };
 
-/** Interface to Avian wallet from Qt view code. */
+/** Interface to Raven wallet from Qt view code. */
 class WalletModel : public QObject
 {
     Q_OBJECT
@@ -197,7 +196,6 @@ public:
     TransactionTableModel *getTransactionTableModel();
     AssetTableModel *getAssetTableModel();
     RecentRequestsTableModel *getRecentRequestsTableModel();
-    MyRestrictedAssetsTableModel *getMyRestrictedAssetsTableModel();
 
     CAmount getBalance(const CCoinControl *coinControl = nullptr) const;
     CAmount getUnconfirmedBalance() const;
@@ -267,10 +265,10 @@ public:
     void getOutputs(const std::vector<COutPoint>& vOutpoints, std::vector<COutput>& vOutputs);
     bool isSpent(const COutPoint& outpoint) const;
     void listCoins(std::map<QString, std::vector<COutput> >& mapCoins) const;
-    /** AVN START */
+    /** RVN START */
     // Map of asset name to map of address to CTxOut
     void listAssets(std::map<QString, std::map<QString, std::vector<COutput> > >& mapCoins) const;
-    /** AVN END */
+    /** RVN END */
     bool isLockedCoin(uint256 hash, unsigned int n) const;
     void lockCoin(COutPoint& output);
     void unlockCoin(COutPoint& output);
@@ -288,8 +286,6 @@ public:
     static bool isWalletEnabled();
 
     bool hdEnabled() const;
-    bool hd44Enabled() const;
-    QString getMyWords() const;
 
     int getDefaultConfirmTarget() const;
 
@@ -310,7 +306,6 @@ private:
     TransactionTableModel *transactionTableModel;
     AssetTableModel *assetTableModel;
     RecentRequestsTableModel *recentRequestsTableModel;
-    MyRestrictedAssetsTableModel *myRestrictedAssetsTableModel;
 
     // Cache some values to be able to detect changes
     CAmount cachedBalance;
@@ -369,4 +364,4 @@ public Q_SLOTS:
     void pollBalanceChanged();
 };
 
-#endif // AVIAN_QT_WALLETMODEL_H
+#endif // RAVEN_QT_WALLETMODEL_H

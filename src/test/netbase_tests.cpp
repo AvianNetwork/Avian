@@ -4,7 +4,7 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include "netbase.h"
-#include "test/test_avian.h"
+#include "test/test_raven.h"
 #include "utilstrencodings.h"
 
 #include <string>
@@ -89,10 +89,10 @@ BOOST_FIXTURE_TEST_SUITE(netbase_tests, BasicTestingSetup)
     {
         BOOST_TEST_MESSAGE("Running NetBase SplitHost Test");
 
-        BOOST_CHECK(TestSplitHost("www.avian.org", "www.avian.org", -1));
-        BOOST_CHECK(TestSplitHost("[www.avian.org]", "www.avian.org", -1));
-        BOOST_CHECK(TestSplitHost("www.avian.org:80", "www.avian.org", 80));
-        BOOST_CHECK(TestSplitHost("[www.avian.org]:80", "www.avian.org", 80));
+        BOOST_CHECK(TestSplitHost("www.raven.org", "www.raven.org", -1));
+        BOOST_CHECK(TestSplitHost("[www.raven.org]", "www.raven.org", -1));
+        BOOST_CHECK(TestSplitHost("www.raven.org:80", "www.raven.org", 80));
+        BOOST_CHECK(TestSplitHost("[www.raven.org]:80", "www.raven.org", 80));
         BOOST_CHECK(TestSplitHost("127.0.0.1", "127.0.0.1", -1));
         BOOST_CHECK(TestSplitHost("127.0.0.1:8767", "127.0.0.1", 8767));
         BOOST_CHECK(TestSplitHost("[127.0.0.1]", "127.0.0.1", -1));

@@ -4,8 +4,8 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef AVIAN_NET_PROCESSING_H
-#define AVIAN_NET_PROCESSING_H
+#ifndef RAVEN_NET_PROCESSING_H
+#define RAVEN_NET_PROCESSING_H
 
 #include "net.h"
 #include "validationinterface.h"
@@ -82,4 +82,4 @@ bool GetNodeStateStats(NodeId nodeid, CNodeStateStats &stats);
 /** Increase a node's misbehavior score. */
 void Misbehaving(NodeId nodeid, int howmuch);
 
-#endif // AVIAN_NET_PROCESSING_H
+#endif // RAVEN_NET_PROCESSING_H

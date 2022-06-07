@@ -1,6 +1,6 @@
 RASBERRY PI BUILD NOTES
 ====================
-Origin: traysi.org/avian_rpi.php
+Origin: traysi.org/raven_rpi.php
 
 # Install necessary packages:
 ```
@@ -33,11 +33,11 @@ make -j4 # If error, remove the -j4
 sudo make install
 ```
 
-# Build Avian
+# Build Ravencoin
 ```
 cd ~/build/
-git clone https://github.com/AvianNetwork/Avian
-cd Avian/
+git clone https://github.com/RavenProject/Ravencoin
+cd Ravencoin/
 ./autogen.sh
 ./configure --disable-tests --with-gui=no CPPFLAGS="-I/usr/local/BerkeleyDB.4.8/include -O2" LDFLAGS="-L/usr/local/BerkeleyDB.4.8/lib"
 make

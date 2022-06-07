@@ -26,15 +26,15 @@ Build-Depends: debhelper,
  python,
  libzmq3-dev
 Standards-Version: 3.9.2
-Homepage: https://avn.network/
-Vcs-Git: git://github.com/AvianProject/Avian.git
-Vcs-Browser: https://github.com/AvianNetwork/Avian
+Homepage: https://ravencoin.org/
+Vcs-Git: git://github.com/RavenProject/Ravencoin.git
+Vcs-Browser: https://github.com/RavenProject/Ravencoin
 
 Package: aviand
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}
 Description: peer-to-peer network based digital currency - daemon
- Avian is a free open source peer-to-peer electronic cash system that
+ Raven is a free open source peer-to-peer electronic cash system that
  is completely decentralized, without the need for a central server or
  trusted parties.  Users hold the crypto keys to their own money and
  transact directly with each other, with the help of a P2P network to
@@ -47,24 +47,24 @@ Package: avian-qt
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}
 Description: peer-to-peer network based digital currency - Qt GUI
- Avian is a free open source peer-to-peer electronic cash system that
+ Raven is a free open source peer-to-peer electronic cash system that
  is completely decentralized, without the need for a central server or
  trusted parties.  Users hold the crypto keys to their own money and
  transact directly with each other, with the help of a P2P network to
  check for double-spending.
  .
- This package provides Avian-Qt, a GUI for Avian based on Qt.
+ This package provides Avian-Qt, a GUI for Raven based on Qt.
 
 Package: avian-tx
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}
 Description: peer-to-peer digital currency - standalone transaction tool
- Avian is a free open source peer-to-peer electronic cash system that
+ Raven is a free open source peer-to-peer electronic cash system that
  is completely decentralized, without the need for a central server or
  trusted parties.  Users hold the crypto keys to their own money and
  transact directly with each other, with the help of a P2P network to
  check for double-spending.
  .
  This package provides avian-tx, a command-line transaction creation
- tool which can be used without a avian daemon.  Some means of
+ tool which can be used without a raven daemon.  Some means of
  exchanging minimal transaction data with peers is still required.

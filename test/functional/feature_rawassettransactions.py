@@ -1,43 +1,30 @@
 #!/usr/bin/env python3
 # Copyright (c) 2014-2016 The Bitcoin Core developers
-# Copyright (c) 2017-2020 The Raven Core developers
+# Copyright (c) 2017-2018 The Raven Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
-
+"""Test the rawtransaction RPCs for asset transactions.
 """
-Test the rawtransaction RPCs for asset transactions.
-"""
-
-import math
 from io import BytesIO
-from test_framework.test_framework import AvianTestFramework
-from test_framework.util import assert_equal, assert_raises_rpc_error, assert_is_hash_string, assert_does_not_contain_key, assert_contains_key, assert_contains_pair
-from test_framework.mininode import CTransaction, hex_str_to_bytes, bytes_to_hex_str, CScriptReissue, CScriptOwner, CScriptTransfer, CTxOut, CScriptIssue
+from pprint import *
+from test_framework.test_framework import RavenTestFramework
+from test_framework.util import *
+from test_framework.mininode import *
+import math
 
-def truncate(number, digits=8):
+
+def truncate(number, digits = 8):
     stepper = pow(10.0, digits)
     return math.trunc(stepper * number) / stepper
 
-
-# noinspection PyTypeChecker,PyUnboundLocalVariable,PyUnresolvedReferences
-def get_first_unspent(self: object, node: object, needed: float = 500.1) -> object:
-    # Find the first unspent with enough required for transaction
-    for n in range(0, len(node.listunspent())):
-        unspent = node.listunspent()[n]
-        if float(unspent['amount']) > needed:
-            self.log.info("Found unspent index %d with more than %s available.", n, needed)
-            return unspent
-    assert (float(unspent['amount']) < needed)
-
-
-def get_tx_issue_hex(self, node, asset_name, asset_quantity, asset_units=0):
+def get_tx_issue_hex(node, asset_name, asset_quantity, asset_units=0):
     to_address = node.getnewaddress()
     change_address = node.getnewaddress()
-    unspent = get_first_unspent(self, node)
+    unspent = node.listunspent()[0]
     inputs = [{k: unspent[k] for k in ['txid', 'vout']}]
     outputs = {
         'n1issueAssetXXXXXXXXXXXXXXXXWdnemQ': 500,
-        change_address: truncate(float(unspent['amount']) - 500.1),
+        change_address: truncate(float(unspent['amount']) - 500.0001),
         to_address: {
             'issue': {
                 'asset_name':       asset_name,
@@ -55,15 +42,14 @@ def get_tx_issue_hex(self, node, asset_name, asset_quantity, asset_units=0):
     return tx_issue_hex
 
 
-# noinspection PyTypeChecker
-class RawAssetTransactionsTest(AvianTestFramework):
+class RawAssetTransactionsTest(RavenTestFramework):
     def set_test_params(self):
         self.setup_clean_chain = True
         self.num_nodes = 3
 
     def activate_assets(self):
-        self.log.info("Generating AVN for node[0] and activating assets...")
-        n0 = self.nodes[0]
+        self.log.info("Generating RVN for node[0] and activating assets...")
+        n0, n1, n2 = self.nodes[0], self.nodes[1], self.nodes[2]
 
         n0.generate(1)
         self.sync_all()
@@ -74,7 +60,7 @@ class RawAssetTransactionsTest(AvianTestFramework):
     def reissue_tampering_test(self):
         self.log.info("Tampering with raw reissues...")
 
-        n0 = self.nodes[0]
+        n0, n1, n2 = self.nodes[0], self.nodes[1], self.nodes[2]
 
         ########################################
         # issue a couple of assets
@@ -82,20 +68,20 @@ class RawAssetTransactionsTest(AvianTestFramework):
         owner_name = f"{asset_name}!"
         alternate_asset_name = 'ANOTHER_ASSET'
         alternate_owner_name = f"{alternate_asset_name}!"
-        n0.sendrawtransaction(get_tx_issue_hex(self, n0, asset_name, 1000))
-        n0.sendrawtransaction(get_tx_issue_hex(self, n0, alternate_asset_name, 1000))
+        n0.sendrawtransaction(get_tx_issue_hex(n0, asset_name, 1000))
+        n0.sendrawtransaction(get_tx_issue_hex(n0, alternate_asset_name, 1000))
         n0.generate(1)
 
         ########################################
         # try a reissue with no owner input
         to_address = n0.getnewaddress()
-        unspent = get_first_unspent(self, n0)
+        unspent = n0.listunspent()[0]
         inputs = [
             {k: unspent[k] for k in ['txid', 'vout']},
         ]
         outputs = {
             'n1ReissueAssetXXXXXXXXXXXXXXWG9NLd': 100,
-            n0.getnewaddress(): truncate(float(unspent['amount']) - 100.1),
+            n0.getnewaddress(): truncate(float(unspent['amount']) - 100.0001),
             to_address: {
                 'reissue': {
                     'asset_name':       asset_name,
@@ -136,19 +122,19 @@ class RawAssetTransactionsTest(AvianTestFramework):
         tx = CTransaction()
         f = BytesIO(hex_str_to_bytes(tx_hex))
         tx.deserialize(f)
-        avnr = '72766e72'  # avnr
+        rvnr = '72766e72' #rvnr
         op_drop = '75'
         for n in range(0, len(tx.vout)):
             out = tx.vout[n]
-            if avnr in bytes_to_hex_str(out.scriptPubKey):
+            if rvnr in bytes_to_hex_str(out.scriptPubKey):
                 script_hex = bytes_to_hex_str(out.scriptPubKey)
-                reissue_script_hex = script_hex[script_hex.index(avnr) + len(avnr):-len(op_drop)]
+                reissue_script_hex = script_hex[script_hex.index(rvnr) + len(rvnr):-len(op_drop)]
                 f = BytesIO(hex_str_to_bytes(reissue_script_hex))
                 reissue = CScriptReissue()
                 reissue.deserialize(f)
                 reissue.name = alternate_asset_name.encode()
                 tampered_reissue = bytes_to_hex_str(reissue.serialize())
-                tampered_script = script_hex[:script_hex.index(avnr)] + avnr + tampered_reissue + op_drop
+                tampered_script = script_hex[:script_hex.index(rvnr)] + rvnr + tampered_reissue + op_drop
                 tx.vout[n].scriptPubKey = hex_str_to_bytes(tampered_script)
         tx_hex_bad = bytes_to_hex_str(tx.serialize())
         tx_signed = n0.signrawtransaction(tx_hex_bad)['hex']
@@ -159,9 +145,9 @@ class RawAssetTransactionsTest(AvianTestFramework):
         tx = CTransaction()
         f = BytesIO(hex_str_to_bytes(tx_hex))
         tx.deserialize(f)
-        avnt = '72766e74'  # avnt
+        rvnt = '72766e74' #rvnt
         # remove the owner output from vout
-        bad_vout = list(filter(lambda out_script: avnt not in bytes_to_hex_str(out_script.scriptPubKey), tx.vout))
+        bad_vout = list(filter(lambda out : rvnt not in bytes_to_hex_str(out.scriptPubKey), tx.vout))
         tx.vout = bad_vout
         tx_hex_bad = bytes_to_hex_str(tx.serialize())
         tx_signed = n0.signrawtransaction(tx_hex_bad)['hex']
@@ -183,21 +169,21 @@ class RawAssetTransactionsTest(AvianTestFramework):
     def issue_tampering_test(self):
         self.log.info("Tampering with raw issues...")
 
-        n0 = self.nodes[0]
+        n0, n1, n2 = self.nodes[0], self.nodes[1], self.nodes[2]
 
         ########################################
         # get issue tx
         asset_name = 'TAMPER_TEST_ASSET'
-        tx_issue_hex = get_tx_issue_hex(self, n0, asset_name, 1000)
+        tx_issue_hex = get_tx_issue_hex(n0, asset_name, 1000)
 
         ########################################
         # try tampering to issue an asset with no owner output
         tx = CTransaction()
         f = BytesIO(hex_str_to_bytes(tx_issue_hex))
         tx.deserialize(f)
-        avno = '72766e6f'  # avno
+        rvno = '72766e6f' #rvno
         # remove the owner output from vout
-        bad_vout = list(filter(lambda out_script: avno not in bytes_to_hex_str(out_script.scriptPubKey), tx.vout))
+        bad_vout = list(filter(lambda out : rvno not in bytes_to_hex_str(out.scriptPubKey), tx.vout))
         tx.vout = bad_vout
         tx_bad_issue = bytes_to_hex_str(tx.serialize())
         tx_bad_issue_signed = n0.signrawtransaction(tx_bad_issue)['hex']
@@ -209,9 +195,9 @@ class RawAssetTransactionsTest(AvianTestFramework):
         tx = CTransaction()
         f = BytesIO(hex_str_to_bytes(tx_issue_hex))
         tx.deserialize(f)
-        avno = '72766e6f'  # avno
+        rvno = '72766e6f' #rvno
         # find the owner output from vout and insert a duplicate back in
-        owner_vout = list(filter(lambda out_script: avno in bytes_to_hex_str(out_script.scriptPubKey), tx.vout))[0]
+        owner_vout = list(filter(lambda out : rvno in bytes_to_hex_str(out.scriptPubKey), tx.vout))[0]
         tx.vout.insert(-1, owner_vout)
         tx_bad_issue = bytes_to_hex_str(tx.serialize())
         tx_bad_issue_signed = n0.signrawtransaction(tx_bad_issue)['hex']
@@ -223,9 +209,9 @@ class RawAssetTransactionsTest(AvianTestFramework):
         tx = CTransaction()
         f = BytesIO(hex_str_to_bytes(tx_issue_hex))
         tx.deserialize(f)
-        avnq = '72766e71'  # avnq
+        rvnq = '72766e71' #rvnq
         # remove the owner output from vout
-        bad_vout = list(filter(lambda out_script: avnq not in bytes_to_hex_str(out_script.scriptPubKey), tx.vout))
+        bad_vout = list(filter(lambda out : rvnq not in bytes_to_hex_str(out.scriptPubKey), tx.vout))
         tx.vout = bad_vout
         tx_bad_issue = bytes_to_hex_str(tx.serialize())
         tx_bad_issue_signed = n0.signrawtransaction(tx_bad_issue)['hex']
@@ -237,21 +223,21 @@ class RawAssetTransactionsTest(AvianTestFramework):
         tx = CTransaction()
         f = BytesIO(hex_str_to_bytes(tx_issue_hex))
         tx.deserialize(f)
-        avno = '72766e6f'  # avno
+        rvno = '72766e6f' #rvno
         op_drop = '75'
         # change the owner name
         for n in range(0, len(tx.vout)):
             out = tx.vout[n]
-            if avno in bytes_to_hex_str(out.scriptPubKey):
+            if rvno in bytes_to_hex_str(out.scriptPubKey):
                 owner_out = out
                 owner_script_hex = bytes_to_hex_str(owner_out.scriptPubKey)
-                asset_script_hex = owner_script_hex[owner_script_hex.index(avno) + len(avno):-len(op_drop)]
+                asset_script_hex = owner_script_hex[owner_script_hex.index(rvno) + len(rvno):-len(op_drop)]
                 f = BytesIO(hex_str_to_bytes(asset_script_hex))
                 owner = CScriptOwner()
                 owner.deserialize(f)
                 owner.name = b"NOT_MY_ASSET!"
                 tampered_owner = bytes_to_hex_str(owner.serialize())
-                tampered_script = owner_script_hex[:owner_script_hex.index(avno)] + avno + tampered_owner + op_drop
+                tampered_script = owner_script_hex[:owner_script_hex.index(rvno)] + rvno + tampered_owner + op_drop
                 tx.vout[n].scriptPubKey = hex_str_to_bytes(tampered_script)
         tx_bad_issue = bytes_to_hex_str(tx.serialize())
         tx_bad_issue_signed = n0.signrawtransaction(tx_bad_issue)['hex']
@@ -263,41 +249,44 @@ class RawAssetTransactionsTest(AvianTestFramework):
         tx = CTransaction()
         f = BytesIO(hex_str_to_bytes(tx_issue_hex))
         tx.deserialize(f)
-        avno = '72766e6f'  # avno
-        AVNO = '52564e4f'  # AVNO
+        rvno = '72766e6f' #rvno
+        RVNO = '52564e4f' #RVNO
         # change the owner output script type to be invalid
         for n in range(0, len(tx.vout)):
             out = tx.vout[n]
-            if avno in bytes_to_hex_str(out.scriptPubKey):
+            if rvno in bytes_to_hex_str(out.scriptPubKey):
                 owner_script_hex = bytes_to_hex_str(out.scriptPubKey)
-                tampered_script = owner_script_hex.replace(avno, AVNO)
+                tampered_script = owner_script_hex.replace(rvno, RVNO)
                 tx.vout[n].scriptPubKey = hex_str_to_bytes(tampered_script)
         tx_bad_issue = bytes_to_hex_str(tx.serialize())
         tx_bad_issue_signed = n0.signrawtransaction(tx_bad_issue)['hex']
-        assert_raises_rpc_error(-26, "bad-txns-op-avn-asset-not-in-right-script-location",
+        assert_raises_rpc_error(-26, "bad-txns-bad-asset-script",
                                 n0.sendrawtransaction, tx_bad_issue_signed)
 
         ########################################
         # try to generate and issue an asset that already exists
-        tx_duplicate_issue_hex = get_tx_issue_hex(self, n0, asset_name, 42)
+        tx_duplicate_issue_hex = get_tx_issue_hex(n0, asset_name, 42)
         n0.sendrawtransaction(tx_issue_hex)
         n0.generate(1)
-        assert_raises_rpc_error(-8, f"Invalid parameter: asset_name '{asset_name}' has already been used", get_tx_issue_hex, self, n0, asset_name, 55)
-        assert_raises_rpc_error(-25, f"Missing inputs", n0.sendrawtransaction, tx_duplicate_issue_hex)
+        assert_raises_rpc_error(-8, f"Invalid parameter: asset_name '{asset_name}' has already been used",
+                                get_tx_issue_hex, n0, asset_name, 55)  # intermittent failure "Invalid amount" -- out of funds so change is negative?
+        assert_raises_rpc_error(-26, f"bad-txns-issue-Invalid parameter: asset_name '{asset_name}' has already been used",
+                                n0.sendrawtransaction, tx_duplicate_issue_hex)
+
 
     def issue_reissue_transfer_test(self):
         self.log.info("Doing a big issue-reissue-transfer test...")
-        n0, n1 = self.nodes[0], self.nodes[1]
+        n0, n1, n2 = self.nodes[0], self.nodes[1], self.nodes[2]
 
         ########################################
         # issue
         to_address = n0.getnewaddress()
         change_address = n0.getnewaddress()
-        unspent = get_first_unspent(self, n0)
+        unspent = n0.listunspent()[0]
         inputs = [{k: unspent[k] for k in ['txid', 'vout']}]
         outputs = {
             'n1issueAssetXXXXXXXXXXXXXXXXWdnemQ': 500,
-            change_address: truncate(float(unspent['amount']) - 500.1),
+            change_address: truncate(float(unspent['amount']) - 500.0001),
             to_address: {
                 'issue': {
                     'asset_name':       'TEST_ASSET',
@@ -307,7 +296,7 @@ class RawAssetTransactionsTest(AvianTestFramework):
                     'has_ipfs':         0,
                 }
             }
-        }
+        } 
         tx_issue = n0.createrawtransaction(inputs, outputs)
         tx_issue_signed = n0.signrawtransaction(tx_issue)
         tx_issue_hash = n0.sendrawtransaction(tx_issue_signed['hex'])
@@ -321,7 +310,7 @@ class RawAssetTransactionsTest(AvianTestFramework):
 
         ########################################
         # reissue
-        unspent = get_first_unspent(self, n0)
+        unspent = n0.listunspent()[0]
         unspent_asset_owner = n0.listmyassets('TEST_ASSET!', True)['TEST_ASSET!']['outpoints'][0]
 
         inputs = [
@@ -331,7 +320,7 @@ class RawAssetTransactionsTest(AvianTestFramework):
 
         outputs = {
             'n1ReissueAssetXXXXXXXXXXXXXXWG9NLd': 100,
-            change_address: truncate(float(unspent['amount']) - 100.1),
+            change_address: truncate(float(unspent['amount']) - 100.0001),
             to_address: {
                 'reissue': {
                     'asset_name':       'TEST_ASSET',
@@ -356,14 +345,14 @@ class RawAssetTransactionsTest(AvianTestFramework):
         ########################################
         # transfer
         remote_to_address = n1.getnewaddress()
-        unspent = get_first_unspent(self, n0)
+        unspent = n0.listunspent()[0]
         unspent_asset = n0.listmyassets('TEST_ASSET', True)['TEST_ASSET']['outpoints'][0]
         inputs = [
             {k: unspent[k] for k in ['txid', 'vout']},
             {k: unspent_asset[k] for k in ['txid', 'vout']},
         ]
         outputs = {
-            change_address: truncate(float(unspent['amount']) - 0.1),
+            change_address: truncate(float(unspent['amount']) - 0.0001),
             remote_to_address: {
                 'transfer': {
                     'TEST_ASSET': 400
@@ -396,20 +385,21 @@ class RawAssetTransactionsTest(AvianTestFramework):
         tx = CTransaction()
         f = BytesIO(hex_str_to_bytes(tx_hex))
         tx.deserialize(f)
-        avnt = '72766e74'  # avnt
+        rvnt = '72766e74' #rvnt
         op_drop = '75'
         # change asset outputs from 400,600 to 500,500
         for i in range(1, 3):
             script_hex = bytes_to_hex_str(tx.vout[i].scriptPubKey)
-            f = BytesIO(hex_str_to_bytes(script_hex[script_hex.index(avnt) + len(avnt):-len(op_drop)]))
+            f = BytesIO(hex_str_to_bytes(script_hex[script_hex.index(rvnt) + len(rvnt):-len(op_drop)]))
             transfer = CScriptTransfer()
             transfer.deserialize(f)
             transfer.amount = 50000000000
             tampered_transfer = bytes_to_hex_str(transfer.serialize())
-            tampered_script = script_hex[:script_hex.index(avnt)] + avnt + tampered_transfer + op_drop
+            tampered_script = script_hex[:script_hex.index(rvnt)] + rvnt + tampered_transfer + op_drop
             tx.vout[i].scriptPubKey = hex_str_to_bytes(tampered_script)
         tampered_hex = bytes_to_hex_str(tx.serialize())
-        assert_raises_rpc_error(-26, "mandatory-script-verify-flag-failed (Signature must be zero for failed CHECK(MULTI)SIG operation)", n0.sendrawtransaction, tampered_hex)
+        assert_raises_rpc_error(-26, "mandatory-script-verify-flag-failed (Signature must be zero for failed CHECK(MULTI)SIG operation)",
+                                n0.sendrawtransaction, tampered_hex)
 
         ########################################
         # try tampering with asset outs so ins and outs don't add up
@@ -430,7 +420,8 @@ class RawAssetTransactionsTest(AvianTestFramework):
             tx_bad_transfer = n0.createrawtransaction(inputs, bad_outputs)
             tx_bad_transfer_signed = n0.signrawtransaction(tx_bad_transfer)
             tx_bad_hex = tx_bad_transfer_signed['hex']
-            assert_raises_rpc_error(-26, "bad-tx-inputs-outputs-mismatch Bad Transaction - Assets would be burnt TEST_ASSET", n0.sendrawtransaction, tx_bad_hex)
+            assert_raises_rpc_error(-26, "bad-tx-inputs-outputs-mismatch Bad Transaction - Assets would be burnt TEST_ASSET",
+                                    n0.sendrawtransaction, tx_bad_hex)
 
         ########################################
         # try tampering with asset outs so they don't use proper units
@@ -459,19 +450,19 @@ class RawAssetTransactionsTest(AvianTestFramework):
         tx = CTransaction()
         f = BytesIO(hex_str_to_bytes(tx_hex))
         tx.deserialize(f)
-        avnt = '72766e74'  # avnt
+        rvnt = '72766e74' #rvnt
         op_drop = '75'
         # change asset name
         for n in range(0, len(tx.vout)):
             out = tx.vout[n]
-            if avnt in bytes_to_hex_str(out.scriptPubKey):
+            if rvnt in bytes_to_hex_str(out.scriptPubKey):
                 script_hex = bytes_to_hex_str(out.scriptPubKey)
-                f = BytesIO(hex_str_to_bytes(script_hex[script_hex.index(avnt) + len(avnt):-len(op_drop)]))
+                f = BytesIO(hex_str_to_bytes(script_hex[script_hex.index(rvnt) + len(rvnt):-len(op_drop)]))
                 transfer = CScriptTransfer()
                 transfer.deserialize(f)
                 transfer.name = b"ASSET_DOES_NOT_EXIST"
                 tampered_transfer = bytes_to_hex_str(transfer.serialize())
-                tampered_script = script_hex[:script_hex.index(avnt)] + avnt + tampered_transfer + op_drop
+                tampered_script = script_hex[:script_hex.index(rvnt)] + rvnt + tampered_transfer + op_drop
                 tx.vout[n].scriptPubKey = hex_str_to_bytes(tampered_script)
         tampered_hex = bytes_to_hex_str(tx.serialize())
         assert_raises_rpc_error(-26, "bad-txns-transfer-asset-not-exist",
@@ -485,19 +476,19 @@ class RawAssetTransactionsTest(AvianTestFramework):
         tx = CTransaction()
         f = BytesIO(hex_str_to_bytes(tx_hex))
         tx.deserialize(f)
-        avnt = '72766e74'  # avnt
+        rvnt = '72766e74' #rvnt
         op_drop = '75'
         # change asset name
         for n in range(0, len(tx.vout)):
             out = tx.vout[n]
-            if avnt in bytes_to_hex_str(out.scriptPubKey):
+            if rvnt in bytes_to_hex_str(out.scriptPubKey):
                 script_hex = bytes_to_hex_str(out.scriptPubKey)
-                f = BytesIO(hex_str_to_bytes(script_hex[script_hex.index(avnt) + len(avnt):-len(op_drop)]))
+                f = BytesIO(hex_str_to_bytes(script_hex[script_hex.index(rvnt) + len(rvnt):-len(op_drop)]))
                 transfer = CScriptTransfer()
                 transfer.deserialize(f)
                 transfer.name = alternate_asset_name.encode()
                 tampered_transfer = bytes_to_hex_str(transfer.serialize())
-                tampered_script = script_hex[:script_hex.index(avnt)] + avnt + tampered_transfer + op_drop
+                tampered_script = script_hex[:script_hex.index(rvnt)] + rvnt + tampered_transfer + op_drop
                 tx.vout[n].scriptPubKey = hex_str_to_bytes(tampered_script)
         tampered_hex = bytes_to_hex_str(tx.serialize())
         assert_raises_rpc_error(-26, "bad-tx-inputs-outputs-mismatch Bad Transaction - " +
@@ -509,9 +500,9 @@ class RawAssetTransactionsTest(AvianTestFramework):
         tx = CTransaction()
         f = BytesIO(hex_str_to_bytes(tx_hex))
         tx.deserialize(f)
-        avnt = '72766e74'  # avnt
+        rvnt = '72766e74' #rvnt
         # remove the transfer output from vout
-        bad_vout = list(filter(lambda out_script: avnt not in bytes_to_hex_str(out_script.scriptPubKey), tx.vout))
+        bad_vout = list(filter(lambda out : rvnt not in bytes_to_hex_str(out.scriptPubKey), tx.vout))
         tx.vout = bad_vout
         tampered_hex = bytes_to_hex_str(tx.serialize())
         assert_raises_rpc_error(-26, "bad-tx-asset-inputs-size-does-not-match-outputs-size",
@@ -529,9 +520,10 @@ class RawAssetTransactionsTest(AvianTestFramework):
         assert_equal(1, n0.listmyassets('TEST_ASSET!')['TEST_ASSET!'])
         assert_equal(400, n1.listmyassets('TEST_ASSET')['TEST_ASSET'])
 
+
     def unique_assets_test(self):
         self.log.info("Testing unique assets...")
-        n0 = self.nodes[0]
+        n0, n1, n2 = self.nodes[0], self.nodes[1], self.nodes[2]
 
         bad_burn = "n1BurnXXXXXXXXXXXXXXXXXXXXXXU1qejP"
         unique_burn = "n1issueUniqueAssetXXXXXXXXXXS4695i"
@@ -546,7 +538,7 @@ class RawAssetTransactionsTest(AvianTestFramework):
 
         to_address = n0.getnewaddress()
         change_address = n0.getnewaddress()
-        unspent = get_first_unspent(self, n0)
+        unspent = n0.listunspent()[0]
         unspent_asset_owner = n0.listmyassets(owner, True)[owner]['outpoints'][0]
 
         inputs = [
@@ -555,6 +547,7 @@ class RawAssetTransactionsTest(AvianTestFramework):
         ]
 
         burn = 5 * len(asset_tags)
+
 
         ############################################
         # try first with bad burn address
@@ -569,15 +562,16 @@ class RawAssetTransactionsTest(AvianTestFramework):
                 }
             }
         }
-        hex_data = n0.createrawtransaction(inputs, outputs)
-        signed_hex = n0.signrawtransaction(hex_data)['hex']
-        assert_raises_rpc_error(-26, "bad-txns-issue-unique-asset-burn-outpoints-not-found", n0.sendrawtransaction, signed_hex)
+        hex = n0.createrawtransaction(inputs, outputs)
+        signed_hex = n0.signrawtransaction(hex)['hex']
+        assert_raises_rpc_error(-26, "bad-txns-issue-unique-asset-burn-outpoints-not-found", \
+                                n0.sendrawtransaction, signed_hex)
 
         ############################################
         # switch to proper burn address
         outputs = {
             unique_burn: burn,
-            change_address: truncate(float(unspent['amount']) - (burn + 0.01)),
+            change_address: truncate(float(unspent['amount']) - (burn + 0.0001)),
             to_address: {
                 'issue_unique': {
                     'root_name':    root,
@@ -586,9 +580,9 @@ class RawAssetTransactionsTest(AvianTestFramework):
                 }
             }
         }
-        hex_data = n0.createrawtransaction(inputs, outputs)
-        signed_hex = n0.signrawtransaction(hex_data)['hex']
-        n0.sendrawtransaction(signed_hex)
+        hex = n0.createrawtransaction(inputs, outputs)
+        signed_hex = n0.signrawtransaction(hex)['hex']
+        tx_hash = n0.sendrawtransaction(signed_hex)
         n0.generate(1)
         self.sync_all()
 
@@ -598,9 +592,10 @@ class RawAssetTransactionsTest(AvianTestFramework):
             assert_equal(1, n0.listassets(asset_name, True)[asset_name]['has_ipfs'])
             assert_equal(ipfs_hashes[0], n0.listassets(asset_name, True)[asset_name]['ipfs_hash'])
 
+
     def unique_assets_via_issue_test(self):
         self.log.info("Testing unique assets via issue...")
-        n0 = self.nodes[0]
+        n0, n1, n2 = self.nodes[0], self.nodes[1], self.nodes[2]
 
         root = "RINGU2"
         owner = f"{root}!"
@@ -612,7 +607,7 @@ class RawAssetTransactionsTest(AvianTestFramework):
         to_address = n0.getnewaddress()
         change_address = n0.getnewaddress()
         owner_change_address = n0.getnewaddress()
-        unspent = get_first_unspent(self, n0)
+        unspent = n0.listunspent()[0]
         unspent_asset_owner = n0.listmyassets(owner, True)[owner]['outpoints'][0]
 
         inputs = [
@@ -623,7 +618,7 @@ class RawAssetTransactionsTest(AvianTestFramework):
         burn = 5
         outputs = {
             'n1issueUniqueAssetXXXXXXXXXXS4695i': burn,
-            change_address: truncate(float(unspent['amount']) - (burn + 0.01)),
+            change_address: truncate(float(unspent['amount']) - (burn + 0.0001)),
             owner_change_address: {
                 'transfer': {
                     owner: 1,
@@ -662,12 +657,13 @@ class RawAssetTransactionsTest(AvianTestFramework):
 
         ########################################
         # ok
-        hex_data = n0.signrawtransaction(n0.createrawtransaction(inputs, outputs))['hex']
-        n0.sendrawtransaction(hex_data)
+        hex = n0.signrawtransaction(n0.createrawtransaction(inputs, outputs))['hex']
+        n0.sendrawtransaction(hex)
         n0.generate(1)
         assert_equal(1, n0.listmyassets()[root])
         assert_equal(1, n0.listmyassets()[asset_name])
         assert_equal(1, n0.listmyassets()[owner])
+
 
     def bad_ipfs_hash_test(self):
         self.log.info("Testing bad ipfs_hash...")
@@ -677,7 +673,7 @@ class RawAssetTransactionsTest(AvianTestFramework):
         owner = f"{asset_name}!"
         to_address = n0.getnewaddress()
         change_address = n0.getnewaddress()
-        unspent = get_first_unspent(self, n0)
+        unspent = n0.listunspent()[0]
         bad_hash = "RncvyefkqQX3PpjpY5L8B2yMd47XrVwAipr6cxUt2zvYU8"
 
         ########################################
@@ -697,11 +693,12 @@ class RawAssetTransactionsTest(AvianTestFramework):
                 }
             }
         }
-        assert_raises_rpc_error(-8, "Invalid parameter: ipfs_hash is not valid, or txid hash is not the right length", n0.createrawtransaction, inputs, outputs)
+        assert_raises_rpc_error(-8, "Invalid parameter: ipfs_hash must start with 'Qm'.", n0.createrawtransaction, inputs, outputs)
 
         ########################################
         # reissue
-        n0.issue(asset_name=asset_name, qty=1000, to_address=to_address, change_address=change_address, units=0, reissuable=True, has_ipfs=False)
+        n0.issue(asset_name=asset_name, qty=1000, to_address=to_address, change_address=change_address, \
+                 units=0, reissuable=True, has_ipfs=False)
         n0.generate(1)
         unspent_asset_owner = n0.listmyassets(owner, True)[owner]['outpoints'][0]
         inputs = [
@@ -719,11 +716,12 @@ class RawAssetTransactionsTest(AvianTestFramework):
                 }
             }
         }
-        assert_raises_rpc_error(-8, "Invalid parameter: ipfs_hash is not valid, or txid hash is not the right length", n0.createrawtransaction, inputs, outputs)
+        assert_raises_rpc_error(-8, "Invalid parameter: ipfs_hash must start with 'Qm'.", n0.createrawtransaction, inputs, outputs)
+
 
     def issue_invalid_address_test(self):
         self.log.info("Testing issue with invalid burn and address...")
-        n0 = self.nodes[0]
+        n0, n1, n2 = self.nodes[0], self.nodes[1], self.nodes[2]
 
         unique_burn = "n1issueUniqueAssetXXXXXXXXXXS4695i"
         issue_burn = "n1issueAssetXXXXXXXXXXXXXXXXWdnemQ"
@@ -733,7 +731,7 @@ class RawAssetTransactionsTest(AvianTestFramework):
 
         to_address = n0.getnewaddress()
         change_address = n0.getnewaddress()
-        unspent = get_first_unspent(self, n0)
+        unspent = n0.listunspent()[0]
 
         inputs = [
             {k: unspent[k] for k in ['txid', 'vout']},
@@ -744,7 +742,7 @@ class RawAssetTransactionsTest(AvianTestFramework):
         burn = 499
         outputs = {
             issue_burn: burn,
-            change_address: truncate(float(unspent['amount']) - (burn + 0.01)),
+            change_address: truncate(float(unspent['amount']) - (burn + 0.0001)),
             to_address: {
                 'issue': {
                     'asset_name':       asset_name,
@@ -756,9 +754,10 @@ class RawAssetTransactionsTest(AvianTestFramework):
                 }
             }
         }
-        hex_data = n0.createrawtransaction(inputs, outputs)
-        signed_hex = n0.signrawtransaction(hex_data)['hex']
-        assert_raises_rpc_error(-26, "bad-txns-issue-burn-not-found", n0.sendrawtransaction, signed_hex)
+        hex = n0.createrawtransaction(inputs, outputs)
+        signed_hex = n0.signrawtransaction(hex)['hex']
+        assert_raises_rpc_error(-26, "bad-txns-issue-burn-not-found", \
+                                n0.sendrawtransaction, signed_hex)
 
         ############################################
         # switch to invalid burn amount again
@@ -777,9 +776,10 @@ class RawAssetTransactionsTest(AvianTestFramework):
                 }
             }
         }
-        hex_data = n0.createrawtransaction(inputs, outputs)
-        signed_hex = n0.signrawtransaction(hex_data)['hex']
-        assert_raises_rpc_error(-26, "bad-txns-issue-burn-not-found", n0.sendrawtransaction, signed_hex)
+        hex = n0.createrawtransaction(inputs, outputs)
+        signed_hex = n0.signrawtransaction(hex)['hex']
+        assert_raises_rpc_error(-26, "bad-txns-issue-burn-not-found", \
+                                n0.sendrawtransaction, signed_hex)
 
         ############################################
         # switch to valid burn amount, but sending it to the sub asset burn address
@@ -798,9 +798,10 @@ class RawAssetTransactionsTest(AvianTestFramework):
                 }
             }
         }
-        hex_data = n0.createrawtransaction(inputs, outputs)
-        signed_hex = n0.signrawtransaction(hex_data)['hex']
-        assert_raises_rpc_error(-26, "bad-txns-issue-burn-not-found", n0.sendrawtransaction, signed_hex)
+        hex = n0.createrawtransaction(inputs, outputs)
+        signed_hex = n0.signrawtransaction(hex)['hex']
+        assert_raises_rpc_error(-26, "bad-txns-issue-burn-not-found", \
+                                n0.sendrawtransaction, signed_hex)
 
         ############################################
         # switch burn address to unique address
@@ -818,15 +819,16 @@ class RawAssetTransactionsTest(AvianTestFramework):
                 }
             }
         }
-        hex_data = n0.createrawtransaction(inputs, outputs)
-        signed_hex = n0.signrawtransaction(hex_data)['hex']
-        assert_raises_rpc_error(-26, "bad-txns-issue-burn-not-found", n0.sendrawtransaction, signed_hex)
+        hex = n0.createrawtransaction(inputs, outputs)
+        signed_hex = n0.signrawtransaction(hex)['hex']
+        assert_raises_rpc_error(-26, "bad-txns-issue-burn-not-found", \
+                                n0.sendrawtransaction, signed_hex)
 
         ############################################
         # switch to valid burn address, and valid burn amount
         outputs = {
             issue_burn: burn,
-            change_address: truncate(float(unspent['amount']) - (burn + 0.01)),
+            change_address: truncate(float(unspent['amount']) - (burn + 0.0001)),
             to_address: {
                 'issue': {
                     'asset_name':       asset_name,
@@ -838,15 +840,17 @@ class RawAssetTransactionsTest(AvianTestFramework):
                 }
             }
         }
-        hex_data = n0.createrawtransaction(inputs, outputs)
-        signed_hex = n0.signrawtransaction(hex_data)['hex']
-        n0.sendrawtransaction(signed_hex)
+        hex = n0.createrawtransaction(inputs, outputs)
+        signed_hex = n0.signrawtransaction(hex)['hex']
+        tx_hash = n0.sendrawtransaction(signed_hex)
         n0.generate(1)
         self.sync_all()
 
+
     def issue_sub_invalid_address_test(self):
         self.log.info("Testing issue sub invalid amount and address...")
-        n0 = self.nodes[0]
+        n0, n1, n2 = self.nodes[0], self.nodes[1], self.nodes[2]
+
 
         unique_burn = "n1issueUniqueAssetXXXXXXXXXXS4695i"
         issue_burn = "n1issueAssetXXXXXXXXXXXXXXXXWdnemQ"
@@ -862,7 +866,7 @@ class RawAssetTransactionsTest(AvianTestFramework):
         to_address = n0.getnewaddress()
         change_address = n0.getnewaddress()
         owner_change_address = n0.getnewaddress()
-        unspent = get_first_unspent(self, n0)
+        unspent = n0.listunspent()[0]
         unspent_asset_owner = n0.listmyassets(owner, True)[owner]['outpoints'][0]
 
         inputs = [
@@ -894,9 +898,10 @@ class RawAssetTransactionsTest(AvianTestFramework):
                 }
             }
         }
-        hex_data = n0.createrawtransaction(inputs, outputs)
-        signed_hex = n0.signrawtransaction(hex_data)['hex']
-        assert_raises_rpc_error(-26, "bad-txns-issue-burn-not-found", n0.sendrawtransaction, signed_hex)
+        hex = n0.createrawtransaction(inputs, outputs)
+        signed_hex = n0.signrawtransaction(hex)['hex']
+        assert_raises_rpc_error(-26, "bad-txns-issue-burn-not-found", \
+                                n0.sendrawtransaction, signed_hex)
 
         ############################################
         # switch to invalid burn amount again
@@ -920,9 +925,10 @@ class RawAssetTransactionsTest(AvianTestFramework):
                 }
             }
         }
-        hex_data = n0.createrawtransaction(inputs, outputs)
-        signed_hex = n0.signrawtransaction(hex_data)['hex']
-        assert_raises_rpc_error(-26, "bad-txns-issue-burn-not-found", n0.sendrawtransaction, signed_hex)
+        hex = n0.createrawtransaction(inputs, outputs)
+        signed_hex = n0.signrawtransaction(hex)['hex']
+        assert_raises_rpc_error(-26, "bad-txns-issue-burn-not-found", \
+                                n0.sendrawtransaction, signed_hex)
 
         ############################################
         # switch to valid burn amount, but sending it to the issue asset burn address
@@ -946,9 +952,10 @@ class RawAssetTransactionsTest(AvianTestFramework):
                 }
             }
         }
-        hex_data = n0.createrawtransaction(inputs, outputs)
-        signed_hex = n0.signrawtransaction(hex_data)['hex']
-        assert_raises_rpc_error(-26, "bad-txns-issue-burn-not-found", n0.sendrawtransaction, signed_hex)
+        hex = n0.createrawtransaction(inputs, outputs)
+        signed_hex = n0.signrawtransaction(hex)['hex']
+        assert_raises_rpc_error(-26, "bad-txns-issue-burn-not-found", \
+                                n0.sendrawtransaction, signed_hex)
 
         ############################################
         # switch burn address to reissue address, should be invalid because it needs to be sub asset burn address
@@ -971,9 +978,10 @@ class RawAssetTransactionsTest(AvianTestFramework):
                 }
             }
         }
-        hex_data = n0.createrawtransaction(inputs, outputs)
-        signed_hex = n0.signrawtransaction(hex_data)['hex']
-        assert_raises_rpc_error(-26, "bad-txns-issue-burn-not-found", n0.sendrawtransaction, signed_hex)
+        hex = n0.createrawtransaction(inputs, outputs)
+        signed_hex = n0.signrawtransaction(hex)['hex']
+        assert_raises_rpc_error(-26, "bad-txns-issue-burn-not-found", \
+                                n0.sendrawtransaction, signed_hex)
 
         ############################################
         # switch burn address to unique address, should be invalid because it needs to be sub asset burn address
@@ -996,15 +1004,16 @@ class RawAssetTransactionsTest(AvianTestFramework):
                 }
             }
         }
-        hex_data = n0.createrawtransaction(inputs, outputs)
-        signed_hex = n0.signrawtransaction(hex_data)['hex']
-        assert_raises_rpc_error(-26, "bad-txns-issue-burn-not-found", n0.sendrawtransaction, signed_hex)
+        hex = n0.createrawtransaction(inputs, outputs)
+        signed_hex = n0.signrawtransaction(hex)['hex']
+        assert_raises_rpc_error(-26, "bad-txns-issue-burn-not-found", \
+                                n0.sendrawtransaction, signed_hex)
 
         ############################################
         # switch to valid burn address, and valid burn amount
         outputs = {
             sub_burn: burn,
-            change_address: truncate(float(unspent['amount']) - (burn + 0.01)),
+            change_address: truncate(float(unspent['amount']) - (burn + 0.0001)),
             owner_change_address: {
                 'transfer': {
                     owner: 1,
@@ -1021,15 +1030,16 @@ class RawAssetTransactionsTest(AvianTestFramework):
                 }
             }
         }
-        hex_data = n0.createrawtransaction(inputs, outputs)
-        signed_hex = n0.signrawtransaction(hex_data)['hex']
-        n0.sendrawtransaction(signed_hex)
+        hex = n0.createrawtransaction(inputs, outputs)
+        signed_hex = n0.signrawtransaction(hex)['hex']
+        tx_hash = n0.sendrawtransaction(signed_hex)
         n0.generate(1)
         self.sync_all()
 
+
     def issue_multiple_outputs_test(self):
         self.log.info("Testing issue with extra issues in the tx...")
-        n0 = self.nodes[0]
+        n0, n1, n2 = self.nodes[0], self.nodes[1], self.nodes[2]
 
         issue_burn = "n1issueAssetXXXXXXXXXXXXXXXXWdnemQ"
 
@@ -1038,7 +1048,7 @@ class RawAssetTransactionsTest(AvianTestFramework):
 
         to_address = n0.getnewaddress()
         change_address = n0.getnewaddress()
-        unspent = get_first_unspent(self, n0)
+        unspent = n0.listunspent()[0]
 
         multiple_to_address = n0.getnewaddress()
 
@@ -1051,7 +1061,7 @@ class RawAssetTransactionsTest(AvianTestFramework):
         burn = 500
         outputs = {
             issue_burn: burn,
-            change_address: truncate(float(unspent['amount']) - (burn + 0.001)),
+            change_address: truncate(float(unspent['amount']) - (burn + 0.0001)),
             multiple_to_address: {
                 'issue': {
                     'asset_name':       asset_name_multiple,
@@ -1073,16 +1083,18 @@ class RawAssetTransactionsTest(AvianTestFramework):
                 }
             }
         }
-        hex_data = n0.createrawtransaction(inputs, outputs)
-        signed_hex = n0.signrawtransaction(hex_data)['hex']
-        assert_raises_rpc_error(-26, "bad-txns-failed-issue-asset-formatting-check", n0.sendrawtransaction, signed_hex)
+
+        hex = n0.createrawtransaction(inputs, outputs)
+        signed_hex = n0.signrawtransaction(hex)['hex']
+        assert_raises_rpc_error(-26, "bad-txns-failed-issue-asset-formatting-check", \
+                                n0.sendrawtransaction, signed_hex)
 
     def issue_sub_multiple_outputs_test(self):
         self.log.info("Testing issue with an extra sub asset issue in the tx...")
-        n0 = self.nodes[0]
+        n0, n1, n2 = self.nodes[0], self.nodes[1], self.nodes[2]
 
         issue_burn = "n1issueAssetXXXXXXXXXXXXXXXXWdnemQ"
-        sub_burn =   "n1issueSubAssetXXXXXXXXXXXXXbNiH6v"
+        sub_burn = "n1issueSubAssetXXXXXXXXXXXXXbNiH6v"
 
         # create the root asset that the sub asset will try to be created from
         root = "ISSUE_SUB_MULTIPLE_TEST"
@@ -1098,7 +1110,7 @@ class RawAssetTransactionsTest(AvianTestFramework):
         sub_multiple_to_address = n0.getnewaddress()
         change_address = n0.getnewaddress()
         owner_change_address = n0.getnewaddress()
-        unspent = get_first_unspent(self, n0)
+        unspent = n0.listunspent()[0]
         unspent_asset_owner = n0.listmyassets(owner, True)[owner]['outpoints'][0]
 
         inputs = [
@@ -1138,9 +1150,11 @@ class RawAssetTransactionsTest(AvianTestFramework):
                 }
             }
         }
-        hex_data = n0.createrawtransaction(inputs, outputs)
-        signed_hex = n0.signrawtransaction(hex_data)['hex']
-        assert_raises_rpc_error(-26, "bad-txns-failed-issue-asset-formatting-check", n0.sendrawtransaction, signed_hex)
+
+        hex = n0.createrawtransaction(inputs, outputs)
+        signed_hex = n0.signrawtransaction(hex)['hex']
+        assert_raises_rpc_error(-26, "bad-txns-failed-issue-asset-formatting-check", \
+                                n0.sendrawtransaction, signed_hex)
 
         ############################################
         # Try tampering with an issue sub asset transaction by having another owner token transfer
@@ -1170,9 +1184,11 @@ class RawAssetTransactionsTest(AvianTestFramework):
                 }
             }
         }
-        hex_data = n0.createrawtransaction(inputs, outputs)
-        signed_hex = n0.signrawtransaction(hex_data)['hex']
-        assert_raises_rpc_error(-26, "bad-tx-inputs-outputs-mismatch Bad Transaction - Assets would be burnt ISSUE_SUB_MULTIPLE_TEST!", n0.sendrawtransaction, signed_hex)
+        hex = n0.createrawtransaction(inputs, outputs)
+        signed_hex = n0.signrawtransaction(hex)['hex']
+        assert_raises_rpc_error(-26, "bad-tx-inputs-outputs-mismatch Bad Transaction - Assets would be burnt ISSUE_SUB_MULTIPLE_TEST!", \
+                                n0.sendrawtransaction, signed_hex)
+
 
         ############################################
         # Try tampering with an issue sub asset transaction by not having any owner change
@@ -1190,9 +1206,10 @@ class RawAssetTransactionsTest(AvianTestFramework):
                 }
             }
         }
-        hex_data = n0.createrawtransaction(inputs, outputs)
-        signed_hex = n0.signrawtransaction(hex_data)['hex']
-        assert_raises_rpc_error(-26, "bad-txns-issue-new-asset-missing-owner-asset", n0.sendrawtransaction, signed_hex)
+        hex = n0.createrawtransaction(inputs, outputs)
+        signed_hex = n0.signrawtransaction(hex)['hex']
+        assert_raises_rpc_error(-26, "bad-tx-asset-inputs-size-does-not-match-outputs-size", \
+                                n0.sendrawtransaction, signed_hex)
 
         ############################################
         # Try tampering with an issue sub asset transaction by not having any owner change
@@ -1211,9 +1228,10 @@ class RawAssetTransactionsTest(AvianTestFramework):
                 }
             }
         }
-        hex_data = n0.createrawtransaction(inputs, outputs)
-        signed_hex = n0.signrawtransaction(hex_data)['hex']
-        assert_raises_rpc_error(-26, "bad-txns-issue-new-asset-missing-owner-asset", n0.sendrawtransaction, signed_hex)
+        hex = n0.createrawtransaction(inputs, outputs)
+        signed_hex = n0.signrawtransaction(hex)['hex']
+        assert_raises_rpc_error(-26, "bad-tx-asset-inputs-size-does-not-match-outputs-size", \
+                                n0.sendrawtransaction, signed_hex)
 
         ############################################
         # Try tampering with an issue by changing the owner amount transferred to 2
@@ -1236,9 +1254,10 @@ class RawAssetTransactionsTest(AvianTestFramework):
                 }
             }
         }
-        hex_data = n0.createrawtransaction(inputs, outputs)
-        signed_hex = n0.signrawtransaction(hex_data)['hex']
-        assert_raises_rpc_error(-26, "bad-txns-transfer-owner-amount-was-not-1", n0.sendrawtransaction, signed_hex)
+        hex = n0.createrawtransaction(inputs, outputs)
+        signed_hex = n0.signrawtransaction(hex)['hex']
+        assert_raises_rpc_error(-26, "bad-txns-transfer-owner-amount-was-not-1", \
+                                n0.sendrawtransaction, signed_hex)
 
         ############################################
         # Try tampering with an issue by changing the owner amount transferred to 0
@@ -1261,12 +1280,13 @@ class RawAssetTransactionsTest(AvianTestFramework):
                 }
             }
         }
-        assert_raises_rpc_error(-8, "Invalid parameter: asset amount can't be equal to or less than zero.", n0.createrawtransaction, inputs, outputs)
+        assert_raises_rpc_error(-8, "Invalid parameter: asset amount can't be equal to or less than zero.", \
+                                n0.createrawtransaction, inputs, outputs)
 
         # Create the valid sub asset and broadcast the transaction
         outputs = {
             sub_burn: burn,
-            change_address: truncate(float(unspent['amount']) - (burn + 0.01)),
+            change_address: truncate(float(unspent['amount']) - (burn + 0.0001)),
             owner_change_address: {
                 'transfer': {
                     owner: 1,
@@ -1284,6 +1304,7 @@ class RawAssetTransactionsTest(AvianTestFramework):
             }
         }
 
+
         tx_issue_sub_hex = n0.createrawtransaction(inputs, outputs)
 
         ############################################
@@ -1292,29 +1313,30 @@ class RawAssetTransactionsTest(AvianTestFramework):
         tx = CTransaction()
         f = BytesIO(hex_str_to_bytes(tx_issue_sub_hex))
         tx.deserialize(f)
-        avnt = '72766e74'  # avnt
+        rvnt = '72766e74' #rvnt
         op_drop = '75'
         # change the transfer amount
         for n in range(0, len(tx.vout)):
             out = tx.vout[n]
-            if avnt in bytes_to_hex_str(out.scriptPubKey):
+            if rvnt in bytes_to_hex_str(out.scriptPubKey):
                 transfer_out = out
                 transfer_script_hex = bytes_to_hex_str(transfer_out.scriptPubKey)
-                asset_script_hex = transfer_script_hex[transfer_script_hex.index(avnt) + len(avnt):-len(op_drop)]
+                asset_script_hex = transfer_script_hex[transfer_script_hex.index(rvnt) + len(rvnt):-len(op_drop)]
                 f = BytesIO(hex_str_to_bytes(asset_script_hex))
                 transfer = CScriptTransfer()
                 transfer.deserialize(f)
                 transfer.amount = 0
                 tampered_transfer = bytes_to_hex_str(transfer.serialize())
-                tampered_script = transfer_script_hex[:transfer_script_hex.index(avnt)] + avnt + tampered_transfer + op_drop
+                tampered_script = transfer_script_hex[:transfer_script_hex.index(rvnt)] + rvnt + tampered_transfer + op_drop
                 tx.vout[n].scriptPubKey = hex_str_to_bytes(tampered_script)
         tx_bad_transfer = bytes_to_hex_str(tx.serialize())
         tx_bad_transfer_signed = n0.signrawtransaction(tx_bad_transfer)['hex']
-        assert_raises_rpc_error(-26, "bad-txns-transfer-owner-amount-was-not-1", n0.sendrawtransaction, tx_bad_transfer_signed)
+        assert_raises_rpc_error(-26, "bad-txns-transfer-owner-amount-was-not-1",
+                                n0.sendrawtransaction, tx_bad_transfer_signed)
 
         # Sign and create the valid sub asset transaction
         signed_hex = n0.signrawtransaction(tx_issue_sub_hex)['hex']
-        n0.sendrawtransaction(signed_hex)
+        tx_hash = n0.sendrawtransaction(signed_hex)
         n0.generate(1)
         self.sync_all()
 
@@ -1324,8 +1346,8 @@ class RawAssetTransactionsTest(AvianTestFramework):
         assert_equal(1, n0.listmyassets()[owner])
 
     def transfer_asset_tampering_test(self):
-        self.log.info("Testing transfer of asset transaction tampering...")
-        n0, n1 = self.nodes[0], self.nodes[1]
+        self.log.info("Testing trasnfer of asset transaction tampering...")
+        n0, n1, n2 = self.nodes[0], self.nodes[1], self.nodes[2]
 
         ########################################
         # create the root asset that the sub asset will try to be created from
@@ -1337,7 +1359,7 @@ class RawAssetTransactionsTest(AvianTestFramework):
         to_address = n1.getnewaddress()
         change_address = n0.getnewaddress()
         asset_change = n0.getnewaddress()
-        unspent = get_first_unspent(self, n0)
+        unspent = n0.listunspent()[0]
         unspent_asset = n0.listmyassets(root, True)[root]['outpoints'][0]
 
         inputs = [
@@ -1348,7 +1370,7 @@ class RawAssetTransactionsTest(AvianTestFramework):
         ########################################
         # Create the valid transfer outputs
         outputs = {
-            change_address: truncate(float(unspent['amount']) - 0.01),
+            change_address: truncate(float(unspent['amount']) - 0.00001),
             to_address: {
                 'transfer': {
                     root: 4,
@@ -1368,29 +1390,29 @@ class RawAssetTransactionsTest(AvianTestFramework):
         tx = CTransaction()
         f = BytesIO(hex_str_to_bytes(tx_transfer_hex))
         tx.deserialize(f)
-        avnt = '72766e74'  # avnt
+        rvnt = '72766e74' #rvnt
         op_drop = '75'
         # change the transfer amounts = 0
         for n in range(0, len(tx.vout)):
             out = tx.vout[n]
-            if avnt in bytes_to_hex_str(out.scriptPubKey):
+            if rvnt in bytes_to_hex_str(out.scriptPubKey):
                 transfer_out = out
                 transfer_script_hex = bytes_to_hex_str(transfer_out.scriptPubKey)
-                asset_script_hex = transfer_script_hex[transfer_script_hex.index(avnt) + len(avnt):-len(op_drop)]
+                asset_script_hex = transfer_script_hex[transfer_script_hex.index(rvnt) + len(rvnt):-len(op_drop)]
                 f = BytesIO(hex_str_to_bytes(asset_script_hex))
                 transfer = CScriptTransfer()
                 transfer.deserialize(f)
                 transfer.amount = 0
                 tampered_transfer = bytes_to_hex_str(transfer.serialize())
-                tampered_script = transfer_script_hex[:transfer_script_hex.index(avnt)] + avnt + tampered_transfer + op_drop
+                tampered_script = transfer_script_hex[:transfer_script_hex.index(rvnt)] + rvnt + tampered_transfer + op_drop
                 tx.vout[n].scriptPubKey = hex_str_to_bytes(tampered_script)
         tx_bad_transfer = bytes_to_hex_str(tx.serialize())
         tx_bad_transfer_signed = n0.signrawtransaction(tx_bad_transfer)['hex']
-        assert_raises_rpc_error(-26, "Invalid parameter: asset amount can't be equal to or less than zero.",
+        assert_raises_rpc_error(-26, "bad-tx-inputs-outputs-mismatch Bad Transaction - Assets would be burnt TRANSFER_TX_TAMPERING",
                                 n0.sendrawtransaction, tx_bad_transfer_signed)
 
         signed_hex = n0.signrawtransaction(tx_transfer_hex)['hex']
-        n0.sendrawtransaction(signed_hex)
+        tx_hash = n0.sendrawtransaction(signed_hex)
         n0.generate(1)
         self.sync_all()
 
@@ -1398,9 +1420,10 @@ class RawAssetTransactionsTest(AvianTestFramework):
         assert_equal(4, n1.listmyassets()[root])
         assert_equal(1, n0.listmyassets()[root + '!'])
 
+
     def transfer_asset_inserting_tampering_test(self):
         self.log.info("Testing of asset issue inserting tampering...")
-        n0 = self.nodes[0]
+        n0, n1, n2 = self.nodes[0], self.nodes[1], self.nodes[2]
 
         # create the root asset that the sub asset will try to be created from
         root = "TRANSFER_ASSET_INSERTING"
@@ -1409,8 +1432,8 @@ class RawAssetTransactionsTest(AvianTestFramework):
         self.sync_all()
 
         change_address = n0.getnewaddress()
-        to_address = n0.getnewaddress()  # back to n0 from n0
-        unspent = get_first_unspent(self, n0)
+        to_address = n0.getnewaddress() # back to n0 from n0
+        unspent = n0.listunspent()[0]
         unspent_asset = n0.listmyassets(root, True)[root]['outpoints'][0]
 
         inputs = [
@@ -1434,7 +1457,7 @@ class RawAssetTransactionsTest(AvianTestFramework):
         tx = CTransaction()
         f = BytesIO(hex_str_to_bytes(tx_transfer_hex))
         tx.deserialize(f)
-        avnt = '72766e74'  # avnt
+        rvnt = '72766e74' #rvnt
         op_drop = '75'
 
         # create a new issue CTxOut
@@ -1446,18 +1469,19 @@ class RawAssetTransactionsTest(AvianTestFramework):
         issue_script.name = b'BYTE_ISSUE'
         issue_script.amount = 1
         issue_serialized = bytes_to_hex_str(issue_script.serialize())
-        avnq = '72766e71'  # avnq
+        rvnq = '72766e71' #rvnq
 
         for n in range(0, len(tx.vout)):
             out = tx.vout[n]
-            if avnt in bytes_to_hex_str(out.scriptPubKey):
+            if rvnt in bytes_to_hex_str(out.scriptPubKey):
                 transfer_out = out
                 transfer_script_hex = bytes_to_hex_str(transfer_out.scriptPubKey)
 
-                # Generate a script that has a valid destination address but switch it with avnq and the issue_serialized data
-                issue_out.scriptPubKey = hex_str_to_bytes(transfer_script_hex[:transfer_script_hex.index(avnt)] + avnq + issue_serialized + op_drop)
+                # Generate a script that has a valid destination address but switch it with rvnq and the issue_serialized data
+                issue_out.scriptPubKey = hex_str_to_bytes(transfer_script_hex[:transfer_script_hex.index(rvnt)] + rvnq + issue_serialized + op_drop)
 
-        tx.vout.insert(0, issue_out)  # Insert the issue transaction at the begin on the vouts
+
+        tx.vout.insert(0, issue_out) # Insert the issue transaction at the begin on the vouts
 
         tx_inserted_issue = bytes_to_hex_str(tx.serialize())
         tx_bad_transfer_signed = n0.signrawtransaction(tx_inserted_issue)['hex']
@@ -1478,37 +1502,34 @@ class RawAssetTransactionsTest(AvianTestFramework):
         receive1 = n1.getnewaddress()
         change1 = n1.getnewaddress()
         n0.sendtoaddress(receive1, 50000)
-        n0.generate(1)
-        self.sync_all()
+        n0.generate(1); self.sync_all()
         n1.issue(jaina, starting_amount)
-        n1.generate(1)
-        self.sync_all()
+        n1.generate(1); self.sync_all()
         balance1 = float(n1.getwalletinfo()['balance'])
 
         receive2 = n2.getnewaddress()
         change2 = n2.getnewaddress()
         n0.sendtoaddress(receive2, 50000)
-        n0.generate(1)
-        self.sync_all()
+        n0.generate(1); self.sync_all()
         n2.issue(anduin, starting_amount)
-        n2.generate(1)
-        self.sync_all()
+        n2.generate(1); self.sync_all()
         balance2 = float(n2.getwalletinfo()['balance'])
 
         ########################################
-        # avn for assets
+        # rvn for assets
 
-        # n1 buys 400 ANDUIN from n2 for 4000 AVN
+        # n1 buys 400 ANDUIN from n2 for 4000 RVN
         price = 4000
         amount = 400
-        fee = 0.01
+        fee = 0.0001
 
-        unspent1 = get_first_unspent(self, n1, price + fee)
+        unspent1 = n1.listunspent()[0]
         unspent_amount1 = float(unspent1['amount'])
+        assert(unspent_amount1 > price + fee)
 
         unspent_asset2 = n2.listmyassets(anduin, True)[anduin]['outpoints'][0]
         unspent_asset_amount2 = unspent_asset2['amount']
-        assert (unspent_asset_amount2 > amount)
+        assert(unspent_asset_amount2 > amount)
 
         inputs = [
             {k: unspent1[k] for k in ['txid', 'vout']},
@@ -1544,16 +1565,17 @@ class RawAssetTransactionsTest(AvianTestFramework):
         assert_equal(amount, int(n1.listmyassets()[anduin]))
         assert_equal(starting_amount - amount, int(n2.listmyassets()[anduin]))
 
-        ########################################
-        # avn for owner
 
-        # n2 buys JAINA! from n1 for 20000 AVN
+        ########################################
+        # rvn for owner
+
+        # n2 buys JAINA! from n1 for 20000 RVN
         price = 20000
         amount = 1
         balance1 = newbalance1
         balance2 = newbalance2
 
-        unspent2 = get_first_unspent(self, n2, price + fee)
+        unspent2 = next(u for u in n2.listunspent() if u['amount'] > price + fee)
         unspent_amount2 = float(unspent2['amount'])
 
         unspent_owner1 = n1.listmyassets(jaina_owner, True)[jaina_owner]['outpoints'][0]
@@ -1597,10 +1619,11 @@ class RawAssetTransactionsTest(AvianTestFramework):
         amount = 300
         amount_owner = 1
         balance1 = newbalance1
+        balance2 = newbalance2
 
-        unspent1 = get_first_unspent(self, n1)
+        unspent1 = n1.listunspent()[0]
         unspent_amount1 = float(unspent1['amount'])
-        assert (unspent_amount1 > fee)
+        assert(unspent_amount1 > fee)
 
         unspent_asset1 = n1.listmyassets(jaina, True)[jaina]['outpoints'][0]
         unspent_asset_amount1 = unspent_asset1['amount']
@@ -1611,8 +1634,8 @@ class RawAssetTransactionsTest(AvianTestFramework):
         unspent_owner2 = n2.listmyassets(anduin_owner, True)[anduin_owner]['outpoints'][0]
         unspent_owner_amount2 = unspent_owner2['amount']
 
-        assert (unspent_asset_amount1 > price)
-        assert (unspent_asset_amount2 > amount)
+        assert(unspent_asset_amount1 > price)
+        assert(unspent_asset_amount2 > amount)
         assert_equal(amount_owner, unspent_owner_amount2)
 
         inputs = [
@@ -1663,6 +1686,7 @@ class RawAssetTransactionsTest(AvianTestFramework):
         assert_equal(unspent_asset_amount1 - price, n1.listmyassets()[jaina])
         assert_equal(unspent_asset_amount2 - amount, n2.listmyassets()[anduin])
 
+
     def getrawtransaction(self):
         self.log.info("Testing asset info in getrawtransaction...")
         n0 = self.nodes[0]
@@ -1683,7 +1707,7 @@ class RawAssetTransactionsTest(AvianTestFramework):
         asset_section = asset_out_script['asset']
         assert_equal(asset_name, asset_section['name'])
         assert_equal(asset_amount, asset_section['amount'])
-        assert_equal(units, asset_section['units'])
+        assert_equal(units, asset_section['units']);
         assert_equal(reissuable, asset_section['reissuable'])
         assert_equal(ipfs_hash, asset_section['ipfs_hash'])
 
@@ -1736,13 +1760,14 @@ class RawAssetTransactionsTest(AvianTestFramework):
         assert_equal(asset_name, asset_section['name'])
         assert_equal(asset_amount, asset_section['amount'])
 
+
     def fundrawtransaction_transfer_outs(self):
         self.log.info("Testing fundrawtransaction with transfer outputs...")
         n0 = self.nodes[0]
         n2 = self.nodes[2]
-        asset_name = "DONT_FUND_AVN"
+        asset_name = "DONT_FUND_RVN"
         asset_amount = 100
-        avn_amount = 100
+        rvn_amount = 100
 
         n2_address = n2.getnewaddress()
 
@@ -1759,13 +1784,13 @@ class RawAssetTransactionsTest(AvianTestFramework):
         # issue asset
         n0.issue(asset_name, asset_amount)
         n0.generate(1)
-        for _ in range(0, 5):
+        for n in range(0, 5):
             n0.transfer(asset_name, asset_amount / 5, n2_address)
         n0.generate(1)
         self.sync_all()
 
-        for _ in range(0, 5):
-            n0.sendtoaddress(n2_address, avn_amount / 5)
+        for n in range(0, 5):
+            n0.sendtoaddress(n2_address, rvn_amount / 5)
         n0.generate(1)
         self.sync_all()
 
@@ -1780,6 +1805,7 @@ class RawAssetTransactionsTest(AvianTestFramework):
         signed = n2.signrawtransaction(tx_funded)['hex']
         n2.sendrawtransaction(signed)
         # no errors, yay
+
 
     def fundrawtransaction_nonwallet_transfer_outs(self):
         self.log.info("Testing fundrawtransaction with non-wallet transfer outputs...")
@@ -1809,7 +1835,7 @@ class RawAssetTransactionsTest(AvianTestFramework):
         tx = n2.createrawtransaction(inputs, outputs)
 
         # n2 pays postage (fee)
-        tx_funded = n2.fundrawtransaction(tx, {"feeRate": 0.02})['hex']
+        tx_funded = n2.fundrawtransaction(tx)['hex']
 
         # n2 signs postage; n0 signs transfer
         signed1 = n2.signrawtransaction(tx_funded)
@@ -1820,6 +1846,7 @@ class RawAssetTransactionsTest(AvianTestFramework):
         n2.generate(1)
         self.sync_all()
         assert_contains_pair(asset_name, asset_amount, n1.listmyassets())
+
 
     def run_test(self):
         self.activate_assets()
@@ -1839,6 +1866,7 @@ class RawAssetTransactionsTest(AvianTestFramework):
         self.getrawtransaction()
         self.fundrawtransaction_transfer_outs()
         self.fundrawtransaction_nonwallet_transfer_outs()
+
 
 
 if __name__ == '__main__':

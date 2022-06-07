@@ -1,5 +1,5 @@
 // Copyright (c) 2011-2016 The Bitcoin Core developers
-// Copyright (c) 2017-2019 The Raven Core developers
+// Copyright (c) 2017 The Raven Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -23,33 +23,14 @@
 
 #include <QApplication>
 #include <QCloseEvent>
+#include <QDesktopWidget>
 #include <QPainter>
+#include <QPainterPath>
 #include <QRadialGradient>
-#include <QScreen>
 
-#if QT_VERSION < 0x050000
-#include <QTextDocument>
-#include <QUrl>
-#else
-#include <QUrlQuery>
-#include <tinyformat.h>
-#include <QFontDatabase>
-#endif
-
-#if QT_VERSION < QT_VERSION_CHECK(5, 11, 0)
-#define QTversionPreFiveEleven
-#endif
-
-// Fixing Boost 1.73 compile errors
-#include <boost/bind/bind.hpp>
-using namespace boost::placeholders;
-
-SplashScreen::SplashScreen(const NetworkStyle* networkStyle)
-    : QWidget(), curAlignment(0)
+SplashScreen::SplashScreen(Qt::WindowFlags f, const NetworkStyle *networkStyle) :
+    QWidget(0, f), curAlignment(0)
 {
-    // Add font
-    QFontDatabase::addApplicationFont(":/fonts/manrope-regular");
-
     // set reference point, paddings
     int paddingRight            = 50;
     int paddingTop              = 50;
@@ -68,7 +49,7 @@ SplashScreen::SplashScreen(const NetworkStyle* networkStyle)
     QString copyrightText   = QString::fromUtf8(CopyrightHolders(strprintf("\xc2\xA9 %u-%u ", 2009, COPYRIGHT_YEAR)).c_str());
     QString titleAddText    = networkStyle->getTitleAddText();
 
-    QString font            = "Manrope";
+    QString font            = QApplication::font().toString();
 
     // create a bitmap according to device pixelratio
     QSize splashSize(480*devicePixelRatio,320*devicePixelRatio);
@@ -80,64 +61,41 @@ SplashScreen::SplashScreen(const NetworkStyle* networkStyle)
 #endif
 
     QPainter pixPaint(&pixmap);
-    pixPaint.setPen(QColor(250, 250, 250));
+    pixPaint.setPen(QColor(100,100,100));
 
     // draw a slightly radial gradient
-    if (titleAddText.isEmpty()) {
-        // Mainnet
-        QRadialGradient gradient(QPoint(0, 0), splashSize.width() / devicePixelRatio);
-        gradient.setColorAt(0, QColor(52, 245, 198));
-        gradient.setColorAt(1, QColor(42, 115, 127));
-        QRect rGradient(QPoint(0, 0), splashSize);
-        pixPaint.fillRect(rGradient, gradient);
-    } else {
-        // Testnet
-        QRadialGradient gradient(QPoint(0, 0), splashSize.width() / devicePixelRatio);
-        gradient.setColorAt(0, QColor(68, 73, 205));
-        gradient.setColorAt(1, QColor(31, 22, 142));
-        QRect rGradient(QPoint(0, 0), splashSize);
-        pixPaint.fillRect(rGradient, gradient);
-    }
+    QRadialGradient gradient(QPoint(0,0), splashSize.width()/devicePixelRatio);
+    gradient.setColorAt(0, Qt::white);
+    gradient.setColorAt(1, QColor(247,247,247));
+    QRect rGradient(QPoint(0,0), splashSize);
+    pixPaint.fillRect(rGradient, gradient);
 
-    // draw the avian icon, expected size of PNG: 1024x1024
+    // draw the raven icon, expected size of PNG: 1024x1024
     QRect rectIcon(QPoint(-40,0), QSize(310,310));
 
     const QSize requiredSize(1024,1024);
-    QPixmap icon(":/icons/avianlogo");
+    QPixmap icon(networkStyle->getSplashIcon().pixmap(requiredSize));
 
     pixPaint.drawPixmap(rectIcon, icon);
 
     // check font size and drawing with
     pixPaint.setFont(QFont(font, 33*fontFactor));
     QFontMetrics fm = pixPaint.fontMetrics();
-    #ifndef QTversionPreFiveEleven
-    	int titleTextWidth = fm.horizontalAdvance(titleText);
-    #else
-    	int titleTextWidth = fm.width(titleText);
-    #endif
+    int titleTextWidth = fm.width(titleText);
     if (titleTextWidth > 176) {
         fontFactor = fontFactor * 176 / titleTextWidth;
     }
 
     pixPaint.setFont(QFont(font, 33*fontFactor));
     fm = pixPaint.fontMetrics();
-    #ifndef QTversionPreFiveEleven
-    	titleTextWidth  = fm.horizontalAdvance(titleText);
-    #else
-    	titleTextWidth  = fm.width(titleText);
-    #endif
+    titleTextWidth  = fm.width(titleText);
     pixPaint.drawText(pixmap.width()/devicePixelRatio-titleTextWidth-paddingRight,paddingTop,titleText);
 
     pixPaint.setFont(QFont(font, 15*fontFactor));
 
     // if the version string is to long, reduce size
     fm = pixPaint.fontMetrics();
-    #ifndef QTversionPreFiveEleven
-    	int versionTextWidth  = fm.horizontalAdvance(versionText);
-    #else
-    	int versionTextWidth  = fm.width(versionText);
-    #endif
-    
+    int versionTextWidth  = fm.width(versionText);
     if(versionTextWidth > titleTextWidth+paddingRight-10) {
         pixPaint.setFont(QFont(font, 10*fontFactor));
         titleVersionVSpace -= 5;
@@ -159,11 +117,7 @@ SplashScreen::SplashScreen(const NetworkStyle* networkStyle)
         boldFont.setWeight(QFont::Bold);
         pixPaint.setFont(boldFont);
         fm = pixPaint.fontMetrics();
-        #ifndef QTversionPreFiveEleven
-    		int titleAddTextWidth  = fm.horizontalAdvance(titleAddText);
-    	#else
-    		int titleAddTextWidth  = fm.width(titleAddText);
-    	#endif
+        int titleAddTextWidth  = fm.width(titleAddText);
         pixPaint.drawText(pixmap.width()/devicePixelRatio-titleAddTextWidth-10,15,titleAddText);
     }
 
@@ -176,7 +130,7 @@ SplashScreen::SplashScreen(const NetworkStyle* networkStyle)
     QRect r(QPoint(), QSize(pixmap.size().width()/devicePixelRatio,pixmap.size().height()/devicePixelRatio));
     resize(r.size());
     setFixedSize(r.size());
-    move(QGuiApplication::primaryScreen()->geometry().center() - r.center());
+    move(QApplication::desktop()->screenGeometry().center() - r.center());
 
     subscribeToCoreSignals();
     installEventFilter(this);
@@ -215,7 +169,7 @@ static void InitMessage(SplashScreen *splash, const std::string &message)
         Qt::QueuedConnection,
         Q_ARG(QString, QString::fromStdString(message)),
         Q_ARG(int, Qt::AlignBottom|Qt::AlignHCenter),
-        Q_ARG(QColor, QColor(250, 250, 250)));
+        Q_ARG(QColor, QColor(55,55,55)));
 }
 
 static void ShowProgress(SplashScreen *splash, const std::string &title, int nProgress, bool resume_possible)
@@ -229,7 +183,7 @@ static void ShowProgress(SplashScreen *splash, const std::string &title, int nPr
 #ifdef ENABLE_WALLET
 void SplashScreen::ConnectWallet(CWallet* wallet)
 {
-    wallet->ShowProgress.connect(boost::bind(ShowProgress, this, _1, _2, false));
+    wallet->ShowProgress.connect(boost::bind(ShowProgress, this, boost::placeholders::_1, boost::placeholders::_2, false));
     connectedWallets.push_back(wallet);
 }
 #endif
@@ -237,21 +191,21 @@ void SplashScreen::ConnectWallet(CWallet* wallet)
 void SplashScreen::subscribeToCoreSignals()
 {
     // Connect signals to client
-    uiInterface.InitMessage.connect(boost::bind(InitMessage, this, _1));
-    uiInterface.ShowProgress.connect(boost::bind(ShowProgress, this, _1, _2, _3));
+    uiInterface.InitMessage.connect(boost::bind(InitMessage, this, boost::placeholders::_1));
+    uiInterface.ShowProgress.connect(boost::bind(ShowProgress, this, boost::placeholders::_1, boost::placeholders::_2, boost::placeholders::_3));
 #ifdef ENABLE_WALLET
-    uiInterface.LoadWallet.connect(boost::bind(&SplashScreen::ConnectWallet, this, _1));
+    uiInterface.LoadWallet.connect(boost::bind(&SplashScreen::ConnectWallet, this, boost::placeholders::_1));
 #endif
 }
 
 void SplashScreen::unsubscribeFromCoreSignals()
 {
     // Disconnect signals from client
-    uiInterface.InitMessage.disconnect(boost::bind(InitMessage, this, _1));
-    uiInterface.ShowProgress.disconnect(boost::bind(ShowProgress, this, _1, _2, _3));
+    uiInterface.InitMessage.disconnect(boost::bind(InitMessage, this, boost::placeholders::_1));
+    uiInterface.ShowProgress.disconnect(boost::bind(ShowProgress, this, boost::placeholders::_1, boost::placeholders::_2, boost::placeholders::_3));
 #ifdef ENABLE_WALLET
     for (CWallet* const & pwallet : connectedWallets) {
-        pwallet->ShowProgress.disconnect(boost::bind(ShowProgress, this, _1, _2, false));
+        pwallet->ShowProgress.disconnect(boost::bind(ShowProgress, this, boost::placeholders::_1, boost::placeholders::_2, false));
     }
 #endif
 }

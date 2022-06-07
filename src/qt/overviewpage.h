@@ -1,11 +1,10 @@
 // Copyright (c) 2011-2016 The Bitcoin Core developers
-// Copyright (c) 2017-2019 The Raven Core developers
-// Copyright (c) 2022 The Avian Core developers
+// Copyright (c) 2017 The Raven Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef AVIAN_QT_OVERVIEWPAGE_H
-#define AVIAN_QT_OVERVIEWPAGE_H
+#ifndef RAVEN_QT_OVERVIEWPAGE_H
+#define RAVEN_QT_OVERVIEWPAGE_H
 
 #include "amount.h"
 
@@ -13,9 +12,6 @@
 #include <QWidget>
 #include <QMenu>
 #include <memory>
-
-#include <QtNetwork/QNetworkAccessManager>
-#include <QtNetwork/QNetworkReply>
 
 class ClientModel;
 class TransactionFilterProxy;
@@ -48,18 +44,12 @@ public:
     void showOutOfSyncWarning(bool fShow);
     void showAssets();
 
-    bool eventFilter(QObject *object, QEvent *event);
-    void openIPFSForAsset(const QModelIndex &index);
-
-    void setPriceBalance();
-
 public Q_SLOTS:
-            void getPriceInfo();
-            void setBalance(const CAmount& balance, const CAmount& unconfirmedBalance, const CAmount& immatureBalance,
-                            const CAmount& watchOnlyBalance, const CAmount& watchUnconfBalance, const CAmount& watchImmatureBalance);
+    void setBalance(const CAmount& balance, const CAmount& unconfirmedBalance, const CAmount& immatureBalance,
+                    const CAmount& watchOnlyBalance, const CAmount& watchUnconfBalance, const CAmount& watchImmatureBalance);
 
-    Q_SIGNALS:
-            void transactionClicked(const QModelIndex &index);
+Q_SIGNALS:
+    void transactionClicked(const QModelIndex &index);
     void assetSendClicked(const QModelIndex &index);
     void assetIssueSubClicked(const QModelIndex &index);
     void assetIssueUniqueClicked(const QModelIndex &index);
@@ -87,23 +77,16 @@ private:
     QAction *issueSub;
     QAction *issueUnique;
     QAction *reissue;
-    QAction *openURL;
-    QAction *copyHashAction;
 
-    /** AVN START */
-    QTimer *pricingTimer;
-    QNetworkAccessManager* networkManager;
-    QNetworkRequest* request;
-    /** AVN END */
 
 private Q_SLOTS:
     void updateDisplayUnit();
     void handleTransactionClicked(const QModelIndex &index);
-    void handleAssetRightClicked(const QModelIndex &index);
+    void handleAssetClicked(const QModelIndex &index);
     void updateAlerts(const QString &warnings);
     void updateWatchOnlyLabels(bool showWatchOnly);
     void handleOutOfSyncWarningClicks();
     void assetSearchChanged();
 };
 
-#endif // AVIAN_QT_OVERVIEWPAGE_H
+#endif // RAVEN_QT_OVERVIEWPAGE_H

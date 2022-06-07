@@ -5,7 +5,7 @@
 
 #include "chain.h"
 #include "versionbits.h"
-#include "test/test_avian.h"
+#include "test/test_raven.h"
 #include "chainparams.h"
 #include "validation.h"
 #include "consensus/params.h"

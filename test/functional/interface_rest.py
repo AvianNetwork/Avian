@@ -1,16 +1,15 @@
 #!/usr/bin/env python3
 # Copyright (c) 2014-2016 The Bitcoin Core developers
-# Copyright (c) 2017-2020 The Raven Core developers
+# Copyright (c) 2017-2018 The Raven Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
-
 """Test the REST API."""
 
-from struct import unpack, pack
+from test_framework.test_framework import RavenTestFramework
+from test_framework.util import *
+from struct import *
 from io import BytesIO
 from codecs import encode
-from test_framework.test_framework import AvianTestFramework
-from test_framework.util import connect_nodes_bi, assert_equal, Decimal, json, hex_str_to_bytes, assert_greater_than
 
 import http.client
 import urllib.parse
@@ -42,9 +41,7 @@ def http_post_call(host, port, path, requestdata = '', response_object = 0):
 
     return conn.getresponse().read()
 
-
-# noinspection PyTypeChecker
-class RESTTest (AvianTestFramework):
+class RESTTest (RavenTestFramework):
     FORMAT_SEPARATOR = "."
 
     def set_test_params(self):
@@ -110,7 +107,7 @@ class RESTTest (AvianTestFramework):
         #check chainTip response
         assert_equal(json_obj['chaintipHash'], bb_hash)
 
-        # make sure there is no utxo in the response because this oupoint has been spent
+        #make sure there is no utox in the response because this oupoint has been spent
         assert_equal(len(json_obj['utxos']), 0)
 
         #check bitmap
@@ -154,7 +151,7 @@ class RESTTest (AvianTestFramework):
         txid = self.nodes[0].sendtoaddress(self.nodes[1].getnewaddress(), 0.1)
         json_string = http_get_call(url.hostname, url.port, '/rest/tx/'+txid+self.FORMAT_SEPARATOR+"json")
         json_obj = json.loads(json_string)
-        #vintx = json_obj['vin'][0]['txid'] # get the vin to later check for utxo (should be spent by then)
+        vintx = json_obj['vin'][0]['txid'] # get the vin to later check for utxo (should be spent by then)
         # get n of 0.1 outpoint
         n = 0
         for vout in json_obj['vout']:
@@ -185,14 +182,14 @@ class RESTTest (AvianTestFramework):
 
         #test limits
         json_request = '/checkmempool/'
-        for _ in range(0, 20):
+        for x in range(0, 20):
             json_request += txid+'-'+str(n)+'/'
         json_request = json_request.rstrip("/")
         response = http_post_call(url.hostname, url.port, '/rest/getutxos'+json_request+self.FORMAT_SEPARATOR+'json', '', True)
         assert_equal(response.status, 400) #must be a 400 because we exceeding the limits
 
         json_request = '/checkmempool/'
-        for _ in range(0, 15):
+        for x in range(0, 15):
             json_request += txid+'-'+str(n)+'/'
         json_request = json_request.rstrip("/")
         response = http_post_call(url.hostname, url.port, '/rest/getutxos'+json_request+self.FORMAT_SEPARATOR+'json', '', True)
@@ -283,9 +280,10 @@ class RESTTest (AvianTestFramework):
 
         # check block tx details
         # let's make 3 tx and mine them on node 1
-        txs = [self.nodes[0].sendtoaddress(self.nodes[2].getnewaddress(), 11),
-               self.nodes[0].sendtoaddress(self.nodes[2].getnewaddress(), 11),
-               self.nodes[0].sendtoaddress(self.nodes[2].getnewaddress(), 11)]
+        txs = []
+        txs.append(self.nodes[0].sendtoaddress(self.nodes[2].getnewaddress(), 11))
+        txs.append(self.nodes[0].sendtoaddress(self.nodes[2].getnewaddress(), 11))
+        txs.append(self.nodes[0].sendtoaddress(self.nodes[2].getnewaddress(), 11))
         self.sync_all()
 
         # check that there are exactly 3 transactions in the TX memory pool before generating the block

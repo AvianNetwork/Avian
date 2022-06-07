@@ -1,11 +1,11 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
 // Copyright (c) 2009-2016 The Bitcoin Core developers
-// Copyright (c) 2017-2019 The Raven Core developers
+// Copyright (c) 2017 The Raven Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef AVIAN_PRIMITIVES_TRANSACTION_H
-#define AVIAN_PRIMITIVES_TRANSACTION_H
+#ifndef RAVEN_PRIMITIVES_TRANSACTION_H
+#define RAVEN_PRIMITIVES_TRANSACTION_H
 
 #include <stdint.h>
 #include "amount.h"
@@ -15,8 +15,12 @@
 
 static const int SERIALIZE_TRANSACTION_NO_WITNESS = 0x40000000;
 
+struct NewAssetInfo {
+    bool fFromMempool;
+    uint32_t nTimeAdded;
+};
+
 class CCoinsViewCache;
-class CNullAssetTxVerifierString;
 
 /** An outpoint - a combination of a transaction hash and an index n into its vout */
 class COutPoint
@@ -56,8 +60,6 @@ public:
     }
 
     std::string ToString() const;
-
-    std::string ToSerializedString() const;
 };
 
 /** An input of a transaction.  It contains the location of the previous
@@ -70,7 +72,7 @@ public:
     COutPoint prevout;
     CScript scriptSig;
     uint32_t nSequence;
-    CScriptWitness scriptWitness; //!< Only serialized through CTransaction
+    CScriptWitness scriptWitness; //! Only serialized through CTransaction
 
     /* Setting nSequence to this value for every input in a transaction
      * disables nLockTime. */
@@ -325,30 +327,18 @@ public:
     uint256 GetWitnessHash() const;
 
     // Return sum of txouts.
-    CAmount GetValueOut(const bool fAreEnforcedValues = true) const;
+    CAmount GetValueOut() const;
     // GetValueIn() is a method on CCoinsViewCache, because
     // inputs must be known to compute value in.
 
-    /** AVN START */
+    /** RVN START */
     bool IsNewAsset() const;
-    bool VerifyNewAsset(std::string& strError) const;
+    bool VerifyNewAsset(std::string& strError, NewAssetInfo* newAssetInfo = nullptr) const;
     bool IsNewUniqueAsset() const;
     bool VerifyNewUniqueAsset(std::string& strError) const;
     bool IsReissueAsset() const;
     bool VerifyReissueAsset(std::string& strError) const;
-    bool IsNewMsgChannelAsset() const;
-    bool VerifyNewMsgChannelAsset(std::string& strError) const;
-    bool IsNewQualifierAsset() const;
-    bool VerifyNewQualfierAsset(std::string &strError) const;
-    bool IsNewRestrictedAsset() const;
-    bool VerifyNewRestrictedAsset(std::string& strError) const;
-
-    bool CheckAddingTagBurnFee(const int& count) const;
-
-    bool GetVerifierStringFromTx(CNullAssetTxVerifierString& verifier, std::string& strError) const;
-    bool GetVerifierStringFromTx(CNullAssetTxVerifierString& verifier, std::string& strError, bool& fNotFound) const;
-
-    /** AVN END */
+    /** RVN END */
 
     /**
      * Get the total transaction size in bytes, including witness data.
@@ -437,4 +427,4 @@ typedef std::shared_ptr<const CTransaction> CTransactionRef;
 static inline CTransactionRef MakeTransactionRef() { return std::make_shared<const CTransaction>(); }
 template <typename Tx> static inline CTransactionRef MakeTransactionRef(Tx&& txIn) { return std::make_shared<const CTransaction>(std::forward<Tx>(txIn)); }
 
-#endif // AVIAN_PRIMITIVES_TRANSACTION_H
+#endif // RAVEN_PRIMITIVES_TRANSACTION_H

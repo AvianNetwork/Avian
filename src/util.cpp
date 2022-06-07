@@ -1,6 +1,6 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
 // Copyright (c) 2009-2016 The Bitcoin Core developers
-// Copyright (c) 2017-2019 The Raven Core developers
+// Copyright (c) 2017 The Raven Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -88,8 +88,8 @@
 // Application startup time (used for uptime calculation)
 const int64_t nStartupTime = GetTime();
 
-const char *const AVIAN_CONF_FILENAME = "avian.conf";
-const char *const AVIAN_PID_FILENAME = "aviand.pid";
+const char *const RAVEN_CONF_FILENAME = "avian.conf";
+const char *const RAVEN_PID_FILENAME = "aviand.pid";
 
 ArgsManager gArgs;
 bool fPrintToConsole = false;
@@ -249,7 +249,6 @@ const CLogCategoryDesc LogCategories[] =
                 {BCLog::COINDB,      "coindb"},
                 {BCLog::QT,          "qt"},
                 {BCLog::LEVELDB,     "leveldb"},
-                {BCLog::REWARDS,     "rewards"},
                 {BCLog::CROW,        "crow"},  // Crow
                 {BCLog::ALL,         "1"},
                 {BCLog::ALL,         "all"},
@@ -500,13 +499,6 @@ void ArgsManager::ForceSetArg(const std::string &strArg, const std::string &strV
     mapMultiArgs[strArg] = {strValue};
 }
 
-void ArgsManager::ForceSetArg(const std::string &strArg, const int64_t &nValue)
-{
-    LOCK(cs_args);
-    mapArgs[strArg] = std::to_string(nValue);
-    mapMultiArgs[strArg] = {std::to_string(nValue)};
-}
-
 
 static const int screenWidth = 79;
 static const int optIndent = 2;
@@ -531,7 +523,7 @@ static std::string FormatException(const std::exception *pex, const char *pszThr
     char pszModule[MAX_PATH] = "";
     GetModuleFileNameA(nullptr, pszModule, sizeof(pszModule));
 #else
-    const char *pszModule = "avian";
+    const char *pszModule = "ravenlite";
 #endif
     if (pex)
         return strprintf(
@@ -550,10 +542,10 @@ void PrintExceptionContinue(const std::exception *pex, const char *pszThread)
 
 fs::path GetDefaultDataDir()
 {
-    // Windows < Vista: C:\Documents and Settings\Username\Application Data\Avian
-    // Windows >= Vista: C:\Users\Username\AppData\Roaming\Avian
-    // Mac: ~/Library/Application Support/Avian
-    // Unix: ~/.avian
+    // Windows < Vista: C:\Documents and Settings\Username\Application Data\RavenLite
+    // Windows >= Vista: C:\Users\Username\AppData\Roaming\RavenLite
+    // Mac: ~/Library/Application Support/RavenLite
+    // Unix: ~/.ravenlite
 #ifdef WIN32
     // Windows
     return GetSpecialFolderPath(CSIDL_APPDATA) / "Avian";
@@ -657,7 +649,7 @@ void ArgsManager::ReadConfigFile(const std::string &confPath)
 
 fs::path GetPidFile()
 {
-    fs::path pathPidFile(gArgs.GetArg("-pid", AVIAN_PID_FILENAME));
+    fs::path pathPidFile(gArgs.GetArg("-pid", RAVEN_PID_FILENAME));
     if (!pathPidFile.is_complete()) pathPidFile = GetDataDir() / pathPidFile;
     return pathPidFile;
 }
@@ -927,8 +919,8 @@ std::string CopyrightHolders(const std::string &strPrefix)
 {
     std::string strCopyrightHolders = strPrefix + strprintf(_(COPYRIGHT_HOLDERS), _(COPYRIGHT_HOLDERS_SUBSTITUTION));
 
-    // Check for untranslated substitution to make sure Avian Core copyright is not removed by accident
-    if (strprintf(COPYRIGHT_HOLDERS, COPYRIGHT_HOLDERS_SUBSTITUTION).find("Avian Core") == std::string::npos)
+    // Check for untranslated substitution to make sure Raven Core copyright is not removed by accident
+    if (strprintf(COPYRIGHT_HOLDERS, COPYRIGHT_HOLDERS_SUBSTITUTION).find("Raven Core") == std::string::npos)
     {
         strCopyrightHolders += "\n" + strPrefix + "The Raven Core developers";
     }

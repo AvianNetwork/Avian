@@ -6,7 +6,7 @@
 #include "random.h"
 #include "scheduler.h"
 
-#include "test/test_avian.h"
+#include "test/test_raven.h"
 
 #include <boost/bind.hpp>
 #include <boost/thread.hpp>

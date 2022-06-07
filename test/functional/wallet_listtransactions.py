@@ -1,26 +1,26 @@
 #!/usr/bin/env python3
 # Copyright (c) 2014-2016 The Bitcoin Core developers
-# Copyright (c) 2017-2020 The Raven Core developers
+# Copyright (c) 2017-2018 The Raven Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
-
 """Test the listtransactions API."""
 
-from io import BytesIO
 from decimal import Decimal
-from test_framework.test_framework import AvianTestFramework
-from test_framework.util import hex_str_to_bytes, assert_array_result, sync_mempools, assert_equal, bytes_to_hex_str
+from test_framework.test_framework import RavenTestFramework
+from test_framework.util import *
 from test_framework.mininode import CTransaction, COIN
+from io import BytesIO
 
 
-def from_hex(hexstring):
+
+def txFromHex(hexstring):
     tx = CTransaction()
     f = BytesIO(hex_str_to_bytes(hexstring))
     tx.deserialize(f)
     return tx
 
 
-class ListTransactionsTest(AvianTestFramework):
+class ListTransactionsTest(RavenTestFramework):
     def set_test_params(self):
         self.num_nodes = 2
         self.enable_mocktime()
@@ -151,7 +151,7 @@ class ListTransactionsTest(AvianTestFramework):
         inputs = [{"txid": txid_2, "vout": utxo_to_use["vout"]}]
         outputs = {self.nodes[1].getnewaddress(): 0.998}
         tx3 = self.nodes[0].createrawtransaction(inputs, outputs)
-        tx3_modified = from_hex(tx3)
+        tx3_modified = txFromHex(tx3)
         tx3_modified.vin[0].nSequence = 0
         tx3 = bytes_to_hex_str(tx3_modified.serialize())
         tx3_signed = self.nodes[0].signrawtransaction(tx3)['hex']

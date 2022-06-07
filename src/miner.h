@@ -1,12 +1,11 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
 // Copyright (c) 2009-2016 The Bitcoin Core developers
-// Copyright (c) 2017-2019 The Raven Core developers
-// Copyright (c) 2021 The Avian Core developers
+// Copyright (c) 2017 The Raven Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef AVIAN_MINER_H
-#define AVIAN_MINER_H
+#ifndef RAVEN_MINER_H
+#define RAVEN_MINER_H
 
 #include "primitives/block.h"
 #include "txmempool.h"
@@ -206,5 +205,5 @@ private:
 void IncrementExtraNonce(CBlock* pblock, const CBlockIndex* pindexPrev, unsigned int& nExtraNonce);
 int64_t UpdateTime(CBlockHeader* pblock, const Consensus::ConsensusParams& consensusParams, const CBlockIndex* pindexPrev, const POW_TYPE powType);
 
-int GenerateAvians(bool fGenerate, int nThreads, const CChainParams& chainparams);
-#endif // AVIAN_MINER_H
+int GenerateRavens(bool fGenerate, int nThreads, const CChainParams& chainparams);
+#endif // RAVEN_MINER_H

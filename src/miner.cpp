@@ -1,7 +1,6 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
 // Copyright (c) 2009-2016 The Bitcoin Core developers
-// Copyright (c) 2017-2020 The Raven Core developers
-// Copyright (c) 2021 The Avian Core developers
+// Copyright (c) 2017 The Raven Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -536,7 +535,7 @@ void static AvianMiner(const CChainParams& chainparams, const POW_TYPE powType)
 {
     LogPrintf("AvianMiner -- started\n");
     SetThreadPriority(THREAD_PRIORITY_LOWEST);
-    RenameThread("avian-miner");
+    RenameThread("raven-miner");
 
     unsigned int nExtraNonce = 0;
 
@@ -690,7 +689,7 @@ void static AvianMiner(const CChainParams& chainparams, const POW_TYPE powType)
     }
 }
 
-int GenerateAvians(bool fGenerate, int nThreads, const CChainParams& chainparams)
+int GenerateRavens(bool fGenerate, int nThreads, const CChainParams& chainparams)
 {
 
     static boost::thread_group* minerThreads = NULL;

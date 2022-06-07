@@ -8,7 +8,7 @@ There are currently two sets of tests in this directory:
 - [functional](/test/functional) which test the functionality of 
 aviand and avian-qt by interacting with them through the RPC and P2P
 interfaces.
-- [util](test/util) which tests the avian utilities, currently only
+- [util](test/util) which tests the raven utilities, currently only
 avian-tx.
 
 The util tests are run as part of `make check` target. The functional
@@ -177,7 +177,7 @@ Note: gdb attach step may require `sudo`
 
 ### Util tests
 
-Util tests can be run locally by running `test/util/avian-util-test.py`. 
+Util tests can be run locally by running `test/util/raven-util-test.py`. 
 Use the `-v` option for verbose output.
 
 # Writing functional tests

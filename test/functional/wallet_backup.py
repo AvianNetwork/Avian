@@ -1,11 +1,9 @@
 #!/usr/bin/env python3
 # Copyright (c) 2014-2016 The Bitcoin Core developers
-# Copyright (c) 2017-2020 The Raven Core developers
+# Copyright (c) 2017-2018 The Raven Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
-
-"""
-Test the wallet backup features.
+"""Test the wallet backup features.
 
 Test case is:
 4 nodes. 1 2 and 3 send transactions between each other,
@@ -33,13 +31,13 @@ confirm 1/2/3/4 balances are same as before.
 Shutdown again, restore using importwallet,
 and confirm again balances are correct.
 """
-
 from random import randint
 import shutil
-from test_framework.test_framework import AvianTestFramework
-from test_framework.util import connect_nodes, Decimal, sync_mempools, sync_blocks, os, assert_equal
 
-class WalletBackupTest(AvianTestFramework):
+from test_framework.test_framework import RavenTestFramework
+from test_framework.util import *
+
+class WalletBackupTest(RavenTestFramework):
     def set_test_params(self):
         self.num_nodes = 4
         self.setup_clean_chain = True
@@ -55,7 +53,7 @@ class WalletBackupTest(AvianTestFramework):
         self.sync_all()
 
     def one_send(self, from_node, to_address):
-        if randint(1, 2) == 1:
+        if (randint(1,2) == 1):
             amount = Decimal(randint(1,10)) / Decimal(10)
             self.nodes[from_node].sendtoaddress(to_address, amount)
 
@@ -115,7 +113,7 @@ class WalletBackupTest(AvianTestFramework):
 
         self.log.info("Creating transactions")
         # Five rounds of sending each other transactions.
-        for _ in range(5):
+        for i in range(5):
             self.do_one_round()
 
         self.log.info("Backing up")
@@ -128,7 +126,7 @@ class WalletBackupTest(AvianTestFramework):
         self.nodes[2].dumpwallet(tmpdir + "/node2/wallet.dump")
 
         self.log.info("More transactions")
-        for _ in range(5):
+        for i in range(5):
             self.do_one_round()
 
         # Generate 101 more blocks, so any fees paid mature
