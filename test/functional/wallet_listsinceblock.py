@@ -1,14 +1,15 @@
 #!/usr/bin/env python3
 # Copyright (c) 2017 The Bitcoin Core developers
-# Copyright (c) 2017-2018 The Raven Core developers
+# Copyright (c) 2017-2020 The Raven Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
+
 """Test the listsincelast RPC."""
 
-from test_framework.test_framework import RavenTestFramework
+from test_framework.test_framework import AvianTestFramework
 from test_framework.util import assert_equal
 
-class ListSinceBlockTest (RavenTestFramework):
+class ListSinceBlockTest (AvianTestFramework):
     def set_test_params(self):
         self.num_nodes = 4
         self.setup_clean_chain = True
@@ -23,7 +24,7 @@ class ListSinceBlockTest (RavenTestFramework):
         self.test_double_send()
 
     def test_reorg(self):
-        '''
+        """
         `listsinceblock` did not behave correctly when handed a block that was
         no longer in the main chain:
 
@@ -49,7 +50,7 @@ class ListSinceBlockTest (RavenTestFramework):
         range bb1-bb4.
 
         This test only checks that [tx0] is present.
-        '''
+        """
 
         # Split network into two
         self.split_network()
@@ -60,7 +61,7 @@ class ListSinceBlockTest (RavenTestFramework):
         # generate on both sides
         lastblockhash = self.nodes[1].generate(6)[5]
         self.nodes[2].generate(7)
-        self.log.info('lastblockhash=%s' % (lastblockhash))
+        self.log.debug('lastblockhash=%s' % lastblockhash)
 
         self.sync_all([self.nodes[:2], self.nodes[2:]])
 
@@ -76,7 +77,7 @@ class ListSinceBlockTest (RavenTestFramework):
         assert found
 
     def test_double_spend(self):
-        '''
+        """
         This tests the case where the same UTXO is spent twice on two separate
         blocks as part of a reorg.
 
@@ -92,8 +93,8 @@ class ListSinceBlockTest (RavenTestFramework):
 
         Problematic case:
 
-        1. User 1 receives RVN in tx1 from utxo1 in block aa1.
-        2. User 2 receives RVN in tx2 from utxo1 (same) in block bb1
+        1. User 1 receives AVN in tx1 from utxo1 in block aa1.
+        2. User 2 receives AVN in tx2 from utxo1 (same) in block bb1
         3. User 1 sees 2 confirmations at block aa3.
         4. Reorg into bb chain.
         5. User 1 asks `listsinceblock aa3` and does not see that tx1 is now
@@ -103,7 +104,7 @@ class ListSinceBlockTest (RavenTestFramework):
         asked for in listsinceblock, and to iterate back over existing blocks up
         until the fork point, and to include all transactions that relate to the
         node wallet.
-        '''
+        """
 
         self.sync_all()
 
@@ -117,7 +118,7 @@ class ListSinceBlockTest (RavenTestFramework):
         self.nodes[1].importprivkey(privkey)
 
         # send from nodes[1] using utxo to nodes[0]
-        change = '%.8f' % (float(utxo['amount']) - 1.0003)
+        change = '%.8f' % (float(utxo['amount']) - 1.2)
         recipientDict = {
             self.nodes[0].getnewaddress(): 1,
             self.nodes[1].getnewaddress(): change,
@@ -159,7 +160,7 @@ class ListSinceBlockTest (RavenTestFramework):
         assert 'removed' not in lsbres2
 
     def test_double_send(self):
-        '''
+        """
         This tests the case where the same transaction is submitted twice on two
         separate blocks as part of a reorg. The former will vanish and the
         latter will appear as the true transaction (with confirmations dropping
@@ -182,7 +183,7 @@ class ListSinceBlockTest (RavenTestFramework):
            present in a different block.
         3. It is listed with a confirmations count of 2 (bb3, bb4), not
            3 (aa1, aa2, aa3).
-        '''
+        """
 
         self.sync_all()
 
@@ -192,7 +193,7 @@ class ListSinceBlockTest (RavenTestFramework):
         # create and sign a transaction
         utxos = self.nodes[2].listunspent()
         utxo = utxos[0]
-        change = '%.8f' % (float(utxo['amount']) - 1.0003)
+        change = '%.8f' % (float(utxo['amount']) - 1.2)
         recipientDict = {
             self.nodes[0].getnewaddress(): 1,
             self.nodes[2].getnewaddress(): change,

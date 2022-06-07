@@ -1,5 +1,5 @@
 // Copyright (c) 2011-2016 The Bitcoin Core developers
-// Copyright (c) 2017 The Raven Core developers
+// Copyright (c) 2017-2020 The Raven Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -15,6 +15,7 @@
 #include "sendcoinsdialog.h"
 #include "transactiontablemodel.h"
 #include "assettablemodel.h"
+#include "myrestrictedassettablemodel.h"
 
 #include "base58.h"
 #include "chain.h"
@@ -38,6 +39,9 @@
 #include <QSet>
 #include <QTimer>
 
+// Fixing Boost 1.73 compile errors
+#include <boost/bind/bind.hpp>
+using namespace boost::placeholders;
 
 WalletModel::WalletModel(const PlatformStyle *platformStyle, CWallet *_wallet, OptionsModel *_optionsModel, QObject *parent) :
     QObject(parent), wallet(_wallet), optionsModel(_optionsModel), addressTableModel(0),
@@ -55,6 +59,7 @@ WalletModel::WalletModel(const PlatformStyle *platformStyle, CWallet *_wallet, O
     transactionTableModel = new TransactionTableModel(platformStyle, wallet, this);
     assetTableModel = new AssetTableModel(this);
     recentRequestsTableModel = new RecentRequestsTableModel(wallet, this);
+    myRestrictedAssetsTableModel = new MyRestrictedAssetsTableModel(platformStyle, wallet, this);
 
     // This timer will be fired repeatedly to update the balance
     pollTimer = new QTimer(this);
@@ -448,6 +453,11 @@ AssetTableModel *WalletModel::getAssetTableModel()
     return assetTableModel;
 }
 
+MyRestrictedAssetsTableModel *WalletModel::getMyRestrictedAssetsTableModel()
+{
+    return myRestrictedAssetsTableModel;
+}
+
 RecentRequestsTableModel *WalletModel::getRecentRequestsTableModel()
 {
     return recentRequestsTableModel;
@@ -545,6 +555,16 @@ static void NotifyTransactionChanged(WalletModel *walletmodel, CWallet *wallet, 
     QMetaObject::invokeMethod(walletmodel, "updateTransaction", Qt::QueuedConnection);
 }
 
+static void NotifyMyRestrictedAssetChanged(WalletModel *walletmodel, CWallet *wallet, const std::string &address, const std::string& asset_name,  int type, uint32_t date)
+{
+    Q_UNUSED(wallet);
+    Q_UNUSED(address);
+    Q_UNUSED(asset_name);
+    Q_UNUSED(type);
+    Q_UNUSED(date);
+    QMetaObject::invokeMethod(walletmodel, "updateMyRestrictedAssets", Qt::QueuedConnection);
+}
+
 static void ShowProgress(WalletModel *walletmodel, const std::string &title, int nProgress)
 {
     // emits signal "showProgress"
@@ -562,21 +582,23 @@ static void NotifyWatchonlyChanged(WalletModel *walletmodel, bool fHaveWatchonly
 void WalletModel::subscribeToCoreSignals()
 {
     // Connect signals to wallet
-    wallet->NotifyStatusChanged.connect(boost::bind(&NotifyKeyStoreStatusChanged, this, boost::placeholders::_1));
-    wallet->NotifyAddressBookChanged.connect(boost::bind(NotifyAddressBookChanged, this, boost::placeholders::_1, boost::placeholders::_2, boost::placeholders::_3, boost::placeholders::_4, boost::placeholders::_5, boost::placeholders::_6));
-    wallet->NotifyTransactionChanged.connect(boost::bind(NotifyTransactionChanged, this, boost::placeholders::_1, boost::placeholders::_2, boost::placeholders::_3));
-    wallet->ShowProgress.connect(boost::bind(ShowProgress, this, boost::placeholders::_1, boost::placeholders::_2));
-    wallet->NotifyWatchonlyChanged.connect(boost::bind(NotifyWatchonlyChanged, this, boost::placeholders::_1));
+    wallet->NotifyStatusChanged.connect(boost::bind(&NotifyKeyStoreStatusChanged, this, _1));
+    wallet->NotifyAddressBookChanged.connect(boost::bind(NotifyAddressBookChanged, this, _1, _2, _3, _4, _5, _6));
+    wallet->NotifyTransactionChanged.connect(boost::bind(NotifyTransactionChanged, this, _1, _2, _3));
+    wallet->NotifyMyRestrictedAssetsChanged.connect(boost::bind(NotifyMyRestrictedAssetChanged, this, _1, _2, _3, _4, _5));
+    wallet->ShowProgress.connect(boost::bind(ShowProgress, this, _1, _2));
+    wallet->NotifyWatchonlyChanged.connect(boost::bind(NotifyWatchonlyChanged, this, _1));
 }
 
 void WalletModel::unsubscribeFromCoreSignals()
 {
     // Disconnect signals from wallet
-    wallet->NotifyStatusChanged.disconnect(boost::bind(&NotifyKeyStoreStatusChanged, this, boost::placeholders::_1));
-    wallet->NotifyAddressBookChanged.disconnect(boost::bind(NotifyAddressBookChanged, this, boost::placeholders::_1, boost::placeholders::_2, boost::placeholders::_3, boost::placeholders::_4, boost::placeholders::_5, boost::placeholders::_6));
-    wallet->NotifyTransactionChanged.disconnect(boost::bind(NotifyTransactionChanged, this, boost::placeholders::_1, boost::placeholders::_2, boost::placeholders::_3));
-    wallet->ShowProgress.disconnect(boost::bind(ShowProgress, this, boost::placeholders::_1, boost::placeholders::_2));
-    wallet->NotifyWatchonlyChanged.disconnect(boost::bind(NotifyWatchonlyChanged, this, boost::placeholders::_1));
+    wallet->NotifyStatusChanged.disconnect(boost::bind(&NotifyKeyStoreStatusChanged, this, _1));
+    wallet->NotifyAddressBookChanged.disconnect(boost::bind(NotifyAddressBookChanged, this, _1, _2, _3, _4, _5, _6));
+    wallet->NotifyTransactionChanged.disconnect(boost::bind(NotifyTransactionChanged, this, _1, _2, _3));
+    wallet->NotifyMyRestrictedAssetsChanged.disconnect(boost::bind(NotifyMyRestrictedAssetChanged, this, _1, _2, _3, _4, _5));
+    wallet->ShowProgress.disconnect(boost::bind(ShowProgress, this, _1, _2));
+    wallet->NotifyWatchonlyChanged.disconnect(boost::bind(NotifyWatchonlyChanged, this, _1));
 }
 
 // WalletModel::UnlockContext implementation
@@ -663,7 +685,7 @@ void WalletModel::listCoins(std::map<QString, std::vector<COutput> >& mapCoins) 
     }
 }
 
-/** RVN START */
+/** AVN START */
 // AvailableCoins + LockedCoins grouped by wallet address (put change in one group with wallet address)
 void WalletModel::listAssets(std::map<QString, std::map<QString, std::vector<COutput> > >& mapCoins) const
 {
@@ -689,7 +711,7 @@ void WalletModel::listAssets(std::map<QString, std::map<QString, std::vector<COu
         }
     }
 }
-/** RVN END */
+/** AVN END */
 
 bool WalletModel::isLockedCoin(uint256 hash, unsigned int n) const
 {
@@ -781,15 +803,15 @@ bool WalletModel::bumpFee(uint256 hash)
 //    questionString.append("<tr><td>");
 //    questionString.append(tr("Current fee:"));
 //    questionString.append("</td><td>");
-//    questionString.append(RavenUnits::formatHtmlWithUnit(getOptionsModel()->getDisplayUnit(), oldFee));
+//    questionString.append(AvianUnits::formatHtmlWithUnit(getOptionsModel()->getDisplayUnit(), oldFee));
 //    questionString.append("</td></tr><tr><td>");
 //    questionString.append(tr("Increase:"));
 //    questionString.append("</td><td>");
-//    questionString.append(RavenUnits::formatHtmlWithUnit(getOptionsModel()->getDisplayUnit(), newFee - oldFee));
+//    questionString.append(AvianUnits::formatHtmlWithUnit(getOptionsModel()->getDisplayUnit(), newFee - oldFee));
 //    questionString.append("</td></tr><tr><td>");
 //    questionString.append(tr("New fee:"));
 //    questionString.append("</td><td>");
-//    questionString.append(RavenUnits::formatHtmlWithUnit(getOptionsModel()->getDisplayUnit(), newFee));
+//    questionString.append(AvianUnits::formatHtmlWithUnit(getOptionsModel()->getDisplayUnit(), newFee));
 //    questionString.append("</td></tr></table>");
 //    SendConfirmationDialog confirmationDialog(tr("Confirm fee bump"), questionString);
 //    confirmationDialog.exec();
@@ -837,6 +859,52 @@ bool WalletModel::isWalletEnabled()
 bool WalletModel::hdEnabled() const
 {
     return wallet->IsHDEnabled();
+}
+
+bool WalletModel::hd44Enabled() const
+{
+    return wallet->IsBip44Enabled();
+}
+
+QString WalletModel::getMyWords() const
+{
+    LOCK2(cs_main, wallet->cs_wallet);
+
+    // Check for bip44
+    if (!wallet->GetHDChain().IsBip44())
+        return tr("Error: Wallet doesn't have 12 words. Only new wallets generated by the mnemonic phrase will have 12 words");
+
+    // Check locked
+    if (wallet->IsLocked())
+        return tr("Error: Wallet locked");
+
+    std::vector<unsigned char> vchWords;
+    std::vector<unsigned char> vchPassphrase;
+    std::vector<unsigned char> vchSeed;
+    uint256 hash;
+
+    // Populate
+    wallet->GetBip39Data(hash, vchWords, vchPassphrase, vchSeed);
+
+    // Handle words.
+    QString myWords = tr("Words:");
+    myWords.append("\n");
+    for (const auto &w : vchWords) myWords.append(w);
+    myWords.append("\n");
+    
+    // Handle passphrase.
+    QString myPass = tr("Passphrase:");
+    const int myPass_isize = myPass.size();
+
+    for (const auto &p : vchPassphrase) myPass.append(p);
+
+    // Add Passphrase if bigger than initialized.
+    if (myPass_isize < myPass.size())
+        myWords.append(myPass);
+    
+    // Lock wallet - we got what we wanted.
+    wallet->Lock();
+    return myWords;
 }
 
 int WalletModel::getDefaultConfirmTarget() const

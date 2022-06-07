@@ -1,11 +1,11 @@
 // Copyright (c) 2011-2016 The Bitcoin Core developers
-// Copyright (c) 2017 The Raven Core developers
+// Copyright (c) 2017-2019 The Raven Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include "paymentserver.h"
 
-#include "ravenunits.h"
+#include "avianunits.h"
 #include "guiutil.h"
 #include "optionsmodel.h"
 
@@ -23,7 +23,6 @@
 #include <QApplication>
 #include <QByteArray>
 #include <QDataStream>
-#include <QDateTime>
 #include <QDebug>
 #include <QFile>
 #include <QFileOpenEvent>
@@ -47,15 +46,15 @@
 #include <QUrlQuery>
 #endif
 
-const int RAVEN_IPC_CONNECT_TIMEOUT = 1000; // milliseconds
-const QString RAVEN_IPC_PREFIX("avian:");
+const int AVIAN_IPC_CONNECT_TIMEOUT = 1000; // milliseconds
+const QString AVIAN_IPC_PREFIX("avian:");
 // BIP70 payment protocol messages
 const char* BIP70_MESSAGE_PAYMENTACK = "PaymentACK";
 const char* BIP70_MESSAGE_PAYMENTREQUEST = "PaymentRequest";
 // BIP71 payment protocol media types
-const char* BIP71_MIMETYPE_PAYMENT = "application/raven-payment";
-const char* BIP71_MIMETYPE_PAYMENTACK = "application/raven-paymentack";
-const char* BIP71_MIMETYPE_PAYMENTREQUEST = "application/raven-paymentrequest";
+const char* BIP71_MIMETYPE_PAYMENT = "application/avian-payment";
+const char* BIP71_MIMETYPE_PAYMENTACK = "application/avian-paymentack";
+const char* BIP71_MIMETYPE_PAYMENTREQUEST = "application/avian-paymentrequest";
 
 struct X509StoreDeleter {
       void operator()(X509_STORE* b) {
@@ -79,7 +78,7 @@ namespace // Anon namespace
 //
 static QString ipcServerName()
 {
-    QString name("RavenQt");
+    QString name("AvianQt");
 
     // Append a simple hash of the datadir
     // Note that GetDataDir(true) returns a different path
@@ -132,15 +131,16 @@ void PaymentServer::LoadRootCAs(X509_STORE* _store)
     }
 
     QList<QSslCertificate> certList;
+    QSslConfiguration qSslConfiguration;
 
     if (certFile != "-system-") {
             qDebug() << QString("PaymentServer::%1: Using \"%2\" as trusted root certificate.").arg(__func__).arg(certFile);
 
         certList = QSslCertificate::fromPath(certFile);
         // Use those certificates when fetching payment requests, too:
-        QSslSocket::setDefaultCaCertificates(certList);
+        qSslConfiguration.setCaCertificates(certList);
     } else
-        certList = QSslSocket::systemCaCertificates();
+        certList = qSslConfiguration.systemCaCertificates();
 
     int nRootCerts = 0;
     const QDateTime currentTime = QDateTime::currentDateTime();
@@ -212,12 +212,12 @@ void PaymentServer::ipcParseCommandLine(int argc, char* argv[])
         // network as that would require fetching and parsing the payment request.
         // That means clicking such an URI which contains a testnet payment request
         // will start a mainnet instance and throw a "wrong network" error.
-        if (arg.startsWith(RAVEN_IPC_PREFIX, Qt::CaseInsensitive)) // avian: URI
+        if (arg.startsWith(AVIAN_IPC_PREFIX, Qt::CaseInsensitive)) // avian: URI
         {
             savedPaymentRequests.append(arg);
 
             SendCoinsRecipient r;
-            if (GUIUtil::parseRavenURI(arg, &r) && !r.address.isEmpty())
+            if (GUIUtil::parseAvianURI(arg, &r) && !r.address.isEmpty())
             {
                 auto tempChainParams = CreateChainParams(CBaseChainParams::MAIN);
 
@@ -270,7 +270,7 @@ bool PaymentServer::ipcSendCommandLine()
     {
         QLocalSocket* socket = new QLocalSocket();
         socket->connectToServer(ipcServerName(), QIODevice::WriteOnly);
-        if (!socket->waitForConnected(RAVEN_IPC_CONNECT_TIMEOUT))
+        if (!socket->waitForConnected(AVIAN_IPC_CONNECT_TIMEOUT))
         {
             delete socket;
             socket = nullptr;
@@ -285,7 +285,7 @@ bool PaymentServer::ipcSendCommandLine()
 
         socket->write(block);
         socket->flush();
-        socket->waitForBytesWritten(RAVEN_IPC_CONNECT_TIMEOUT);
+        socket->waitForBytesWritten(AVIAN_IPC_CONNECT_TIMEOUT);
         socket->disconnectFromServer();
 
         delete socket;
@@ -406,17 +406,13 @@ void PaymentServer::handleURIOrFile(const QString& s)
         return;
     }
 
-    if (s.startsWith(RAVEN_IPC_PREFIX, Qt::CaseInsensitive)) // avian: URI
+    if (s.startsWith(AVIAN_IPC_PREFIX, Qt::CaseInsensitive)) // avian: URI
     {
-#if QT_VERSION < 0x050000
-        QUrl uri(s);
-#else
         QUrlQuery uri((QUrl(s)));
-#endif
         if (uri.hasQueryItem("r")) // payment request URI
         {
             QByteArray temp;
-            temp.append(uri.queryItemValue("r"));
+            temp.append(uri.queryItemValue("r").toUtf8());
             QString decoded = QUrl::fromPercentEncoding(temp);
             QUrl fetchUrl(decoded, QUrl::StrictMode);
 
@@ -438,7 +434,7 @@ void PaymentServer::handleURIOrFile(const QString& s)
         else // normal URI
         {
             SendCoinsRecipient recipient;
-            if (GUIUtil::parseRavenURI(s, &recipient))
+            if (GUIUtil::parseAvianURI(s, &recipient))
             {
                 if (!IsValidDestinationString(recipient.address.toStdString())) {
                     Q_EMIT message(tr("URI handling"), tr("Invalid payment address %1").arg(recipient.address),
@@ -570,7 +566,7 @@ bool PaymentServer::processPaymentRequest(const PaymentRequestPlus& request, Sen
             return false;
         }
 
-        // Raven amounts are stored as (optional) uint64 in the protobuf messages (see paymentrequest.proto),
+        // Avian amounts are stored as (optional) uint64 in the protobuf messages (see paymentrequest.proto),
         // but CAmount is defined as int64_t. Because of that we need to verify that amounts are in a valid range
         // and no overflow has happened.
         if (!verifyAmount(sendingTo.second)) {
@@ -582,7 +578,7 @@ bool PaymentServer::processPaymentRequest(const PaymentRequestPlus& request, Sen
         CTxOut txOut(sendingTo.second, sendingTo.first);
         if (IsDust(txOut, ::dustRelayFee)) {
             Q_EMIT message(tr("Payment request error"), tr("Requested payment amount of %1 is too small (considered dust).")
-                .arg(RavenUnits::formatWithUnit(optionsModel->getDisplayUnit(), sendingTo.second)),
+                .arg(AvianUnits::formatWithUnit(optionsModel->getDisplayUnit(), sendingTo.second)),
                 CClientUIInterface::MSG_ERROR);
 
             return false;
@@ -661,7 +657,11 @@ void PaymentServer::fetchPaymentACK(CWallet* wallet, const SendCoinsRecipient& r
         }
     }
 
+#if GOOGLE_PROTOBUF_VERSION < 3011001
     int length = payment.ByteSize();
+#else
+    int length = payment.ByteSizeLong();
+#endif
     netRequest.setHeader(QNetworkRequest::ContentLengthHeader, length);
     QByteArray serData(length, '\0');
     if (payment.SerializeToArray(serData.data(), length)) {

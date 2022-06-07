@@ -1,6 +1,7 @@
 // Copyright (c) 2010 Satoshi Nakamoto
 // Copyright (c) 2009-2016 The Bitcoin Core developers
 // Copyright (c) 2017 The Raven Core developers
+// Copyright (c) 2021 The Avian Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -145,22 +146,28 @@ public:
 
         // Crow Algo consensus
         consensus.powForkTime = 1638847407;                 // Time of PoW hash method change (Dec 06 2021)
+        consensus.lwmaAveragingWindow = 45;                 // Averaging window size for LWMA diff adjust
         consensus.diffRetargetFix = 275109;                 // Block for diff algo fix
         consensus.diffRetargetTake2 = 1639269000;           // Third iteration of diff retargetter fix
-        consensus.lwmaAveragingWindow = 45;                 // Averaging window size for LWMA diff adjust
 
-	// until "LWMA3" retarget algo, only "00000fff..." was used. these will apply once LWMA3 goes live
+	    // until "LWMA3" retarget algo, only "00000fff..." was used. these will apply once LWMA3 goes live
         consensus.powTypeLimits.emplace_back(uint256S("00000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"));   // x16rt limit
         consensus.powTypeLimits.emplace_back(uint256S("000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"));   // Crow limit
 
         // x16rt switch
         consensus.nX16rtTimestamp = 1638748799;
 
+        // Avian Assets
+        consensus.nAssetActivationTime = 999999999999ULL; // TODO
+
+        // Avian Flight Plans
+        consensus.nFlightPlansActivationTime = 999999999999ULL; // TODO
+
         // The best chain should have at least this much work.
         consensus.nMinimumChainWork = uint256S("0x0000000000000000000000000000000000000000000000000000000000000002");
 
         // By default assume that the signatures in ancestors of this block are valid.
-        consensus.defaultAssumeValid = uint256S("0x0000e7f2b2ae2e3ccbb2349034770709d50dc21ca6809823dbe123d989d97f6c");
+        consensus.defaultAssumeValid = uint256S("0x00000000006cd2496fb78aedbd6524c8b1993589097fb848740e37eeab651682");
 
 
         // The best chain should have at least this much work.
@@ -207,6 +214,9 @@ public:
         base58Prefixes[EXT_PUBLIC_KEY] = {0x04, 0x88, 0xB2, 0x1E};
         base58Prefixes[EXT_SECRET_KEY] = {0x04, 0x88, 0xAD, 0xE4};
 
+        // Avian BIP44 cointype in mainnet is '175'
+        nExtCoinType = 175;
+
         vFixedSeeds = std::vector<SeedSpec6>(pnSeed6_main, pnSeed6_main + ARRAYLEN(pnSeed6_main));
 
         fDefaultConsistencyChecks = false;
@@ -217,14 +227,18 @@ public:
         checkpointData = (CCheckpointData) {
             {
                 { 0, uint256S("0x000000cdb10fc01df7fba251f2168ef7cd7854b571049db4902c315694461dd0")},
-                { 275972, uint256S("0x0000004ac340f01da45c151990567a90a3c65010511ba7a05f3439a83c878efb")}
+                { 275972, uint256S("0x0000004ac340f01da45c151990567a90a3c65010511ba7a05f3439a83c878efb")},
+                { 508245, uint256S("0x00000000006cd2496fb78aedbd6524c8b1993589097fb848740e37eeab651682")}
             }
         };
 
         chainTxData = ChainTxData{
-	        0,
-            0,
-            0
+            // Update as we know more about the contents of the Avian chain
+            // Stats as of 00000001ce6a1f7137c09b2279fdadc7c23249cef47f666e9df4f6c16187598d block 770056
+            1654373937, // * UNIX timestamp of last known number of transactions
+            1057391,     // * total number of transactions between genesis and that timestamp
+                        //   (the tx=... number in the SetBestChain debug.log lines)
+            0.022        // * estimated number of transactions per second after that timestamp
         };
 
         /** AVN Start **/
@@ -233,14 +247,24 @@ public:
         nReissueAssetBurnAmount = 100 * COIN;
         nIssueSubAssetBurnAmount = 100 * COIN;
         nIssueUniqueAssetBurnAmount = 5 * COIN;
+        nIssueMsgChannelAssetBurnAmount = 100 * COIN;
+        nIssueQualifierAssetBurnAmount = 1000 * COIN;
+        nIssueSubQualifierAssetBurnAmount = 100 * COIN;
+        nIssueRestrictedAssetBurnAmount = 1500 * COIN;
+        nAddNullQualifierTagBurnAmount = .1 * COIN;
 
         // Burn Addresses
         strIssueAssetBurnAddress = "RXissueAssetXXXXXXXXXXXXXXXXXhhZGt";
         strReissueAssetBurnAddress = "RXReissueAssetXXXXXXXXXXXXXXVEFAWu";
         strIssueSubAssetBurnAddress = "RXissueSubAssetXXXXXXXXXXXXXWcwhwL";
         strIssueUniqueAssetBurnAddress = "RXissueUniqueAssetXXXXXXXXXXWEAe58";
+        strIssueMsgChannelAssetBurnAddress = "RXissueMsgChanneLAssetXXXXXXSjHvAY";
+        strIssueQualifierAssetBurnAddress = "RXissueQuaLifierXXXXXXXXXXXXUgEDbC";
+        strIssueSubQualifierAssetBurnAddress = "RXissueSubQuaLifierXXXXXXXXXVTzvv5";
+        strIssueRestrictedAssetBurnAddress = "RXissueRestrictedXXXXXXXXXXXXzJZ1q";
+        strAddNullQualifierTagBurnAddress = "RXaddTagBurnXXXXXXXXXXXXXXXXZQm5ya";
 
-        //Global Burn Address
+        // Global Burn Address
         strGlobalBurnAddress = "RXBurnXXXXXXXXXXXXXXXXXXXXXXWUo9FV";
 
         // DGW Activation
@@ -249,6 +273,12 @@ public:
         nMaxReorganizationDepth = 60; // 60 at 1 minute block timespan is +/- 60 minutes.
         nMinReorganizationPeers = 4;
         nMinReorganizationAge = 60 * 60 * 12; // 12 hours
+
+        // TODO: Assets, Messaging, Restricted
+        // nAssetActivationHeight = 9999999999; // Asset activated block height
+        // nMessagingActivationBlock = 9999999999; // Messaging activated block height
+        // nRestrictedActivationBlock = 9999999999; // Restricted activated block height
+
         /** AVN End **/
     }
 };
@@ -275,11 +305,11 @@ public:
         consensus.nRuleChangeActivationThreshold = 1310; // Approx 65% for testchains
         consensus.nMinerConfirmationWindow = 2016; // nPowTargetTimespan / nPowTargetSpacing
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].bit = 28;
-        consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nStartTime = 1199145601; // January 1, 2008
-        consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nTimeout = 1230767999; // December 31, 2008
-        consensus.vDeployments[Consensus::DEPLOYMENT_ASSETS].bit = 5;
-        consensus.vDeployments[Consensus::DEPLOYMENT_ASSETS].nStartTime = 1540944000; // Oct 31, 2018
-        consensus.vDeployments[Consensus::DEPLOYMENT_ASSETS].nTimeout = 1572480000; // Oct 31, 2019
+        consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nStartTime = 0;
+        consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nTimeout = 999999999999ULL;
+        consensus.vDeployments[Consensus::DEPLOYMENT_ASSETS].bit = 6;
+        consensus.vDeployments[Consensus::DEPLOYMENT_ASSETS].nStartTime = 0;
+        consensus.vDeployments[Consensus::DEPLOYMENT_ASSETS].nTimeout = 999999999999ULL;
 
         // Crow Algo Deployment (testnet)
         consensus.vDeployments[Consensus::DEPLOYMENT_CROW].bit = 7;
@@ -288,8 +318,8 @@ public:
 
         // Crow Algo consensus
         consensus.powForkTime = 1639005225;                 // Time of PoW hash method change
-        consensus.diffRetargetFix = 0;                      // Block of diff algo change
         consensus.lwmaAveragingWindow = 45;                 // Averaging window size for LWMA diff adjust
+        consensus.diffRetargetFix = 0;                      // Block of diff algo change
         consensus.diffRetargetTake2 = 1639269000;           // Third iteration of LWMA retarget activation timestamp
 
         consensus.powTypeLimits.emplace_back(uint256S("00000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"));   // x16rt limit
@@ -298,11 +328,17 @@ public:
         // testnet x16rt switch
         consensus.nX16rtTimestamp = 1634101200; // Oct 13, 2021 
 
+        // Avian Assets
+        consensus.nAssetActivationTime = 1645104453; // Feb 17, 2022
+
+        // Avian Flight Plans
+        consensus.nFlightPlansActivationTime = 1645104453; // Feb 17, 2022
+
         // The best chain should have at least this much work.
         consensus.nMinimumChainWork = uint256S("0x0000000000000000000000000000000000000000000000000000000000000002");
 
         // By default assume that the signatures in ancestors of this block are valid.
-        consensus.defaultAssumeValid = uint256S("0x0000e7f2b2ae2e3ccbb2349034770709d50dc21ca6809823dbe123d989d97f6c");
+        consensus.defaultAssumeValid = uint256S("0x00016603365e3252687eeb7a309d9d6b903b81239d9bce670286a7a9d26131b9");
 
 
         pchMessageStart[0] = 0x52; // R
@@ -318,7 +354,6 @@ public:
         assert(consensus.hashGenesisBlock == uint256S("0x00000084af22998d2aed78cc29f1fa587f854150ccd2991dfc82241c8f049219"));
         assert(genesis.hashMerkleRoot == uint256S("0x63d9b6b6b549a2d96eb5ac4eb2ab80761e6d7bffa9ae1a647191e08d6416184d"));
 
-
         vFixedSeeds.clear();
         vSeeds.clear();
 
@@ -327,6 +362,9 @@ public:
         base58Prefixes[SECRET_KEY] =     std::vector<unsigned char>(1,239);
         base58Prefixes[EXT_PUBLIC_KEY] = {0x04, 0x35, 0x87, 0xCF};
         base58Prefixes[EXT_SECRET_KEY] = {0x04, 0x35, 0x83, 0x94};
+
+        // Avian BIP44 cointype in testnet
+        nExtCoinType = 1;
 
         vFixedSeeds = std::vector<SeedSpec6>(pnSeed6_test, pnSeed6_test + ARRAYLEN(pnSeed6_test));
 
@@ -342,24 +380,36 @@ public:
         };
 
         chainTxData = ChainTxData{
-	        0,
-            0,
-            0
+            // Update as we know more about the contents of the Avian chain
+            // Stats as of 0000cd2943664b4bda8be6e80351f9ff022475ae6a341a868babc4efd846000d block 42000
+            1654349227, // * UNIX timestamp of last known number of transactions
+            66085,     // * total number of transactions between genesis and that timestamp
+                       //   (the tx=... number in the SetBestChain debug.log lines)
+            0.001      // * estimated number of transactions per second after that timestamp
         };
 	    
         /** AVN Start **/
-
         // Burn Amounts
         nIssueAssetBurnAmount = 500 * COIN;
         nReissueAssetBurnAmount = 100 * COIN;
         nIssueSubAssetBurnAmount = 100 * COIN;
         nIssueUniqueAssetBurnAmount = 5 * COIN;
+        nIssueMsgChannelAssetBurnAmount = 100 * COIN;
+        nIssueQualifierAssetBurnAmount = 1000 * COIN;
+        nIssueSubQualifierAssetBurnAmount = 100 * COIN;
+        nIssueRestrictedAssetBurnAmount = 1500 * COIN;
+        nAddNullQualifierTagBurnAmount = .1 * COIN;
 
         // Burn Addresses
         strIssueAssetBurnAddress = "n1issueAssetXXXXXXXXXXXXXXXXWdnemQ";
         strReissueAssetBurnAddress = "n1ReissueAssetXXXXXXXXXXXXXXWG9NLd";
         strIssueSubAssetBurnAddress = "n1issueSubAssetXXXXXXXXXXXXXbNiH6v";
         strIssueUniqueAssetBurnAddress = "n1issueUniqueAssetXXXXXXXXXXS4695i";
+        strIssueMsgChannelAssetBurnAddress = "n1issueMsgChanneLAssetXXXXXXT2PBdD";
+        strIssueQualifierAssetBurnAddress = "n1issueQuaLifierXXXXXXXXXXXXUysLTj";
+        strIssueSubQualifierAssetBurnAddress = "n1issueSubQuaLifierXXXXXXXXXYffPLh";
+        strIssueRestrictedAssetBurnAddress = "n1issueRestrictedXXXXXXXXXXXXZVT9V";
+        strAddNullQualifierTagBurnAddress = "n1addTagBurnXXXXXXXXXXXXXXXXX5oLMH";
 
         // Global Burn Address
         strGlobalBurnAddress = "n1BurnXXXXXXXXXXXXXXXXXXXXXXU1qejP";
@@ -370,6 +420,10 @@ public:
         nMaxReorganizationDepth = 60; // 60 at 1 minute block timespan is +/- 60 minutes.
         nMinReorganizationPeers = 4;
         nMinReorganizationAge = 60 * 60 * 12; // 12 hours
+
+        nAssetActivationHeight = 0; // Asset activated block height
+        nMessagingActivationBlock = 0; // Messaging activated block height
+        nRestrictedActivationBlock = 0; // Restricted activated block height
         /** AVN End **/
     }
 };
@@ -401,8 +455,25 @@ public:
         consensus.vDeployments[Consensus::DEPLOYMENT_ASSETS].nStartTime = 0;
         consensus.vDeployments[Consensus::DEPLOYMENT_ASSETS].nTimeout = 999999999999ULL;
 
+        // Crow Algo Deployment (testnet)
+        consensus.vDeployments[Consensus::DEPLOYMENT_CROW].bit = 7;
+        consensus.vDeployments[Consensus::DEPLOYMENT_CROW].nStartTime = 0;
+        consensus.vDeployments[Consensus::DEPLOYMENT_CROW].nTimeout = 999999999999ULL;
+
+        // Crow Algo consensus
+        consensus.powForkTime = 1;                 // Time of PoW hash method change
+        consensus.lwmaAveragingWindow = 45;        // Averaging window size for LWMA diff adjust
+        consensus.diffRetargetFix = 1;             // Block of diff algo change
+        consensus.diffRetargetTake2 = 1;           // Third iteration of LWMA retarget activation timestamp
+
         // regtest x16rt switch (genesis +1)
         consensus.nX16rtTimestamp = 1629951212;
+
+        // Avian Assets
+        consensus.nAssetActivationTime = 1;
+
+        // Avian Flight Plans
+        consensus.nFlightPlansActivationTime = 1;
 
         // The best chain should have at least this much work.
         consensus.nMinimumChainWork = uint256S("0x00");
@@ -508,19 +579,31 @@ public:
         base58Prefixes[EXT_PUBLIC_KEY] = {0x04, 0x35, 0x87, 0xCF};
         base58Prefixes[EXT_SECRET_KEY] = {0x04, 0x35, 0x83, 0x94};
 
-        /** AVN Start **/
+        // Avian BIP44 cointype in testnet
+        nExtCoinType = 1;
 
+        /** AVN Start **/
         // Burn Amounts
         nIssueAssetBurnAmount = 500 * COIN;
         nReissueAssetBurnAmount = 100 * COIN;
         nIssueSubAssetBurnAmount = 100 * COIN;
         nIssueUniqueAssetBurnAmount = 5 * COIN;
+        nIssueMsgChannelAssetBurnAmount = 100 * COIN;
+        nIssueQualifierAssetBurnAmount = 1000 * COIN;
+        nIssueSubQualifierAssetBurnAmount = 100 * COIN;
+        nIssueRestrictedAssetBurnAmount = 1500 * COIN;
+        nAddNullQualifierTagBurnAmount = .1 * COIN;
 
         // Burn Addresses
         strIssueAssetBurnAddress = "n1issueAssetXXXXXXXXXXXXXXXXWdnemQ";
         strReissueAssetBurnAddress = "n1ReissueAssetXXXXXXXXXXXXXXWG9NLd";
         strIssueSubAssetBurnAddress = "n1issueSubAssetXXXXXXXXXXXXXbNiH6v";
         strIssueUniqueAssetBurnAddress = "n1issueUniqueAssetXXXXXXXXXXS4695i";
+        strIssueMsgChannelAssetBurnAddress = "n1issueMsgChanneLAssetXXXXXXT2PBdD";
+        strIssueQualifierAssetBurnAddress = "n1issueQuaLifierXXXXXXXXXXXXUysLTj";
+        strIssueSubQualifierAssetBurnAddress = "n1issueSubQuaLifierXXXXXXXXXYffPLh";
+        strIssueRestrictedAssetBurnAddress = "n1issueRestrictedXXXXXXXXXXXXZVT9V";
+        strAddNullQualifierTagBurnAddress = "n1addTagBurnXXXXXXXXXXXXXXXXX5oLMH";
 
         // Global Burn Address
         strGlobalBurnAddress = "n1BurnXXXXXXXXXXXXXXXXXXXXXXU1qejP";
@@ -531,6 +614,10 @@ public:
         nMaxReorganizationDepth = 60; // 60 at 1 minute block timespan is +/- 60 minutes.
         nMinReorganizationPeers = 4;
         nMinReorganizationAge = 60 * 60 * 12; // 12 hours
+
+        nAssetActivationHeight = 0; // Asset activated block height
+        nMessagingActivationBlock = 0; // Messaging activated block height
+        nRestrictedActivationBlock = 0; // Restricted activated block height
         /** AVN End **/
     }
 };

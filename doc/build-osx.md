@@ -1,11 +1,14 @@
-Mac OS X Build Instructions and Notes
+macOS Build Instructions and Notes
 ====================================
 The commands in this guide should be executed in a Terminal application.
-The built-in one is located in `/Applications/Utilities/Terminal.app`.
+The built-in one is located in 
+```
+/Applications/Utilities/Terminal.app
+```
 
 Preparation
 -----------
-Install the OS X command line tools:
+Install the macOS command line tools:
 
 `xcode-select --install`
 
@@ -16,89 +19,99 @@ Then install [Homebrew](https://brew.sh).
 Dependencies
 ----------------------
 
-    brew install automake berkeley-db4 libtool boost --c++11 miniupnpc openssl pkg-config protobuf python3 qt libevent
+    brew install automake berkeley-db4 libtool boost miniupnpc openssl@1.1 pkg-config protobuf python qt libevent qrencode
 
+If you run into issues, check [Homebrew's troubleshooting page](https://docs.brew.sh/Troubleshooting).
 See [dependencies.md](dependencies.md) for a complete overview.
 
-If you want to build the disk image with `make deploy` (.dmg / optional), you need RSVG
+If you want to build the disk image with `make deploy` (.dmg / optional), you need RSVG:
+```shell
+brew install librsvg
+```
 
-    brew install librsvg
+## Berkeley DB
+It is recommended to use Berkeley DB 4.8. If you have to build it yourself,
+you can use [this](/contrib/install_db4.sh) script to install it
+like so:
 
-NOTE: Building with Qt4 is still supported, however, could result in a broken UI. Building with Qt5 is recommended.
+```shell
+./contrib/install_db4.sh .
+```
 
-NOTE: At this time it is highly recommended that developers wishing to compile the Raven Core binaries **DO NOT** upgrade to 
-OS X Mojave Beta 10.14.  Currently there is a compatibility issue with OS X Mojave, Command-Line-Tools 10.0.0 (clang), and 
-Berkeley-db version 4.8.3.  Binaries compiled using this combination will crash with a segmentation-fault during initialization. 
-Binaries compiled by previous versions will run on OS X Mojave with no-known issues.  It is possible to work-around this issue by 
-upgrading Berkeley-db to version 18.1.25 or newer (currently 18.1.25 is the only known version to work).  To compile and run with 
-newer versions of Berkeley-db it is recommended that Berkeley-db 4.8.3 be uninstalled and the latest version installed.  There are 
-unknown wallet compatability ramifications to this solution so it is highly recommended that any local wallets be backed-up before
-opening them using binaries compiled with this solution.
+from the root of the repository.
 
-Use the following commands to compile a working version of Raven Core on Mojave (assuming that the instructions in the section "Build 
-Raven Core" has already been followed).  Uninstall Berkeley-db 4.8.3, install the latest version, and _configure_ with the 
-incompatible-bdb flag:
+**Note**: You only need Berkeley DB if the wallet is enabled (see [*Disable-wallet mode*](/doc/build-osx.md#disable-wallet-mode)).
 
-    brew remove berkeley-db@4
-    brew install bekeley-db
-    ./autogen.sh
-    ./configure --with-incompatible-bdb
-    make
+## Build Avian Core
 
+1. Clone the Avian Core source code:
+    ```shell
+    git clone https://github.com/AvianNetwork/Avian
+    cd Avian
+    ```
 
-Build Raven Core
-------------------------
+2.  Build avian-core:
 
-1. Clone the raven source code and cd into `raven`
-
-        git clone https://github.com/RavenProject/Ravencoin
-        cd Ravencoin
-
-2.  Build raven-core:
-
-    Configure and build the headless raven binaries as well as the GUI (if Qt is found).
+    Configure and build the headless avian binaries as well as the GUI (if Qt is found).
 
     You can disable the GUI build by passing `--without-gui` to configure.
-
-        ./autogen.sh
-        ./configure
-        make
+    ```shell
+    ./autogen.sh
+    ./configure
+    make
+    ```
 
 3.  It is recommended to build and run the unit tests:
+    ```shell
+    make check
+    ```
 
-        make check
+4.  You can also create a  `.dmg` that contains the `.app` bundle (optional):
+    ```shell
+    make deploy
+    ```
 
-4.  You can also create a .dmg that contains the .app bundle (optional):
+## `disable-wallet` mode
+When the intention is to run only a P2P node without a wallet, Avian Core may be
+compiled in `disable-wallet` mode with:
+```shell
+./configure --disable-wallet
+```
 
-        make deploy
+In this case there is no dependency on Berkeley DB 4.8 and SQLite.
 
-Running
--------
+Mining is also possible in disable-wallet mode using the `getblocktemplate` RPC call.
 
-Raven Core is now available at `./src/aviand`
+## Running
+Avian Core is now available at `./src/aviand`
 
-Before running, it's recommended you create an RPC configuration file.
+Before running, you may create an empty configuration file:
+```shell
+mkdir -p "/Users/${USER}/Library/Application Support/Avian"
 
-    echo -e "rpcuser=ravenrpc\nrpcpassword=$(xxd -l 16 -p /dev/urandom)" > "/Users/${USER}/Library/Application Support/Raven/avian.conf"
+touch "/Users/${USER}/Library/Application Support/Avian/avian.conf"
 
-    chmod 600 "/Users/${USER}/Library/Application Support/Raven/avian.conf"
+chmod 600 "/Users/${USER}/Library/Application Support/Avian/avian.conf"
+```
 
-The first time you run aviand, it will start downloading the blockchain. This process could take several hours.
+The first time you run aviand, it will start downloading the blockchain. This process could
+take many hours, or even days on slower than average systems.
 
 You can monitor the download process by looking at the debug.log file:
-
-    tail -f $HOME/Library/Application\ Support/Raven/debug.log
+```shell
+tail -f $HOME/Library/Application\ Support/Avian/debug.log
+```
 
 Other commands:
 -------
 
-    ./src/aviand -daemon # Starts the raven daemon.
+    ./src/aviand -daemon # Starts the avian daemon.
     ./src/avian-cli --help # Outputs a list of command-line options.
     ./src/avian-cli help # Outputs a list of RPC commands when the daemon is running.
 
 Using Qt Creator as IDE
 ------------------------
-You can use Qt Creator as an IDE, for raven development.
+You can use Qt Creator as an IDE, for avian development.
 Download and install the community edition of [Qt Creator](https://www.qt.io/download/).
 Uncheck everything except Qt Creator during the installation process.
 
@@ -116,7 +129,7 @@ Uncheck everything except Qt Creator during the installation process.
 Notes
 -----
 
-* Tested on OS X 10.8 through 10.14 on 64-bit Intel processors only.
+* Tested on OS X 10.8 through 10.15 on 64-bit Intel processors only.
 
 * Building with downloaded Qt binaries is not officially supported. 
 

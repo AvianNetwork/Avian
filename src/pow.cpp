@@ -1,6 +1,7 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
 // Copyright (c) 2009-2016 The Bitcoin Core developers
 // Copyright (c) 2017 The Raven Core developers
+// Copyright (c) 2021 The Avian Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -81,7 +82,7 @@ unsigned int static DarkGravityWave(const CBlockIndex* pindexLast, const CBlockH
         bnNew = bnPowLimit;
     }
 
-//    LogPrintf("--- diff --- %d: %d\n", pindexLast->nHeight, bnNew.GetCompact());
+    LogPrintf("--- diff --- %d: %d\n", pindexLast->nHeight, bnNew.GetCompact());
 
     return bnNew.GetCompact();
 }
@@ -476,8 +477,14 @@ bool CheckProofOfWork(uint256 hash, unsigned int nBits, const Consensus::Consens
 
     bnTarget.SetCompact(nBits, &fNegative, &fOverflow);
 
+    // Crow: Use highest pow limit for limit check
+    arith_uint256 powLimit = 0;
+    for (int i = 0; i < NUM_BLOCK_TYPES; i++)
+        if (UintToArith256(params.powTypeLimits[i]) > powLimit)
+            powLimit = UintToArith256(params.powTypeLimits[i]);
+
     // Check range
-    if (fNegative || bnTarget == 0 || fOverflow || bnTarget > UintToArith256(params.powLimit))
+    if (fNegative || bnTarget == 0 || fOverflow || bnTarget > powLimit)
         return false;
 
     // Check proof of work matches claimed amount

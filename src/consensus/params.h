@@ -4,8 +4,8 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef RAVEN_CONSENSUS_PARAMS_H
-#define RAVEN_CONSENSUS_PARAMS_H
+#ifndef AVIAN_CONSENSUS_PARAMS_H
+#define AVIAN_CONSENSUS_PARAMS_H
 
 #include "uint256.h"
 #include <cstdint>
@@ -79,7 +79,14 @@ struct ConsensusParams {
     int64_t diffRetargetTake2;
     int64_t lwmaAveragingWindow;        // Averaging window size for LWMA diff adjust
     std::vector<uint256> powTypeLimits; // Limits for each pow type (with future-proofing space; can't pick up NUM_BLOCK_TYPES here)
+
+    // AVN Assets
+    uint32_t nAssetActivationTime;
+
+    // AVN Flight Plans
+    uint32_t nFlightPlansActivationTime;
+
 };
 } // namespace Consensus
 
-#endif // RAVEN_CONSENSUS_PARAMS_H
+#endif // AVIAN_CONSENSUS_PARAMS_H
