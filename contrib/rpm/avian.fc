@@ -1,0 +1,8 @@
+/usr/bin/avian-cli		--	gen_context(system_u:object_r:avian_exec_t,s0)
+/usr/sbin/aviand		--	gen_context(system_u:object_r:avian_exec_t,s0)
+/usr/lib(64)?/avian/aviand		--	gen_context(system_u:object_r:avian_exec_t,s0)
+
+/etc/avian(/.*)?		gen_context(system_u:object_r:avian_conf_t,s0)
+/var/lib/avian(/.*)?		gen_context(system_u:object_r:avian_var_lib_t,s0)
+
+(/var)?/run/aviand(/.*)?   gen_context(system_u:object_r:avian_var_run_t,s0)

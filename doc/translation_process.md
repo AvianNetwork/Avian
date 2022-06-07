@@ -1,28 +1,29 @@
 Translations
 ============
 
-The Raven-Core project has been designed to support multiple localisations. This makes adding new phrases, and completely new languages easily achievable. For managing all application translations, Raven-Core makes use of the Transifex online translation management tool.
+The Avian project has been designed to support multiple localisations. This makes adding new phrases, and completely new languages easily achievable. For managing all application translations, Avian makes use of the Transifex online translation management tool.
 
 ### Helping to translate (using Transifex)
-Transifex is setup to monitor the GitHub repo for updates, and when code containing new translations is found, Transifex will process any changes. It may take several hours after a pull-request has been merged, to appear in the Transifex web interface.
+Currently updating strings in Transifex requires a manual upload of the updated src/qt/locale/avian_en.ts.
+This can easily be automated in the future.
 
-Multiple language support is critical in assisting Raven’s global adoption, and growth. One of Raven’s greatest strengths is cross-border money transfers, any help making that easier is greatly appreciated.
+Multiple language support is critical in assisting Avians global adoption, and growth. One of Avians greatest strengths is cross-border money transfers, any help making that easier is greatly appreciated.
 
-See the [Transifex Raven project](https://www.transifex.com/projects/p/raven/) to assist in translations. You should also join the translation mailing list for announcements - see details below.
+See the [Transifex Avian project](https://www.transifex.com/avian) to assist in translations. You can also join the #translations in [Avian Discord](https://discord.gg/jn6uhur).
 
 ### Writing code with translations
 We use automated scripts to help extract translations in both Qt, and non-Qt source files. It is rarely necessary to manually edit the files in `src/qt/locale/`. The translation source files must adhere to the following format:
-`raven_xx_YY.ts or raven_xx.ts`
+`avian_xx_YY.ts or avian_xx.ts`
 
-`src/qt/locale/raven_en.ts` is treated in a special way. It is used as the source for all other translations. Whenever a string in the source code is changed, this file must be updated to reflect those changes. A custom script is used to extract strings from the non-Qt parts. This script makes use of `gettext`, so make sure that utility is installed (ie, `apt-get install gettext` on Ubuntu/Debian). Once this has been updated, `lupdate` (included in the Qt SDK) is used to update `raven_en.ts`.
+`src/qt/locale/avian_en.ts` is treated in a special way. It is used as the source for all other translations. Whenever a string in the source code is changed, this file must be updated to reflect those changes. A custom script is used to extract strings from the non-Qt parts. This script makes use of `gettext`, so make sure that utility is installed (ie, `apt-get install gettext` on Ubuntu/Debian). Once this has been updated, `lupdate` (included in the Qt SDK) is used to update `avian_en.ts`.
 
-To automatically regenerate the `raven_en.ts` file, run the following commands:
+To automatically regenerate the `avian_en.ts` file, run the following commands:
 ```sh
 cd src/
 make translate
 ```
 
-`contrib/avian-qt.pro` takes care of generating `.qm` (binary compiled) files from `.ts` (source files) files. It’s mostly automated, and you shouldn’t need to worry about it.
+`src/qt/avian_locale.qrc` takes care of generating `.qm` (binary compiled) files from `.ts` (source files) files. It’s mostly automated, and you shouldn’t need to worry about it.
 
 **Example Qt translation**
 ```cpp
@@ -32,18 +33,13 @@ QToolBar *toolbar = addToolBar(tr("Tabs toolbar"));
 ### Creating a pull-request
 For general PRs, you shouldn’t include any updates to the translation source files. They will be updated periodically, primarily around pre-releases, allowing time for any new phrases to be translated before public releases. This is also important in avoiding translation related merge conflicts.
 
-When an updated source file is merged into the GitHub repo, Transifex will automatically detect it (although it can take several hours). Once processed, the new strings will show up as "Remaining" in the Transifex web interface and are ready for translators.
+When an updated source file is uploaded to Transifex the new strings will show up as "Remaining" in the Transifex web interface and are ready for translators.
 
-To create the pull-request, use the following commands:
-```
-git add src/qt/ravenstrings.cpp src/qt/locale/raven_en.ts
-git commit
-```
 
 ### Creating a Transifex account
 Visit the [Transifex Signup](https://www.transifex.com/signup/) page to create an account. Take note of your username and password, as they will be required to configure the command-line tool.
 
-You can find the Raven translation project at [https://www.transifex.com/projects/p/raven/](https://www.transifex.com/projects/p/raven/).
+You can find the Avian translation project at [https://www.transifex.com/avian](https://www.transifex.com/avian).
 
 ### Installing the Transifex client command-line tool
 The client it used to fetch updated translations. If you are having problems, or need more details, see [http://docs.transifex.com/developer/client/setup](http://docs.transifex.com/developer/client/setup)
@@ -68,16 +64,16 @@ username = USERNAME
 
 Please see [http://docs.transifex.com/developer/client/setup#windows](http://docs.transifex.com/developer/client/setup#windows) for details on installation.
 
-The Transifex Raven project config file is included as part of the repo. It can be found at `.tx/config`, however you shouldn’t need change anything.
+The Transifex Avian project config file is included as part of the repo. It can be found at `.tx/config`, however you shouldn’t need change anything.
 
 ### Synchronising translations
 To assist in updating translations, we have created a script to help.
 
 1. `python contrib/devtools/update-translations.py`
-2. Update `src/qt/raven_locale.qrc` manually or via
-   `ls src/qt/locale/*ts|xargs -n1 basename|sed 's/\(raven_\(.*\)\).ts/<file alias="\2">locale\/\1.qm<\/file>/'`
+2. Update `src/qt/avian_locale.qrc` manually or via
+   `ls src/qt/locale/*ts|xargs -n1 basename|sed 's/\(avian_\(.*\)\).ts/<file alias="\2">locale\/\1.qm<\/file>/'`
 3. Update `src/Makefile.qt.include` manually or via
-   `ls src/qt/locale/*ts|xargs -n1 basename|sed 's/\(raven_\(.*\)\).ts/  qt\/locale\/\1.ts \\/'`
+   `ls src/qt/locale/*ts|xargs -n1 basename|sed 's/\(avian_\(.*\)\).ts/  qt\/locale\/\1.ts \\/'`
 4. `git add` new translations from `src/qt/locale/`
 
 **Do not directly download translations** one by one from the Transifex website, as we do a few post-processing steps before committing the translations.
@@ -85,7 +81,7 @@ To assist in updating translations, we have created a script to help.
 ### Handling Plurals (in source files)
 When new plurals are added to the source file, it's important to do the following steps:
 
-1. Open `raven_en.ts` in Qt Linguist (included in the Qt SDK)
+1. Open `avian_en.ts` in Qt Linguist (included in the Qt SDK)
 2. Search for `%n`, which will take you to the parts in the translation that use plurals
 3. Look for empty `English Translation (Singular)` and `English Translation (Plural)` fields
 4. Add the appropriate strings for the singular and plural form of the base string
@@ -94,18 +90,20 @@ When new plurals are added to the source file, it's important to do the followin
 7. Save the source file
 
 ### Translating a new language
-To create a new language template, you will need to edit the languages manifest file `src/qt/raven_locale.qrc` and add a new entry. Below is an example of the English language entry.
+To create a new language template, you will need to edit the languages manifest file `src/qt/avian_locale.qrc` and add a new entry. Below is an example of the English language entry.
 
 ```xml
 <qresource prefix="/translations">
-    <file alias="en">locale/raven_en.qm</file>
+    <file alias="en">locale/avian_en.qm</filer
     ...
 </qresource>
 ```
 
 **Note:** that the language translation file **must end in `.qm`** (the compiled extension), and not `.ts`.
 
-### Questions and general assistance
-The Raven-Core translation maintainers include *tcatm, seone, Diapolo, wumpus and luke-jr*. You can find them, and others, in the Freenode IRC chatroom - `irc.freenode.net #raven-core-dev`.
+This process can be automated by a [script](https://github.com/fdoving/avian-maintainer-tools/blob/master/update-translations.py) in [avian-maintainer-tools](https://github.com/fdoving/avian-maintainer-tools/).
 
-If you are a translator, you should also subscribe to the mailing list, https://groups.google.com/forum/#!forum/raven-translators. Announcements will be posted during application pre-releases to notify translators to check for updates.
+### Questions and general assistance
+The Avian translation maintainers include *fdov and pocal*. You can find them, and others, in #translations in [Avian Discord](https://discord.gg/jn6uhur).
+
+Announcements will be posten in Discord and on the transifex.com [announcements page](https://www.transifex.com/avian/qt-translation/announcements/).

@@ -1,12 +1,12 @@
 // Copyright (c) 2012-2018 The Bitcoin Core developers
 // Copyright (c) 2017 The Raven Core developers
-// Copyright (c) 2021 The Ravencoin Lite Core developers
+// Copyright (c) 2021 The Avian Core developers
 // Copyright (c) 2009-2010 Satoshi Nakamoto
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef RAVEN_HASH_H
-#define RAVEN_HASH_H
+#ifndef AVIAN_HASH_H
+#define AVIAN_HASH_H
 #include <iostream>
 #include <chrono>
 #include "crypto/ripemd160.h"
@@ -309,4 +309,4 @@ extern double algoHashTotal[16];
 extern int algoHashHits[16];
 
 
-#endif // RAVEN_HASH_H
+#endif // AVIAN_HASH_H

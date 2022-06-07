@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>740</width>
-    <height>430</height>
+    <width>875</width>
+    <height>656</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -440,7 +440,7 @@
             <string/>
            </property>
            <property name="icon">
-            <iconset resource="../bitcoin.qrc">
+            <iconset resource="../avian.qrc">
              <normaloff>:/icons/fontsmaller</normaloff>:/icons/fontsmaller</iconset>
            </property>
            <property name="iconSize">
@@ -472,7 +472,7 @@
             <string/>
            </property>
            <property name="icon">
-            <iconset resource="../bitcoin.qrc">
+            <iconset resource="../avian.qrc">
              <normaloff>:/icons/fontbigger</normaloff>:/icons/fontbigger</iconset>
            </property>
            <property name="iconSize">
@@ -507,7 +507,7 @@
             <string/>
            </property>
            <property name="icon">
-            <iconset resource="../bitcoin.qrc">
+            <iconset resource="../avian.qrc">
              <normaloff>:/icons/remove</normaloff>:/icons/remove</iconset>
            </property>
            <property name="shortcut">
@@ -562,7 +562,7 @@
             <string/>
            </property>
            <property name="icon">
-            <iconset resource="../bitcoin.qrc">
+            <iconset resource="../avian.qrc">
              <normaloff>:/icons/prompticon</normaloff>
              <disabledoff>:/icons/prompticon</disabledoff>:/icons/prompticon</iconset>
            </property>
@@ -889,6 +889,9 @@
            <property name="tabKeyNavigation">
             <bool>false</bool>
            </property>
+           <property name="alternatingRowColors">
+            <bool>true</bool>
+           </property>
            <property name="sortingEnabled">
             <bool>true</bool>
            </property>
@@ -913,6 +916,10 @@
              <property name="text">
               <string>Add new peer</string>
              </property>
+             <property name="icon">
+              <iconset resource="../avian.qrc">
+               <normaloff>:/icons/add</normaloff>:/icons/add</iconset>
+             </property>
             </widget>
            </item>
            <item>
@@ -923,6 +930,10 @@
              <property name="text">
               <string>Remove peer</string>
              </property>
+             <property name="icon">
+              <iconset resource="../avian.qrc">
+               <normaloff>:/icons/quit</normaloff>:/icons/quit</iconset>
+             </property>
             </widget>
            </item>
            <item>
@@ -932,6 +943,10 @@
              </property>
              <property name="text">
               <string>One try peer</string>
+             </property>
+             <property name="icon">
+              <iconset resource="../avian.qrc">
+               <normaloff>:/icons/prompticon</normaloff>:/icons/prompticon</iconset>
              </property>
             </widget>
            </item>
@@ -992,6 +1007,9 @@
            </property>
            <property name="tabKeyNavigation">
             <bool>false</bool>
+           </property>
+           <property name="alternatingRowColors">
+            <bool>true</bool>
            </property>
            <property name="sortingEnabled">
             <bool>true</bool>
@@ -1499,7 +1517,7 @@
   </customwidget>
  </customwidgets>
  <resources>
-  <include location="../bitcoin.qrc"/>
+  <include location="../avian.qrc"/>
  </resources>
  <connections/>
 </ui>

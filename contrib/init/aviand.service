@@ -1,0 +1,22 @@
+[Unit]
+Description=Avian's distributed currency daemon
+After=network.target
+
+[Service]
+User=avian
+Group=avian
+
+Type=forking
+PIDFile=/var/lib/aviand/aviand.pid
+ExecStart=/usr/bin/aviand -daemon -pid=/var/lib/aviand/aviand.pid \
+-conf=/etc/avian/avian.conf -datadir=/var/lib/aviand -disablewallet
+
+Restart=always
+PrivateTmp=true
+TimeoutStopSec=60s
+TimeoutStartSec=2s
+StartLimitInterval=120s
+StartLimitBurst=5
+
+[Install]
+WantedBy=multi-user.target

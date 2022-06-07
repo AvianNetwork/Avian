@@ -1,10 +1,10 @@
 // Copyright (c) 2011-2015 The Bitcoin Core developers
-// Copyright (c) 2017 The Raven Core developers
+// Copyright (c) 2017-2019 The Raven Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef RAVEN_QT_OPENURIDIALOG_H
-#define RAVEN_QT_OPENURIDIALOG_H
+#ifndef AVIAN_QT_OPENURIDIALOG_H
+#define AVIAN_QT_OPENURIDIALOG_H
 
 #include <QDialog>
 
@@ -32,4 +32,4 @@ private:
     Ui::OpenURIDialog *ui;
 };
 
-#endif // RAVEN_QT_OPENURIDIALOG_H
+#endif // AVIAN_QT_OPENURIDIALOG_H

@@ -1,16 +1,16 @@
 // Copyright (c) 2011-2016 The Bitcoin Core developers
-// Copyright (c) 2017 The Raven Core developers
+// Copyright (c) 2017-2019 The Raven Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef RAVEN_QT_WALLETVIEW_H
-#define RAVEN_QT_WALLETVIEW_H
+#ifndef AVIAN_QT_WALLETVIEW_H
+#define AVIAN_QT_WALLETVIEW_H
 
 #include "amount.h"
 
 #include <QStackedWidget>
 
-class RavenGUI;
+class AvianGUI;
 class ClientModel;
 class OverviewPage;
 class PlatformStyle;
@@ -24,6 +24,8 @@ class ImportKeysDialog;
 class AssetsDialog;
 class CreateAssetDialog;
 class ReissueAssetDialog;
+class RestrictedAssetsDialog;
+class WrapPage;
 
 QT_BEGIN_NAMESPACE
 class QModelIndex;
@@ -44,13 +46,13 @@ public:
     explicit WalletView(const PlatformStyle *platformStyle, QWidget *parent);
     ~WalletView();
 
-    void setRavenGUI(RavenGUI *gui);
+    void setAvianGUI(AvianGUI *gui);
     /** Set the client model.
         The client model represents the part of the core that communicates with the P2P network, and is wallet-agnostic.
     */
     void setClientModel(ClientModel *clientModel);
     /** Set the wallet model.
-        The wallet model represents a raven wallet, and offers access to the list of transactions, address book and sending
+        The wallet model represents a avian wallet, and offers access to the list of transactions, address book and sending
         functionality.
     */
     void setWalletModel(WalletModel *walletModel);
@@ -81,6 +83,8 @@ private:
     AssetsDialog *assetsPage;
     CreateAssetDialog *createAssetsPage;
     ReissueAssetDialog *manageAssetsPage;
+    RestrictedAssetsDialog *restrictedAssetsPage;
+    WrapPage *wrapPage;
     /** AVN END */
 
 public Q_SLOTS:
@@ -113,16 +117,20 @@ public Q_SLOTS:
     void changePassphrase();
     /** Ask for passphrase to unlock wallet temporarily */
     void unlockWallet();
+
     /** Open the print paper wallets dialog **/
     void printPaperWallets();
+
+    /** Import private key dialog **/
+    void importPrivateKey();
+
+    /** Show 12-words */
+    void getMyWords();
 
     /** Show used sending addresses */
     void usedSendingAddresses();
     /** Show used receiving addresses */
     void usedReceivingAddresses();
-
-    /** Import a private key */
-    void importPrivateKey();
 
     /** Re-emit encryption status signal */
     void updateEncryptionStatus();
@@ -134,12 +142,18 @@ public Q_SLOTS:
     void requestedSyncWarningInfo();
 
 
-    /** RVN START */
+    /** AVN START */
     /** Switch to assets page */
+
     void gotoAssetsPage();
     void gotoCreateAssetsPage();
     void gotoManageAssetsPage();
-    /** RVN END */
+    void gotoRestrictedAssetsPage();
+
+    /** Wrap page */
+    void gotoWrapPage();
+
+    /** AVN END */
 
 Q_SIGNALS:
     /** Signal that we want to show the main window */
@@ -158,4 +172,4 @@ Q_SIGNALS:
     void checkAssets();
 };
 
-#endif // RAVEN_QT_WALLETVIEW_H
+#endif // AVIAN_QT_WALLETVIEW_H

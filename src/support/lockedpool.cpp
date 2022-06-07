@@ -1,5 +1,5 @@
 // Copyright (c) 2016 The Bitcoin Core developers
-// Copyright (c) 2017 The Raven Core developers
+// Copyright (c) 2017-2019 The Raven Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -231,11 +231,6 @@ void *PosixLockedPageAllocator::AllocateLocked(size_t len, bool *lockingSuccess)
     addr = mmap(nullptr, len, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0);
     if (addr) {
         *lockingSuccess = mlock(addr, len) == 0;
-#if defined(MADV_DONTDUMP) // Linux
-        madvise(addr, len, MADV_DONTDUMP); 
-#elif defined(MADV_NOCORE) // FreeBSD
-        madvise(addr, len, MADV_NOCORE);
-#endif
     }
     return addr;
 }

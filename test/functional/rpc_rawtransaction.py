@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 # Copyright (c) 2014-2016 The Bitcoin Core developers
-# Copyright (c) 2017-2018 The Raven Core developers
+# Copyright (c) 2017-2020 The Raven Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
-"""Test the rawtransaction RPCs.
+
+"""
+Test the rawtransaction RPCs.
 
 Test the following RPCs:
    - createrawtransaction
@@ -13,11 +15,11 @@ Test the following RPCs:
    - getrawtransaction
 """
 
-from test_framework.test_framework import RavenTestFramework
-from test_framework.util import *
+from test_framework.test_framework import AvianTestFramework
+from test_framework.util import connect_nodes_bi, assert_raises_rpc_error, assert_equal, Decimal
 
 # Create one-input, one-output, no-fee transaction:
-class RawTransactionsTest(RavenTestFramework):
+class RawTransactionsTest(AvianTestFramework):
     def set_test_params(self):
         self.setup_clean_chain = True
         self.num_nodes = 3
@@ -66,8 +68,8 @@ class RawTransactionsTest(RavenTestFramework):
         #use balance deltas instead of absolute values
         bal = self.nodes[2].getbalance()
 
-        # send 1.2 RVN to msig adr
-        txId = self.nodes[0].sendtoaddress(mSigObj, 1.2)
+        # send 1.2 AVN to msig adr
+        self.nodes[0].sendtoaddress(mSigObj, 1.2)
         self.sync_all()
         self.nodes[0].generate(1)
         self.sync_all()
@@ -88,7 +90,7 @@ class RawTransactionsTest(RavenTestFramework):
 
         txId = self.nodes[0].sendtoaddress(mSigObj, 2.2)
         decTx = self.nodes[0].gettransaction(txId)
-        rawTx = self.nodes[0].decoderawtransaction(decTx['hex'])
+        self.nodes[0].decoderawtransaction(decTx['hex'])
         self.sync_all()
         self.nodes[0].generate(1)
         self.sync_all()
@@ -135,7 +137,7 @@ class RawTransactionsTest(RavenTestFramework):
 
         txId = self.nodes[0].sendtoaddress(mSigObj, 2.2)
         decTx = self.nodes[0].gettransaction(txId)
-        rawTx2 = self.nodes[0].decoderawtransaction(decTx['hex'])
+        self.nodes[0].decoderawtransaction(decTx['hex'])
         self.sync_all()
         self.nodes[0].generate(1)
         self.sync_all()
@@ -155,16 +157,16 @@ class RawTransactionsTest(RavenTestFramework):
         outputs = { self.nodes[0].getnewaddress() : 2.19 }
         rawTx2 = self.nodes[2].createrawtransaction(inputs, outputs)
         rawTxPartialSigned1 = self.nodes[1].signrawtransaction(rawTx2, inputs)
-        self.log.info(rawTxPartialSigned1)
+        self.log.debug(rawTxPartialSigned1)
         assert_equal(rawTxPartialSigned['complete'], False) #node1 only has one key, can't comp. sign the tx
 
         rawTxPartialSigned2 = self.nodes[2].signrawtransaction(rawTx2, inputs)
-        self.log.info(rawTxPartialSigned2)
+        self.log.debug(rawTxPartialSigned2)
         assert_equal(rawTxPartialSigned2['complete'], False) #node2 only has one key, can't comp. sign the tx
         rawTxComb = self.nodes[2].combinerawtransaction([rawTxPartialSigned1['hex'], rawTxPartialSigned2['hex']])
-        self.log.info(rawTxComb)
+        self.log.debug(rawTxComb)
         self.nodes[2].sendrawtransaction(rawTxComb)
-        rawTx2 = self.nodes[0].decoderawtransaction(rawTxComb)
+        self.nodes[0].decoderawtransaction(rawTxComb)
         self.sync_all()
         self.nodes[0].generate(1)
         self.sync_all()
@@ -200,8 +202,8 @@ class RawTransactionsTest(RavenTestFramework):
         inputs  = [ {'txid' : "1d1d4e24ed99057e84c3f80fd8fbec79ed9e1acee37da269356ecea000000000", 'vout' : 1, 'sequence' : 1000}]
         outputs = { self.nodes[0].getnewaddress() : 1 }
         rawtx   = self.nodes[0].createrawtransaction(inputs, outputs)
-        decrawtx= self.nodes[0].decoderawtransaction(rawtx)
-        assert_equal(decrawtx['vin'][0]['sequence'], 1000)
+        dec_raw_tx= self.nodes[0].decoderawtransaction(rawtx)
+        assert_equal(dec_raw_tx['vin'][0]['sequence'], 1000)
 
         # 9. invalid parameters - sequence number out of range
         inputs  = [ {'txid' : "1d1d4e24ed99057e84c3f80fd8fbec79ed9e1acee37da269356ecea000000000", 'vout' : 1, 'sequence' : -1}]
@@ -216,8 +218,8 @@ class RawTransactionsTest(RavenTestFramework):
         inputs  = [ {'txid' : "1d1d4e24ed99057e84c3f80fd8fbec79ed9e1acee37da269356ecea000000000", 'vout' : 1, 'sequence' : 4294967294}]
         outputs = { self.nodes[0].getnewaddress() : 1 }
         rawtx   = self.nodes[0].createrawtransaction(inputs, outputs)
-        decrawtx= self.nodes[0].decoderawtransaction(rawtx)
-        assert_equal(decrawtx['vin'][0]['sequence'], 4294967294)
+        dec_raw_tx= self.nodes[0].decoderawtransaction(rawtx)
+        assert_equal(dec_raw_tx['vin'][0]['sequence'], 4294967294)
 
 if __name__ == '__main__':
     RawTransactionsTest().main()

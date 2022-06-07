@@ -1449,7 +1449,7 @@ const char * const wordlist[] = {
 "rare",
 "rate",
 "rather",
-"raven",
+"avian",
 "raw",
 "razor",
 "ready",

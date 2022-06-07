@@ -12,6 +12,7 @@
 #endif
 
 
+
 #include "amount.h"
 #include "coins.h"
 #include "fs.h"
@@ -36,6 +37,11 @@
 #include <atomic>
 #include <assets/assets.h>
 #include <assets/assetdb.h>
+#include <assets/messages.h>
+#include <assets/myassetsdb.h>
+#include <assets/restricteddb.h>
+#include <assets/assetsnapshotdb.h>
+#include <assets/snapshotrequestdb.h>
 
 class CBlockIndex;
 class CBlockTreeDB;
@@ -52,6 +58,7 @@ struct ChainTxData;
 
 class CAssetsDB;
 class CAssets;
+class CSnapshotRequestDB;
 
 struct PrecomputedTransactionData;
 struct LockPoints;
@@ -150,6 +157,7 @@ static const bool DEFAULT_ASSETINDEX = false;
 static const bool DEFAULT_ADDRESSINDEX = false;
 static const bool DEFAULT_TIMESTAMPINDEX = false;
 static const bool DEFAULT_SPENTINDEX = false;
+static const bool DEFAULT_REWARDS_ENABLED = false;
 /** Default for -dbmaxfilesize , in MB */
 static const int64_t DEFAULT_DB_MAX_FILE_SIZE = 2;
 
@@ -190,6 +198,7 @@ extern CWaitableCriticalSection csBestBlock;
 extern CConditionVariable cvBlockChange;
 extern std::atomic_bool fImporting;
 extern std::atomic_bool fReindex;
+extern bool fMessaging;
 extern int nScriptCheckThreads;
 extern bool fTxIndex;
 extern bool fAssetIndex;
@@ -205,6 +214,10 @@ extern size_t nCoinCacheUsage;
 extern CFeeRate minRelayTxFee;
 /** Absolute maximum transaction fee (in satoshis) used by wallet and mempool (rejects high fee in sendrawtransaction) */
 extern CAmount maxTxFee;
+
+extern bool fUnitTest;
+
+
 /** If the tip is older than this (in seconds), the node is considered to be in initial block download. */
 extern int64_t nMaxTipAge;
 extern bool fEnableReplacement;
@@ -343,7 +356,7 @@ bool IsUAHFForAssetsenabledForCurrentBlock();
  * plTxnReplaced will be appended to with all transactions replaced from mempool **/
 bool AcceptToMemoryPool(CTxMemPool& pool, CValidationState &state, const CTransactionRef &tx,
                         bool* pfMissingInputs, std::list<CTransactionRef>* plTxnReplaced,
-                        bool bypass_limits, const CAmount nAbsurdFee);
+                        bool bypass_limits, const CAmount nAbsurdFee, bool test_accept=false);
 
 /** Convert CValidationState to a human-readable message for logging */
 std::string FormatStateMessage(const CValidationState &state);
@@ -503,14 +516,57 @@ extern CCoinsViewCache *pcoinsTip;
 /** Global variable that points to the active block tree (protected by cs_main) */
 extern CBlockTreeDB *pblocktree;
 
-/** RVN START */
-/** Global variable that point to the active assets database (protexted by cs_main) */
+/** AVN START */
+/** Global variable that point to the active assets database (protected by cs_main) */
 extern CAssetsDB *passetsdb;
-/** Global variable that point to the active assets (protexted by cs_main) */
+
+/** Global variable that point to the active assets (protected by cs_main) */
 extern CAssetsCache *passets;
-/** Global variable that point to the assets LRU Cache (protexted by cs_main) */
+
+/** Global variable that point to the assets metadata LRU Cache (protected by cs_main) */
 extern CLRUCache<std::string, CDatabasedAssetData> *passetsCache;
-/** RVN END */
+
+/** Global variable that points to the subscribed channel LRU Cache (protected by cs_main) */
+extern CLRUCache<std::string, CMessage> *pMessagesCache;
+
+/** Global variable that points to the subscribed channel LRU Cache (protected by cs_main) */
+extern CLRUCache<std::string, int> *pMessageSubscribedChannelsCache;
+
+/** Global variable that points to the address seen LRU Cache (protected by cs_main) */
+extern CLRUCache<std::string, int> *pMessagesSeenAddressCache;
+
+/** Global variable that points to the messages database (protected by cs_main) */
+extern CMessageDB *pmessagedb;
+
+/** Global variable that points to the message channel database (protected by cs_main) */
+extern CMessageChannelDB *pmessagechanneldb;
+
+/** Global variable that points to my wallets restricted database (protected by cs_main) */
+extern CMyRestrictedDB *pmyrestricteddb;
+
+/** Global variable that points to the active restricted asset database (protected by cs_main) */
+extern CRestrictedDB *prestricteddb;
+
+/** Global variable that points to the asset verifier LRU Cache (protected by cs_main) */
+extern CLRUCache<std::string, CNullAssetTxVerifierString> *passetsVerifierCache;
+
+/** Global variable that points to the asset address qualifier LRU Cache (protected by cs_main) */
+extern CLRUCache<std::string, int8_t> *passetsQualifierCache; // hash(address,qualifier_name) ->int8_t
+
+/** Global variable that points to the asset address restriction LRU Cache (protected by cs_main) */
+extern CLRUCache<std::string, int8_t> *passetsRestrictionCache; // hash(address,qualifier_name) ->int8_t
+
+/** Global variable that points to the global asset restriction LRU Cache (protected by cs_main) */
+extern CLRUCache<std::string, int8_t> *passetsGlobalRestrictionCache;
+
+/** Global variable that point to the active Snapshot Request database (protected by cs_main) */
+extern CSnapshotRequestDB *pSnapshotRequestDb;
+
+/** Global variable that point to the active asset snapshot database (protected by cs_main) */
+extern CAssetSnapshotDB *pAssetSnapshotDb;
+
+extern CDistributeSnapshotRequestDB *pDistributeSnapshotDb;
+/** AVN END */
 
 /**
  * Return the spend height, which is one more than the inputs.GetBestBlock().
@@ -543,12 +599,33 @@ bool DumpMempool();
 /** Load the mempool from disk. */
 bool LoadMempool();
 
-/** RVN START */
+/** AVN START */
 bool AreAssetsDeployed();
 
+bool AreFlightPlansDeployed();
+
+bool AreMessagesDeployed();
+
+bool AreRestrictedAssetsDeployed();
+
+bool AreEnforcedValuesDeployed();
+
+bool AreCoinbaseCheckAssetsDeployed();
+
+// Only used by test framework
+void SetEnforcedValues(bool value);
+void SetEnforcedCoinbase(bool value);
+
+bool IsRip5Active();
+
+
+bool AreTransferScriptsSizeDeployed();
+
 bool IsDGWActive(unsigned int nBlockNumber);
+bool IsMessagingActive(unsigned int nBlockNumber);
+bool IsRestrictedActive(unsigned int nBlockNumber);
 
 CAssetsCache* GetCurrentAssetCache();
-/** RVN END */
+/** AVN END */
 
 #endif // RAVEN_VALIDATION_H

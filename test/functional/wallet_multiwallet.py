@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # Copyright (c) 2017 The Bitcoin Core developers
-# Copyright (c) 2017-2018 The Raven Core developers
+# Copyright (c) 2017-2020 The Raven Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """Test multiwallet.
@@ -10,10 +10,10 @@ Verify that a aviand node can load multiple wallet files
 import os
 import shutil
 
-from test_framework.test_framework import RavenTestFramework
-from test_framework.util import assert_equal, assert_raises_rpc_error
+from test_framework.test_framework import AvianTestFramework
+from test_framework.util import (assert_equal, assert_raises_rpc_error)
 
-class MultiWalletTest(RavenTestFramework):
+class MultiWalletTest(AvianTestFramework):
     def set_test_params(self):
         self.setup_clean_chain = True
         self.num_nodes = 1

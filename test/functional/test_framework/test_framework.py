@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
 # Copyright (c) 2014-2016 The Bitcoin Core developers
-# Copyright (c) 2017-2018 The Raven Core developers
+# Copyright (c) 2017-2020 The Raven Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
+
 """Base class for RPC testing."""
 
 from enum import Enum
+from random import randint
 import logging
 import optparse
 import os
@@ -14,27 +16,12 @@ import shutil
 import sys
 import tempfile
 import time
-import traceback
 
 from .authproxy import JSONRPCException
 from . import coverage
 from .test_node import TestNode
-from .util import (
-    MAX_NODES,
-    PortSeed,
-    assert_equal,
-    check_json_precision,
-    connect_nodes_bi,
-    connect_all_nodes_bi,
-    disconnect_nodes,
-    disconnect_all_nodes,
-    initialize_datadir,
-    log_filename,
-    p2p_port,
-    set_node_times,
-    sync_blocks,
-    sync_mempools,
-)
+from .util import (MAX_NODES, PortSeed, assert_equal, check_json_precision, connect_nodes_bi, disconnect_nodes,
+                   initialize_data_dir, log_filename, p2p_port, set_node_times, sync_blocks, sync_mempools)
 
 
 class TestStatus(Enum):
@@ -48,10 +35,10 @@ TEST_EXIT_FAILED = 1
 TEST_EXIT_SKIPPED = 77
 
 
-class RavenTestFramework():
-    """Base class for a raven test script.
+class AvianTestFramework:
+    """Base class for a avian test script.
 
-    Individual raven test scripts should subclass this class and override the set_test_params() and run_test() methods.
+    Individual avian test scripts should subclass this class and override the set_test_params() and run_test() methods.
 
     Individual tests can also override the following methods to customize the test setup:
 
@@ -66,6 +53,7 @@ class RavenTestFramework():
 
     def __init__(self):
         """Sets test framework defaults. Do not override this method. Instead, override the set_test_params() method"""
+        self.num_nodes = None
         self.setup_clean_chain = False
         self.nodes = []
         self.mocktime = 0
@@ -75,31 +63,19 @@ class RavenTestFramework():
 
     def main(self):
         """Main function. This should not be overridden by the subclass test scripts."""
-
         parser = optparse.OptionParser(usage="%prog [options]")
-        parser.add_option("--nocleanup", dest="nocleanup", default=False, action="store_true",
-                          help="Leave aviands and test.* datadir on exit or error")
-        parser.add_option("--noshutdown", dest="noshutdown", default=False, action="store_true",
-                          help="Don't stop aviands after the test execution")
-        parser.add_option("--srcdir", dest="srcdir",
-                          default=os.path.normpath(os.path.dirname(os.path.realpath(__file__)) + "/../../../src"),
-                          help="Source directory containing aviand/avian-cli (default: %default)")
-        parser.add_option("--cachedir", dest="cachedir",
-                          default=os.path.normpath(os.path.dirname(os.path.realpath(__file__)) + "/../../cache"),
-                          help="Directory for caching pregenerated datadirs")
+        parser.add_option("--cachedir", dest="cachedir", default=os.path.normpath(os.path.dirname(os.path.realpath(__file__)) + "/../../cache"), help="Directory for caching pregenerated datadirs")
+        parser.add_option("--coveragedir", dest="coveragedir", help="Write tested RPC commands into this directory")
+        parser.add_option("--configfile", dest="configfile", help="Location of the test framework config file")
+        parser.add_option("--loglevel", dest="loglevel", default="INFO", help="log events at this level and higher to the console. Can be set to DEBUG, INFO, WARNING, ERROR or CRITICAL. Passing --loglevel DEBUG will output all logs to console. Note that logs at all levels are always written to the test_framework.log file in the temporary test directory.")
+        parser.add_option("--nocleanup", dest="nocleanup", default=False, action="store_true", help="Leave aviands and test.* datadir on exit or error")
+        parser.add_option("--noshutdown", dest="noshutdown", default=False, action="store_true", help="Don't stop aviands after the test execution")
+        parser.add_option("--pdbonfailure", dest="pdbonfailure", default=False, action="store_true", help="Attach a python debugger if test fails")
+        parser.add_option("--portseed", dest="port_seed", default=os.getpid(), type='int', help="The seed to use for assigning port numbers (default: current process id)")
+        parser.add_option("--srcdir", dest="srcdir", default=os.path.normpath(os.path.dirname(os.path.realpath(__file__)) + "/../../../src"), help="Source directory containing aviand/avian-cli (default: %default)")
         parser.add_option("--tmpdir", dest="tmpdir", help="Root directory for datadirs")
-        parser.add_option("-l", "--loglevel", dest="loglevel", default="INFO",
-                          help="log events at this level and higher to the console. Can be set to DEBUG, INFO, WARNING, ERROR or CRITICAL. Passing --loglevel DEBUG will output all logs to console. Note that logs at all levels are always written to the test_framework.log file in the temporary test directory.")
-        parser.add_option("--tracerpc", dest="trace_rpc", default=False, action="store_true",
-                          help="Print out all RPC calls as they are made")
-        parser.add_option("--portseed", dest="port_seed", default=os.getpid(), type='int',
-                          help="The seed to use for assigning port numbers (default: current process id)")
-        parser.add_option("--coveragedir", dest="coveragedir",
-                          help="Write tested RPC commands into this directory")
-        parser.add_option("--configfile", dest="configfile",
-                          help="Location of the test framework config file")
-        parser.add_option("--pdbonfailure", dest="pdbonfailure", default=False, action="store_true",
-                          help="Attach a python debugger if test fails")
+        parser.add_option("--tracerpc", dest="trace_rpc", default=False, action="store_true", help="Print out all RPC calls as they are made")
+
         self.add_options(parser)
         (self.options, self.args) = parser.parse_args()
 
@@ -112,9 +88,17 @@ class RavenTestFramework():
         self.options.cachedir = os.path.abspath(self.options.cachedir)
 
         # Set up temp directory and start logging
+        # When looping tests using the --loop=n argument, when a test fails the tmpdir will not be deleted.
+        # This will cause that specific test to fail on every loop after since this directory will exist.
+        # Now when it fails to create the tmpdir it will try to create a new directory with a random int
+        # appended to the path. This will allow looped tests to pass and keep the log and state data from the previous failure.
         if self.options.tmpdir:
             self.options.tmpdir = os.path.abspath(self.options.tmpdir)
-            os.makedirs(self.options.tmpdir, exist_ok=False)
+            try:
+                os.makedirs(self.options.tmpdir, exist_ok=False)
+            except OSError:
+                self.options.tmpdir = os.path.abspath(self.options.tmpdir + str(randint(0, 48)))
+                os.makedirs(self.options.tmpdir, exist_ok=False)
         else:
             self.options.tmpdir = tempfile.mkdtemp(prefix="test")
         self._start_logging()
@@ -127,21 +111,21 @@ class RavenTestFramework():
             self.run_test()
             success = TestStatus.PASSED
         except JSONRPCException as e:
-            self.log.exception("JSONRPC error")
+            self.log.exception("JSONRPC error: %s", e)
         except SkipTest as e:
             self.log.warning("Test Skipped: %s" % e.message)
             success = TestStatus.SKIPPED
         except AssertionError as e:
-            self.log.exception("Assertion failed")
+            self.log.exception("Assertion failed: %s", e)
         except KeyError as e:
-            self.log.exception("Key error")
+            self.log.exception("Key error: %s", e)
         except Exception as e:
-            self.log.exception("Unexpected exception caught during testing")
+            self.log.exception("Unexpected exception caught during testing: %s", e)
         except KeyboardInterrupt as e:
-            self.log.warning("Exiting after keyboard interrupt")
+            self.log.warning("Exiting after keyboard interrupt: %s", e)
 
         if success == TestStatus.FAILED and self.options.pdbonfailure:
-            print("Testcase failed. Attaching python debugger. Enter ? for help")
+            self.log.info("Testcase failed. Attaching python debugger. Enter ? for help")
             pdb.set_trace()
 
         if not self.options.noshutdown:
@@ -151,7 +135,7 @@ class RavenTestFramework():
         else:
             for node in self.nodes:
                 node.cleanup_on_exit = False
-            self.log.info("Note: aviands were not stopped and may still be running")
+            self.log.info("Note: aviand's were not stopped and may still be running")
 
         if not self.options.nocleanup and not self.options.noshutdown and success != TestStatus.FAILED:
             self.log.info("Cleaning up")
@@ -205,7 +189,7 @@ class RavenTestFramework():
         extra_args = None
         if hasattr(self, "extra_args"):
             extra_args = self.extra_args
-        self.add_nodes(self.num_nodes, extra_args)
+        self.add_nodes(self.num_nodes, extra_args, False)
         self.start_nodes()
 
     def run_test(self):
@@ -250,7 +234,7 @@ class RavenTestFramework():
                 node.start(extra_args[i])
             for node in self.nodes:
                 node.wait_for_rpc_connection()
-        except:
+        except Exception:
             # If one node failed to start, stop the others
             self.stop_nodes()
             raise
@@ -301,7 +285,9 @@ class RavenTestFramework():
                 raise AssertionError(assert_msg)
 
     def wait_for_node_exit(self, i, timeout):
+        self.log.debug("Waiting for node %d exit start: %s", i, time.ctime())
         self.nodes[i].process.wait(timeout)
+        self.log.debug("Waiting for node %d exit end: %s", i, time.ctime())
 
     def split_network(self):
         """
@@ -369,7 +355,7 @@ class RavenTestFramework():
         self.log.addHandler(ch)
 
         if self.options.trace_rpc:
-            rpc_logger = logging.getLogger("RavenRPC")
+            rpc_logger = logging.getLogger("AvianRPC")
             rpc_logger.setLevel(logging.DEBUG)
             rpc_handler = logging.StreamHandler(sys.stdout)
             rpc_handler.setLevel(logging.DEBUG)
@@ -398,7 +384,7 @@ class RavenTestFramework():
 
             # Create cache directories, run aviands:
             for i in range(MAX_NODES):
-                datadir = initialize_datadir(self.options.cachedir, i)
+                datadir = initialize_data_dir(self.options.cachedir, i)
                 args = [os.getenv("AVIAND", "aviand"), "-server", "-keypool=1", "-datadir=" + datadir, "-discover=0"]
                 if i > 0:
                     args.append("-connect=127.0.0.1:" + str(p2p_port(0)))
@@ -423,7 +409,7 @@ class RavenTestFramework():
             block_time = self.mocktime - (201 * 1 * 60)
             for i in range(2):
                 for peer in range(4):
-                    for j in range(25):
+                    for _ in range(25):
                         set_node_times(self.nodes, block_time)
                         self.nodes[peer].generate(1)
                         block_time += 1 * 60
@@ -444,7 +430,7 @@ class RavenTestFramework():
             from_dir = os.path.join(self.options.cachedir, "node" + str(i))
             to_dir = os.path.join(self.options.tmpdir, "node" + str(i))
             shutil.copytree(from_dir, to_dir)
-            initialize_datadir(self.options.tmpdir, i)  # Overwrite port/rpcport in avian.conf
+            initialize_data_dir(self.options.tmpdir, i)  # Overwrite port/rpcport in avian.conf
 
     def _initialize_chain_clean(self):
         """Initialize empty blockchain for use by the test.
@@ -452,37 +438,7 @@ class RavenTestFramework():
         Create an empty blockchain and num_nodes wallets.
         Useful if a test case wants complete control over initialization."""
         for i in range(self.num_nodes):
-            initialize_datadir(self.options.tmpdir, i)
-
-
-class ComparisonTestFramework(RavenTestFramework):
-    """Test framework for doing p2p comparison testing
-
-    Sets up some aviand binaries:
-    - 1 binary: test binary
-    - 2 binaries: 1 test binary, 1 ref binary
-    - n>2 binaries: 1 test binary, n-1 ref binaries"""
-
-    def set_test_params(self):
-        self.num_nodes = 2
-        self.setup_clean_chain = True
-
-    def add_options(self, parser):
-        parser.add_option("--testbinary", dest="testbinary",
-                          default=os.getenv("AVIAND", "aviand"),
-                          help="aviand binary to test")
-        parser.add_option("--refbinary", dest="refbinary",
-                          default=os.getenv("AVIAND", "aviand"),
-                          help="aviand binary to use for reference nodes (if any)")
-
-    def setup_network(self):
-        extra_args = [['-whitelist=127.0.0.1']] * self.num_nodes
-        if hasattr(self, "extra_args"):
-            extra_args = self.extra_args
-        self.add_nodes(self.num_nodes, extra_args,
-                       binary=[self.options.testbinary] +
-                              [self.options.refbinary] * (self.num_nodes - 1))
-        self.start_nodes()
+            initialize_data_dir(self.options.tmpdir, i)
 
 
 class SkipTest(Exception):

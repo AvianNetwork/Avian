@@ -1,11 +1,11 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
 // Copyright (c) 2009-2015 The Bitcoin Core developers
-// Copyright (c) 2017 The Raven Core developers
+// Copyright (c) 2017-2020 The Raven Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef RAVEN_KEYSTORE_H
-#define RAVEN_KEYSTORE_H
+#ifndef AVIAN_KEYSTORE_H
+#define AVIAN_KEYSTORE_H
 
 #include "key.h"
 #include "pubkey.h"
@@ -34,7 +34,7 @@ public:
     virtual std::set<CKeyID> GetKeys() const =0;
     virtual bool GetPubKey(const CKeyID &address, CPubKey& vchPubKeyOut) const =0;
 
-    //! Support for BIP 0013 : see https://github.com/raven/bips/blob/master/bip-0013.mediawiki
+    //! Support for BIP 0013 : see https://github.com/bitcoin/bips/blob/master/bip-0013.mediawiki
     virtual bool AddCScript(const CScript& redeemScript) =0;
     virtual bool HaveCScript(const CScriptID &hash) const =0;
     virtual bool GetCScript(const CScriptID &hash, CScript& redeemScriptOut) const =0;
@@ -59,6 +59,11 @@ protected:
     WatchKeyMap mapWatchKeys;
     ScriptMap mapScripts;
     WatchOnlySet setWatchOnly;
+
+    uint256 nWordHash;
+    std::vector<unsigned char> vchWords;
+    std::vector<unsigned char> vchPassphrase;
+    std::vector<unsigned char> g_vchSeed;
 
 public:
     bool AddKeyPubKey(const CKey& key, const CPubKey &pubkey) override;
@@ -102,9 +107,14 @@ public:
     bool RemoveWatchOnly(const CScript &dest) override;
     bool HaveWatchOnly(const CScript &dest) const override;
     bool HaveWatchOnly() const override;
+
+    bool AddWords(const uint256& p_hash, const std::vector<unsigned char>& p_vchWords);
+    bool AddPassphrase(const std::vector<unsigned char>& p_vchPassphrase);
+    bool AddVchSeed(const std::vector<unsigned char>& p_vchSeed);
+    void GetBip39Data(uint256& p_hash, std::vector<unsigned char>& p_vchWords, std::vector<unsigned char>& p_vchPassphrase, std::vector<unsigned char>& p_vchSeed);
 };
 
 typedef std::vector<unsigned char, secure_allocator<unsigned char> > CKeyingMaterial;
 typedef std::map<CKeyID, std::pair<CPubKey, std::vector<unsigned char> > > CryptedKeyMap;
 
-#endif // RAVEN_KEYSTORE_H
+#endif // AVIAN_KEYSTORE_H

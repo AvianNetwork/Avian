@@ -1,4 +1,4 @@
-// Copyright (c) 2021 The Ravencoin Lite developers
+// Copyright (c) 2021 The Avian Core developers
 // Copyright (c) 2021 Shafil Alam
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.

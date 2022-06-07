@@ -8,9 +8,9 @@ src/aviand
 src/avian-cli
 src/avian-tx
 
-src/test/test_raven
-src/test/test_raven_fuzzy
-src/test/test_raven_hash
+src/test/test_avian
+src/test/test_avian_fuzzy
+src/test/test_avian_hash
 
 src/qt/test/test_avian-qt
 .vscode
@@ -66,7 +66,6 @@ src/qt/test/moc*.cpp
 *.pyc
 *.o
 *.o-*
-*.patch
 *.a
 *.pb.cc
 *.pb.h
@@ -90,7 +89,7 @@ Avian-Qt.app
 
 # Unit-tests
 Makefile.test
-raven-qt_test
+avian-qt_test
 
 # Resources cpp
 qrc_*.cpp
@@ -103,7 +102,7 @@ build
 *.gcno
 *.gcda
 /*.info
-test_raven.coverage/
+test_avian.coverage/
 total.coverage/
 coverage_percent.txt
 

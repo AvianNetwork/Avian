@@ -1,47 +1,43 @@
 #!/usr/bin/env python3
 # Copyright (c) 2017 The Bitcoin Core developers
-# Copyright (c) 2017-2018 The Raven Core developers
+# Copyright (c) 2017-2020 The Raven Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
-"""Testing unique asset use cases
 
-"""
+"""Testing unique asset use cases"""
+
 import random
-
-from test_framework.test_framework import RavenTestFramework
-from test_framework.util import (
-    assert_contains,
-    assert_does_not_contain_key,
-    assert_equal,
-    assert_raises_rpc_error,
-)
+from test_framework.test_framework import AvianTestFramework
+from test_framework.util import assert_contains, assert_does_not_contain_key, assert_equal, assert_raises_rpc_error
 
 
 def gen_root_asset_name():
     size = random.randint(3, 14)
     name = ""
-    for _ in range(1, size+1):
-        ch = random.randint(65, 65+25)
+    for _ in range(1, size + 1):
+        ch = random.randint(65, 65 + 25)
         name += chr(ch)
     return name
 
+
 def gen_unique_asset_name(root):
-    tag_ab = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789@$%&*()[]{}_.?\\:"
+    tag_ab = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789@$%&*()[]{}_.?-:"
     name = root + "#"
     tag_size = random.randint(1, 15)
-    for _ in range(1, tag_size+1):
+    for _ in range(1, tag_size + 1):
         tag_c = tag_ab[random.randint(0, len(tag_ab) - 1)]
         name += tag_c
     return name
 
-class UniqueAssetTest(RavenTestFramework):
+
+class UniqueAssetTest(AvianTestFramework):
     def set_test_params(self):
         self.setup_clean_chain = True
         self.num_nodes = 3
         self.extra_args = [['-assetindex'], ['-assetindex'], ['-assetindex']]
 
     def activate_assets(self):
-        self.log.info("Generating RVN for node[0] and activating assets...")
+        self.log.info("Generating AVN for node[0] and activating assets...")
         n0 = self.nodes[0]
         n0.generate(432)
         self.sync_all()
@@ -54,7 +50,7 @@ class UniqueAssetTest(RavenTestFramework):
         n0.issue(asset_name=root)
         n0.generate(1)
         asset_name = gen_unique_asset_name(root)
-        tx_hash = n0.issue(asset_name=asset_name)
+        n0.issue(asset_name=asset_name)
         n0.generate(1)
         assert_equal(1, n0.listmyassets()[asset_name])
 
@@ -63,7 +59,6 @@ class UniqueAssetTest(RavenTestFramework):
         n0, n1 = self.nodes[0], self.nodes[1]
         n1.generate(10)
         self.sync_all()
-
         root = gen_root_asset_name()
         asset_name = gen_unique_asset_name(root)
 
@@ -98,8 +93,7 @@ class UniqueAssetTest(RavenTestFramework):
         self.sync_all()
         assert_raises_rpc_error(-8, f"Invalid parameter: asset_name '{asset_name}' has already been used", n0.issue, asset_name)
 
-
-    def issueunique_test(self):
+    def issue_unique_test(self):
         self.log.info("Testing issueunique RPC...")
         n0, n1 = self.nodes[0], self.nodes[1]
         n0.sendtoaddress(n1.getnewaddress(), 501)
@@ -111,6 +105,7 @@ class UniqueAssetTest(RavenTestFramework):
         n0.issueunique(root, asset_tags, ipfs_hashes)
         block_hash = n0.generate(1)[0]
 
+        asset_name = ""
         for tag in asset_tags:
             asset_name = f"{root}#{tag}"
             assert_equal(1, n0.listmyassets()[asset_name])
@@ -119,8 +114,8 @@ class UniqueAssetTest(RavenTestFramework):
 
         # invalidate
         n0.invalidateblock(block_hash)
-        assert(root in n0.listmyassets())
-        assert_does_not_contain_key(asset_name, n0.listmyassets())
+        assert (root in n0.listmyassets())
+        assert_does_not_contain_key(asset_name, n0.listmyassets(asset="*", verbose=False, count=100000, start=0, confs=1))
 
         # reconsider
         n0.reconsiderblock(block_hash)
@@ -140,7 +135,7 @@ class UniqueAssetTest(RavenTestFramework):
 
     def run_test(self):
         self.activate_assets()
-        self.issueunique_test()
+        self.issue_unique_test()
         self.issue_one()
         self.issue_invalid()
 
