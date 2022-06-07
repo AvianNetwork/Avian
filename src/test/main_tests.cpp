@@ -7,7 +7,7 @@
 #include "validation.h"
 #include "net.h"
 
-#include "test/test_avian.h"
+#include "test/test_raven.h"
 
 #include <boost/signals2/signal.hpp>
 #include <boost/test/unit_test.hpp>

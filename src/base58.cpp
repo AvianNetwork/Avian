@@ -1,5 +1,5 @@
 // Copyright (c) 2014-2016 The Bitcoin Core developers
-// Copyright (c) 2017-2019 The Raven Core developers
+// Copyright (c) 2017 The Raven Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -214,13 +214,13 @@ int CBase58Data::CompareTo(const CBase58Data& b58) const
 namespace
 {
 
-class CAvianAddressVisitor : public boost::static_visitor<bool>
+class CRavenAddressVisitor : public boost::static_visitor<bool>
 {
 private:
-    CAvianAddress* addr;
+    CRavenAddress* addr;
 
 public:
-    explicit CAvianAddressVisitor(CAvianAddress* addrIn) : addr(addrIn) {}
+    explicit CRavenAddressVisitor(CRavenAddress* addrIn) : addr(addrIn) {}
 
     bool operator()(const CKeyID& id) const { return addr->Set(id); }
     bool operator()(const CScriptID& id) const { return addr->Set(id); }
@@ -229,29 +229,29 @@ public:
 
 } // namespace
 
-bool CAvianAddress::Set(const CKeyID& id)
+bool CRavenAddress::Set(const CKeyID& id)
 {
     SetData(Params().Base58Prefix(CChainParams::PUBKEY_ADDRESS), &id, 20);
     return true;
 }
 
-bool CAvianAddress::Set(const CScriptID& id)
+bool CRavenAddress::Set(const CScriptID& id)
 {
     SetData(Params().Base58Prefix(CChainParams::SCRIPT_ADDRESS), &id, 20);
     return true;
 }
 
-bool CAvianAddress::Set(const CTxDestination& dest)
+bool CRavenAddress::Set(const CTxDestination& dest)
 {
-    return boost::apply_visitor(CAvianAddressVisitor(this), dest);
+    return boost::apply_visitor(CRavenAddressVisitor(this), dest);
 }
 
-bool CAvianAddress::IsValid() const
+bool CRavenAddress::IsValid() const
 {
     return IsValid(Params());
 }
 
-bool CAvianAddress::IsValid(const CChainParams& params) const
+bool CRavenAddress::IsValid(const CChainParams& params) const
 {
     bool fCorrectSize = vchData.size() == 20;
     bool fKnownVersion = vchVersion == params.Base58Prefix(CChainParams::PUBKEY_ADDRESS) ||
@@ -259,7 +259,7 @@ bool CAvianAddress::IsValid(const CChainParams& params) const
     return fCorrectSize && fKnownVersion;
 }
 
-CTxDestination CAvianAddress::Get() const
+CTxDestination CRavenAddress::Get() const
 {
     if (!IsValid())
         return CNoDestination();
@@ -273,7 +273,7 @@ CTxDestination CAvianAddress::Get() const
         return CNoDestination();
 }
 
-bool CAvianAddress::GetIndexKey(uint160& hashBytes, int& type) const
+bool CRavenAddress::GetIndexKey(uint160& hashBytes, int& type) const
 {
     if (!IsValid()) {
         return false;
@@ -290,7 +290,7 @@ bool CAvianAddress::GetIndexKey(uint160& hashBytes, int& type) const
     return false;
 }
 
-void CAvianSecret::SetKey(const CKey& vchSecret)
+void CRavenSecret::SetKey(const CKey& vchSecret)
 {
     assert(vchSecret.IsValid());
     SetData(Params().Base58Prefix(CChainParams::SECRET_KEY), vchSecret.begin(), vchSecret.size());
@@ -298,7 +298,7 @@ void CAvianSecret::SetKey(const CKey& vchSecret)
         vchData.push_back(1);
 }
 
-CKey CAvianSecret::GetKey()
+CKey CRavenSecret::GetKey()
 {
     CKey ret;
     assert(vchData.size() >= 32);
@@ -306,41 +306,41 @@ CKey CAvianSecret::GetKey()
     return ret;
 }
 
-bool CAvianSecret::IsValid() const
+bool CRavenSecret::IsValid() const
 {
     bool fExpectedFormat = vchData.size() == 32 || (vchData.size() == 33 && vchData[32] == 1);
     bool fCorrectVersion = vchVersion == Params().Base58Prefix(CChainParams::SECRET_KEY);
     return fExpectedFormat && fCorrectVersion;
 }
 
-bool CAvianSecret::SetString(const char* pszSecret)
+bool CRavenSecret::SetString(const char* pszSecret)
 {
     return CBase58Data::SetString(pszSecret) && IsValid();
 }
 
-bool CAvianSecret::SetString(const std::string& strSecret)
+bool CRavenSecret::SetString(const std::string& strSecret)
 {
     return SetString(strSecret.c_str());
 }
 
 std::string EncodeDestination(const CTxDestination& dest)
 {
-    CAvianAddress addr(dest);
+    CRavenAddress addr(dest);
     if (!addr.IsValid()) return "";
     return addr.ToString();
 }
 
 CTxDestination DecodeDestination(const std::string& str)
 {
-    return CAvianAddress(str).Get();
+    return CRavenAddress(str).Get();
 }
 
 bool IsValidDestinationString(const std::string& str, const CChainParams& params)
 {
-    return CAvianAddress(str).IsValid(params);
+    return CRavenAddress(str).IsValid(params);
 }
 
 bool IsValidDestinationString(const std::string& str)
 {
-    return CAvianAddress(str).IsValid();
+    return CRavenAddress(str).IsValid();
 }

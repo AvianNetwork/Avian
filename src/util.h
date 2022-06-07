@@ -1,6 +1,6 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
 // Copyright (c) 2009-2016 The Bitcoin Core developers
-// Copyright (c) 2017-2019 The Raven Core developers
+// Copyright (c) 2017 The Raven Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -8,8 +8,8 @@
  * Server/client environment: argument handling, config file parsing,
  * logging, thread wrappers, startup time
  */
-#ifndef AVIAN_UTIL_H
-#define AVIAN_UTIL_H
+#ifndef RAVEN_UTIL_H
+#define RAVEN_UTIL_H
 
 #if defined(HAVE_CONFIG_H)
 #include "config/avian-config.h"
@@ -54,8 +54,8 @@ extern bool fLogIPs;
 extern std::atomic<bool> fReopenDebugLog;
 extern CTranslationInterface translationInterface;
 
-extern const char *const AVIAN_CONF_FILENAME;
-extern const char *const AVIAN_PID_FILENAME;
+extern const char *const RAVEN_CONF_FILENAME;
+extern const char *const RAVEN_PID_FILENAME;
 
 extern std::atomic<uint32_t> logCategories;
 
@@ -105,7 +105,6 @@ namespace BCLog
         COINDB = (1 << 18),
         QT = (1 << 19),
         LEVELDB = (1 << 20),
-        REWARDS = (1 << 21),
         CROW   = (1 << 22),    // Crow
         ALL = ~(uint32_t) 0,
     };
@@ -296,8 +295,6 @@ public:
     // Forces an arg setting. Called by SoftSetArg() if the arg hasn't already
     // been set. Also called directly in testing.
     void ForceSetArg(const std::string &strArg, const std::string &strValue);
-
-    void ForceSetArg(const std::string &strArg, const int64_t &nValue);
 };
 
 extern ArgsManager gArgs;
@@ -334,7 +331,7 @@ void RenameThread(const char *name);
 template<typename Callable>
 void TraceThread(const char *name, Callable func)
 {
-    std::string s = strprintf("avian-%s", name);
+    std::string s = strprintf("raven-%s", name);
     RenameThread(s.c_str());
     try
     {
@@ -363,4 +360,4 @@ std::string CopyrightHolders(const std::string &strPrefix);
 
 void SetThreadPriority(int nPriority);
 
-#endif // AVIAN_UTIL_H
+#endif // RAVEN_UTIL_H

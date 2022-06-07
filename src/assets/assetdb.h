@@ -1,9 +1,9 @@
-// Copyright (c) 2017-2019 The Raven Core developers
+// Copyright (c) 2017 The Raven Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef AVIAN_ASSETDB_H
-#define AVIAN_ASSETDB_H
+#ifndef RAVEN_ASSETDB_H
+#define RAVEN_ASSETDB_H
 
 #include "fs.h"
 #include "serialize.h"
@@ -11,8 +11,6 @@
 #include <string>
 #include <map>
 #include <dbwrapper.h>
-
-const int8_t ASSET_UNDO_INCLUDES_VERIFIER_STRING = -1;
 
 class CNewAsset;
 class uint256;
@@ -24,10 +22,7 @@ struct CBlockAssetUndo
     bool fChangedIPFS;
     bool fChangedUnits;
     std::string strIPFS;
-    int32_t nUnits;
-    int8_t version;
-    bool fChangedVerifierString;
-    std::string verifierString;
+    int nUnits;
 
     ADD_SERIALIZE_METHODS;
 
@@ -37,22 +32,6 @@ struct CBlockAssetUndo
         READWRITE(fChangedIPFS);
         READWRITE(strIPFS);
         READWRITE(nUnits);
-        if (ser_action.ForRead()) {
-            if (!s.empty() and s.size() >= 1) {
-                int8_t nVersionCheck;
-                ::Unserialize(s, nVersionCheck);
-
-                if (nVersionCheck == ASSET_UNDO_INCLUDES_VERIFIER_STRING) {
-                    ::Unserialize(s, fChangedVerifierString);
-                    ::Unserialize(s, verifierString);
-                }
-                version = nVersionCheck;
-            }
-        } else {
-            ::Serialize(s, ASSET_UNDO_INCLUDES_VERIFIER_STRING);
-            ::Serialize(s, fChangedVerifierString);
-            ::Serialize(s, verifierString);
-        }
     }
 };
 
@@ -95,4 +74,4 @@ public:
 };
 
 
-#endif //AVIAN_ASSETDB_H
+#endif //RAVEN_ASSETDB_H

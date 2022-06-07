@@ -3,8 +3,8 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef AVIAN_SPENTINDEX_H
-#define AVIAN_SPENTINDEX_H
+#ifndef RAVEN_SPENTINDEX_H
+#define RAVEN_SPENTINDEX_H
 
 #include "uint256.h"
 #include "amount.h"
@@ -95,4 +95,4 @@ struct CSpentIndexKeyCompare
     }
 };
 
-#endif // AVIAN_SPENTINDEX_H
+#endif // RAVEN_SPENTINDEX_H

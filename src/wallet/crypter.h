@@ -1,10 +1,10 @@
 // Copyright (c) 2009-2016 The Bitcoin Core developers
-// Copyright (c) 2017-2020 The Raven Core developers
+// Copyright (c) 2017 The Raven Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef AVIAN_WALLET_CRYPTER_H
-#define AVIAN_WALLET_CRYPTER_H
+#ifndef RAVEN_WALLET_CRYPTER_H
+#define RAVEN_WALLET_CRYPTER_H
 
 #include "keystore.h"
 #include "serialize.h"
@@ -132,16 +132,8 @@ protected:
     //! will encrypt previously unencrypted keys
     bool EncryptKeys(CKeyingMaterial& vMasterKeyIn);
 
-    //! EncryptBip39 words and passphrase
-    bool EncryptBip39(CKeyingMaterial& vMasterKeyIn);
-    bool DecryptBip39(const CKeyingMaterial& vMasterKeyIn);
-
     bool Unlock(const CKeyingMaterial& vMasterKeyIn);
     CryptedKeyMap mapCryptedKeys;
-
-    std::vector<unsigned char> vchCryptedBip39Words;
-    std::vector<unsigned char> vchCryptedBip39Passphrase;
-    std::vector<unsigned char> vchCryptedBip39VchSeed;
 
 public:
     CCryptoKeyStore() : fUseCrypto(false), fDecryptionThoroughlyChecked(false)
@@ -168,9 +160,6 @@ public:
     bool Lock();
 
     virtual bool AddCryptedKey(const CPubKey &vchPubKey, const std::vector<unsigned char> &vchCryptedSecret);
-    virtual bool AddCryptedWords(const uint256& hash, const std::vector<unsigned char> &vchCryptedWords);
-    virtual bool AddCryptedPassphrase(const std::vector<unsigned char> &vchCryptedPassphrase);
-    virtual bool AddCryptedVchSeed(const std::vector<unsigned char> &vchCryptedVchSeed);
     bool AddKeyPubKey(const CKey& key, const CPubKey &pubkey) override;
     bool HaveKey(const CKeyID &address) const override
     {
@@ -205,4 +194,4 @@ public:
     boost::signals2::signal<void (CCryptoKeyStore* wallet)> NotifyStatusChanged;
 };
 
-#endif // AVIAN_WALLET_CRYPTER_H
+#endif // RAVEN_WALLET_CRYPTER_H

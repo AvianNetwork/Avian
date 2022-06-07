@@ -4,7 +4,7 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include "reverselock.h"
-#include "test/test_avian.h"
+#include "test/test_raven.h"
 
 #include <boost/test/unit_test.hpp>
 

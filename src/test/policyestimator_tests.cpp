@@ -9,7 +9,7 @@
 #include "uint256.h"
 #include "util.h"
 
-#include "test/test_avian.h"
+#include "test/test_raven.h"
 
 #include <boost/test/unit_test.hpp>
 

@@ -1,10 +1,10 @@
 // Copyright (c) 2009-2016 The Bitcoin Core developers
-// Copyright (c) 2017-2019 The Raven Core developers
+// Copyright (c) 2017 The Raven Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef AVIAN_NETBASE_H
-#define AVIAN_NETBASE_H
+#ifndef RAVEN_NETBASE_H
+#define RAVEN_NETBASE_H
 
 #if defined(HAVE_CONFIG_H)
 #include "config/avian-config.h"
@@ -68,4 +68,4 @@ bool SetSocketNoDelay(const SOCKET& hSocket);
 struct timeval MillisToTimeval(int64_t nTimeout);
 void InterruptSocks5(bool interrupt);
 
-#endif // AVIAN_NETBASE_H
+#endif // RAVEN_NETBASE_H

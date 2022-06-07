@@ -1,4 +1,4 @@
-// Copyright (c) 2021 The Avian Core developers
+// Copyright (c) 2021 The Ravencoin Lite developers
 // Copyright (c) 2021 Shafil Alam
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
@@ -42,7 +42,7 @@ public:
     ~AddPeerDialog();
 private:
     Ui::AddPeerDialog *ui;
-public Q_SLOTS:
+private Q_SLOTS:
     void on_addPeer_clicked();
 };
 
@@ -56,7 +56,7 @@ public:
     ~TestPeerDialog();
 private:
     Ui::TestPeerDialog *ui;
-public Q_SLOTS:
+private Q_SLOTS:
     void on_testPeer_clicked();
 };
 

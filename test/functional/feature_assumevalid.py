@@ -1,14 +1,12 @@
 #!/usr/bin/env python3
 # Copyright (c) 2014-2016 The Bitcoin Core developers
-# Copyright (c) 2017-2020 The Raven Core developers
+# Copyright (c) 2017-2018 The Raven Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
-
-"""
-Test logic for skipping signature validation on old blocks.
+"""Test logic for skipping signature validation on old blocks.
 
 Test logic for skipping signature validation on blocks which we've assumed
-valid (https://github.com/bitcoin/bitcoin/pull/9484)
+valid (https://github.com/RavenProject/Ravencoin/pull/9484)
 
 We build a chain that includes and invalid signature for one of the
 transactions:
@@ -32,24 +30,31 @@ Start three nodes:
       block 200. node2 will reject block 102 since it's assumed valid, but it
       isn't buried by at least two weeks' work.
 """
-
 import time
-from test_framework.blocktools import create_block, create_coinbase
-from test_framework.key import ECKey
-from test_framework.mininode import CBlockHeader, COutPoint, CTransaction, CTxIn, CTxOut, NetworkThread, NodeConn, NodeConnCB, MsgBlock, MsgHeaders
-from test_framework.script import CScript, OP_TRUE
-from test_framework.test_framework import AvianTestFramework
-from test_framework.util import p2p_port, assert_equal
 
+from test_framework.blocktools import (create_block, create_coinbase)
+from test_framework.key import CECKey
+from test_framework.mininode import (CBlockHeader,
+                                     COutPoint,
+                                     CTransaction,
+                                     CTxIn,
+                                     CTxOut,
+                                     NetworkThread,
+                                     NodeConn,
+                                     NodeConnCB,
+                                     msg_block,
+                                     msg_headers)
+from test_framework.script import (CScript, OP_TRUE)
+from test_framework.test_framework import RavenTestFramework
+from test_framework.util import (p2p_port, assert_equal)
 
 class BaseNode(NodeConnCB):
     def send_header_for_blocks(self, new_blocks):
-        headers_message = MsgHeaders()
+        headers_message = msg_headers()
         headers_message.headers = [CBlockHeader(b) for b in new_blocks]
         self.send_message(headers_message)
 
-
-class AssumeValidTest(AvianTestFramework):
+class AssumeValidTest(RavenTestFramework):
     def set_test_params(self):
         self.setup_clean_chain = True
         self.num_nodes = 3
@@ -67,13 +72,12 @@ class AssumeValidTest(AvianTestFramework):
             if not node.connection:
                 break
             try:
-                node.send_message(MsgBlock(self.blocks[i]))
+                node.send_message(msg_block(self.blocks[i]))
             except IOError as e:
                 assert str(e) == 'Not connected, no pushbuf'
                 break
 
-    @staticmethod
-    def assert_blockchain_height(node, height):
+    def assert_blockchain_height(self, node, height):
         """Wait until the blockchain is no longer advancing and verify it's reached the expected height."""
         last_height = node.getblock(node.getbestblockhash())['height']
         timeout = 10
@@ -84,7 +88,7 @@ class AssumeValidTest(AvianTestFramework):
                 last_height = current_height
                 if timeout < 0:
                     assert False, "blockchain too short after timeout: %d" % current_height
-                timeout = timeout - 0.25
+                timeout - 0.25
                 continue
             elif current_height > height:
                 assert False, "blockchain too long: %d" % current_height
@@ -95,7 +99,8 @@ class AssumeValidTest(AvianTestFramework):
 
         # Connect to node0
         node0 = BaseNode()
-        connections = [NodeConn('127.0.0.1', p2p_port(0), self.nodes[0], node0)]
+        connections = []
+        connections.append(NodeConn('127.0.0.1', p2p_port(0), self.nodes[0], node0))
         node0.add_connection(connections[0])
 
         NetworkThread().start()  # Start up network handling in another thread
@@ -108,9 +113,9 @@ class AssumeValidTest(AvianTestFramework):
         self.blocks = []
 
         # Get a pubkey for the coinbase TXO
-        coinbase_key = ECKey()
-        coinbase_key.generate()
-        coinbase_pubkey = coinbase_key.get_pubkey().get_bytes()
+        coinbase_key = CECKey()
+        coinbase_key.set_secretbytes(b"horsebattery")
+        coinbase_pubkey = coinbase_key.get_pubkey()
 
         # Create the first block with a coinbase output to our key
         height = 1
@@ -120,7 +125,7 @@ class AssumeValidTest(AvianTestFramework):
         block.solve()
         # Save the coinbase for later
         self.block1 = block
-        self.tip = block.x16r
+        self.tip = block.sha256
         height += 1
 
         # Bury the block 100 deep so the coinbase output is spendable
@@ -128,15 +133,15 @@ class AssumeValidTest(AvianTestFramework):
             block = create_block(self.tip, create_coinbase(height), self.block_time)
             block.solve()
             self.blocks.append(block)
-            self.tip = block.x16r
+            self.tip = block.sha256
             self.block_time += 1
             height += 1
 
         # Create a transaction spending the coinbase output with an invalid (null) signature
         tx = CTransaction()
-        tx.vin.append(CTxIn(COutPoint(self.block1.vtx[0].x16r, 0), script_sig=b""))
+        tx.vin.append(CTxIn(COutPoint(self.block1.vtx[0].sha256, 0), scriptSig=b""))
         tx.vout.append(CTxOut(49 * 100000000, CScript([OP_TRUE])))
-        tx.calc_x16r()
+        tx.calc_sha256()
 
         block102 = create_block(self.tip, create_coinbase(height), self.block_time)
         self.block_time += 1
@@ -145,7 +150,7 @@ class AssumeValidTest(AvianTestFramework):
         block102.rehash()
         block102.solve()
         self.blocks.append(block102)
-        self.tip = block102.x16r
+        self.tip = block102.sha256
         self.block_time += 1
         height += 1
 
@@ -155,18 +160,18 @@ class AssumeValidTest(AvianTestFramework):
             block.nVersion = 4
             block.solve()
             self.blocks.append(block)
-            self.tip = block.x16r
+            self.tip = block.sha256
             self.block_time += 1
             height += 1
 
         # Start node1 and node2 with assumevalid so they accept a block with a bad signature.
-        self.start_node(1, extra_args=["-assumevalid=" + hex(block102.x16r)])
+        self.start_node(1, extra_args=["-assumevalid=" + hex(block102.sha256)])
         node1 = BaseNode()  # connects to node1
         connections.append(NodeConn('127.0.0.1', p2p_port(1), self.nodes[1], node1))
         node1.add_connection(connections[1])
         node1.wait_for_verack()
 
-        self.start_node(2, extra_args=["-assumevalid=" + hex(block102.x16r)])
+        self.start_node(2, extra_args=["-assumevalid=" + hex(block102.sha256)])
         node2 = BaseNode()  # connects to node2
         connections.append(NodeConn('127.0.0.1', p2p_port(2), self.nodes[2], node2))
         node2.add_connection(connections[2])
@@ -185,7 +190,7 @@ class AssumeValidTest(AvianTestFramework):
 
         # Send all blocks to node1. All blocks will be accepted.
         for i in range(2202):
-            node1.send_message(MsgBlock(self.blocks[i]))
+            node1.send_message(msg_block(self.blocks[i]))
         # Syncing 2200 blocks can take a while on slow systems. Give it plenty of time to sync.
         node1.sync_with_ping(120)
         assert_equal(self.nodes[1].getblock(self.nodes[1].getbestblockhash())['height'], 2202)
@@ -193,7 +198,6 @@ class AssumeValidTest(AvianTestFramework):
         # Send blocks to node2. Block 102 will be rejected.
         self.send_blocks_until_disconnected(node2)
         self.assert_blockchain_height(self.nodes[2], 101)
-
 
 if __name__ == '__main__':
     AssumeValidTest().main()

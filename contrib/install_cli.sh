@@ -1,6 +1,6 @@
  #!/usr/bin/env bash
 
- # Execute this file to install the avian cli tools into your path on OS X
+ # Execute this file to install the raven cli tools into your path on OS X
 
  CURRENT_LOC="$( cd "$(dirname "$0")" ; pwd -P )"
  LOCATION=${CURRENT_LOC%Avian-Qt.app*}

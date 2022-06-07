@@ -17,7 +17,6 @@
 #include <openssl/obj_mac.h>
 #endif
 
-
 typedef struct {
     secp256k1_context *ctx;
     unsigned char msg[32];
@@ -31,11 +30,11 @@ typedef struct {
 #endif
 } benchmark_verify_t;
 
-static void benchmark_verify(void* arg, int iters) {
+static void benchmark_verify(void* arg) {
     int i;
     benchmark_verify_t* data = (benchmark_verify_t*)arg;
 
-    for (i = 0; i < iters; i++) {
+    for (i = 0; i < 20000; i++) {
         secp256k1_pubkey pubkey;
         secp256k1_ecdsa_signature sig;
         data->sig[data->siglen - 1] ^= (i & 0xFF);
@@ -51,11 +50,11 @@ static void benchmark_verify(void* arg, int iters) {
 }
 
 #ifdef ENABLE_OPENSSL_TESTS
-static void benchmark_verify_openssl(void* arg, int iters) {
+static void benchmark_verify_openssl(void* arg) {
     int i;
     benchmark_verify_t* data = (benchmark_verify_t*)arg;
 
-    for (i = 0; i < iters; i++) {
+    for (i = 0; i < 20000; i++) {
         data->sig[data->siglen - 1] ^= (i & 0xFF);
         data->sig[data->siglen - 2] ^= ((i >> 8) & 0xFF);
         data->sig[data->siglen - 3] ^= ((i >> 16) & 0xFF);
@@ -86,8 +85,6 @@ int main(void) {
     secp256k1_ecdsa_signature sig;
     benchmark_verify_t data;
 
-    int iters = get_iters(20000);
-
     data.ctx = secp256k1_context_create(SECP256K1_CONTEXT_SIGN | SECP256K1_CONTEXT_VERIFY);
 
     for (i = 0; i < 32; i++) {
@@ -103,10 +100,10 @@ int main(void) {
     data.pubkeylen = 33;
     CHECK(secp256k1_ec_pubkey_serialize(data.ctx, data.pubkey, &data.pubkeylen, &pubkey, SECP256K1_EC_COMPRESSED) == 1);
 
-    run_benchmark("ecdsa_verify", benchmark_verify, NULL, NULL, &data, 10, iters);
+    run_benchmark("ecdsa_verify", benchmark_verify, NULL, NULL, &data, 10, 20000);
 #ifdef ENABLE_OPENSSL_TESTS
     data.ec_group = EC_GROUP_new_by_curve_name(NID_secp256k1);
-    run_benchmark("ecdsa_verify_openssl", benchmark_verify_openssl, NULL, NULL, &data, 10, iters);
+    run_benchmark("ecdsa_verify_openssl", benchmark_verify_openssl, NULL, NULL, &data, 10, 20000);
     EC_GROUP_free(data.ec_group);
 #endif
 

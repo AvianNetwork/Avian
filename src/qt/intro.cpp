@@ -1,6 +1,6 @@
 // Copyright (c) 2011-2016 The Bitcoin Core developers
 // Copyright (c) 2017 The Raven Core developers
-// Copyright (c) 2021 The Raven Core developers
+// Copyright (c) 2021 The Avian Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -121,11 +121,6 @@ Intro::Intro(QWidget *parent) :
     thread(0),
     signalled(false)
 {
-
-    QSettings settings;
-    // load stylesheet
-    GUIUtil::loadTheme(settings.value("fDarkModeEnabled", false).toBool());
-
     ui->setupUi(this);
     ui->welcomeLabel->setText(ui->welcomeLabel->text().arg(tr(PACKAGE_NAME)));
     ui->storageLabel->setText(ui->storageLabel->text().arg(tr(PACKAGE_NAME)));
@@ -210,7 +205,7 @@ bool Intro::pickDataDirectory()
         /* If current default data directory does not exist, let the user choose one */
         Intro intro;
         intro.setDataDirectory(dataDir);
-        intro.setWindowIcon(QIcon(":icons/avian"));
+        intro.setWindowIcon(QIcon(":icons/raven"));
 
         while(true)
         {

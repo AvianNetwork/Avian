@@ -11,7 +11,7 @@
   </array>
 
   <key>CFBundleIconFile</key>
-  <string>avian.icns</string>
+  <string>raven.icns</string>
 
   <key>CFBundlePackageType</key>
   <string>APPL</string>
@@ -38,7 +38,7 @@
   <true/>
 
   <key>CFBundleIdentifier</key>
-  <string>org.avianfoundation.Avian-Qt</string>
+  <string>org.ravenfoundation.Avian-Qt</string>
 
   <key>CFBundleURLTypes</key>
   <array>
@@ -46,10 +46,10 @@
       <key>CFBundleTypeRole</key>
       <string>Editor</string>
       <key>CFBundleURLName</key>
-      <string>org.avian.AvianPayment</string>
+      <string>org.raven.RavenPayment</string>
       <key>CFBundleURLSchemes</key>
       <array>
-        <string>avian</string>
+        <string>raven</string>
       </array>
     </dict>
   </array>
@@ -58,9 +58,9 @@
   <array>
     <dict>
       <key>UTTypeIdentifier</key>
-      <string>org.avian.paymentrequest</string>
+      <string>org.raven.paymentrequest</string>
       <key>UTTypeDescription</key>
-      <string>Avian payment request</string>
+      <string>Raven payment request</string>
       <key>UTTypeConformsTo</key>
       <array>
         <string>public.data</string>
@@ -68,10 +68,10 @@
       <key>UTTypeTagSpecification</key>
       <dict>
         <key>public.mime-type</key>
-        <string>application/x-avian-payment-request</string>
+        <string>application/x-raven-payment-request</string>
         <key>public.filename-extension</key>
         <array>
-          <string>avianpaymentrequest</string>
+          <string>ravenpaymentrequest</string>
         </array>
       </dict>
     </dict>
@@ -84,7 +84,7 @@
       <string>Editor</string>
       <key>LSItemContentTypes</key>
       <array>
-        <string>org.avian.paymentrequest</string>
+        <string>org.raven.paymentrequest</string>
       </array>
       <key>LSHandlerRank</key>
       <string>Owner</string>

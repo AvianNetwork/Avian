@@ -1,11 +1,11 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
 // Copyright (c) 2009-2016 The Bitcoin Core developers
-// Copyright (c) 2017-2019 The Raven Core developers
+// Copyright (c) 2017 The Raven Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef AVIAN_SCRIPT_STANDARD_H
-#define AVIAN_SCRIPT_STANDARD_H
+#ifndef RAVEN_SCRIPT_STANDARD_H
+#define RAVEN_SCRIPT_STANDARD_H
 
 #include "script/interpreter.h"
 #include "uint256.h"
@@ -65,12 +65,11 @@ enum txnouttype
     TX_NULL_DATA = 5, //!< unspendable OP_RETURN script that carries data
     TX_WITNESS_V0_SCRIPTHASH = 6,
     TX_WITNESS_V0_KEYHASH = 7,
-    /** AVN START */
+    /** RVN START */
     TX_NEW_ASSET = 8,
     TX_REISSUE_ASSET = 9,
-    TX_TRANSFER_ASSET = 10,
-    TX_RESTRICTED_ASSET_DATA = 11, //!< unspendable OP_AVIAN_ASSET script that carries data
-    /** AVN END */
+    TX_TRANSFER_ASSET = 10
+    /** RVN END */
 };
 
 class CNoDestination {
@@ -84,7 +83,7 @@ public:
  *  * CNoDestination: no destination set
  *  * CKeyID: TX_PUBKEYHASH destination
  *  * CScriptID: TX_SCRIPTHASH destination
- *  A CTxDestination is the internal data type encoded in a avian address
+ *  A CTxDestination is the internal data type encoded in a ravencoin address
  */
 typedef boost::variant<CNoDestination, CKeyID, CScriptID> CTxDestination;
 
@@ -126,7 +125,7 @@ bool ExtractDestination(const CScript& scriptPubKey, CTxDestination& addressRet)
 bool ExtractDestinations(const CScript& scriptPubKey, txnouttype& typeRet, std::vector<CTxDestination>& addressRet, int& nRequiredRet);
 
 /**
- * Generate a Avian scriptPubKey for the given CTxDestination. Returns a P2PKH
+ * Generate a Raven scriptPubKey for the given CTxDestination. Returns a P2PKH
  * script for a CKeyID destination, a P2SH script for a CScriptID, and an empty
  * script for CNoDestination.
  */
@@ -138,9 +137,6 @@ CScript GetScriptForRawPubKey(const CPubKey& pubkey);
 /** Generate a multisig script. */
 CScript GetScriptForMultisig(int nRequired, const std::vector<CPubKey>& keys);
 
-/** Generate a script that contains an address used for qualifier, and restricted assets data transactions */
-CScript GetScriptForNullAssetDataDestination(const CTxDestination &dest);
-
 /**
  * Generate a pay-to-witness script for the given redeem script. If the redeem
  * script is P2PK or P2PKH, this returns a P2WPKH script, otherwise it returns a
@@ -148,4 +144,4 @@ CScript GetScriptForNullAssetDataDestination(const CTxDestination &dest);
  */
 CScript GetScriptForWitness(const CScript& redeemscript);
 
-#endif // AVIAN_SCRIPT_STANDARD_H
+#endif // RAVEN_SCRIPT_STANDARD_H

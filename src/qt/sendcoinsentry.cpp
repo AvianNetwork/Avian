@@ -1,5 +1,5 @@
 // Copyright (c) 2011-2016 The Bitcoin Core developers
-// Copyright (c) 2017-2019 The Raven Core developers
+// Copyright (c) 2017 The Raven Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -13,6 +13,7 @@
 #include "platformstyle.h"
 #include "walletmodel.h"
 #include "guiconstants.h"
+#include "darkstyle.h"
 
 #include <QGraphicsDropShadowEffect>
 #include <QApplication>
@@ -43,7 +44,7 @@ SendCoinsEntry::SendCoinsEntry(const PlatformStyle *_platformStyle, QWidget *par
     // normal avian address field
     GUIUtil::setupAddressWidget(ui->payTo, this);
     // just a label for displaying avian address(es)
-    ui->payTo_is->setFont(GUIUtil::fixedPitchFont());
+    ui->payTo_is->setFont(GUIUtil::getSubLabelFont());
 
     // Connect signals
     connect(ui->payAmount, SIGNAL(valueChanged()), this, SIGNAL(payAmountChanged()));
@@ -52,8 +53,27 @@ SendCoinsEntry::SendCoinsEntry(const PlatformStyle *_platformStyle, QWidget *par
     connect(ui->deleteButton_is, SIGNAL(clicked()), this, SLOT(deleteClicked()));
     connect(ui->deleteButton_s, SIGNAL(clicked()), this, SLOT(deleteClicked()));
 
+    this->setStyleSheet(QString(".SendCoinsEntry {background-color: %1; padding-top: 10px; padding-right: 30px; border: none;}").arg(platformStyle->SendEntriesBackGroundColor().name()));
+
     this->setGraphicsEffect(GUIUtil::getShadowEffect());
 
+    ui->payToLabel->setStyleSheet(STRING_LABEL_COLOR);
+    ui->payToLabel->setFont(GUIUtil::getSubLabelFont());
+
+    ui->labellLabel->setStyleSheet(STRING_LABEL_COLOR);
+    ui->labellLabel->setFont(GUIUtil::getSubLabelFont());
+
+    ui->amountLabel->setStyleSheet(STRING_LABEL_COLOR);
+    ui->amountLabel->setFont(GUIUtil::getSubLabelFont());
+
+    ui->messageLabel->setStyleSheet(STRING_LABEL_COLOR);
+    ui->messageLabel->setFont(GUIUtil::getSubLabelFont());
+
+    ui->checkboxSubtractFeeFromAmount->setStyleSheet(QString(".QCheckBox{ %1; }").arg(STRING_LABEL_COLOR));
+    ui->payTo->setFont(GUIUtil::getSubLabelFont());
+    ui->addAsLabel->setFont(GUIUtil::getSubLabelFont());
+    ui->payAmount->setFont(GUIUtil::getSubLabelFont());
+    ui->messageTextLabel->setFont(GUIUtil::getSubLabelFont());
 }
 
 SendCoinsEntry::~SendCoinsEntry()
@@ -114,7 +134,7 @@ void SendCoinsEntry::clear()
     ui->memoTextLabel_s->clear();
     ui->payAmount_s->clear();
 
-    // update the display unit, to not use the default ("AVN")
+    // update the display unit, to not use the default ("RVN")
     updateDisplayUnit();
 }
 

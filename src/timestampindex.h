@@ -3,8 +3,8 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef AVIAN_TIMESTAMPINDEX_H
-#define AVIAN_TIMESTAMPINDEX_H
+#ifndef RAVEN_TIMESTAMPINDEX_H
+#define RAVEN_TIMESTAMPINDEX_H
 
 #include "uint256.h"
 
@@ -128,4 +128,4 @@ struct CTimestampBlockIndexValue {
     }
 };
 
-#endif // AVIAN_TIMESTAMPINDEX_H
+#endif // RAVEN_TIMESTAMPINDEX_H

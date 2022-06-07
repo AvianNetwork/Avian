@@ -1,11 +1,9 @@
 #!/usr/bin/env python3
 # Copyright (c) 2015-2016 The Bitcoin Core developers
-# Copyright (c) 2017-2020 The Raven Core developers
+# Copyright (c) 2017 The Raven Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
-
-"""
-Utilities for doing coverage analysis on the RPC interface.
+"""Utilities for doing coverage analysis on the RPC interface.
 
 Provides a way to track which RPC commands are exercised during
 testing.
@@ -13,10 +11,11 @@ testing.
 
 import os
 
+
 REFERENCE_FILENAME = 'rpc_interface.txt'
 
 
-class AuthServiceProxyWrapper:
+class AuthServiceProxyWrapper():
     """
     An object that wraps AuthServiceProxy to record specific RPC calls.
 
@@ -50,7 +49,6 @@ class AuthServiceProxyWrapper:
         self._log_call()
         return return_val
 
-    # noinspection PyProtectedMember
     def _log_call(self):
         rpc_method = self.auth_service_proxy_instance._service_name
 
@@ -65,7 +63,6 @@ class AuthServiceProxyWrapper:
     def get_request(self, *args, **kwargs):
         self._log_call()
         return self.auth_service_proxy_instance.get_request(*args, **kwargs)
-
 
 def get_filename(dirname, n_node):
     """

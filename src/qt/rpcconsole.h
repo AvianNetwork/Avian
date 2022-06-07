@@ -1,11 +1,11 @@
 // Copyright (c) 2011-2016 The Bitcoin Core developers
-// Copyright (c) 2017-2019 The Raven Core developers
-// Copyright (c) 2021 The Avian Core developers
+// Copyright (c) 2021 The Ravecoin Lite Core developers
+// Copyright (c) 2017 The Raven Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef AVIAN_QT_RPCCONSOLE_H
-#define AVIAN_QT_RPCCONSOLE_H
+#ifndef RAVEN_QT_RPCCONSOLE_H
+#define RAVEN_QT_RPCCONSOLE_H
 
 #include "guiutil.h"
 #include "peertablemodel.h"
@@ -164,4 +164,4 @@ private:
     void updateNetworkState();
 };
 
-#endif // AVIAN_QT_RPCCONSOLE_H
+#endif // RAVEN_QT_RPCCONSOLE_H

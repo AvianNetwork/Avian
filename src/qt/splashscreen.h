@@ -1,10 +1,10 @@
 // Copyright (c) 2011-2016 The Bitcoin Core developers
-// Copyright (c) 2017-2019 The Raven Core developers
+// Copyright (c) 2017 The Raven Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef AVIAN_QT_SPLASHSCREEN_H
-#define AVIAN_QT_SPLASHSCREEN_H
+#ifndef RAVEN_QT_SPLASHSCREEN_H
+#define RAVEN_QT_SPLASHSCREEN_H
 
 #include <functional>
 #include <QSplashScreen>
@@ -14,7 +14,7 @@ class NetworkStyle;
 
 /** Class for the splashscreen with information of the running client.
  *
- * @note this is intentionally not a QSplashScreen. Avian Core initialization
+ * @note this is intentionally not a QSplashScreen. Raven Core initialization
  * can take a long time, and in that case a progress window that cannot be
  * moved around and minimized has turned out to be frustrating to the user.
  */
@@ -23,7 +23,7 @@ class SplashScreen : public QWidget
     Q_OBJECT
 
 public:
-    explicit SplashScreen(const NetworkStyle *networkStyle);
+    explicit SplashScreen(Qt::WindowFlags f, const NetworkStyle *networkStyle);
     ~SplashScreen();
 
 protected:
@@ -56,4 +56,4 @@ private:
     QList<CWallet*> connectedWallets;
 };
 
-#endif // AVIAN_QT_SPLASHSCREEN_H
+#endif // RAVEN_QT_SPLASHSCREEN_H

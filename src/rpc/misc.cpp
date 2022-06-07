@@ -58,7 +58,7 @@ UniValue getinfo(const JSONRPCRequest& request)
             "  \"version\": xxxxx,           (numeric) the server version\n"
             "  \"protocolversion\": xxxxx,   (numeric) the protocol version\n"
             "  \"walletversion\": xxxxx,     (numeric) the wallet version\n"
-            "  \"balance\": xxxxxxx,         (numeric) the total Aviancoin balance of the wallet\n"
+            "  \"balance\": xxxxxxx,         (numeric) the total Ravencoin balance of the wallet\n"
             "  \"blocks\": xxxxxx,           (numeric) the current number of blocks processed in the server\n"
             "  \"timeoffset\": xxxxx,        (numeric) the time offset\n"
             "  \"connections\": xxxxx,       (numeric) the number of connections\n"
@@ -446,7 +446,7 @@ UniValue signmessagewithprivkey(const JSONRPCRequest& request)
     std::string strPrivkey = request.params[0].get_str();
     std::string strMessage = request.params[1].get_str();
 
-    CAvianSecret vchSecret;
+    CRavenSecret vchSecret;
     bool fGood = vchSecret.SetString(strPrivkey);
     if (!fGood)
         throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Invalid private key");
@@ -654,9 +654,9 @@ UniValue echo(const JSONRPCRequest& request)
 bool getAddressFromIndex(const int &type, const uint160 &hash, std::string &address)
 {
     if (type == 2) {
-        address = CAvianAddress(CScriptID(hash)).ToString();
+        address = CRavenAddress(CScriptID(hash)).ToString();
     } else if (type == 1) {
-        address = CAvianAddress(CKeyID(hash)).ToString();
+        address = CRavenAddress(CKeyID(hash)).ToString();
     } else {
         return false;
     }
@@ -666,7 +666,7 @@ bool getAddressFromIndex(const int &type, const uint160 &hash, std::string &addr
 bool getAddressesFromParams(const UniValue& params, std::vector<std::pair<uint160, int> > &addresses)
 {
     if (params[0].isStr()) {
-        CAvianAddress address(params[0].get_str());
+        CRavenAddress address(params[0].get_str());
         uint160 hashBytes;
         int type = 0;
         if (!address.GetIndexKey(hashBytes, type)) {
@@ -684,7 +684,7 @@ bool getAddressesFromParams(const UniValue& params, std::vector<std::pair<uint16
 
         for (std::vector<UniValue>::iterator it = values.begin(); it != values.end(); ++it) {
 
-            CAvianAddress address(it->get_str());
+            CRavenAddress address(it->get_str());
             uint160 hashBytes;
             int type = 0;
             if (!address.GetIndexKey(hashBytes, type)) {
@@ -728,7 +728,7 @@ UniValue getaddressmempool(const JSONRPCRequest& request)
             "[\n"
             "  {\n"
             "    \"address\"  (string) The base58check encoded address\n"
-            "    \"assetName\"  (string) The name of the associated asset (AVN for Aviancoin)\n"
+            "    \"assetName\"  (string) The name of the associated asset (RVN for Ravencoin)\n"
             "    \"txid\"  (string) The related txid\n"
             "    \"index\"  (number) The related input or output index\n"
             "    \"satoshis\"  (number) The difference of satoshis\n"
@@ -766,7 +766,7 @@ UniValue getaddressmempool(const JSONRPCRequest& request)
             throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "No information available for address");
         }
     } else {
-        if (!mempool.getAddressIndex(addresses, AVN, indexes)) {
+        if (!mempool.getAddressIndex(addresses, RVN, indexes)) {
             throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "No information available for address");
         }
     }
@@ -814,13 +814,13 @@ UniValue getaddressutxos(const JSONRPCRequest& request)
             "      ,...\n"
             "    ],\n"
             "  \"chainInfo\",  (boolean, optional, default false) Include chain info with results\n"
-            "  \"assetName\"   (string, optional) Get UTXOs for a particular asset instead of AVN ('*' for all assets).\n"
+            "  \"assetName\"   (string, optional) Get UTXOs for a particular asset instead of RVN ('*' for all assets).\n"
             "}\n"
             "\nResult\n"
             "[\n"
             "  {\n"
             "    \"address\"  (string) The address base58check encoded\n"
-            "    \"assetName\" (string) The asset associated with the UTXOs (AVN for Aviancoin)\n"
+            "    \"assetName\" (string) The asset associated with the UTXOs (RVN for Ravencoin)\n"
             "    \"txid\"  (string) The output txid\n"
             "    \"height\"  (number) The block height\n"
             "    \"outputIndex\"  (number) The output index\n"
@@ -836,7 +836,7 @@ UniValue getaddressutxos(const JSONRPCRequest& request)
             );
 
     bool includeChainInfo = false;
-    std::string assetName = AVN;
+    std::string assetName = RVN;
     if (request.params[0].isObject()) {
         UniValue chainInfo = find_value(request.params[0].get_obj(), "chainInfo");
         if (chainInfo.isBool()) {
@@ -881,8 +881,8 @@ UniValue getaddressutxos(const JSONRPCRequest& request)
             throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Unknown address type");
         }
 
-        std::string assetNameOut = "AVN";
-        if (assetName != "AVN") {
+        std::string assetNameOut = "RVN";
+        if (assetName != "RVN") {
             CAmount _amount;
             if (!GetAssetInfoFromScript(it->second.script, assetNameOut, _amount)) {
                 throw JSONRPCError(RPC_INTERNAL_ERROR, "Couldn't decode asset script");
@@ -928,12 +928,12 @@ UniValue getaddressdeltas(const JSONRPCRequest& request)
             "  \"start\" (number) The start block height\n"
             "  \"end\" (number) The end block height\n"
             "  \"chainInfo\" (boolean) Include chain info in results, only applies if start and end specified\n"
-            "  \"assetName\"   (string, optional) Get deltas for a particular asset instead of AVN.\n"
+            "  \"assetName\"   (string, optional) Get deltas for a particular asset instead of RVN.\n"
             "}\n"
             "\nResult:\n"
             "[\n"
             "  {\n"
-            "    \"assetName\"  (string) The asset associated with the deltas (AVN for Aviancoin)\n"
+            "    \"assetName\"  (string) The asset associated with the deltas (RVN for Ravencoin)\n"
             "    \"satoshis\"  (number) The difference of satoshis\n"
             "    \"txid\"  (string) The related txid\n"
             "    \"index\"  (number) The related input or output index\n"
@@ -958,7 +958,7 @@ UniValue getaddressdeltas(const JSONRPCRequest& request)
         includeChainInfo = chainInfo.get_bool();
     }
 
-    std::string assetName = AVN;
+    std::string assetName = RVN;
     UniValue assetNameParam = find_value(request.params[0].get_obj(), "assetName");
     if (assetNameParam.isStr()) {
         if (!AreAssetsDeployed())
@@ -1074,7 +1074,7 @@ UniValue getaddressbalance(const JSONRPCRequest& request)
             "OR\n"
             "[\n"
             "  {\n"
-            "    \"assetName\"  (string) The asset associated with the balance (AVN for Aviancoin)\n"
+            "    \"assetName\"  (string) The asset associated with the balance (RVN for Ravencoin)\n"
             "    \"balance\"  (string) The current balance in satoshis\n"
             "    \"received\"  (string) The total number of satoshis received (including change)\n"
             "  },...\n"
@@ -1141,7 +1141,7 @@ UniValue getaddressbalance(const JSONRPCRequest& request)
         std::vector<std::pair<CAddressIndexKey, CAmount> > addressIndex;
 
         for (std::vector<std::pair<uint160, int> >::iterator it = addresses.begin(); it != addresses.end(); it++) {
-            if (!GetAddressIndex((*it).first, (*it).second, AVN, addressIndex)) {
+            if (!GetAddressIndex((*it).first, (*it).second, RVN, addressIndex)) {
                 throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "No information available for address");
             }
         }
@@ -1236,11 +1236,11 @@ UniValue getaddresstxids(const JSONRPCRequest& request)
             }
         } else {
             if (start > 0 && end > 0) {
-                if (!GetAddressIndex((*it).first, (*it).second, AVN, addressIndex, start, end)) {
+                if (!GetAddressIndex((*it).first, (*it).second, RVN, addressIndex, start, end)) {
                     throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "No information available for address");
                 }
             } else {
-                if (!GetAddressIndex((*it).first, (*it).second, AVN, addressIndex)) {
+                if (!GetAddressIndex((*it).first, (*it).second, RVN, addressIndex)) {
                     throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "No information available for address");
                 }
             }

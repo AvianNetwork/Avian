@@ -1,6 +1,5 @@
-Building Avian
+Building Raven
 ================
 
 See doc/build-*.md for instructions on building the various
-elements of the Avian Core reference implementation of Avian.
-
+elements of the Raven Core reference implementation of Raven.

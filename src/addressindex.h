@@ -3,14 +3,14 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef AVIAN_ADDRESSINDEX_H
-#define AVIAN_ADDRESSINDEX_H
+#ifndef RAVEN_ADDRESSINDEX_H
+#define RAVEN_ADDRESSINDEX_H
 
 #include "uint256.h"
 #include "amount.h"
 #include "script/script.h"
 
-static const std::string AVN = "AVN";
+static const std::string RVN = "RVN";
 
 struct CAddressUnspentKey {
     unsigned int type;
@@ -42,7 +42,7 @@ struct CAddressUnspentKey {
     CAddressUnspentKey(unsigned int addressType, uint160 addressHash, uint256 txid, size_t indexValue) {
         type = addressType;
         hashBytes = addressHash;
-        asset = AVN;
+        asset = RVN;
         txhash = txid;
         index = indexValue;
     }
@@ -146,7 +146,7 @@ struct CAddressIndexKey {
                      uint256 txid, size_t indexValue, bool isSpending) {
         type = addressType;
         hashBytes = addressHash;
-        asset = AVN;
+        asset = RVN;
         blockHeight = height;
         txindex = blockindex;
         txhash = txid;
@@ -240,7 +240,7 @@ struct CAddressIndexIteratorAssetKey {
     CAddressIndexIteratorAssetKey(unsigned int addressType, uint160 addressHash) {
         type = addressType;
         hashBytes = addressHash;
-        asset = AVN;
+        asset = RVN;
     }
 
     CAddressIndexIteratorAssetKey(unsigned int addressType, uint160 addressHash, std::string assetName) {
@@ -287,7 +287,7 @@ struct CAddressIndexIteratorHeightKey {
     CAddressIndexIteratorHeightKey(unsigned int addressType, uint160 addressHash, int height) {
         type = addressType;
         hashBytes = addressHash;
-        asset = AVN;
+        asset = RVN;
         blockHeight = height;
     }
 
@@ -406,4 +406,4 @@ struct CMempoolAddressDeltaKeyCompare
     }
 };
 
-#endif // AVIAN_ADDRESSINDEX_H
+#endif // RAVEN_ADDRESSINDEX_H

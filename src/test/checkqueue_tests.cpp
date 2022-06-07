@@ -7,7 +7,7 @@
 #include "utiltime.h"
 #include "validation.h"
 
-#include "test/test_avian.h"
+#include "test/test_raven.h"
 #include "checkqueue.h"
 #include <boost/test/unit_test.hpp>
 #include <boost/thread.hpp>

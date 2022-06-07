@@ -1,6 +1,5 @@
 # Copyright (c) 2013-2016 The Bitcoin Core developers
 # Copyright (c) 2017-2019 The Raven Core developers
-# Copyright (c) 2022 The Avian Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -20,10 +19,10 @@ else
 LIBUNIVALUE = $(UNIVALUE_LIBS)
 endif
 
-AVIAN_INCLUDES=-I$(builddir) -I$(builddir)/obj $(BDB_CPPFLAGS) $(BOOST_CPPFLAGS) $(LEVELDB_CPPFLAGS) $(CRYPTO_CFLAGS) $(SSL_CFLAGS)
+RAVEN_INCLUDES=-I$(builddir) -I$(builddir)/obj $(BDB_CPPFLAGS) $(BOOST_CPPFLAGS) $(LEVELDB_CPPFLAGS) $(CRYPTO_CFLAGS) $(SSL_CFLAGS)
 
-AVIAN_INCLUDES += -I$(srcdir)/secp256k1/include
-AVIAN_INCLUDES += $(UNIVALUE_CFLAGS)
+RAVEN_INCLUDES += -I$(srcdir)/secp256k1/include
+RAVEN_INCLUDES += $(UNIVALUE_CFLAGS)
 
 LIBAVIAN_SERVER=libavian_server.a
 LIBAVIAN_COMMON=libavian_common.a
@@ -37,7 +36,7 @@ LIBSECP256K1=secp256k1/libsecp256k1.la
 if ENABLE_ZMQ
 LIBAVIAN_ZMQ=libavian_zmq.a
 endif
-if BUILD_AVIAN_LIBS
+if BUILD_RAVEN_LIBS
 LIBAVIANCONSENSUS=libavianconsensus.la
 endif
 if ENABLE_WALLET
@@ -79,8 +78,8 @@ if BUILD_AVIAN_TX
 endif
 
 .PHONY: FORCE check-symbols check-security
-# avian core #
-AVIAN_CORE_H = \
+# raven core #
+RAVEN_CORE_H = \
   addrdb.h \
   addressindex.h \
   algo/sph_groestl.h \
@@ -101,6 +100,7 @@ AVIAN_CORE_H = \
   algo/lyra2.h \
   algo/sponge.h \
   algo/gost_streebog.h \
+  algo/hash_algos.h \
   algo/groestl.c \
   algo/blake.c \
   algo/bmw.c \
@@ -147,12 +147,7 @@ AVIAN_CORE_H = \
   assets/assets.h \
   assets/assetdb.h \
   assets/assettypes.h \
-  assets/messages.h \
-  assets/myassetsdb.h \
   assets/restricteddb.h \
-  assets/snapshotrequestdb.h \
-  assets/assetsnapshotdb.h \
-  assets/rewards.h \
   base58.h \
   bloom.h \
   blockencodings.h \
@@ -202,7 +197,6 @@ AVIAN_CORE_H = \
   reverse_iterator.h \
   reverselock.h \
   rpc/blockchain.h \
-  rpc/flightplans.h \
   rpc/client.h \
   rpc/mining.h \
   rpc/protocol.h \
@@ -250,45 +244,7 @@ AVIAN_CORE_H = \
   zmq/zmqabstractnotifier.h \
   zmq/zmqconfig.h\
   zmq/zmqnotificationinterface.h \
-  zmq/zmqpublishnotifier.h \
-  flightplans/weblib.h \
-  flightplans/avianlib.h \
-  flightplans/flightplans.h \
-  flightplans/json/strbuf.h \
-  flightplans/json/fpconv.h \
-  flightplans/keccak.h \
-  lua/lapi.h \
-  lua/lauxlib.h \
-  lua/lbaselib.h \
-  lua/lcode.h \
-  lua/lcorolib.h \
-  lua/lctype.h \
-  lua/ldblib.h \
-  lua/ldebug.h \
-  lua/ldo.h \
-  lua/ldump.h \
-  lua/lfunc.h \
-  lua/lgc.h \
-  lua/linit.h \
-  lua/liolib.h \
-  lua/llex.h \
-  lua/lmathlib.h \
-  lua/lmem.h \
-  lua/loadlib.h \
-  lua/lobject.h \
-  lua/lopcodes.h \
-  lua/loslib.h \
-  lua/lparser.h \
-  lua/lstate.h \
-  lua/lstring.h \
-  lua/lstrlib.h \
-  lua/ltable.h \
-  lua/ltablib.h \
-  lua/ltm.h \
-  lua/lundump.h \
-  lua/lutf8lib.h \
-  lua/lvm.h \
-  lua/lzio.h
+  zmq/zmqpublishnotifier.h 
 
 obj/build.h: FORCE
 	@$(MKDIR_P) $(builddir)/obj
@@ -297,7 +253,7 @@ obj/build.h: FORCE
 libavian_util_a-clientversion.$(OBJEXT): obj/build.h
 
 # server: shared between aviand and avian-qt
-libavian_server_a_CPPFLAGS = $(AM_CPPFLAGS) $(AVIAN_INCLUDES) $(MINIUPNPC_CPPFLAGS) $(EVENT_CFLAGS) $(EVENT_PTHREADS_CFLAGS)
+libavian_server_a_CPPFLAGS = $(AM_CPPFLAGS) $(RAVEN_INCLUDES) $(MINIUPNPC_CPPFLAGS) $(EVENT_CFLAGS) $(EVENT_PTHREADS_CFLAGS)
 libavian_server_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
 libavian_server_a_SOURCES = \
   addrdb.cpp \
@@ -320,29 +276,19 @@ libavian_server_a_SOURCES = \
   assets/assets.cpp \
   assets/assetdb.cpp \
   assets/assettypes.cpp \
-  assets/messages.cpp \
-  assets/myassetsdb.cpp \
-  assets/restricteddb.cpp \
-  assets/snapshotrequestdb.cpp \
-  assets/assetsnapshotdb.cpp \
-  assets/rewards.cpp \
   policy/fees.cpp \
   policy/policy.cpp \
   policy/rbf.cpp \
   pow.cpp \
   rest.cpp \
-  rpc/flightplans.cpp \
   rpc/assets.cpp \
   rpc/blockchain.cpp \
-  rpc/messages.cpp \
   rpc/mining.cpp \
   rpc/misc.cpp \
   rpc/net.cpp \
   rpc/rawtransaction.cpp \
-  rpc/rewards.cpp \
   rpc/safemode.cpp \
   rpc/server.cpp \
-  rpc/client.cpp \
   script/sigcache.cpp \
   script/ismine.cpp \
   timedata.cpp \
@@ -353,49 +299,10 @@ libavian_server_a_SOURCES = \
   validation.cpp \
   validationinterface.cpp \
   versionbits.cpp \
-  flightplans/weblib.cpp \  
-  flightplans/avianlib.cpp \  
-  flightplans/flightplans.cpp \
-  flightplans/json/strbuf.c \
-  flightplans/json/fpconv.c \
-  flightplans/json/lua_cjson.c \
-  flightplans/keccak.cpp \
-  lua/lapi.c \
-  lua/lauxlib.c \
-  lua/lbaselib.c \
-  lua/lcode.c \
-  lua/lcorolib.c \
-  lua/lctype.c \
-  lua/ldblib.c \
-  lua/ldebug.c \
-  lua/ldo.c \
-  lua/ldump.c \
-  lua/lfunc.c \
-  lua/lgc.c \
-  lua/linit.c \
-  lua/liolib.c \
-  lua/llex.c \
-  lua/lmathlib.c \
-  lua/lmem.c \
-  lua/loadlib.c \
-  lua/lobject.c \
-  lua/lopcodes.c \
-  lua/loslib.c \
-  lua/lparser.c \
-  lua/lstate.c \
-  lua/lstring.c \
-  lua/lstrlib.c \
-  lua/ltable.c \
-  lua/ltablib.c \
-  lua/ltm.c \
-  lua/lundump.c \
-  lua/lutf8lib.c \
-  lua/lvm.c \
-  lua/lzio.c \
-  $(AVIAN_CORE_H)
+  $(RAVEN_CORE_H)
 
 if ENABLE_ZMQ
-libavian_zmq_a_CPPFLAGS = $(AVIAN_INCLUDES) $(ZMQ_CFLAGS)
+libavian_zmq_a_CPPFLAGS = $(RAVEN_INCLUDES) $(ZMQ_CFLAGS)
 libavian_zmq_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
 libavian_zmq_a_SOURCES = \
   zmq/zmqabstractnotifier.cpp \
@@ -406,7 +313,7 @@ endif
 
 # wallet: shared between aviand and avian-qt, but only linked
 # when wallet enabled
-libavian_wallet_a_CPPFLAGS = $(AM_CPPFLAGS) $(AVIAN_INCLUDES)
+libavian_wallet_a_CPPFLAGS = $(AM_CPPFLAGS) $(RAVEN_INCLUDES)
 libavian_wallet_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
 libavian_wallet_a_SOURCES = \
   wallet/crypter.cpp \
@@ -419,7 +326,7 @@ libavian_wallet_a_SOURCES = \
   wallet/wallet.cpp \
   wallet/walletdb.cpp \
   wallet/bip39.cpp \
-  $(AVIAN_CORE_H)
+  $(RAVEN_CORE_H)
 
 # crypto primitives library
 crypto_libavian_crypto_a_CPPFLAGS = $(AM_CPPFLAGS)
@@ -435,43 +342,20 @@ crypto_libavian_crypto_a_SOURCES = \
   crypto/hmac_sha512.cpp \
   crypto/hmac_sha512.h \
   crypto/ripemd160.cpp \
+  crypto/aes_helper.c \
   crypto/sha1.cpp \
   crypto/sha1.h \
   crypto/sha256.cpp \
   crypto/sha256.h \
   crypto/sha512.h \
-  crypto/sha512.cpp \
-  crypto/ethash/include/ethash/ethash.h \
-  crypto/ethash/include/ethash/ethash.hpp \
-  crypto/ethash/include/ethash/hash_types.h \
-  crypto/ethash/include/ethash/hash_types.hpp \
-  crypto/ethash/include/ethash/keccak.h \
-  crypto/ethash/include/ethash/keccak.hpp \
-  crypto/ethash/include/ethash/progpow.hpp \
-  crypto/ethash/include/ethash/version.h \
-  crypto/ethash/lib/ethash/bit_manipulation.h \
-  crypto/ethash/lib/ethash/builtins.h \
-  crypto/ethash/lib/ethash/endianness.hpp \
-  crypto/ethash/lib/ethash/ethash.cpp \
-  crypto/ethash/lib/ethash/ethash-internal.hpp \
-  crypto/ethash/lib/ethash/kiss99.hpp \
-  crypto/ethash/lib/ethash/managed.cpp \
-  crypto/ethash/lib/ethash/primes.c \
-  crypto/ethash/lib/ethash/primes.h \
-  crypto/ethash/lib/ethash/progpow.cpp \
-  crypto/ethash/lib/keccak/keccak.c \
-  crypto/ethash/lib/keccak/keccakf1600.c \
-  crypto/ethash/lib/keccak/keccakf800.c \
-  crypto/ethash/lib/support/attributes.h \
-  crypto/ethash/helpers.hpp \
-  crypto/ethash/progpow_test_vectors.hpp
+  crypto/sha512.cpp
 
 if USE_ASM
 crypto_libavian_crypto_a_SOURCES += crypto/sha256_sse4.cpp
 endif
 
 # consensus: shared between all executables that validate any consensus rules.
-libavian_consensus_a_CPPFLAGS = $(AM_CPPFLAGS) $(AVIAN_INCLUDES)
+libavian_consensus_a_CPPFLAGS = $(AM_CPPFLAGS) $(RAVEN_INCLUDES)
 libavian_consensus_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
 libavian_consensus_a_SOURCES = \
   amount.h \
@@ -490,7 +374,7 @@ libavian_consensus_a_SOURCES = \
   primitives/transaction.h \
   pubkey.cpp \
   pubkey.h \
-  script/avianconsensus.cpp \
+  script/ravenconsensus.cpp \
   script/interpreter.cpp \
   script/interpreter.h \
   script/script.cpp \
@@ -506,12 +390,10 @@ libavian_consensus_a_SOURCES = \
   utilstrencodings.cpp \
   utilstrencodings.h \
   version.h \
-  LibBoolEE.cpp \
-  LibBoolEE.h \
-  $(AVIAN_CORE_H)
+  $(RAVEN_CORE_H)
 
 # common: shared between aviand, and avian-qt and non-server tools
-libavian_common_a_CPPFLAGS = $(AM_CPPFLAGS) $(AVIAN_INCLUDES)
+libavian_common_a_CPPFLAGS = $(AM_CPPFLAGS) $(RAVEN_INCLUDES)
 libavian_common_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
 libavian_common_a_SOURCES = \
   base58.cpp \
@@ -530,12 +412,12 @@ libavian_common_a_SOURCES = \
   script/sign.cpp \
   script/standard.cpp \
   warnings.cpp \
-  $(AVIAN_CORE_H)
+  $(RAVEN_CORE_H)
 
 # util: shared between all executables.
 # This library *must* be included to make sure that the glibc
 # backward-compatibility objects and their sanity checks are linked.
-libavian_util_a_CPPFLAGS = $(AM_CPPFLAGS) $(AVIAN_INCLUDES)
+libavian_util_a_CPPFLAGS = $(AM_CPPFLAGS) $(RAVEN_INCLUDES)
 libavian_util_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
 libavian_util_a_SOURCES = \
   support/lockedpool.cpp \
@@ -543,6 +425,7 @@ libavian_util_a_SOURCES = \
   clientversion.cpp \
   compat/glibc_sanity.cpp \
   compat/glibcxx_sanity.cpp \
+  compat/strnlen.cpp \
   fs.cpp \
   random.cpp \
   rpc/protocol.cpp \
@@ -553,7 +436,7 @@ libavian_util_a_SOURCES = \
   utilmoneystr.cpp \
   utilstrencodings.cpp \
   utiltime.cpp \
-  $(AVIAN_CORE_H)
+  $(RAVEN_CORE_H)
 
 if GLIBC_BACK_COMPAT
 libavian_util_a_SOURCES += compat/glibc_compat.cpp
@@ -561,23 +444,23 @@ AM_LDFLAGS += $(COMPAT_LDFLAGS)
 endif
 
 # cli: shared between avian-cli and avian-qt
-libavian_cli_a_CPPFLAGS = $(AM_CPPFLAGS) $(AVIAN_INCLUDES)
+libavian_cli_a_CPPFLAGS = $(AM_CPPFLAGS) $(RAVEN_INCLUDES)
 libavian_cli_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
 libavian_cli_a_SOURCES = \
   rpc/client.cpp \
-  $(AVIAN_CORE_H)
+  $(RAVEN_CORE_H)
 
 nodist_libavian_util_a_SOURCES = $(srcdir)/obj/build.h
 #
 
 # aviand binary #
-aviand_SOURCES = aviand.cpp
-aviand_CPPFLAGS = $(AM_CPPFLAGS) $(AVIAN_INCLUDES)
+aviand_SOURCES = ravend.cpp
+aviand_CPPFLAGS = $(AM_CPPFLAGS) $(RAVEN_INCLUDES)
 aviand_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
 aviand_LDFLAGS = $(RELDFLAGS) $(AM_LDFLAGS) $(LIBTOOL_APP_LDFLAGS)
 
 if TARGET_WINDOWS
-aviand_SOURCES += aviand-res.rc
+aviand_SOURCES += ravend-res.rc
 endif
 
 aviand_LDADD = \
@@ -597,13 +480,13 @@ aviand_LDADD = \
 aviand_LDADD += $(BOOST_LIBS) $(BDB_LIBS) $(SSL_LIBS) $(CRYPTO_LIBS) $(MINIUPNPC_LIBS) $(EVENT_PTHREADS_LIBS) $(EVENT_LIBS) $(ZMQ_LIBS)
 
 # avian-cli binary #
-avian_cli_SOURCES = avian-cli.cpp
-avian_cli_CPPFLAGS = $(AM_CPPFLAGS) $(AVIAN_INCLUDES) $(EVENT_CFLAGS)
+avian_cli_SOURCES = raven-cli.cpp
+avian_cli_CPPFLAGS = $(AM_CPPFLAGS) $(RAVEN_INCLUDES) $(EVENT_CFLAGS)
 avian_cli_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
 avian_cli_LDFLAGS = $(RELDFLAGS) $(AM_LDFLAGS) $(LIBTOOL_APP_LDFLAGS)
 
 if TARGET_WINDOWS
-avian_cli_SOURCES += avian-cli-res.rc
+avian_cli_SOURCES += raven-cli-res.rc
 endif
 
 avian_cli_LDADD = \
@@ -616,13 +499,13 @@ avian_cli_LDADD += $(BOOST_LIBS) $(SSL_LIBS) $(CRYPTO_LIBS) $(EVENT_LIBS)
 #
 
 # avian-tx binary #
-avian_tx_SOURCES = avian-tx.cpp
-avian_tx_CPPFLAGS = $(AM_CPPFLAGS) $(AVIAN_INCLUDES)
+avian_tx_SOURCES = raven-tx.cpp
+avian_tx_CPPFLAGS = $(AM_CPPFLAGS) $(RAVEN_INCLUDES)
 avian_tx_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
 avian_tx_LDFLAGS = $(RELDFLAGS) $(AM_LDFLAGS) $(LIBTOOL_APP_LDFLAGS)
 
 if TARGET_WINDOWS
-avian_tx_SOURCES += avian-tx-res.rc
+avian_tx_SOURCES += raven-tx-res.rc
 endif
 
 avian_tx_LDADD = \
@@ -636,9 +519,9 @@ avian_tx_LDADD = \
 avian_tx_LDADD += $(BOOST_LIBS) $(CRYPTO_LIBS)
 #
 
-# avianconsensus library #
-if BUILD_AVIAN_LIBS
-include_HEADERS = script/avianconsensus.h
+# ravenconsensus library #
+if BUILD_RAVEN_LIBS
+include_HEADERS = script/ravenconsensus.h
 libavianconsensus_la_SOURCES = $(crypto_libavian_crypto_a_SOURCES) $(libavian_consensus_a_SOURCES)
 
 if GLIBC_BACK_COMPAT
@@ -646,8 +529,8 @@ if GLIBC_BACK_COMPAT
 endif
 
 libavianconsensus_la_LDFLAGS = $(AM_LDFLAGS) -no-undefined $(RELDFLAGS)
-libavianconsensus_la_LIBADD = $(LIBSECP256K1) $(BOOST_LIBS)
-libavianconsensus_la_CPPFLAGS = $(AM_CPPFLAGS) -I$(builddir)/obj -I$(srcdir)/secp256k1/include -DBUILD_AVIAN_INTERNAL
+libavianconsensus_la_LIBADD = $(LIBSECP256K1)
+libavianconsensus_la_CPPFLAGS = $(AM_CPPFLAGS) -I$(builddir)/obj -I$(srcdir)/secp256k1/include -DBUILD_RAVEN_INTERNAL
 libavianconsensus_la_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
 
 endif

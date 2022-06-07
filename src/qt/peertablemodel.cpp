@@ -1,5 +1,5 @@
 // Copyright (c) 2011-2016 The Bitcoin Core developers
-// Copyright (c) 2017-2019 The Raven Core developers
+// Copyright (c) 2017 The Raven Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -24,7 +24,8 @@ bool NodeLessThan::operator()(const CNodeCombinedStats &left, const CNodeCombine
     if (order == Qt::DescendingOrder)
         std::swap(pLeft, pRight);
 
-    switch (static_cast<PeerTableModel::ColumnIndex>(column)) {
+    switch(column)
+    {
     case PeerTableModel::NetNodeId:
         return pLeft->nodeid < pRight->nodeid;
     case PeerTableModel::Address:
@@ -37,8 +38,9 @@ bool NodeLessThan::operator()(const CNodeCombinedStats &left, const CNodeCombine
         return pLeft->nSendBytes < pRight->nSendBytes;
     case PeerTableModel::Received:
         return pLeft->nRecvBytes < pRight->nRecvBytes;
-    } // no default case, so the compiler can warn about missing cases
-    assert(false);
+    }
+
+    return false;
 }
 
 // private implementation
@@ -89,7 +91,7 @@ public:
 
         if (sortColumn >= 0)
             // sort cacheNodeStats (use stable sort to prevent rows jumping around unnecessarily)
-            std::stable_sort(cachedNodeStats.begin(), cachedNodeStats.end(), NodeLessThan(sortColumn, sortOrder));
+            qStableSort(cachedNodeStats.begin(), cachedNodeStats.end(), NodeLessThan(sortColumn, sortOrder));
 
         // build index map
         mapNodeRows.clear();
@@ -165,9 +167,9 @@ QVariant PeerTableModel::data(const QModelIndex &index, int role) const
 
     CNodeCombinedStats *rec = static_cast<CNodeCombinedStats*>(index.internalPointer());
 
-    const auto column = static_cast<ColumnIndex>(index.column());
     if (role == Qt::DisplayRole) {
-        switch (column) {
+        switch(index.column())
+        {
         case NetNodeId:
             return (qint64)rec->nodeStats.nodeid;
         case Address:
@@ -180,15 +182,15 @@ QVariant PeerTableModel::data(const QModelIndex &index, int role) const
             return GUIUtil::formatBytes(rec->nodeStats.nSendBytes);
         case Received:
             return GUIUtil::formatBytes(rec->nodeStats.nRecvBytes);
-        } // no default case, so the compiler can warn about missing cases
-        assert(false);
+        }
     } else if (role == Qt::TextAlignmentRole) {
-        switch (column) {
-        case Ping:
-        case Sent:
-        case Received:
-            return QVariant(Qt::AlignRight | Qt::AlignVCenter);
-        default: return QVariant();
+        switch (index.column()) {
+            case Ping:
+            case Sent:
+            case Received:
+                return QVariant(Qt::AlignRight | Qt::AlignVCenter);
+            default:
+                return QVariant();
         }
     }
 
@@ -209,7 +211,8 @@ QVariant PeerTableModel::headerData(int section, Qt::Orientation orientation, in
 
 Qt::ItemFlags PeerTableModel::flags(const QModelIndex &index) const
 {
-    if(!index.isValid()) return Qt::NoItemFlags;
+    if(!index.isValid())
+        return 0;
 
     Qt::ItemFlags retval = Qt::ItemIsSelectable | Qt::ItemIsEnabled;
     return retval;

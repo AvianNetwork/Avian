@@ -1,11 +1,9 @@
 #!/usr/bin/env python3
 # Copyright (c) 2014-2016 The Bitcoin Core developers
-# Copyright (c) 2017-2020 The Raven Core developers
+# Copyright (c) 2017-2018 The Raven Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
-
-"""
-Test behavior of headers messages to announce blocks.
+"""Test behavior of headers messages to announce blocks.
 
 Setup: 
 
@@ -76,10 +74,11 @@ e. Announce one more that doesn't connect.
    Expect: disconnect.
 """
 
-from test_framework.mininode import NodeConnCB, mininode_lock, MsgGetdata, MsgGetHeaders, MsgHeaders, NodeConn, NetworkThread, MsgBlock, CInv, MsgInv, CBlockHeader, MsgGetBlocks, MsgSendHeaders
-from test_framework.test_framework import AvianTestFramework
-from test_framework.util import wait_until, sync_blocks, p2p_port, assert_equal
+from test_framework.mininode import *
+from test_framework.test_framework import RavenTestFramework
+from test_framework.util import *
 from test_framework.blocktools import create_block, create_coinbase
+
 
 direct_fetch_response_time = 0.05
 
@@ -97,19 +96,19 @@ class TestNode(NodeConnCB):
 
     # Request data for a list of block hashes
     def get_data(self, block_hashes):
-        msg = MsgGetdata()
+        msg = msg_getdata()
         for x in block_hashes:
             msg.inv.append(CInv(2, x))
         self.connection.send_message(msg)
 
     def get_headers(self, locator, hashstop):
-        msg = MsgGetHeaders()
+        msg = msg_getheaders()
         msg.locator.vHave = locator
         msg.hashstop = hashstop
         self.connection.send_message(msg)
 
     def send_block_inv(self, blockhash):
-        msg = MsgInv()
+        msg = msg_inv()
         msg.inv = [CInv(2, blockhash)]
         self.connection.send_message(msg)
 
@@ -120,17 +119,17 @@ class TestNode(NodeConnCB):
     def on_headers(self, conn, message):
         if len(message.headers):
             self.block_announced = True
-            message.headers[-1].calc_x16r()
+            message.headers[-1].calc_sha256()
             self.last_blockhash_announced = message.headers[-1].sha256
 
     # Test whether the last announcement we received had the
     # right header or the right inv
     # inv and headers should be lists of block hashes
     def check_last_announcement(self, headers=None, inv=None):
-        expect_headers = headers if headers is not None else []
-        expect_inv = inv if inv is not None else []
+        expect_headers = headers if headers != None else []
+        expect_inv = inv if inv != None else []
         test_function = lambda: self.block_announced
-        wait_until(test_function, timeout=60, lock=mininode_lock, err_msg="Waiting for last announcement")
+        wait_until(test_function, timeout=60, lock=mininode_lock)
         with mininode_lock:
             self.block_announced = False
 
@@ -152,31 +151,30 @@ class TestNode(NodeConnCB):
             self.last_message.pop("headers", None)
         return success
 
-    # noinspection PyMethodOverriding
     def wait_for_getdata(self, hash_list, timeout=60):
-        if not hash_list:
+        if hash_list == []:
             return
 
         test_function = lambda: "getdata" in self.last_message and [x.hash for x in self.last_message["getdata"].inv] == hash_list
-        wait_until(test_function, timeout=timeout, lock=mininode_lock, err_msg="waiting for getData()")
+        wait_until(test_function, timeout=timeout, lock=mininode_lock)
         return
 
     def wait_for_block_announcement(self, block_hash, timeout=60):
         test_function = lambda: self.last_blockhash_announced == block_hash
-        wait_until(test_function, timeout=timeout, lock=mininode_lock, err_msg="waiting for block announcement")
+        wait_until(test_function, timeout=timeout, lock=mininode_lock)
         return
 
     def send_header_for_blocks(self, new_blocks):
-        headers_message = MsgHeaders()
+        headers_message = msg_headers()
         headers_message.headers = [ CBlockHeader(b) for b in new_blocks ]
         self.send_message(headers_message)
 
     def send_getblocks(self, locator):
-        getblocks_message = MsgGetBlocks()
+        getblocks_message = msg_getblocks()
         getblocks_message.locator.vHave = locator
         self.send_message(getblocks_message)
 
-class SendHeadersTest(AvianTestFramework):
+class SendHeadersTest(RavenTestFramework):
     def set_test_params(self):
         self.setup_clean_chain = True
         self.num_nodes = 2
@@ -214,10 +212,11 @@ class SendHeadersTest(AvianTestFramework):
 
         self.p2p_connections = [inv_node, test_node]
 
-        connections = [NodeConn('127.0.0.1', p2p_port(0), self.nodes[0], inv_node),
-                       NodeConn('127.0.0.1', p2p_port(0), self.nodes[0], test_node, services=0)]
+        connections = []
+        connections.append(NodeConn('127.0.0.1', p2p_port(0), self.nodes[0], inv_node))
         # Set nServices to 0 for test_node, so no block download will occur outside of
         # direct fetching
+        connections.append(NodeConn('127.0.0.1', p2p_port(0), self.nodes[0], test_node, services=0))
         inv_node.add_connection(connections[0])
         test_node.add_connection(connections[1])
 
@@ -236,7 +235,6 @@ class SendHeadersTest(AvianTestFramework):
         # PART 1
         # 1. Mine a block; expect inv announcements each time
         self.log.info("Part 1: headers don't start before sendheaders message...")
-        block_time = 0
         for i in range(4):
             old_tip = tip
             tip = self.mine_blocks(1)
@@ -262,7 +260,7 @@ class SendHeadersTest(AvianTestFramework):
                 new_block.solve()
                 test_node.send_header_for_blocks([new_block])
                 test_node.wait_for_getdata([new_block.sha256])
-                test_node.send_message(MsgBlock(new_block))
+                test_node.send_message(msg_block(new_block))
                 test_node.sync_with_ping() # make sure this block is processed
                 inv_node.clear_last_announcement()
                 test_node.clear_last_announcement()
@@ -272,7 +270,7 @@ class SendHeadersTest(AvianTestFramework):
         # PART 2
         # 2. Send a sendheaders message and test that headers announcements
         # commence and keep working.
-        test_node.send_message(MsgSendHeaders())
+        test_node.send_message(msg_sendheaders())
         prev_tip = int(self.nodes[0].getbestblockhash(), 16)
         test_node.get_headers(locator=[prev_tip], hashstop=0)
         test_node.sync_with_ping()
@@ -291,7 +289,7 @@ class SendHeadersTest(AvianTestFramework):
             # with block header, even though the blocks are never requested
             for j in range(2):
                 blocks = []
-                for _ in range(i+1):
+                for b in range(i+1):
                     blocks.append(create_block(tip, create_coinbase(height), block_time))
                     blocks[-1].solve()
                     tip = blocks[-1].sha256
@@ -316,7 +314,7 @@ class SendHeadersTest(AvianTestFramework):
                     # getdata requests (the check is further down)
                     inv_node.send_header_for_blocks(blocks)
                     inv_node.sync_with_ping()
-                [test_node.send_message(MsgBlock(x)) for x in blocks]
+                [ test_node.send_message(msg_block(x)) for x in blocks ]
                 test_node.sync_with_ping()
                 inv_node.sync_with_ping()
                 # This block should not be announced to the inv node (since it also
@@ -403,13 +401,13 @@ class SendHeadersTest(AvianTestFramework):
 
         # Create 2 blocks.  Send the blocks, then send the headers.
         blocks = []
-        for _ in range(2):
+        for b in range(2):
             blocks.append(create_block(tip, create_coinbase(height), block_time))
             blocks[-1].solve()
             tip = blocks[-1].sha256
             block_time += 1
             height += 1
-            inv_node.send_message(MsgBlock(blocks[-1]))
+            inv_node.send_message(msg_block(blocks[-1]))
 
         inv_node.sync_with_ping() # Make sure blocks are processed
         test_node.last_message.pop("getdata", None)
@@ -421,7 +419,7 @@ class SendHeadersTest(AvianTestFramework):
 
         # This time, direct fetch should work
         blocks = []
-        for _ in range(3):
+        for b in range(3):
             blocks.append(create_block(tip, create_coinbase(height), block_time))
             blocks[-1].solve()
             tip = blocks[-1].sha256
@@ -430,9 +428,9 @@ class SendHeadersTest(AvianTestFramework):
 
         test_node.send_header_for_blocks(blocks)
         test_node.sync_with_ping()
-        test_node.wait_for_getdata([x.sha256 for x in blocks], timeout=int(direct_fetch_response_time))
+        test_node.wait_for_getdata([x.sha256 for x in blocks], timeout=direct_fetch_response_time)
 
-        [test_node.send_message(MsgBlock(x)) for x in blocks]
+        [ test_node.send_message(msg_block(x)) for x in blocks ]
 
         test_node.sync_with_ping()
 
@@ -442,7 +440,7 @@ class SendHeadersTest(AvianTestFramework):
         blocks = []
 
         # Create extra blocks for later
-        for _ in range(20):
+        for b in range(20):
             blocks.append(create_block(tip, create_coinbase(height), block_time))
             blocks[-1].solve()
             tip = blocks[-1].sha256
@@ -461,13 +459,13 @@ class SendHeadersTest(AvianTestFramework):
         # both blocks (same work as tip)
         test_node.send_header_for_blocks(blocks[1:2])
         test_node.sync_with_ping()
-        test_node.wait_for_getdata([x.sha256 for x in blocks[0:2]], timeout=int(direct_fetch_response_time))
+        test_node.wait_for_getdata([x.sha256 for x in blocks[0:2]], timeout=direct_fetch_response_time)
 
         # Announcing 16 more headers should trigger direct fetch for 14 more
         # blocks
         test_node.send_header_for_blocks(blocks[2:18])
         test_node.sync_with_ping()
-        test_node.wait_for_getdata([x.sha256 for x in blocks[2:16]], timeout=int(direct_fetch_response_time))
+        test_node.wait_for_getdata([x.sha256 for x in blocks[2:16]], timeout=direct_fetch_response_time)
 
         # Announcing 1 more header should not trigger any response
         test_node.last_message.pop("getdata", None)
@@ -479,7 +477,7 @@ class SendHeadersTest(AvianTestFramework):
         self.log.info("Part 4: success!")
 
         # Now deliver all those blocks we announced.
-        [test_node.send_message(MsgBlock(x)) for x in blocks]
+        [ test_node.send_message(msg_block(x)) for x in blocks ]
 
         self.log.info("Part 5: Testing handling of unconnecting headers")
         # First we test that receipt of an unconnecting header doesn't prevent
@@ -501,7 +499,7 @@ class SendHeadersTest(AvianTestFramework):
             test_node.wait_for_getheaders()
             test_node.send_header_for_blocks(blocks)
             test_node.wait_for_getdata([x.sha256 for x in blocks])
-            [test_node.send_message(MsgBlock(x)) for x in blocks]
+            [ test_node.send_message(msg_block(x)) for x in blocks ]
             test_node.sync_with_ping()
             assert_equal(int(self.nodes[0].getbestblockhash(), 16), blocks[1].sha256)
 

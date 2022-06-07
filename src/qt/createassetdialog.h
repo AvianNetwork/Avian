@@ -1,10 +1,10 @@
 // Copyright (c) 2011-2014 The Bitcoin Core developers
-// Copyright (c) 2017-2019 The Raven Core developers
+// Copyright (c) 2017 The Raven Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef AVIAN_QT_CREATEASSETDIALOG_H
-#define AVIAN_QT_CREATEASSETDIALOG_H
+#ifndef RAVEN_QT_CREATEASSETDIALOG_H
+#define RAVEN_QT_CREATEASSETDIALOG_H
 
 #include "walletmodel.h"
 
@@ -46,10 +46,6 @@ public:
     void setupFeeControl(const PlatformStyle *platformStyle);
 
     void updateAssetList();
-    void updateAssetListForRestrictedIssuance();
-    void updateAssetListForSubQualifierIssuance();
-    void restrictedAssetSelected();
-    void restrictedAssetNotSelected();
 
     void clear();
     void selectTypeName(int type, QString name);
@@ -71,8 +67,6 @@ private:
     void setUpValues();
     void showMessage(QString string);
     void showValidMessage(QString string);
-    void showInvalidVerifierStringMessage(QString string);
-    void hideInvalidVerifierStringMessage();
     void hideMessage();
     void disableCreateButton();
     void enableCreateButton();
@@ -83,7 +77,6 @@ private:
     void UpdateAssetNameMaxSize();
     void UpdateAssetNameToUpper();
     void setUniqueSelected();
-    void setQualifierSelected();
     void clearSelected();
 
     //CoinControl
@@ -109,7 +102,6 @@ private Q_SLOTS:
     void onAssetTypeActivated(int index);
     void onAssetListActivated(int index);
     void onClearButtonClicked();
-    void onVerifierStringChanged(QString verifier);
 
     //CoinControl
     void coinControlFeatureChanged(bool);
@@ -151,4 +143,4 @@ Q_SIGNALS:
     void message(const QString &title, const QString &message, unsigned int style);
 };
 
-#endif // AVIAN_QT_CREATEASSETDIALOG_H
+#endif // RAVEN_QT_CREATEASSETDIALOG_H

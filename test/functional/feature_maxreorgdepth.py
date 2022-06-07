@@ -1,21 +1,18 @@
 #!/usr/bin/env python3
 # Copyright (c) 2014-2016 The Bitcoin Core developers
-# Copyright (c) 2017-2020 The Raven Core developers
+# Copyright (c) 2017-2018 The Raven Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
-
+"""Max Reorg Test
 """
-Max Reorg Test
-"""
-
 import sys
 import time
-from test_framework.test_framework import AvianTestFramework
-from test_framework.util import connect_all_nodes_bi, set_node_times, assert_equal, connect_nodes_bi, assert_contains_pair, assert_does_not_contain_key
-from test_framework.mininode import wait_until
+from test_framework.test_framework import RavenTestFramework
+from test_framework.util import *
+from test_framework.mininode import *
 
 
-class MaxReorgTest(AvianTestFramework):
+class MaxReorgTest(RavenTestFramework):
 
     def set_test_params(self):
         self.setup_clean_chain = True
@@ -28,9 +25,12 @@ class MaxReorgTest(AvianTestFramework):
         # self.extra_args = [[f"-maxreorg={self.max_reorg_depth}", f"-minreorgpeers={self.min_reorg_peers}", f"-minreorgage={self.min_reorg_age}"] for i in range(self.num_nodes)]
 
     def add_options(self, parser):
-        parser.add_option("--height", dest="height", default=65, help="The height of good branch when adversary surprises.")
-        parser.add_option("--tip_age", dest="tip_age", default=60*5, help="Age of tip of non-adversaries at time of reorg.")
-        parser.add_option("--should_reorg", dest="should_reorg", default=0, help="Whether a reorg is expected (0 or 1).")
+        parser.add_option("--height", dest="height", default=65,
+                          help="The height of good branch when adversary surprises.")
+        parser.add_option("--tip_age", dest="tip_age", default=60*5,
+                          help="Age of tip of non-adversaries at time of reorg.")
+        parser.add_option("--should_reorg", dest="should_reorg", default=0,
+                          help="Whether a reorg is expected (0 or 1).")
 
 
     def setup_network(self):
@@ -77,8 +77,8 @@ class MaxReorgTest(AvianTestFramework):
 
         self.log.info(f"Miners are mining {height} blocks...")
         subject.generate(height)
-        wait_until(lambda: [n.getblockcount() for n in self.nodes[1:]] == [height+start] * (peers-1), err_msg="Wait for BlockCount")
-        self.log.info("BlockCount: " + str([start] + [n.getblockcount() for n in self.nodes[1:]]))
+        wait_until(lambda: [n.getblockcount() for n in self.nodes[1:]] == [height+start] * (peers-1))
+        print([start] + [n.getblockcount() for n in self.nodes[1:]])
 
         self.log.info("Restarting adversary node...")
         self.start_node(0)
@@ -93,15 +93,15 @@ class MaxReorgTest(AvianTestFramework):
             adversary.generate(1)
         assert(adversary.getblockcount() - start == (subject.getblockcount() - start) * 2)
         besttimes = [n.getblock(n.getbestblockhash())['time'] for n in self.nodes]
-        self.log.info("BestTimes: " + str(besttimes))
-        self.log.info(f"Adversary: {besttimes[0]}; subject: {besttimes[-1]}; difference: {besttimes[0] - besttimes[-1]}; expected gte: {tip_age}")
+        print(besttimes)
+        print(f"adversary: {besttimes[0]}; subject: {besttimes[-1]}; difference: {besttimes[0] - besttimes[-1]}; expected gte: {tip_age}")
         assert(besttimes[0] - besttimes[-1] >= tip_age)
 
-        self.log.info("BlockCount: " + str([n.getblockcount() for n in self.nodes]))
+        print([n.getblockcount() for n in self.nodes])
 
         self.log.info("Reconnecting the network and syncing the chain...")
         for i in range(1, peers):
-            connect_nodes_bi(self.nodes, 0, i, should_reorg)
+            connect_nodes_bi(self.nodes, 0, i)
 
         expected_height = start + height
         subject_owns_asset = True
@@ -112,12 +112,11 @@ class MaxReorgTest(AvianTestFramework):
         else:
             self.log.info(f"Didn't expect a reorg -- blockcount should remain {expected_height} and both subject and adversary should own {asset_name} (waiting 5 seconds)...")
 
-        # noinspection PyBroadException
         try:
-            wait_until(lambda: [n.getblockcount() for n in self.nodes] == [expected_height] * peers, timeout=5, err_msg="getblockcount")
+            wait_until(lambda: [n.getblockcount() for n in self.nodes] == [expected_height] * peers, timeout=5)
         except:
             pass
-        self.log.info("BlockCount: " +str([n.getblockcount() for n in self.nodes]))
+        print([n.getblockcount() for n in self.nodes])
         assert_equal(subject.getblockcount(), expected_height)
         assert_contains_pair(asset_name + '!', 1, adversary.listmyassets())
         if subject_owns_asset:

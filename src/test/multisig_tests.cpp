@@ -12,7 +12,7 @@
 #include "script/sign.h"
 #include "script/ismine.h"
 #include "uint256.h"
-#include "test/test_avian.h"
+#include "test/test_raven.h"
 
 
 #include <boost/test/unit_test.hpp>

@@ -1,18 +1,18 @@
 #!/usr/bin/env python3
 # Copyright (c) 2015-2016 The Bitcoin Core developers
-# Copyright (c) 2017-2020 The Raven Core developers
+# Copyright (c) 2017-2018 The Raven Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
-
 """Test multiple RPC users."""
+
+from test_framework.test_framework import RavenTestFramework
+from test_framework.util import str_to_b64str, assert_equal
 
 import os
 import http.client
 import urllib.parse
-from test_framework.test_framework import AvianTestFramework
-from test_framework.util import str_to_b64str, assert_equal
 
-class HTTPBasicsTest (AvianTestFramework):
+class HTTPBasicsTest (RavenTestFramework):
     def set_test_params(self):
         self.num_nodes = 2
 
@@ -38,16 +38,16 @@ class HTTPBasicsTest (AvianTestFramework):
         url = urllib.parse.urlparse(self.nodes[0].url)
 
         #Old authpair
-        auth_pair = url.username + ':' + url.password
+        authpair = url.username + ':' + url.password
 
         #New authpair generated via share/rpcuser tool
         password = "cA773lm788buwYe4g4WT+05pKyNruVKjQ25x3n0DQcM="
 
         #Second authpair with different username
         password2 = "8/F3uMDw4KSEbw96U3CA1C4X05dkHDN2BPFjTgZW4KI="
-        auth_pair_new = "rt:"+password
+        authpairnew = "rt:"+password
 
-        headers = {"Authorization": "Basic " + str_to_b64str(auth_pair)}
+        headers = {"Authorization": "Basic " + str_to_b64str(authpair)}
 
         conn = http.client.HTTPConnection(url.hostname, url.port)
         conn.connect()
@@ -57,7 +57,7 @@ class HTTPBasicsTest (AvianTestFramework):
         conn.close()
         
         #Use new authpair to confirm both work
-        headers = {"Authorization": "Basic " + str_to_b64str(auth_pair_new)}
+        headers = {"Authorization": "Basic " + str_to_b64str(authpairnew)}
 
         conn = http.client.HTTPConnection(url.hostname, url.port)
         conn.connect()
@@ -67,8 +67,8 @@ class HTTPBasicsTest (AvianTestFramework):
         conn.close()
 
         #Wrong login name with rt's password
-        auth_pair_new = "rtwrong:"+password
-        headers = {"Authorization": "Basic " + str_to_b64str(auth_pair_new)}
+        authpairnew = "rtwrong:"+password
+        headers = {"Authorization": "Basic " + str_to_b64str(authpairnew)}
 
         conn = http.client.HTTPConnection(url.hostname, url.port)
         conn.connect()
@@ -78,8 +78,8 @@ class HTTPBasicsTest (AvianTestFramework):
         conn.close()
 
         #Wrong password for rt
-        auth_pair_new = "rt:"+password+"wrong"
-        headers = {"Authorization": "Basic " + str_to_b64str(auth_pair_new)}
+        authpairnew = "rt:"+password+"wrong"
+        headers = {"Authorization": "Basic " + str_to_b64str(authpairnew)}
 
         conn = http.client.HTTPConnection(url.hostname, url.port)
         conn.connect()
@@ -89,8 +89,8 @@ class HTTPBasicsTest (AvianTestFramework):
         conn.close()
 
         #Correct for rt2
-        auth_pair_new = "rt2:"+password2
-        headers = {"Authorization": "Basic " + str_to_b64str(auth_pair_new)}
+        authpairnew = "rt2:"+password2
+        headers = {"Authorization": "Basic " + str_to_b64str(authpairnew)}
 
         conn = http.client.HTTPConnection(url.hostname, url.port)
         conn.connect()
@@ -100,8 +100,8 @@ class HTTPBasicsTest (AvianTestFramework):
         conn.close()
 
         #Wrong password for rt2
-        auth_pair_new = "rt2:"+password2+"wrong"
-        headers = {"Authorization": "Basic " + str_to_b64str(auth_pair_new)}
+        authpairnew = "rt2:"+password2+"wrong"
+        headers = {"Authorization": "Basic " + str_to_b64str(authpairnew)}
 
         conn = http.client.HTTPConnection(url.hostname, url.port)
         conn.connect()
@@ -116,9 +116,9 @@ class HTTPBasicsTest (AvianTestFramework):
         url = urllib.parse.urlparse(self.nodes[1].url)
 
         # rpcuser and rpcpassword authpair
-        rpc_user_auth_pair = "rpcuser💻:rpcpassword🔑"
+        rpcuserauthpair = "rpcuser💻:rpcpassword🔑"
 
-        headers = {"Authorization": "Basic " + str_to_b64str(rpc_user_auth_pair)}
+        headers = {"Authorization": "Basic " + str_to_b64str(rpcuserauthpair)}
 
         conn = http.client.HTTPConnection(url.hostname, url.port)
         conn.connect()
@@ -128,8 +128,8 @@ class HTTPBasicsTest (AvianTestFramework):
         conn.close()
 
         #Wrong login name with rpcuser's password
-        rpc_user_auth_pair = "rpcuserwrong:rpcpassword"
-        headers = {"Authorization": "Basic " + str_to_b64str(rpc_user_auth_pair)}
+        rpcuserauthpair = "rpcuserwrong:rpcpassword"
+        headers = {"Authorization": "Basic " + str_to_b64str(rpcuserauthpair)}
 
         conn = http.client.HTTPConnection(url.hostname, url.port)
         conn.connect()
@@ -139,8 +139,8 @@ class HTTPBasicsTest (AvianTestFramework):
         conn.close()
 
         #Wrong password for rpcuser
-        rpc_user_auth_pair = "rpcuser:rpcpasswordwrong"
-        headers = {"Authorization": "Basic " + str_to_b64str(rpc_user_auth_pair)}
+        rpcuserauthpair = "rpcuser:rpcpasswordwrong"
+        headers = {"Authorization": "Basic " + str_to_b64str(rpcuserauthpair)}
 
         conn = http.client.HTTPConnection(url.hostname, url.port)
         conn.connect()

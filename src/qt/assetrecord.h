@@ -1,10 +1,10 @@
 // Copyright (c) 2011-2016 The Bitcoin Core developers
-// Copyright (c) 2017-2019 The Raven Core developers
+// Copyright (c) 2017 The Raven Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef AVIAN_QT_ASSETRECORD_H
-#define AVIAN_QT_ASSETRECORD_H
+#ifndef RAVEN_QT_ASSETRECORD_H
+#define RAVEN_QT_ASSETRECORD_H
 
 #include "math.h"
 #include "amount.h"
@@ -18,12 +18,12 @@ class AssetRecord
 public:
 
     AssetRecord():
-            name(""), quantity(0), units(0), fIsAdministrator(false), ipfshash("")
+            name(""), quantity(0), units(0), fIsAdministrator(false)
     {
     }
 
-    AssetRecord(const std::string _name, const CAmount& _quantity, const int _units, const bool _fIsAdministrator, const std::string _ipfshash):
-            name(_name), quantity(_quantity), units(_units), fIsAdministrator(_fIsAdministrator), ipfshash(_ipfshash)
+    AssetRecord(const std::string _name, const CAmount& _quantity, const int _units, const bool _fIsAdministrator):
+            name(_name), quantity(_quantity), units(_units), fIsAdministrator(_fIsAdministrator)
     {
     }
 
@@ -48,9 +48,8 @@ public:
     CAmount quantity;
     int units;
     bool fIsAdministrator;
-    std::string ipfshash;
     /**@}*/
 
 };
 
-#endif // AVIAN_QT_ASSETRECORD_H
+#endif // RAVEN_QT_ASSETRECORD_H

@@ -322,7 +322,7 @@ bool CBlockTreeDB::ReadAddressUnspentIndex(uint160 addressHash, int type,
         if (pcursor->GetKey(key) && key.first == DB_ADDRESSUNSPENTINDEX && key.second.hashBytes == addressHash) {
             CAddressUnspentValue nValue;
             if (pcursor->GetValue(nValue)) {
-                if (key.second.asset != "AVN") {
+                if (key.second.asset != "RVN") {
                     unspentOutputs.push_back(std::make_pair(key.second, nValue));
                 }
                 pcursor->Next();
@@ -457,29 +457,14 @@ bool CBlockTreeDB::ReadFlag(const std::string &name, bool &fValue) {
     return true;
 }
 
-bool CBlockTreeDB::LoadBlockIndexGuts(const Consensus::ConsensusParams& consensusParams, std::function<CBlockIndex*(const uint256&)> insertBlockIndex, int& nHighest)
+bool CBlockTreeDB::LoadBlockIndexGuts(const Consensus::ConsensusParams& consensusParams, std::function<CBlockIndex*(const uint256&)> insertBlockIndex)
 {
     std::unique_ptr<CDBIterator> pcursor(NewIterator());
 
     pcursor->Seek(std::make_pair(DB_BLOCK_INDEX, uint256()));
 
-    int64_t nNow;
-    int64_t nLastNow = 0;
-    int nCount = 0;
-    int nLastPercent = -1;
-
     // Load mapBlockIndex
     while (pcursor->Valid()) {
-        nNow = GetTime();
-        if (nNow >= nLastNow + 5) {
-            int nPercent = 100 * nCount / nHighest;
-            if (nPercent > nLastPercent) {
-                uiInterface.InitMessage(strprintf(_("Loading blocks... %d%%"), (100 * nCount) / nHighest));
-                nLastPercent = nPercent;
-            }
-            nLastNow = nNow;
-        }
-        nCount++;
         boost::this_thread::interruption_point();
         std::pair<char, uint256> key;
         if (pcursor->GetKey(key) && key.first == DB_BLOCK_INDEX) {
@@ -489,8 +474,6 @@ bool CBlockTreeDB::LoadBlockIndexGuts(const Consensus::ConsensusParams& consensu
                 CBlockIndex* pindexNew = insertBlockIndex(diskindex.GetBlockHash());
                 pindexNew->pprev          = insertBlockIndex(diskindex.hashPrev);
                 pindexNew->nHeight        = diskindex.nHeight;
-                if (diskindex.nHeight > nHighest)
-                    nHighest = diskindex.nHeight;
                 pindexNew->nFile          = diskindex.nFile;
                 pindexNew->nDataPos       = diskindex.nDataPos;
                 pindexNew->nUndoPos       = diskindex.nUndoPos;

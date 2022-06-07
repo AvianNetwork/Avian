@@ -13,7 +13,7 @@
 #include "script/script_error.h"
 #include "script/sign.h"
 #include "script/ismine.h"
-#include "test/test_avian.h"
+#include "test/test_raven.h"
 
 #include <vector>
 

@@ -1,4 +1,4 @@
-// Copyright (c) 2021 The Raven Core developers 
+// Copyright (c) 2021 The Avian Core developers 
 // Copyright (c) 2021 The Dogecoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
@@ -17,19 +17,6 @@ class PlatformStyle;
 namespace Ui {
 class ImportKeysDialog;
 }
-
-/* Object for executing key import commands in a separate thread.
-*/
-class ImportKeyExecutor : public QObject
-{
-    Q_OBJECT
-
-public Q_SLOTS:
-    void rescan(CWallet*, CBlockIndex*);
-
-Q_SIGNALS:
-    void rescanWallet(CWallet*, CBlockIndex*);
-};
 
 /** Preferences dialog. */
 class ImportKeysDialog : public QDialog

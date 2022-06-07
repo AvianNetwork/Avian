@@ -1,7 +1,7 @@
 <h1 align="center">
 Avian Network [AVN]  
 <br/><br/>
-<img src="./src/qt/res/icons/avian.png" alt="Avian" width="300"/>
+<img src="./src/qt/res/icons/raven.png" alt="Avian" width="300"/>
 </h1>
 
 <div align="center">
@@ -14,13 +14,11 @@ Avian Network [AVN]
 
 # What is Avian?
 
-Avian Network is a proof-of-work secured blockchain designed
-for efficient and interoperable asset management. 
-The assets can be automated using Avian Flight Plans allowing the creation of decentralized applications. 
-The network prioritizes usability, automation, and low fees to make asset minting and management
-simple, affordable, and secure. The network's economy runs on AVN, our
-native coin that can be mined on a dual algorithm setup using either GPUs
-or CPUs.
+Avian is an experimental digital currency that enables instant payments to
+anyone, anywhere in the world. Avian uses peer-to-peer technology to operate
+with no central authority: managing transactions and issuing money are carried
+out collectively by the network. Avian Core is the name of open source
+software which enables the use of this currency.
 
 For more information, as well as an immediately useable, binary version of
 the Avian Core software, see https://avn.network
@@ -52,7 +50,7 @@ Use this command to initially start aviand on the testnet. <code>./aviand -testn
 # Running on Mainnet
 
 Use this command to start aviand on the mainnet.
-<code>./aviand -seednode=dnsseed.us.avn.network</code>
+<code>./aviand -seednode=dnsseed.avian.info</code>
 
 # Building
 
@@ -127,9 +125,9 @@ make -j8
 
 A digital peer to peer network for the facilitation of asset transfer.
 
-Having started development on August 12th of 2021, and active on mainnet since September 1st, Avian Lite (RVL) is a fork of Avian Classic (RVC), aimed primarily at bringing the means of development back into the hands of the community after RVC has been abandoned by its creators. With the RVC github locked, and software in disrepair, RVL seeks to improve upon the existing foundations by implementing the necessary updates and bug fixes need to bring the original x16r fork of Avian up to par with modern cryptocurrencies. 
+Having started development on August 12th of 2021, and active on mainnet since September 1st, Ravencoin Lite (RVL) is a fork of Ravencoin Classic (RVC), aimed primarily at bringing the means of development back into the hands of the community after RVC has been abandoned by its creators. With the RVC github locked, and software in disrepair, RVL seeks to improve upon the existing foundations by implementing the necessary updates and bug fixes need to bring the original x16r fork of Ravencoin up to par with modern cryptocurrencies. 
 
-This project is being spearheaded by a small group of enthusiasts, representing the interests of the actual RVC community, as opposed to the original fork, which was created and maintained by Chinese ASIC manufacturers looking to make a return on their machines after AVN switched to the x16rv2 algorithm. As such, we are always seeking for people wishing to contribute their experience and knowhow to the development of Avian Lite.
+This project is being spearheaded by a small group of enthusiasts, representing the interests of the actual RVC community, as opposed to the original fork, which was created and maintained by Chinese ASIC manufacturers looking to make a return on their machines after RVN switched to the x16rv2 algorithm. As such, we are always seeking for people wishing to contribute their experience and knowhow to the development of Ravencoin Lite.
 
 Our goal is to stick to the x16r algorithm as previously declared by the RVC project, however, we are aware of the potential threat that ASICs pose to the network, and are looking to mitigate it while staying true to our roots. Once all existing bugs have been fixed, and asset functionality restored, we aim to implement a secondary CPU algorithm, somewhat akin to Myriad (XMY), in order to help decentralize the mining of RVL without resorting to replacing the primary algo.
 
@@ -142,3 +140,20 @@ The Avian project is launched based on the hard work and continuous effort of ov
 
 # Abstract
 
+Avian aims to implement a blockchain which is optimized specifically for the use case of transferring assets such as securities from one holder to another. Based on the extensive development and testing of Bitcoin, Avian is built on a fork of the Bitcoin code. Key changes include a faster block reward time and a change in the number, but not weighed distribution schedule, of coins. Avian is free and open source and will be issued and mined transparently with no pre-mine, developer allocation or any other similar set aside. Avian is intended to prioritize user control, privacy and censorship resistance and be jurisdiction agnostic while allowing simple optional additional features for users based on need.
+
+
+
+A blockchain is a ledger showing the value of something and allowing it to be transferred to someone else. Of all the possible uses for blockchains, the reporting of who owns what is one of the core uses of the technology.  This is why the first and most successful use case for blockchain technology to date has been Bitcoin.
+
+The success of the Ethereum ERC 20 token shows the demand for tokenized assets that use another blockchain.  Tokens offer many advantages to traditional shares or other participation mechanisms such as faster transfer, possibly increased user control and censorship resistance and reduction or elimination of the need for trusted third parties.
+
+Bitcoin also has the capability of serving as the rails for tokens by using projects such as Omnilayer, RSK or Counterparty. However, neither Bitcoin nor Ethereum was specifically designed for facilitating ownership of other assets.
+
+Avian is designed to be a use case specific blockchain designed to efficiently handle one specific function: the transfer of assets from one party to another., while providing a secure network for transactions.
+
+Bitcoin is and always should be focused on its goals of being a better form of money. Bitcoin developers will unlikely prioritize improvements or features which are specifically beneficial to the facilitation of token transfers.  One goal of the Avian project is to see if a use case specific blockchain and development effort can create code which can either improve existing structures like Bitcoin or provide advantages for specific use cases.
+
+In the new global economy, borders and jurisdictions will be less relevant as more assets are tradable and trade across borders is increasingly frictionless. In an age where people can move significant amounts of wealth instantly using Bitcoin, global consumers will likely demand the same efficiency for their securities and similar asset holdings.
+
+For such a global system to work it will need to be independent of regulatory jurisdictions.  This is not due to ideological belief but practicality: if the rails for blockchain asset transfer are not censorship resistance and jurisdiction agnostic, any given jurisdiction may be in conflict with another.  In legacy systems, wealth was generally confined in the jurisdiction of the holder and therefore easy to control based on the policies of that jurisdiction. Because of the global nature of blockchain technology any protocol level ability to control wealth would potentially place jurisdictions in conflict and will not be able to operate fairly.  

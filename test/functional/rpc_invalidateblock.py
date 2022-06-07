@@ -1,15 +1,14 @@
 #!/usr/bin/env python3
 # Copyright (c) 2014-2016 The Bitcoin Core developers
-# Copyright (c) 2017-2020 The Raven Core developers
+# Copyright (c) 2017-2018 The Raven Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
-
 """Test the invalidateblock RPC."""
 
-from test_framework.test_framework import AvianTestFramework
-from test_framework.util import connect_nodes_bi, sync_blocks, time, assert_equal
+from test_framework.test_framework import RavenTestFramework
+from test_framework.util import *
 
-class InvalidateTest(AvianTestFramework):
+class InvalidateTest(RavenTestFramework):
     def set_test_params(self):
         self.setup_clean_chain = True
         self.num_nodes = 3
@@ -23,7 +22,7 @@ class InvalidateTest(AvianTestFramework):
         self.log.info("Mine 4 blocks on Node 0")
         self.nodes[0].generate(4)
         assert(self.nodes[0].getblockcount() == 4)
-        best_hash = self.nodes[0].getbestblockhash()
+        besthash = self.nodes[0].getbestblockhash()
 
         self.log.info("Mine competing 6 blocks on Node 1")
         self.nodes[1].generate(6)
@@ -33,14 +32,14 @@ class InvalidateTest(AvianTestFramework):
         connect_nodes_bi(self.nodes,0,1)
         sync_blocks(self.nodes[0:2])
         assert(self.nodes[0].getblockcount() == 6)
-        bad_hash = self.nodes[1].getblockhash(2)
+        badhash = self.nodes[1].getblockhash(2)
 
         self.log.info("Invalidate block 2 on node 0 and verify we reorg to node 0's original chain")
-        self.nodes[0].invalidateblock(bad_hash)
-        new_height = self.nodes[0].getblockcount()
-        new_hash = self.nodes[0].getbestblockhash()
-        if new_height != 4 or new_hash != best_hash:
-            raise AssertionError("Wrong tip for node0, hash %s, height %d"%(new_hash,new_height))
+        self.nodes[0].invalidateblock(badhash)
+        newheight = self.nodes[0].getblockcount()
+        newhash = self.nodes[0].getbestblockhash()
+        if (newheight != 4 or newhash != besthash):
+            raise AssertionError("Wrong tip for node0, hash %s, height %d"%(newhash,newheight))
 
         self.log.info("Make sure we won't reorg to a lower work chain:")
         connect_nodes_bi(self.nodes,1,2)

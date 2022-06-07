@@ -1,18 +1,17 @@
 // Copyright (c) 2017-2017 The Bitcoin Core developers
-// Copyright (c) 2017-2019 The Raven Core developers
+// Copyright (c) 2017 The Raven Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef AVIAN_CONSENSUS_TX_VERIFY_H
-#define AVIAN_CONSENSUS_TX_VERIFY_H
+#ifndef RAVEN_CONSENSUS_TX_VERIFY_H
+#define RAVEN_CONSENSUS_TX_VERIFY_H
 
 #include "amount.h"
 
 #include <stdint.h>
 #include <vector>
 #include <string>
-#include <set>
-
+struct NewAssetInfo;
 class CBlockIndex;
 class CCoinsViewCache;
 class CTransaction;
@@ -20,13 +19,16 @@ class CValidationState;
 class CAssetsCache;
 class CTxOut;
 class uint256;
-class CMessage;
-class CNullAssetTxData;
 
 /** Transaction validation functions */
 
 /** Context-independent validity checks */
-bool CheckTransaction(const CTransaction& tx, CValidationState& state, bool fCheckDuplicateInputs=true, bool fMempoolCheck = false, bool fBlockCheck = false);
+bool CheckTransaction(const CTransaction& tx, CValidationState& state, CAssetsCache* assetCache = nullptr, bool fCheckDuplicateInputs=true, bool fMemPoolCheck=false, bool fCheckAssetDuplicate = true, bool fForceDuplicateCheck = true, NewAssetInfo* newAssetInfo = nullptr);
+
+struct AssetInfo {
+    bool fFromMempool;
+    uint32_t nTimeAdded;
+};
 
 namespace Consensus {
 /**
@@ -37,9 +39,9 @@ namespace Consensus {
  */
 bool CheckTxInputs(const CTransaction& tx, CValidationState& state, const CCoinsViewCache& inputs, int nSpendHeight, CAmount& txfee);
 
-/** AVN START */
-bool CheckTxAssets(const CTransaction& tx, CValidationState& state, const CCoinsViewCache& inputs, CAssetsCache* assetCache, bool fCheckMempool, std::vector<std::pair<std::string, uint256> >& vPairReissueAssets, const bool fRunningUnitTests = false, std::set<CMessage>* setMessages = nullptr, int64_t nBlocktime = 0,  std::vector<std::pair<std::string, CNullAssetTxData>>* myNullAssetData = nullptr);
-/** AVN END */
+/** RVN START */
+bool CheckTxAssets(const CTransaction& tx, CValidationState& state, const CCoinsViewCache& inputs, std::vector<std::pair<std::string, uint256> >& vPairReissueAssets, const bool fRunningUnitTests = false, CAssetsCache* assetsCache=nullptr, AssetInfo* pAssetInfo = nullptr);
+/** RVN END */
 } // namespace Consensus
 
 /** Auxiliary functions for transaction validation (ideally should not be exposed) */
@@ -90,4 +92,4 @@ bool EvaluateSequenceLocks(const CBlockIndex& block, std::pair<int, int64_t> loc
  */
 bool SequenceLocks(const CTransaction &tx, int flags, std::vector<int>* prevHeights, const CBlockIndex& block);
 
-#endif // AVIAN_CONSENSUS_TX_VERIFY_H
+#endif // RAVEN_CONSENSUS_TX_VERIFY_H

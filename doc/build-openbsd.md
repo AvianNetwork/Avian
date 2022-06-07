@@ -1,6 +1,6 @@
 OpenBSD build guide
 ======================
-(updated for OpenBSD 6.7)
+(updated for OpenBSD 6.1)
 
 This guide describes how to build aviand and command-line utilities on OpenBSD.
 
@@ -12,35 +12,21 @@ Preparation
 Run the following as root to install the base dependencies for building:
 
 ```bash
-pkg_add git gmake libevent libtool boost
-pkg_add qt5 # (optional for enabling the GUI)
+pkg_add gmake libtool libevent
 pkg_add autoconf # (select highest version, e.g. 2.69)
-pkg_add automake # (select highest version, e.g. 1.16)
-pkg_add python # (select highest version, e.g. 3.8)
-
-git clone https://github.com/AvianNetwork/Avian.git
+pkg_add automake # (select highest version, e.g. 1.15)
+pkg_add python # (select highest version, e.g. 3.5)
 ```
 
 See [dependencies.md](dependencies.md) for a complete overview.
 
-**Important**: From OpenBSD 6.2 onwards a C++11-supporting clang compiler is
-part of the base image, and while building it is necessary to make sure that
-this compiler is used and not ancient g++ 4.2.1. This is done by appending
-`CC=cc CC_FOR_BUILD=cc CXX=c++` to configuration commands. Mixing different
-compilers within the same executable will result in errors.
+GCC
+-------
 
-### Building BerkeleyDB
-
-BerkeleyDB is only necessary for the wallet functionality. To skip this, pass
-`--disable-wallet` to `./configure` and skip to the next section.
-
-It is recommended to use Berkeley DB 4.8. You cannot use the BerkeleyDB library
-from ports, for the same reason as boost above (g++/libstd++ incompatibility).
-If you have to build it yourself, you can use [the installation script included
-in contrib/](/contrib/install_db4.sh) like so:
+The default C++ compiler that comes with OpenBSD 5.9 is g++ 4.2. This version is old (from 2007), and is not able to compile the current version of Raven Core, primarily as it has no C++11 support, but even before there were issues. So here we will be installing a newer compiler:
 
 ```bash
-./contrib/install_db4.sh `pwd` CC=cc CXX=c++
+pkg_add g++ # (select newest 4.x version, e.g. 4.9.3)
 ```
 
 This compiler will not overwrite the system compiler, it will be installed as `egcc` and `eg++` in `/usr/local/bin`.
@@ -53,12 +39,12 @@ Do not use `pkg_add boost`! The boost version installed thus is compiled using t
     ...
     Segmentation fault (core dumped)
 
-This makes it necessary to build boost, or at least the parts used by Avian Core, manually:
+This makes it necessary to build boost, or at least the parts used by Raven Core, manually:
 
 ```
-# Pick some path to install boost to, here we create a directory within the avian directory
-AVIAN_ROOT=$(pwd)
-BOOST_PREFIX="${AVIAN_ROOT}/boost"
+# Pick some path to install boost to, here we create a directory within the raven directory
+RAVEN_ROOT=$(pwd)
+BOOST_PREFIX="${RAVEN_ROOT}/boost"
 mkdir -p $BOOST_PREFIX
 
 # Fetch the source and verify that it is not tampered with
@@ -72,7 +58,7 @@ cd boost_1_64_0
 # Also here: https://gist.githubusercontent.com/laanwj/bf359281dc319b8ff2e1/raw/92250de8404b97bb99d72ab898f4a8cb35ae1ea3/patch-boost_test_impl_execution_monitor_ipp.patch
 patch -p0 < /usr/ports/devel/boost/patches/patch-boost_test_impl_execution_monitor_ipp
 
-# Build w/ minimum configuration necessary for avian
+# Build w/ minimum configuration necessary for raven
 echo 'using gcc : : eg++ : <cxxflags>"-fvisibility=hidden -fPIC" <linkflags>"" <archiver>"ar" <striper>"strip"  <ranlib>"ranlib" <rc>"" : ;' > user-config.jam
 config_opts="runtime-link=shared threadapi=pthread threading=multi link=static variant=release --layout=tagged --build-type=complete --user-config=user-config.jam -sNO_BZIP2=1"
 ./bootstrap.sh --without-icu --with-libraries=chrono,filesystem,program_options,system,thread,test
@@ -88,9 +74,9 @@ See "Berkeley DB" in [build_unix.md](build_unix.md) for instructions on how to b
 You cannot use the BerkeleyDB library from ports, for the same reason as boost above (g++/libstd++ incompatibility).
 
 ```bash
-# Pick some path to install BDB to, here we create a directory within the avian directory
-AVIAN_ROOT=$(pwd)
-BDB_PREFIX="${AVIAN_ROOT}/db4"
+# Pick some path to install BDB to, here we create a directory within the raven directory
+RAVEN_ROOT=$(pwd)
+BDB_PREFIX="${RAVEN_ROOT}/db4"
 mkdir -p $BDB_PREFIX
 
 # Fetch the source and verify that it is not tampered with
@@ -113,7 +99,7 @@ The standard ulimit restrictions in OpenBSD are very strict:
     data(kbytes)         1572864
 
 This is, unfortunately, no longer enough to compile some `.cpp` files in the project,
-at least with gcc 4.9.3 (see issue https://github.com/bitcoin/bitcoin/issues/6658).
+at least with gcc 4.9.3 (see issue https://github.com/RavenProject/Ravencoin/issues/6658).
 If your user is in the `staff` group the limit can be raised with:
 
     ulimit -d 3000000
@@ -122,7 +108,7 @@ The change will only affect the current shell and processes spawned by it. To
 make the change system-wide, change `datasize-cur` and `datasize-max` in
 `/etc/login.conf`, and reboot.
 
-### Building Avian Core
+### Building Raven Core
 
 **Important**: use `gmake`, not `make`. The non-GNU `make` will exit with a horrible error.
 

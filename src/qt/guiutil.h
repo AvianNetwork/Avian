@@ -1,14 +1,13 @@
 // Copyright (c) 2011-2016 The Bitcoin Core developers
-// Copyright (c) 2017-2019 The Raven Core developers
+// Copyright (c) 2017 The Raven Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef AVIAN_QT_GUIUTIL_H
-#define AVIAN_QT_GUIUTIL_H
+#ifndef RAVEN_QT_GUIUTIL_H
+#define RAVEN_QT_GUIUTIL_H
 
 #include "amount.h"
 #include "fs.h"
-#include <memory>
 
 #include <QEvent>
 #include <QHeaderView>
@@ -18,9 +17,6 @@
 #include <QString>
 #include <QTableView>
 #include <QLabel>
-#include <QStyledItemDelegate>
-
-#include <boost/filesystem.hpp>
 
 class QValidatedLineEdit;
 class SendCoinsRecipient;
@@ -35,7 +31,7 @@ class QWidget;
 class QGraphicsDropShadowEffect;
 QT_END_NAMESPACE
 
-/** Utility functions used by the Avian Qt UI.
+/** Utility functions used by the Raven Qt UI.
  */
 namespace GUIUtil
 {
@@ -62,9 +58,9 @@ namespace GUIUtil
     void setupAmountWidget(QLineEdit *widget, QWidget *parent);
 
     // Parse "avian:" URI into recipient object, return true on successful parsing
-    bool parseAvianURI(const QUrl &uri, SendCoinsRecipient *out);
-    bool parseAvianURI(QString uri, SendCoinsRecipient *out);
-    QString formatAvianURI(const SendCoinsRecipient &info);
+    bool parseRavenURI(const QUrl &uri, SendCoinsRecipient *out);
+    bool parseRavenURI(QString uri, SendCoinsRecipient *out);
+    QString formatRavenURI(const SendCoinsRecipient &info);
 
     // Returns true if given address+amount meets "dust" definition
     bool isDust(const QString& address, const CAmount& amount);
@@ -131,7 +127,7 @@ namespace GUIUtil
     void openDebugLogfile();
 
     // Open the config file
-    bool openAvianConf();
+    bool openRavenConf();
 
     // Replace invalid default fonts with known good ones
     void SubstituteFonts(const QString& language);
@@ -139,18 +135,6 @@ namespace GUIUtil
     // Concatenate a string given the painter, static text width, left side of rect, and right side of rect
     // and which side the concatenated string is on (default left)
     void concatenate(QPainter* painter, QString& strToCon, int static_width, int left_side, int right_size);
-
-
-    class SyncWarningMessage : public QDialog
-    {
-        Q_OBJECT
-
-    public:
-        explicit SyncWarningMessage(QWidget *parent = 0);
-
-        bool showTransactionSyncWarningMessage();
-    };
-
 
     /** Qt event filter that intercepts ToolTipChange events, and replaces the tooltip with a rich text
       representation if needed. This assures that Qt can word-wrap long tooltip messages.
@@ -170,55 +154,8 @@ namespace GUIUtil
         int size_threshold;
     };
 
-    /**
-     * Makes a QTableView last column feel as if it was being resized from its left border.
-     * Also makes sure the column widths are never larger than the table's viewport.
-     * In Qt, all columns are resizable from the right, but it's not intuitive resizing the last column from the right.
-     * Usually our second to last columns behave as if stretched, and when on strech mode, columns aren't resizable
-     * interactively or programmatically.
-     *
-     * This helper object takes care of this issue.
-     *
-     */
-    class TableViewLastColumnResizingFixer: public QObject
-    {
-        Q_OBJECT
-
-        public:
-            TableViewLastColumnResizingFixer(QTableView* table, int lastColMinimumWidth, int allColsMinimumWidth, QObject *parent);
-            void stretchColumnWidth(int column);
-
-        private:
-            QTableView* tableView;
-            int lastColumnMinimumWidth;
-            int allColumnsMinimumWidth;
-            int lastColumnIndex;
-            int columnCount;
-            int secondToLastColumnIndex;
-
-            void adjustTableColumnsWidth();
-            int getAvailableWidthForColumn(int column);
-            int getColumnsWidth();
-            void connectViewHeadersSignals();
-            void disconnectViewHeadersSignals();
-            void setViewHeaderResizeMode(int logicalIndex, QHeaderView::ResizeMode resizeMode);
-            void resizeColumn(int nColumnIndex, int width);
-
-        private Q_SLOTS:
-            void on_sectionResized(int logicalIndex, int oldSize, int newSize);
-            void on_geometriesChanged();
-    };
-
     bool GetStartOnSystemStartup();
     bool SetStartOnSystemStartup(bool fAutoStart);
-
-    /** Save window size and position */
-    void saveWindowGeometry(const QString& strSetting, QWidget *parent);
-    /** Restore window size and position */
-    void restoreWindowGeometry(const QString& strSetting, const QSize &defaultSizeIn, QWidget *parent);
-
-    /* load stylesheet */
-    void loadTheme(bool darkmode = false);
 
     /* Convert QString to OS specific boost path through UTF-8 */
     fs::path qstringToBoostPath(const QString &path);
@@ -282,43 +219,6 @@ namespace GUIUtil
     typedef ClickableProgressBar ProgressBar;
 #endif
 
-    /**
-     * Returns the start-moment of the day in local time.
-     *
-     * QDateTime::QDateTime(const QDate& date) is deprecated since Qt 5.15.
-     * QDate::startOfDay() was introduced in Qt 5.14.
-     */
-    QDateTime StartOfDay(const QDate& date);
-
-
-     /** 
-     * Splits the string into substrings wherever separator occurs, and returns
-     * the list of those strings. Empty strings do not appear in the result.
-     *
-     * QString::split() signature differs in different Qt versions:
-     *  - QString::SplitBehavior is deprecated since Qt 5.15
-     *  - Qt::SplitBehavior was introduced in Qt 5.14
-     * If {QString|Qt}::SkipEmptyParts behavior is required, use this
-     * function instead of QString::split().
-     */
-    template <typename SeparatorType>
-    QStringList SplitSkipEmptyParts(const QString& string, const SeparatorType& separator)
-    {
-    #if (QT_VERSION >= QT_VERSION_CHECK(5, 14, 0))
-        return string.split(separator, Qt::SkipEmptyParts);
-    #else
-        return string.split(separator, QString::SkipEmptyParts);
-    #endif
-    }
-
-     /**
-     * Returns true if pixmap has been set.
-     *
-     * QPixmap* QLabel::pixmap() is deprecated since Qt 5.15.
-     */
-    bool HasPixmap(const QLabel* label);
-    QImage GetImage(const QLabel* label);
-
 } // namespace GUIUtil
 
-#endif // AVIAN_QT_GUIUTIL_H
+#endif // RAVEN_QT_GUIUTIL_H

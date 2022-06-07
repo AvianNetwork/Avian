@@ -1,10 +1,10 @@
 // Copyright (c) 2011-2015 The Bitcoin Core developers
-// Copyright (c) 2017-2019 The Raven Core developers
+// Copyright (c) 2017 The Raven Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef AVIAN_QT_SENDASSETSENTRY_H
-#define AVIAN_QT_SENDASSETSENTRY_H
+#ifndef RAVEN_QT_SENDASSETSENTRY_H
+#define RAVEN_QT_SENDASSETSENTRY_H
 
 #include "walletmodel.h"
 
@@ -21,7 +21,7 @@ namespace Ui {
 }
 
 /**
- * A single entry in the dialog for sending avians.
+ * A single entry in the dialog for sending ravens.
  * Stacked widget, with different UIs for payment requests
  * with a strong payee identity.
  */
@@ -64,8 +64,6 @@ public:
     QSortFilterProxyModel* proxy;
     QCompleter* completer;
 
-    bool eventFilter(QObject *object, QEvent *event);
-
 
 public Q_SLOTS:
     void clear();
@@ -92,4 +90,4 @@ private:
     bool updateLabel(const QString &address);
 };
 
-#endif // AVIAN_QT_SENDASSETSENTRY_H
+#endif // RAVEN_QT_SENDASSETSENTRY_H
