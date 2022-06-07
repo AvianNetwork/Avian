@@ -1,5 +1,5 @@
 # Copyright (c) 2013-2016 The Bitcoin Core developers
-# Copyright (c) 2017 The Raven Core developers
+# Copyright (c) 2017-2019 The Raven Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -25,13 +25,13 @@ TEST_QT_H = \
   qt/test/paymentservertests.h \
   qt/test/wallettests.h
 
-TEST_RAVEN_CPP = \
-  test/test_raven.cpp
+TEST_AVIAN_CPP = \
+  test/test_avian.cpp
 
-TEST_RAVEN_H = \
-  test/test_raven.h
+TEST_AVIAN_H = \
+  test/test_avian.h
 
-qt_test_test_avian_qt_CPPFLAGS = $(AM_CPPFLAGS) $(RAVEN_INCLUDES) $(RAVEN_QT_INCLUDES) \
+qt_test_test_avian_qt_CPPFLAGS = $(AM_CPPFLAGS) $(AVIAN_INCLUDES) $(AVIAN_QT_INCLUDES) \
   $(QT_INCLUDES) $(QT_TEST_INCLUDES) $(PROTOBUF_CFLAGS)
 
 qt_test_test_avian_qt_SOURCES = \
@@ -40,8 +40,8 @@ qt_test_test_avian_qt_SOURCES = \
   qt/test/test_main.cpp \
   qt/test/uritests.cpp \
   $(TEST_QT_H) \
-  $(TEST_RAVEN_CPP) \
-  $(TEST_RAVEN_H)
+  $(TEST_AVIAN_CPP) \
+  $(TEST_AVIAN_H)
 if ENABLE_WALLET
 qt_test_test_avian_qt_SOURCES += \
   qt/test/paymentservertests.cpp \
@@ -69,7 +69,7 @@ CLEAN_AVIAN_QT_TEST = $(TEST_QT_MOC_CPP) qt/test/*.gcda qt/test/*.gcno
 
 CLEANFILES += $(CLEAN_AVIAN_QT_TEST)
 
-test_raven_qt : qt/test/test_avian-qt$(EXEEXT)
+test_avian_qt : qt/test/test_avian-qt$(EXEEXT)
 
 test_avian_qt_check : qt/test/test_avian-qt$(EXEEXT) FORCE
 	$(MAKE) check-TESTS TESTS=$^

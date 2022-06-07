@@ -1,5 +1,5 @@
 // Copyright (c) 2011-2016 The Bitcoin Core developers
-// Copyright (c) 2017 The Raven Core developers
+// Copyright (c) 2017-2020 The Raven Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 #include "sendassetsentry.h"
@@ -17,6 +17,7 @@
 #include "guiconstants.h"
 
 #include "wallet/coincontrol.h"
+#include "assets/assets.h"
 
 #include <QGraphicsDropShadowEffect>
 #include <QApplication>
@@ -95,38 +96,11 @@ SendAssetsEntry::SendAssetsEntry(const PlatformStyle *_platformStyle, const QStr
 
     fShowAdministratorList = false;
 
-    this->setStyleSheet(QString(".SendAssetsEntry {background-color: %1; padding-top: 10px; padding-right: 30px; border: none;}").arg(platformStyle->SendEntriesBackGroundColor().name()));
-
     this->setGraphicsEffect(GUIUtil::getShadowEffect());
-
-    ui->assetBoxLabel->setStyleSheet(STRING_LABEL_COLOR);
-    ui->assetBoxLabel->setFont(GUIUtil::getSubLabelFont());
-
-    ui->payToLabel->setStyleSheet(STRING_LABEL_COLOR);
-    ui->payToLabel->setFont(GUIUtil::getSubLabelFont());
-
-    ui->labellLabel->setStyleSheet(STRING_LABEL_COLOR);
-    ui->labellLabel->setFont(GUIUtil::getSubLabelFont());
-
-    ui->amountLabel->setStyleSheet(STRING_LABEL_COLOR);
-    ui->amountLabel->setFont(GUIUtil::getSubLabelFont());
-
-    ui->messageLabel->setStyleSheet(STRING_LABEL_COLOR);
-    ui->messageLabel->setFont(GUIUtil::getSubLabelFont());
 
     ui->payAssetAmount->setUnit(MAX_UNIT);
     ui->payAssetAmount->setDisabled(false);
-
-    ui->administratorCheckbox->setStyleSheet(QString(".QCheckBox{ %1; }").arg(STRING_LABEL_COLOR));
-
-    ui->assetSelectionBox->setFont(GUIUtil::getSubLabelFont());
-    ui->administratorCheckbox->setFont(GUIUtil::getSubLabelFont());
-    ui->payTo->setFont(GUIUtil::getSubLabelFont());
-    ui->addAsLabel->setFont(GUIUtil::getSubLabelFont());
-    ui->payAssetAmount->setFont(GUIUtil::getSubLabelFont());
-    ui->messageTextLabel->setFont(GUIUtil::getSubLabelFont());
-    ui->assetAmountLabel->setFont(GUIUtil::getSubLabelFont());
-    ui->ownershipWarningMessage->setFont(GUIUtil::getSubLabelFont());
+    ui->memoBox->installEventFilter(this);
 }
 
 SendAssetsEntry::~SendAssetsEntry()
@@ -227,6 +201,60 @@ bool SendAssetsEntry::validate()
         retval = false;
     }
 
+    if (!ui->memoBox->text().isEmpty()) {
+        if (!AreMessagesDeployed()) {
+            ui->messageTextLabel->show();
+            ui->messageTextLabel->setText(tr("Memos can only be added once RIP5 is voted in"));
+            ui->memoBox->setStyleSheet(STYLE_INVALID);
+            retval = false;
+        }
+
+        size_t size = ui->memoBox->text().size();
+
+        if (size != 46) {
+            if (!AreMessagesDeployed()) {
+
+                ui->memoBox->setStyleSheet(STYLE_INVALID);
+                retval = false;
+            } else {
+                if (size != 64) {
+                    ui->memoBox->setStyleSheet(STYLE_INVALID);
+                    retval = false;
+                }
+            }
+        }
+
+        std::string error = "";
+        if(!CheckEncoded(DecodeAssetData(ui->memoBox->text().toStdString()), error)) {
+            ui->memoBox->setStyleSheet(STYLE_INVALID);
+            retval = false;
+        }
+
+    }
+    std::string assetName = ui->assetSelectionBox->currentText().toStdString();
+    if (IsAssetNameAnRestricted(assetName)) {
+        if (passets) {
+            if (passets->CheckForGlobalRestriction(assetName)) {
+                ui->assetSelectionBox->lineEdit()->setStyleSheet(STYLE_INVALID);
+                ui->messageTextLabel->show();
+                ui->messageTextLabel->setText(tr("This restricted asset has been frozen globally. No transfers can be sent on the network."));
+                retval = false;
+            }
+
+            CNullAssetTxVerifierString verifier;
+            if (passets->GetAssetVerifierStringIfExists(assetName, verifier)) {
+                std::string strError = "";
+                ErrorReport report;
+                if (!ContextualCheckVerifierString(passets, verifier.verifier_string,ui->payTo->text().toStdString(), strError, &report)) {
+                    ui->payTo->setValid(false);
+                    ui->messageTextLabel->show();
+                    ui->messageTextLabel->setText(QString::fromStdString(GetUserErrorString(report)));
+                    retval = false;
+                }
+            }
+        }
+    }
+
     // TODO check to make sure the payAmount value is within the constraints of how much you own
 
     return retval;
@@ -243,7 +271,7 @@ SendAssetsRecipient SendAssetsEntry::getValue()
     recipient.address = ui->payTo->text();
     recipient.label = ui->addAsLabel->text();
     recipient.amount = ui->payAssetAmount->value();
-    recipient.message = ui->messageTextLabel->text();
+    recipient.message = ui->memoBox->text();
 
     return recipient;
 }
@@ -254,7 +282,9 @@ QWidget *SendAssetsEntry::setupTabChain(QWidget *prev)
     QWidget::setTabOrder(ui->payTo, ui->addAsLabel);
     QWidget::setTabOrder(ui->addressBookButton, ui->pasteButton);
     QWidget::setTabOrder(ui->pasteButton, ui->deleteButton);
-    return ui->deleteButton;
+    QWidget::setTabOrder(ui->deleteButton, ui->payAssetAmount);
+    QWidget::setTabOrder(ui->payAssetAmount, ui->memoBox);
+    return ui->memoBox;
 }
 
 void SendAssetsEntry::setValue(const SendAssetsRecipient &value)
@@ -312,9 +342,10 @@ void SendAssetsEntry::onAssetSelected(int index)
     // If the name
     if (index == 0) {
         ui->assetAmountLabel->clear();
-        if(!ui->administratorCheckbox->isChecked())
-            ui->payAssetAmount->setDisabled(false);
+//        if(!ui->administratorCheckbox->isChecked())
+//            ui->payAssetAmount->setDisabled(false);
         ui->payAssetAmount->clear();
+        ui->payAssetAmount->setDisabled(true);
         return;
     }
 
@@ -323,6 +354,12 @@ void SendAssetsEntry::onAssetSelected(int index)
     if (IsAssetNameAnOwner(name.toStdString())) {
         fIsOwnerAsset = true;
         name = name.split("!").first();
+    }
+
+    // Check to see if the asset selected is an messenger asset
+    bool fIsMessengerAsset = false;
+    if (IsAssetNameAnMsgChannel(name.toStdString())) {
+        fIsMessengerAsset = true;
     }
 
     LOCK(cs_main);
@@ -380,10 +417,18 @@ void SendAssetsEntry::onAssetSelected(int index)
     ui->messageLabel->hide();
     ui->messageTextLabel->hide();
 
-    // If it is an ownership asset lock the amount
+    // If it is not an ownership asset unlock the amount
     if (!fIsOwnerAsset) {
         ui->payAssetAmount->setUnit(asset.units);
+        ui->payAssetAmount->setSingleStep(1);
         ui->payAssetAmount->setDisabled(false);
+        ui->payAssetAmount->setValue(0);
+    }
+    // If it is messanger channel set amount to 1 and keep locked.
+    if (fIsMessengerAsset) {
+        ui->payAssetAmount->setUnit(asset.units);
+        ui->payAssetAmount->setDisabled(true);
+        ui->payAssetAmount->setValue(1);
     }
 }
 
@@ -472,8 +517,8 @@ void SendAssetsEntry::switchAdministratorList(bool fSwitchStatus)
 
             stringModel->setStringList(list);
             ui->assetSelectionBox->lineEdit()->setPlaceholderText(tr("Select an asset to transfer"));
-            ui->payAssetAmount->clear();
-            ui->payAssetAmount->setUnit(MAX_UNIT);
+//            ui->payAssetAmount->clear();
+//            ui->payAssetAmount->setUnit(MAX_UNIT);
             ui->assetAmountLabel->clear();
             ui->assetSelectionBox->setFocus();
         } else {
@@ -481,4 +526,14 @@ void SendAssetsEntry::switchAdministratorList(bool fSwitchStatus)
         }
         ui->ownershipWarningMessage->hide();
     }
+}
+
+bool SendAssetsEntry::eventFilter(QObject *object, QEvent *event)
+{
+    if (object == ui->memoBox && event->type() == QEvent::FocusIn)
+    {
+    // Clear invalid flag on focus
+        ui->memoBox->setStyleSheet("");
+    }
+    return QWidget::eventFilter(object, event);
 }

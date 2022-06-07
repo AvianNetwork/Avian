@@ -4,8 +4,8 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef RAVEN_CHAINPARAMS_H
-#define RAVEN_CHAINPARAMS_H
+#ifndef AVIAN_CHAINPARAMS_H
+#define AVIAN_CHAINPARAMS_H
 
 #include "chainparamsbase.h"
 #include "consensus/params.h"
@@ -41,7 +41,7 @@ struct ChainTxData {
 
 /**
  * CChainParams defines various tweakable parameters of a given instance of the
- * Raven system. There are three: the main network on which people trade goods
+ * Avian system. There are three: the main network on which people trade goods
  * and services, the public test network which gets reset from time to time and
  * a regression test mode which is intended for private networks only. It has
  * minimal difficulty to ensure that blocks can be found instantly.
@@ -76,6 +76,7 @@ public:
     std::string NetworkIDString() const { return strNetworkID; }
     const std::vector<CDNSSeedData>& DNSSeeds() const { return vSeeds; }
     const std::vector<unsigned char>& Base58Prefix(Base58Type type) const { return base58Prefixes[type]; }
+    int ExtCoinType() const { return nExtCoinType; }
     const std::vector<SeedSpec6>& FixedSeeds() const { return vFixedSeeds; }
     const CCheckpointData& Checkpoints() const { return checkpointData; }
     const ChainTxData& TxData() const { return chainTxData; }
@@ -90,25 +91,58 @@ public:
     bool BIP66();
     bool CSVEnabled() const;
 
-    /** RVN Start **/
+    /** AVN Start **/
     const CAmount& IssueAssetBurnAmount() const { return nIssueAssetBurnAmount; }
     const CAmount& ReissueAssetBurnAmount() const { return nReissueAssetBurnAmount; }
     const CAmount& IssueSubAssetBurnAmount() const { return nIssueSubAssetBurnAmount; }
     const CAmount& IssueUniqueAssetBurnAmount() const { return nIssueUniqueAssetBurnAmount; }
+    const CAmount& IssueMsgChannelAssetBurnAmount() const { return nIssueMsgChannelAssetBurnAmount; }
+    const CAmount& IssueQualifierAssetBurnAmount() const { return nIssueQualifierAssetBurnAmount; }
+    const CAmount& IssueSubQualifierAssetBurnAmount() const { return nIssueSubQualifierAssetBurnAmount; }
+    const CAmount& IssueRestrictedAssetBurnAmount() const { return nIssueRestrictedAssetBurnAmount; }
+    const CAmount& AddNullQualifierTagBurnAmount() const { return nAddNullQualifierTagBurnAmount; }
 
     const std::string& IssueAssetBurnAddress() const { return strIssueAssetBurnAddress; }
     const std::string& ReissueAssetBurnAddress() const { return strReissueAssetBurnAddress; }
     const std::string& IssueSubAssetBurnAddress() const { return strIssueSubAssetBurnAddress; }
     const std::string& IssueUniqueAssetBurnAddress() const { return strIssueUniqueAssetBurnAddress; }
+    const std::string& IssueMsgChannelAssetBurnAddress() const { return strIssueMsgChannelAssetBurnAddress; }
+    const std::string& IssueQualifierAssetBurnAddress() const { return strIssueQualifierAssetBurnAddress; }
+    const std::string& IssueSubQualifierAssetBurnAddress() const { return strIssueSubQualifierAssetBurnAddress; }
+    const std::string& IssueRestrictedAssetBurnAddress() const { return strIssueRestrictedAssetBurnAddress; }
+    const std::string& AddNullQualifierTagBurnAddress() const { return strAddNullQualifierTagBurnAddress; }
     const std::string& GlobalBurnAddress() const { return strGlobalBurnAddress; }
 
+    //  Indicates whether or not the provided address is a burn address
+    bool IsBurnAddress(const std::string & p_address) const
+    {
+        if (
+            p_address == strIssueAssetBurnAddress
+            || p_address == strReissueAssetBurnAddress
+            || p_address == strIssueSubAssetBurnAddress
+            || p_address == strIssueUniqueAssetBurnAddress
+            || p_address == strIssueMsgChannelAssetBurnAddress
+            || p_address == strIssueQualifierAssetBurnAddress
+            || p_address == strIssueSubQualifierAssetBurnAddress
+            || p_address == strIssueRestrictedAssetBurnAddress
+            || p_address == strAddNullQualifierTagBurnAddress
+            || p_address == strGlobalBurnAddress
+        ) {
+            return true;
+        }
+
+        return false;
+    }
+
     unsigned int DGWActivationBlock() const { return nDGWActivationBlock; }
-    uint32_t X16RV2ActivationTime() const { return nX16RV2ActivationTime; }
+    unsigned int MessagingActivationBlock() const { return nMessagingActivationBlock; }
+    unsigned int RestrictedActivationBlock() const { return nRestrictedActivationBlock; }
 
     int MaxReorganizationDepth() const { return nMaxReorganizationDepth; }
     int MinReorganizationPeers() const { return nMinReorganizationPeers; }
     int MinReorganizationAge() const { return nMinReorganizationAge; }
-    /** RVN End **/
+    int GetAssetActivationHeight() const { return nAssetActivationHeight; }
+    /** AVN End **/
 
 protected:
     CChainParams() {}
@@ -119,6 +153,7 @@ protected:
     uint64_t nPruneAfterHeight;
     std::vector<CDNSSeedData> vSeeds;
     std::vector<unsigned char> base58Prefixes[MAX_BASE58_TYPES];
+    int nExtCoinType;
     std::string strNetworkID;
     CBlock genesis;
     std::vector<SeedSpec6> vFixedSeeds;
@@ -136,22 +171,35 @@ protected:
     CAmount nReissueAssetBurnAmount;
     CAmount nIssueSubAssetBurnAmount;
     CAmount nIssueUniqueAssetBurnAmount;
+    CAmount nIssueMsgChannelAssetBurnAmount;
+    CAmount nIssueQualifierAssetBurnAmount;
+    CAmount nIssueSubQualifierAssetBurnAmount;
+    CAmount nIssueRestrictedAssetBurnAmount;
+    CAmount nAddNullQualifierTagBurnAmount;
 
     // Burn Addresses
     std::string strIssueAssetBurnAddress;
     std::string strReissueAssetBurnAddress;
     std::string strIssueSubAssetBurnAddress;
     std::string strIssueUniqueAssetBurnAddress;
+    std::string strIssueMsgChannelAssetBurnAddress;
+    std::string strIssueQualifierAssetBurnAddress;
+    std::string strIssueSubQualifierAssetBurnAddress;
+    std::string strIssueRestrictedAssetBurnAddress;
+    std::string strAddNullQualifierTagBurnAddress;
 
     // Global Burn Address
     std::string strGlobalBurnAddress;
 
     unsigned int nDGWActivationBlock;
+    unsigned int nMessagingActivationBlock;
+    unsigned int nRestrictedActivationBlock;
     uint32_t nX16RV2ActivationTime;
 
     int nMaxReorganizationDepth;
     int nMinReorganizationPeers;
     int nMinReorganizationAge;
+    int nAssetActivationHeight;
     /** AVN End **/
 };
 
@@ -189,4 +237,4 @@ void TurnOffBIP66();
 
 void TurnOffCSV();
 
-#endif // RAVEN_CHAINPARAMS_H
+#endif // AVIAN_CHAINPARAMS_H
