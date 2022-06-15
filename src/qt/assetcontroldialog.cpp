@@ -166,6 +166,7 @@ AssetControlDialog::AssetControlDialog(const PlatformStyle *_platformStyle, QWid
     ui->assetList->setModel(proxy);
     ui->assetList->setEditable(true);
     ui->assetList->lineEdit()->setPlaceholderText("Select an asset");
+    ui->assetList->lineEdit()->setStyleSheet("border: none; background: transparent;");
 
     completer = new QCompleter(proxy,this);
     completer->setCompletionMode(QCompleter::PopupCompletion);

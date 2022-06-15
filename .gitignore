@@ -86,6 +86,7 @@ src/qt/test/moc*.cpp
 Makefile
 avian-qt
 Avian-Qt.app
+src/qt/.qtc_clangd
 
 # Unit-tests
 Makefile.test

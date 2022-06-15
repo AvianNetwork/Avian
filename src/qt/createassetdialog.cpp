@@ -129,6 +129,8 @@ CreateAssetDialog::CreateAssetDialog(const PlatformStyle *_platformStyle, QWidge
     ui->assetList->setModel(proxy);
     ui->assetList->setEditable(true);
     ui->assetList->lineEdit()->setPlaceholderText("Select an asset");
+    ui->assetList->lineEdit()->setStyleSheet("background: transparent;");    
+
 
     completer = new QCompleter(proxy,this);
     completer->setCompletionMode(QCompleter::PopupCompletion);
@@ -246,7 +248,7 @@ bool CreateAssetDialog::eventFilter(QObject *sender, QEvent *event)
     {
         if(event->type()== QEvent::FocusIn)
         {
-            ui->assetList->lineEdit()->setStyleSheet("");
+            ui->assetList->lineEdit()->setStyleSheet("border: none; background: transparent;");
         }
     } else if (sender == ui->lineEditVerifierString)
     {
@@ -291,7 +293,7 @@ void CreateAssetDialog::setUpValues()
     ui->assetFullName->setTextFormat(Qt::RichText);
     ui->assetFullName->setStyleSheet("font-weight: bold");
 
-    ui->assetType->setStyleSheet("font-weight: bold;background-color: transparent");
+    ui->assetType->setStyleSheet("font-weight: bold; background: transparent;");
 }
 
 void CreateAssetDialog::setupCoinControlFrame(const PlatformStyle *platformStyle)
@@ -309,7 +311,8 @@ void CreateAssetDialog::setupAssetDataView(const PlatformStyle *platformStyle)
 void CreateAssetDialog::setupFeeControl(const PlatformStyle *platformStyle)
 {
     /** Create the shadow effects on the frames */
-    ui->frameFee->setGraphicsEffect(GUIUtil::getShadowEffect());
+    ui->frameFee->setStyleSheet(QString(".QFrame#frameFee { border-top: 2px solid %1;padding-top: 20px}").arg(platformStyle->Avian_2B737F().name()));
+    //ui->frameFee->setGraphicsEffect(GUIUtil::getShadowEffect());
 }
 
 void CreateAssetDialog::setBalance(const CAmount& balance, const CAmount& unconfirmedBalance, const CAmount& immatureBalance,

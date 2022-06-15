@@ -301,8 +301,8 @@ QColor PlatformStyle:: Avian_34E2D6() const
 
 QColor PlatformStyle::SingleColor() const
 {
-    if (darkModeEnabled)
-        return COLOR_ASSET_TEXT; // WHITE (black -> white)
+    //if (darkModeEnabled)
+    //    return COLOR_ASSET_TEXT; // WHITE (black -> white)
 
     return COLOR_AVIAN_34E2D6;
 }

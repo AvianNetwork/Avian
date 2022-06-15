@@ -96,10 +96,6 @@
         <property name="text">
          <string/>
         </property>
-        <property name="icon">
-         <iconset resource="../avian.qrc">
-          <normaloff>:/icons/address-book</normaloff>:/icons/address-book</iconset>
-        </property>
         <property name="iconSize">
          <size>
           <width>22</width>
@@ -119,10 +115,6 @@
         <property name="text">
          <string/>
         </property>
-        <property name="icon">
-         <iconset resource="../avian.qrc">
-          <normaloff>:/icons/editpaste</normaloff>:/icons/editpaste</iconset>
-        </property>
         <property name="iconSize">
          <size>
           <width>22</width>
@@ -141,10 +133,6 @@
         </property>
         <property name="text">
          <string/>
-        </property>
-        <property name="icon">
-         <iconset resource="../avian.qrc">
-          <normaloff>:/icons/remove</normaloff>:/icons/remove</iconset>
         </property>
         <property name="iconSize">
          <size>
@@ -662,10 +650,6 @@
         </property>
         <property name="text">
          <string/>
-        </property>
-        <property name="icon">
-         <iconset resource="../avian.qrc">
-          <normaloff>:/icons/remove</normaloff>:/icons/remove</iconset>
         </property>
        </widget>
       </item>
@@ -1195,10 +1179,6 @@
         </property>
         <property name="text">
          <string/>
-        </property>
-        <property name="icon">
-         <iconset resource="../avian.qrc">
-          <normaloff>:/icons/remove</normaloff>:/icons/remove</iconset>
         </property>
        </widget>
       </item>

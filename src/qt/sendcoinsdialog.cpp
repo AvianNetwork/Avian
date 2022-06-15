@@ -223,18 +223,20 @@ void SendCoinsDialog::setupCoinControl(const PlatformStyle *platformStyle)
 void SendCoinsDialog::setupScrollView(const PlatformStyle *platformStyle)
 {
     /** Update the scrollview*/
-    ui->scrollArea->setStyleSheet(QString(".QScrollArea{background-color: %1; border: none}").arg(platformStyle->WidgetBackGroundColor().name()));
+    //ui->scrollArea->setStyleSheet(QString(".QScrollArea{background-color: %1; border: none}").arg(platformStyle->WidgetBackGroundColor().name()));
+    //ui->scrollArea->setAutoFillBackground(true);
     ui->scrollArea->setGraphicsEffect(GUIUtil::getShadowEffect());
 
     // Add some spacing so we can see the whole card
-    ui->entries->setContentsMargins(10,10,20,0);
-    ui->scrollAreaWidgetContents->setStyleSheet(QString(".QWidget{ background-color: %1;}").arg(platformStyle->WidgetBackGroundColor().name()));
+    ui->entries->setContentsMargins(10,10,20,20);
+    //ui->scrollAreaWidgetContents->setStyleSheet(QString(".QWidget{ background-color: %1;}").arg(platformStyle->WidgetBackGroundColor().name()));
 }
 
 void SendCoinsDialog::setupFeeControl(const PlatformStyle *platformStyle)
 {
     /** Create the shadow effects on the frames */
-    ui->frameFee->setGraphicsEffect(GUIUtil::getShadowEffect());
+    ui->frameFee->setStyleSheet(QString(".QFrame#frameFee { border-top: 2px solid %1;padding-top: 20px;}").arg(platformStyle->Avian_2B737F().name()));
+    //ui->frameFee->setGraphicsEffect(GUIUtil::getShadowEffect());
 }
 
 void SendCoinsDialog::on_sendButton_clicked()

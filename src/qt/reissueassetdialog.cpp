@@ -309,7 +309,8 @@ void ReissueAssetDialog::setupAssetDataView(const PlatformStyle *platformStyle)
 void ReissueAssetDialog::setupFeeControl(const PlatformStyle *platformStyle)
 {
     /** Create the shadow effects on the frames */
-    ui->frameFee->setGraphicsEffect(GUIUtil::getShadowEffect());
+    ui->frameFee->setStyleSheet(QString(".QFrame#frameFee { border-top: 2px solid %1;padding-top: 20px}").arg(platformStyle->Avian_2B737F().name()));
+    //ui->frameFee->setGraphicsEffect(GUIUtil::getShadowEffect());
 }
 
 void ReissueAssetDialog::setBalance(const CAmount& balance, const CAmount& unconfirmedBalance, const CAmount& immatureBalance,

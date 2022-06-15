@@ -427,8 +427,8 @@ void AvianApplication::createOptionsModel(bool resetSettings)
 void AvianApplication::createWindow(const NetworkStyle *networkStyle)
 {
     window = new AvianGUI(platformStyle, networkStyle, 0);
-    //window->setMinimumSize(800,800);
-    //window->setBaseSize(640,640);
+    window->setMinimumSize(1024,768);
+    window->setBaseSize(640,640);
 
     pollShutdownTimer = new QTimer(window);
     connect(pollShutdownTimer, SIGNAL(timeout()), window, SLOT(detectShutdown()));
@@ -643,10 +643,9 @@ int main(int argc, char *argv[])
     QApplication::setOrganizationDomain(QAPP_ORG_DOMAIN);
     QApplication::setApplicationName(QAPP_APP_NAME_DEFAULT);
     
-    //GUIUtil::SubstituteFonts(GetLangTerritory());
+    GUIUtil::SubstituteFonts(GetLangTerritory());
     QFontDatabase::addApplicationFont(":/fonts/manrope-regular");
     QFontDatabase::addApplicationFont(":/fonts/manrope-bold");
-
 
     /// 4. Initialization of translations, so that intro dialog is in user's language
     // Now that QSettings are accessible, initialize translations

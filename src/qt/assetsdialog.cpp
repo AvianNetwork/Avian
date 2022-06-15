@@ -246,7 +246,8 @@ void AssetsDialog::setupScrollView(const PlatformStyle *platformStyle)
 void AssetsDialog::setupFeeControl(const PlatformStyle *platformStyle)
 {
     /** Create the shadow effects on the frames */
-    ui->frameFee->setGraphicsEffect(GUIUtil::getShadowEffect());
+    ui->frameFee->setStyleSheet(QString(".QFrame#frameFee { border-top: 2px solid %1;padding-top: 20px;}").arg(platformStyle->Avian_2B737F().name()));
+    //ui->frameFee->setGraphicsEffect(GUIUtil::getShadowEffect());
 }
 
 void AssetsDialog::on_sendButton_clicked()

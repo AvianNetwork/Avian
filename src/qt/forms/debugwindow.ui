@@ -916,10 +916,6 @@
              <property name="text">
               <string>Add new peer</string>
              </property>
-             <property name="icon">
-              <iconset resource="../avian.qrc">
-               <normaloff>:/icons/add</normaloff>:/icons/add</iconset>
-             </property>
             </widget>
            </item>
            <item>
@@ -930,10 +926,6 @@
              <property name="text">
               <string>Remove peer</string>
              </property>
-             <property name="icon">
-              <iconset resource="../avian.qrc">
-               <normaloff>:/icons/quit</normaloff>:/icons/quit</iconset>
-             </property>
             </widget>
            </item>
            <item>
@@ -943,10 +935,6 @@
              </property>
              <property name="text">
               <string>One try peer</string>
-             </property>
-             <property name="icon">
-              <iconset resource="../avian.qrc">
-               <normaloff>:/icons/prompticon</normaloff>:/icons/prompticon</iconset>
              </property>
             </widget>
            </item>

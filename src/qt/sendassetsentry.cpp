@@ -337,7 +337,7 @@ bool SendAssetsEntry::updateLabel(const QString &address)
 
 void SendAssetsEntry::onAssetSelected(int index)
 {
-    ui->assetSelectionBox->lineEdit()->setStyleSheet("");
+    ui->assetSelectionBox->lineEdit()->setStyleSheet("background: transparent;border:none;");
     QString name = ui->assetSelectionBox->currentText();
     // If the name
     if (index == 0) {

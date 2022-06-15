@@ -717,46 +717,6 @@ QRadioButton::indicator:unchecked:disabled {
     border: 0px;
 }
 
-/* QSlider */
-
-QSlider::groove:horizontal {
-    background: #f4f4f4;
-    height: 10px;
-    border-radius: 4px;
-}
-
-QSlider::handle:horizontal {
-    margin-left: 5px;
-    margin-right: 5px;
-    width: 19px;
-    margin-top: -5px;
-    margin-bottom: -5px;
-    border-radius: 9px;
-	background-color: #2b737f;
-}
-
-QSlider::handle:horizontal:hover {
-	background-color: #18a7b7;
-}
-
-QSlider::sub-page:horizontal {
-    height: 10px;
-    border-radius: 4px;
-	background-color: #878787;
-}
-
-QSlider::add-page:horizontal {
-    height: 10px;
-    border-radius: 4px;
-	background-color: #878787;
-}
-
-QSlider::sub-page:horizontal:disabled,
-QSlider::add-page:horizontal:disabled,
-QSlider::handle:horizontal:disabled {
-	background-color: #cfcccc;
-}
-
 /* QStatusBar */
 
 QStatusBar {
@@ -1280,10 +1240,6 @@ QWidget .QFrame#frame .QLabel#avnBalancesLabel {
     font-weight: bold;
 }
 
-QWidget .QFrame#frame .QPushButton#labelWalletStatus { 
-    qproperty-alignment: 'AlignVCenter | AlignLeft';
-}
-
 QWidget .QFrame#frame .QLabel#labelSpendable { 
     qproperty-alignment: 'AlignVCenter | AlignLeft';
     margin-left: 15px;
@@ -1401,10 +1357,6 @@ QWidget .QFrame#assetFrame .QLabel#assetBalanceLabel {
     font-weight: bold;
 }
 
-QWidget .QFrame#assetFrame .QPushButton#labelAssetStatus {
-    qproperty-alignment: 'AlignVCenter | AlignLeft';
-}
-
 QWidget .QFrame#assetFrame QListView {
     background: #ffffff;
     margin-right: 10px;
@@ -1424,13 +1376,8 @@ QWidget .QFrame#frame_2 .QLabel#recentTransactionsLabel {
     font-weight: bold;
 }
 
-QWidget .QFrame#frame_2 .QPushButton#labelTransactionsStatus {
-    qproperty-alignment: 'AlignVCenter | AlignLeft';
-}
-
 QWidget .QFrame#frame_2 QListView {
     background: #ffffff;
-    max-width: 530px;
     margin-right: 10px;
 }
 
@@ -1496,6 +1443,12 @@ QWidget#RPCConsole QPushButton#openDebugLogfileButton {
     max-width: 60px;
 }
 
+QWidget#RPCConsole QPushButton#peerTest,
+QWidget#RPCConsole QPushButton#peerRemove,
+QWidget#RPCConsole QPushButton#peerAdd {
+    border-radius: 0px;
+    border: 1px solid #FFFFFF;
+}
 
 QWidget#RPCConsole QPushButton#fontSmallerButton,
 QWidget#RPCConsole QPushButton#fontBiggerButton,
@@ -1697,11 +1650,6 @@ QDialog#CreateAssetDialog QRadioButton#radioCustomFee {
     margin-top: 7px;
 }
 
-QDialog#CreateAssetDialog QLineEdit#assetType,
-QDialog#CreateAssetDialog QLineEdit#assetList {
-    background-color: transparent;
-}
-
 /* AssetsDialog */
 
 QDialog#AssetsDialog .QFrame#frameAssetControl .QWidget#widgetAssetControl > .QLabel {
@@ -1863,7 +1811,7 @@ QDialog#SignVerifyMessageDialog .QToolButton {
 /* ShutdownWindow */
 
 QWidget#ShutdownWindow {
-    background-color: #ffffff;
+    background-color: #ccc;
 }
 
 /* TransactionView */
