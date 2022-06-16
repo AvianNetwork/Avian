@@ -699,10 +699,12 @@ void OverviewPage::showAssets()
         ui->assetFrame->show();
         ui->assetBalanceLabel->show();
         ui->labelAssetStatus->show();
+        ui->verticalSpacer_2->changeSize(0,0, QSizePolicy::Fixed, QSizePolicy::Fixed);        
     } else {
         ui->assetFrame->hide();
         ui->assetBalanceLabel->hide();
         ui->labelAssetStatus->hide();
+        ui->verticalSpacer_2->changeSize(0,0, QSizePolicy::Fixed, QSizePolicy::Expanding);        
     }
 }
 

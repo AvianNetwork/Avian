@@ -293,7 +293,7 @@ void CreateAssetDialog::setUpValues()
     ui->assetFullName->setTextFormat(Qt::RichText);
     ui->assetFullName->setStyleSheet("font-weight: bold");
 
-    ui->assetType->setStyleSheet("font-weight: bold; background: transparent;");
+    //ui->assetType->setStyleSheet("font-weight: bold;");
 }
 
 void CreateAssetDialog::setupCoinControlFrame(const PlatformStyle *platformStyle)
