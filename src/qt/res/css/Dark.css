@@ -850,7 +850,7 @@ QTabWidget QTabBar {
 QTabWidget::pane
 {
     border: 1px solid;
-    border-color: #2b737f;
+    border-color: #18a7b7;
 }
 
 QTabWidget::tab-bar {
@@ -859,10 +859,10 @@ QTabWidget::tab-bar {
 
 /* Style the tab using the tab sub-control  */
 QTabWidget QTabBar::tab {
-    background-color: #202020;
-    color: #2b737f;
-    border: 1px solid #2b737f;
-    border-bottom-color: #202020;
+    background-color: #292929;
+    color: #18a7b7;
+    border: 1px solid #18a7b7;
+    border-bottom-color: #292929;
     border-top-left-radius: 4px;
     border-top-right-radius: 4px;
     min-width: 8em;
@@ -892,7 +892,7 @@ QTabBar::tab:!selected {
 /* QTextEdit */
 
 QTextEdit {
-    border: 1px solid #2b737f;
+    border: 1px solid #18a7b7;
     background-color: #666;
     color: #f4f4f4;
 }
