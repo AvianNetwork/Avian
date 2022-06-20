@@ -1,10 +1,10 @@
 // Copyright (c) 2011-2014 The Bitcoin Core developers
-// Copyright (c) 2017 The Raven Core developers
+// Copyright (c) 2017-2019 The Raven Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef RAVEN_QT_REISSUEASSETDIALOG_H
-#define RAVEN_QT_REISSUEASSETDIALOG_H
+#ifndef AVIAN_QT_REISSUEASSETDIALOG_H
+#define AVIAN_QT_REISSUEASSETDIALOG_H
 
 #include "walletmodel.h"
 
@@ -85,6 +85,15 @@ private:
     //Validation of IPFS
     bool checkIPFSHash(QString hash);
 
+    void restrictedAssetSelected();
+    void restrictedAssetUnselected();
+
+    void showInvalidVerifierStringMessage(QString string);
+    void hideInvalidVerifierStringMessage();
+
+protected:
+    bool eventFilter( QObject* sender, QEvent* event);
+
 private Q_SLOTS:
     void onAssetSelected(int index);
     void onQuantityChanged(double qty);
@@ -95,6 +104,7 @@ private Q_SLOTS:
     void onReissueBoxChanged();
     void onUnitChanged(int value);
     void onClearButtonClicked();
+    void onVerifierStringChanged(QString verifier);
 
     //CoinControl
     void coinControlFeatureChanged(bool);
@@ -130,4 +140,4 @@ Q_SIGNALS:
     void message(const QString &title, const QString &message, unsigned int style);
 };
 
-#endif // RAVEN_QT_REISSUEASSETDIALOG_H
+#endif // AVIAN_QT_REISSUEASSETDIALOG_H

@@ -1,0 +1,157 @@
+
+## <summary>policy for avian</summary>
+
+
+########################################
+## <summary>
+##	Transition to avian.
+## </summary>
+## <param name="domain">
+## <summary>
+##	Domain allowed to transition.
+## </summary>
+## </param>
+#
+interface(`avian_domtrans',`
+	gen_require(`
+		type avian_t, avian_exec_t;
+	')
+
+	corecmd_search_bin($1)
+	domtrans_pattern($1, avian_exec_t, avian_t)
+')
+
+
+########################################
+## <summary>
+##	Execute avian server in the avian domain.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`avian_initrc_domtrans',`
+	gen_require(`
+		type avian_initrc_exec_t;
+	')
+
+	init_labeled_script_domtrans($1, avian_initrc_exec_t)
+')
+
+
+########################################
+## <summary>
+##	Search avian lib directories.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`avian_search_lib',`
+	gen_require(`
+		type avian_var_lib_t;
+	')
+
+	allow $1 avian_var_lib_t:dir search_dir_perms;
+	files_search_var_lib($1)
+')
+
+########################################
+## <summary>
+##	Read avian lib files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`avian_read_lib_files',`
+	gen_require(`
+		type avian_var_lib_t;
+	')
+
+	files_search_var_lib($1)
+	read_files_pattern($1, avian_var_lib_t, avian_var_lib_t)
+')
+
+########################################
+## <summary>
+##	Manage avian lib files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`avian_manage_lib_files',`
+	gen_require(`
+		type avian_var_lib_t;
+	')
+
+	files_search_var_lib($1)
+	manage_files_pattern($1, avian_var_lib_t, avian_var_lib_t)
+')
+
+########################################
+## <summary>
+##	Manage avian lib directories.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+#
+interface(`avian_manage_lib_dirs',`
+	gen_require(`
+		type avian_var_lib_t;
+	')
+
+	files_search_var_lib($1)
+	manage_dirs_pattern($1, avian_var_lib_t, avian_var_lib_t)
+')
+
+
+########################################
+## <summary>
+##	All of the rules required to administrate
+##	a avian environment
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed access.
+##	</summary>
+## </param>
+## <param name="role">
+##	<summary>
+##	Role allowed access.
+##	</summary>
+## </param>
+## <rolecap/>
+#
+interface(`avian_admin',`
+	gen_require(`
+		type avian_t;
+		type avian_initrc_exec_t;
+		type avian_var_lib_t;
+	')
+
+	allow $1 avian_t:process { ptrace signal_perms };
+	ps_process_pattern($1, avian_t)
+
+	avian_initrc_domtrans($1)
+	domain_system_change_exemption($1)
+	role_transition $2 avian_initrc_exec_t system_r;
+	allow $2 system_r;
+
+	files_search_var_lib($1)
+	admin_pattern($1, avian_var_lib_t)
+
+')
+

@@ -1,0 +1,33 @@
+# /etc/conf.d/aviand: config file for /etc/init.d/aviand
+
+# Config file location
+#AVIAND_CONFIGFILE="/etc/avian/avian.conf"
+
+# What directory to write pidfile to?  (created and owned by $AVIAND_USER)
+#AVIAND_PIDDIR="/var/run/aviand"
+
+# What filename to give the pidfile
+#AVIAND_PIDFILE="${AVIAND_PIDDIR}/aviand.pid"
+
+# Where to write aviand data (be mindful that the blockchain is large)
+#AVIAND_DATADIR="/var/lib/aviand"
+
+# User and group to own aviand process
+#AVIAND_USER="avian"
+#AVIAND_GROUP="avian"
+
+# Path to aviand executable
+#AVIAND_BIN="/usr/bin/aviand"
+
+# Nice value to run aviand under
+#AVIAND_NICE=0
+
+# Additional options (avoid -conf and -datadir, use flags above)
+#AVIAND_OPTS=""
+
+# The timeout in seconds OpenRC will wait for aviand to terminate
+# after a SIGTERM has been raised.
+# Note that this will be mapped as argument to start-stop-daemon's
+# '--retry' option, which means you can specify a retry schedule
+# here. For more information see man 8 start-stop-daemon.
+AVIAND_SIGTERM_TIMEOUT=60

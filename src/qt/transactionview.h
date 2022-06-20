@@ -1,10 +1,10 @@
 // Copyright (c) 2011-2016 The Bitcoin Core developers
-// Copyright (c) 2017 The Raven Core developers
+// Copyright (c) 2017-2019 The Raven Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef RAVEN_QT_TRANSACTIONVIEW_H
-#define RAVEN_QT_TRANSACTIONVIEW_H
+#ifndef AVIAN_QT_TRANSACTIONVIEW_H
+#define AVIAN_QT_TRANSACTIONVIEW_H
 
 #include "guiutil.h"
 
@@ -54,10 +54,10 @@ public:
     enum ColumnWidths {
         STATUS_COLUMN_WIDTH = 30,
         WATCHONLY_COLUMN_WIDTH = 23,
-        DATE_COLUMN_WIDTH = 120,
-        TYPE_COLUMN_WIDTH = 113,
+        DATE_COLUMN_WIDTH = 160,
+        TYPE_COLUMN_WIDTH = 120,
         ASSET_NAME_MINIMUM_COLUMN_WIDTH = 200,
-        AMOUNT_MINIMUM_COLUMN_WIDTH = 120,
+        AMOUNT_MINIMUM_COLUMN_WIDTH = 220,
         MINIMUM_COLUMN_WIDTH = 23
     };
 
@@ -85,6 +85,11 @@ private:
     QAction *bumpFeeAction;
 
     QWidget *createDateRangeWidget();
+    void updateCalendarWidgets();
+    
+    GUIUtil::TableViewLastColumnResizingFixer *columnResizingFixer;
+
+    virtual void resizeEvent(QResizeEvent* event);
 
     bool eventFilter(QObject *obj, QEvent *event);
 
@@ -123,4 +128,4 @@ public Q_SLOTS:
 
 };
 
-#endif // RAVEN_QT_TRANSACTIONVIEW_H
+#endif // AVIAN_QT_TRANSACTIONVIEW_H

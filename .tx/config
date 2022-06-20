@@ -1,7 +1,7 @@
 [main]
 host = https://www.transifex.com
 
-[raven.qt-translation-014x]
-file_filter = src/qt/locale/raven_<lang>.ts
-source_file = src/qt/locale/raven_en.ts
+[avian.qt-translation-014x]
+file_filter = src/qt/locale/avian_<lang>.ts
+source_file = src/qt/locale/avian_en.ts
 source_lang = en

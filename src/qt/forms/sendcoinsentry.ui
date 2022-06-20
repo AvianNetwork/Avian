@@ -36,23 +36,6 @@
     <property name="verticalSpacing">
      <number>8</number>
     </property>
-    <item row="2" column="1">
-     <layout class="QHBoxLayout" name="horizontalLayoutAmount" stretch="0,1">
-      <item>
-       <widget class="RavenAmountField" name="payAmount"/>
-      </item>
-      <item>
-       <widget class="QCheckBox" name="checkboxSubtractFeeFromAmount">
-        <property name="toolTip">
-         <string>The fee will be deducted from the amount being sent. The recipient will receive less ravens than you enter in the amount field. If multiple recipients are selected, the fee is split equally.</string>
-        </property>
-        <property name="text">
-         <string>S&amp;ubtract fee from amount</string>
-        </property>
-       </widget>
-      </item>
-     </layout>
-    </item>
     <item row="3" column="1">
      <widget class="QLabel" name="messageTextLabel">
       <property name="toolTip">
@@ -76,6 +59,23 @@
       </property>
      </widget>
     </item>
+    <item row="2" column="1">
+     <layout class="QHBoxLayout" name="horizontalLayoutAmount" stretch="0,1">
+      <item>
+       <widget class="AvianAmountField" name="payAmount"/>
+      </item>
+      <item>
+       <widget class="QCheckBox" name="checkboxSubtractFeeFromAmount">
+        <property name="toolTip">
+         <string>The fee will be deducted from the amount being sent. The recipient will receive less avians than you enter in the amount field. If multiple recipients are selected, the fee is split equally.</string>
+        </property>
+        <property name="text">
+         <string>S&amp;ubtract fee from amount</string>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </item>
     <item row="0" column="1">
      <layout class="QHBoxLayout" name="payToLayout">
       <property name="spacing">
@@ -96,10 +96,6 @@
         <property name="text">
          <string/>
         </property>
-        <property name="icon">
-         <iconset resource="../raven.qrc">
-          <normaloff>:/icons/address-book</normaloff>:/icons/address-book</iconset>
-        </property>
         <property name="iconSize">
          <size>
           <width>22</width>
@@ -118,10 +114,6 @@
         </property>
         <property name="text">
          <string/>
-        </property>
-        <property name="icon">
-         <iconset resource="../raven.qrc">
-          <normaloff>:/icons/editpaste</normaloff>:/icons/editpaste</iconset>
         </property>
         <property name="iconSize">
          <size>
@@ -142,10 +134,6 @@
         <property name="text">
          <string/>
         </property>
-        <property name="icon">
-         <iconset resource="../raven.qrc">
-          <normaloff>:/icons/remove</normaloff>:/icons/remove</iconset>
-        </property>
         <property name="iconSize">
          <size>
           <width>22</width>
@@ -155,6 +143,29 @@
        </widget>
       </item>
      </layout>
+    </item>
+    <item row="0" column="0">
+     <widget class="QLabel" name="payToLabel">
+      <property name="text">
+       <string>Send &amp;To:</string>
+      </property>
+      <property name="alignment">
+       <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+      </property>
+      <property name="buddy">
+       <cstring>payTo</cstring>
+      </property>
+     </widget>
+    </item>
+    <item row="3" column="0">
+     <widget class="QLabel" name="messageLabel">
+      <property name="text">
+       <string>Message:</string>
+      </property>
+      <property name="alignment">
+       <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+      </property>
+     </widget>
     </item>
     <item row="2" column="0">
      <widget class="QLabel" name="amountLabel">
@@ -176,26 +187,10 @@
       </property>
      </widget>
     </item>
-    <item row="3" column="0">
-     <widget class="QLabel" name="messageLabel">
-      <property name="text">
-       <string>Message:</string>
-      </property>
-      <property name="alignment">
-       <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-      </property>
-     </widget>
-    </item>
-    <item row="0" column="0">
-     <widget class="QLabel" name="payToLabel">
-      <property name="text">
-       <string>Pay &amp;To:</string>
-      </property>
-      <property name="alignment">
-       <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-      </property>
-      <property name="buddy">
-       <cstring>payTo</cstring>
+    <item row="4" column="0" colspan="2">
+     <widget class="Line" name="line">
+      <property name="orientation">
+       <enum>Qt::Horizontal</enum>
       </property>
      </widget>
     </item>
@@ -633,7 +628,7 @@
     <item row="0" column="0">
      <widget class="QLabel" name="payToLabel_is">
       <property name="text">
-       <string>Pay To:</string>
+       <string>Send to:</string>
       </property>
       <property name="alignment">
        <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
@@ -655,10 +650,6 @@
         </property>
         <property name="text">
          <string/>
-        </property>
-        <property name="icon">
-         <iconset resource="../raven.qrc">
-          <normaloff>:/icons/remove</normaloff>:/icons/remove</iconset>
         </property>
        </widget>
       </item>
@@ -695,7 +686,7 @@
      </widget>
     </item>
     <item row="2" column="1">
-     <widget class="RavenAmountField" name="payAmount_is">
+     <widget class="AvianAmountField" name="payAmount_is">
       <property name="acceptDrops">
        <bool>false</bool>
       </property>
@@ -1162,7 +1153,7 @@
     <item row="0" column="0">
      <widget class="QLabel" name="payToLabel_s">
       <property name="text">
-       <string>Pay To:</string>
+       <string>Send to:</string>
       </property>
       <property name="alignment">
        <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
@@ -1188,10 +1179,6 @@
         </property>
         <property name="text">
          <string/>
-        </property>
-        <property name="icon">
-         <iconset resource="../raven.qrc">
-          <normaloff>:/icons/remove</normaloff>:/icons/remove</iconset>
         </property>
        </widget>
       </item>
@@ -1228,7 +1215,7 @@
      </widget>
     </item>
     <item row="2" column="1">
-     <widget class="RavenAmountField" name="payAmount_s">
+     <widget class="AvianAmountField" name="payAmount_s">
       <property name="acceptDrops">
        <bool>false</bool>
       </property>
@@ -1244,9 +1231,9 @@
    <header>qvalidatedlineedit.h</header>
   </customwidget>
   <customwidget>
-   <class>RavenAmountField</class>
+   <class>AvianAmountField</class>
    <extends>QLineEdit</extends>
-   <header>ravenamountfield.h</header>
+   <header>avianamountfield.h</header>
    <container>1</container>
   </customwidget>
  </customwidgets>
@@ -1263,7 +1250,7 @@
   <tabstop>deleteButton_s</tabstop>
  </tabstops>
  <resources>
-  <include location="../raven.qrc"/>
+  <include location="../avian.qrc"/>
  </resources>
  <connections/>
 </ui>

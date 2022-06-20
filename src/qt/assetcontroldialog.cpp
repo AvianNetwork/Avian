@@ -1,5 +1,5 @@
 // Copyright (c) 2011-2016 The Bitcoin Core developers
-// Copyright (c) 2017 The Raven Core developers
+// Copyright (c) 2017-2019 The Raven Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -7,7 +7,7 @@
 #include "ui_assetcontroldialog.h"
 
 #include "addresstablemodel.h"
-#include "ravenunits.h"
+#include "avianunits.h"
 #include "guiutil.h"
 #include "optionsmodel.h"
 #include "platformstyle.h"
@@ -130,7 +130,7 @@ AssetControlDialog::AssetControlDialog(const PlatformStyle *_platformStyle, QWid
     connect(ui->pushButtonSelectAll, SIGNAL(clicked()), this, SLOT(buttonSelectAllClicked()));
 
     // change coin control first column label due Qt4 bug.
-    // see https://github.com/RavenProject/Ravencoin/issues/5716
+    // see https://github.com/bitcoin/bitcoin/issues/5716
     ui->treeWidget->headerItem()->setText(COLUMN_CHECKBOX, QString());
 
     ui->treeWidget->setColumnWidth(COLUMN_CHECKBOX, 84);
@@ -166,6 +166,7 @@ AssetControlDialog::AssetControlDialog(const PlatformStyle *_platformStyle, QWid
     ui->assetList->setModel(proxy);
     ui->assetList->setEditable(true);
     ui->assetList->lineEdit()->setPlaceholderText("Select an asset");
+    ui->assetList->lineEdit()->setStyleSheet("border: none; background: transparent;");
 
     completer = new QCompleter(proxy,this);
     completer->setCompletionMode(QCompleter::PopupCompletion);
@@ -266,7 +267,7 @@ void AssetControlDialog::showMenu(const QPoint &point)
 // context menu action: copy amount
 void AssetControlDialog::copyAmount()
 {
-    GUIUtil::setClipboard(RavenUnits::removeSpaces(contextMenuItem->text(COLUMN_AMOUNT)));
+    GUIUtil::setClipboard(AvianUnits::removeSpaces(contextMenuItem->text(COLUMN_AMOUNT)));
 }
 
 // context menu action: copy label
@@ -559,7 +560,7 @@ void AssetControlDialog::updateLabels(WalletModel *model, QDialog* dialog)
     }
 
     // actually update labels
-    int nDisplayUnit = RavenUnits::RVN;
+    int nDisplayUnit = AvianUnits::AVN;
     if (model && model->getOptionsModel())
         nDisplayUnit = model->getOptionsModel()->getDisplayUnit();
 
@@ -579,12 +580,12 @@ void AssetControlDialog::updateLabels(WalletModel *model, QDialog* dialog)
 
     // stats
     l1->setText(QString::number(nQuantity));                                 // Quantity
-    l2->setText(RavenUnits::formatWithCustomName(QString::fromStdString(strAssetName), nAssetAmount));        // Amount
-    l3->setText(RavenUnits::formatWithUnit(nDisplayUnit, nPayFee));        // Fee
-    l4->setText(RavenUnits::formatWithUnit(nDisplayUnit, nAfterFee));      // After Fee
+    l2->setText(AvianUnits::formatWithCustomName(QString::fromStdString(strAssetName), nAssetAmount));        // Amount
+    l3->setText(AvianUnits::formatWithUnit(nDisplayUnit, nPayFee));        // Fee
+    l4->setText(AvianUnits::formatWithUnit(nDisplayUnit, nAfterFee));      // After Fee
     l5->setText(((nBytes > 0) ? ASYMP_UTF8 : "") + QString::number(nBytes));        // Bytes
     l7->setText(fDust ? tr("yes") : tr("no"));                               // Dust
-    l8->setText(RavenUnits::formatWithCustomName(QString::fromStdString(strAssetName), nChange));        // Change
+    l8->setText(AvianUnits::formatWithCustomName(QString::fromStdString(strAssetName), nChange));        // Change
     if (nPayFee > 0)
     {
         l3->setText(ASYMP_UTF8 + l3->text());
@@ -720,7 +721,7 @@ void AssetControlDialog::updateView()
             }
 
             // amount
-            itemOutput->setText(COLUMN_AMOUNT, RavenUnits::format(nDisplayUnit, nAmount));
+            itemOutput->setText(COLUMN_AMOUNT, AvianUnits::format(nDisplayUnit, nAmount));
             itemOutput->setData(COLUMN_AMOUNT, Qt::UserRole,
                                 QVariant((qlonglong) nAmount)); // padding so that sorting works correctly
 
@@ -755,7 +756,7 @@ void AssetControlDialog::updateView()
         // amount
         if (treeMode) {
             itemWalletAddress->setText(COLUMN_CHECKBOX, "(" + QString::number(nChildren) + ")");
-            itemWalletAddress->setText(COLUMN_AMOUNT, RavenUnits::format(nDisplayUnit, nSum));
+            itemWalletAddress->setText(COLUMN_AMOUNT, AvianUnits::format(nDisplayUnit, nSum));
             itemWalletAddress->setData(COLUMN_AMOUNT, Qt::UserRole, QVariant((qlonglong) nSum));
         }
     }

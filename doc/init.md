@@ -13,7 +13,7 @@ can be found in the contrib/init folder.
 Service User
 ---------------------------------
 
-All three Linux startup configurations assume the existence of a "raven" user
+All three Linux startup configurations assume the existence of a "avian" user
 and group.  They must be created before attempting to use these scripts.
 The OS X configuration assumes aviand will be set up for the current user.
 
@@ -54,23 +54,39 @@ Paths
 All three configurations assume several paths that might need to be adjusted.
 
 Binary:              `/usr/bin/aviand`  
-Configuration file:  `/etc/raven/avian.conf`  
+Configuration file:  `/etc/avian/avian.conf`  
 Data directory:      `/var/lib/aviand`  
 PID file:            `/var/run/aviand/aviand.pid` (OpenRC and Upstart) or `/var/lib/aviand/aviand.pid` (systemd)  
 Lock file:           `/var/lock/subsys/aviand` (CentOS)  
 
 The configuration file, PID directory (if applicable) and data directory
-should all be owned by the raven user and group.  It is advised for security
+should all be owned by the avian user and group.  It is advised for security
 reasons to make the configuration file and data directory only readable by the
-raven user and group.  Access to avian-cli and other aviand rpc clients
+avian user and group.  Access to avian-cli and other aviand rpc clients
 can then be controlled by group membership.
 
-### Mac OS X
+NOTE: When using the systemd .service file, the creation of the aforementioned
+directories and the setting of their permissions is automatically handled by
+systemd. Directories are given a permission of 710, giving the avian group
+access to files under it _if_ the files themselves give permission to the
+avian group to do so (e.g. when `-sysperms` is specified). This does not allow
+for the listing of files under the directory.
+
+NOTE: It is not currently possible to override `datadir` in
+`/etc/avian/avian.conf` with the current systemd, OpenRC, and Upstart init
+files out-of-the-box. This is because the command line options specified in the
+init files take precedence over the configurations in
+`/etc/avian/avian.conf`. However, some init systems have their own
+configuration mechanisms that would allow for overriding the command line
+options specified in the init files (e.g. setting `AVIAND_DATADIR` for
+OpenRC).
+
+### macOS
 
 Binary:              `/usr/local/bin/aviand`  
-Configuration file:  `~/Library/Application Support/Raven/avian.conf`  
-Data directory:      `~/Library/Application Support/Raven`  
-Lock file:           `~/Library/Application Support/Raven/.lock`  
+Configuration file:  `~/Library/Application Support/Avian/avian.conf`  
+Data directory:      `~/Library/Application Support/Avian`  
+Lock file:           `~/Library/Application Support/Avian/.lock`  
 
 Installing Service Configuration
 -----------------------------------
@@ -109,14 +125,14 @@ setting the AVIAND and FLAGS environment variables in the file
 
 ### Mac OS X
 
-Copy org.raven.aviand.plist into ~/Library/LaunchAgents. Load the launch agent by
-running `launchctl load ~/Library/LaunchAgents/org.raven.aviand.plist`.
+Copy org.avian.aviand.plist into ~/Library/LaunchAgents. Load the launch agent by
+running `launchctl load ~/Library/LaunchAgents/org.avian.aviand.plist`.
 
 This Launch Agent will cause aviand to start whenever the user logs in.
 
 NOTE: This approach is intended for those wanting to run aviand as the current user.
-You will need to modify org.raven.aviand.plist if you intend to use it as a
-Launch Daemon with a dedicated raven user.
+You will need to modify org.avian.aviand.plist if you intend to use it as a
+Launch Daemon with a dedicated avian user.
 
 Auto-respawn
 -----------------------------------

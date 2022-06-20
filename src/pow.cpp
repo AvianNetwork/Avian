@@ -1,6 +1,7 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
 // Copyright (c) 2009-2016 The Bitcoin Core developers
 // Copyright (c) 2017 The Raven Core developers
+// Copyright (c) 2021 The Avian Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -81,7 +82,7 @@ unsigned int static DarkGravityWave(const CBlockIndex* pindexLast, const CBlockH
         bnNew = bnPowLimit;
     }
 
-//    LogPrintf("--- diff --- %d: %d\n", pindexLast->nHeight, bnNew.GetCompact());
+    //LogPrintf("--- diff --- %d: %d\n", pindexLast->nHeight, bnNew.GetCompact());
 
     return bnNew.GetCompact();
 }

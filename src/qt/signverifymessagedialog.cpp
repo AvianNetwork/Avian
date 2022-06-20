@@ -1,5 +1,5 @@
 // Copyright (c) 2011-2016 The Bitcoin Core developers
-// Copyright (c) 2017 The Raven Core developers
+// Copyright (c) 2017-2019 The Raven Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -32,11 +32,11 @@ SignVerifyMessageDialog::SignVerifyMessageDialog(const PlatformStyle *_platformS
     ui->addressBookButton_SM->setIcon(platformStyle->SingleColorIcon(":/icons/address-book"));
     ui->pasteButton_SM->setIcon(platformStyle->SingleColorIcon(":/icons/editpaste"));
     ui->copySignatureButton_SM->setIcon(platformStyle->SingleColorIcon(":/icons/editcopy"));
-    ui->signMessageButton_SM->setIcon(platformStyle->SingleColorIcon(":/icons/edit"));
-    ui->clearButton_SM->setIcon(platformStyle->SingleColorIcon(":/icons/remove"));
+    //ui->signMessageButton_SM->setIcon(platformStyle->SingleColorIcon(":/icons/edit"));
+    //ui->clearButton_SM->setIcon(platformStyle->SingleColorIcon(":/icons/remove"));
     ui->addressBookButton_VM->setIcon(platformStyle->SingleColorIcon(":/icons/address-book"));
-    ui->verifyMessageButton_VM->setIcon(platformStyle->SingleColorIcon(":/icons/transaction_0"));
-    ui->clearButton_VM->setIcon(platformStyle->SingleColorIcon(":/icons/remove"));
+    //ui->verifyMessageButton_VM->setIcon(platformStyle->SingleColorIcon(":/icons/transaction_0"));
+    //ui->clearButton_VM->setIcon(platformStyle->SingleColorIcon(":/icons/remove"));
 
 #if QT_VERSION >= 0x040700
     ui->signatureOut_SM->setPlaceholderText(tr("Click \"Sign Message\" to generate signature"));

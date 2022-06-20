@@ -15,7 +15,7 @@ To install:
 
 If you build yourself, you will either need to modify the paths in
 the .desktop file or copy or symlink your avian-qt binary to `/usr/bin`
-and the `../../share/pixmaps/raven128.png` to `/usr/share/pixmaps`
+and the `../../share/pixmaps/avian128.png` to `/usr/share/pixmaps`
 
 avian-qt.protocol (KDE)
 

@@ -1,19 +1,21 @@
 #!/usr/bin/env python3
 # Copyright (c) 2014-2016 The Bitcoin Core developers
-# Copyright (c) 2017-2018 The Raven Core developers
+# Copyright (c) 2017-2020 The Raven Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
-"""Test the pruning code.
+
+"""
+Test the pruning code.
 
 WARNING:
 This test uses 4GB of disk space.
 This test takes 30 mins or more (up to 2 hours)
 """
 
-from test_framework.test_framework import RavenTestFramework
-from test_framework.util import *
 import time
 import os
+from test_framework.test_framework import AvianTestFramework
+from test_framework.util import connect_nodes, sync_blocks, mine_large_block, assert_equal, assert_raises_rpc_error, assert_greater_than
 
 MIN_BLOCKS_TO_KEEP = 288
 
@@ -26,7 +28,7 @@ TIMESTAMP_WINDOW = 2 * 60 * 60
 def calc_usage(blockdir):
     return sum(os.path.getsize(blockdir+f) for f in os.listdir(blockdir) if os.path.isfile(blockdir+f)) / (1024. * 1024.)
 
-class PruneTest(RavenTestFramework):
+class PruneTest(AvianTestFramework):
     def set_test_params(self):
         self.setup_clean_chain = True
         self.num_nodes = 6
@@ -65,7 +67,7 @@ class PruneTest(RavenTestFramework):
         sync_blocks(self.nodes[0:2])
         self.nodes[0].generate(150)
         # Then mine enough full blocks to create more than 550MiB of data
-        for i in range(645):
+        for _ in range(645):
             mine_large_block(self.nodes[0], self.utxo_cache_0)
 
         sync_blocks(self.nodes[0:5])
@@ -77,22 +79,22 @@ class PruneTest(RavenTestFramework):
         self.log.info("Though we're already using more than 550MiB, current usage: %d" % calc_usage(self.prunedir))
         self.log.info("Mining 25 more blocks should cause the first block file to be pruned")
         # Pruning doesn't run until we're allocating another chunk, 20 full blocks past the height cutoff will ensure this
-        for i in range(25):
+        for _ in range(25):
             mine_large_block(self.nodes[0], self.utxo_cache_0)
 
-        waitstart = time.time()
+        wait_start = time.time()
         while os.path.isfile(self.prunedir+"blk00000.dat"):
             time.sleep(0.1)
-            if time.time() - waitstart > 30:
+            if time.time() - wait_start > 30:
                 raise AssertionError("blk00000.dat not pruned when it should be")
 
         self.log.info("Success")
         usage = calc_usage(self.prunedir)
         self.log.info("Usage should be below target: %d" % usage)
-        if (usage > 550):
+        if usage > 550:
             raise AssertionError("Pruning target not being met")
 
-    def create_chain_with_staleblocks(self):
+    def create_chain_with_stale_blocks(self):
         # Create stale blocks in manageable sized chunks
         self.log.info("Mine 24 (stale) blocks on Node 1, followed by 25 (main chain) block reorg from Node 0, for 12 rounds")
 
@@ -103,17 +105,17 @@ class PruneTest(RavenTestFramework):
             self.stop_node(0)
             self.start_node(0, extra_args=self.full_node_default_args)
             # Mine 24 blocks in node 1
-            for i in range(24):
+            for _ in range(24):
                 if j == 0:
                     mine_large_block(self.nodes[1], self.utxo_cache_1)
                 else:
                     # Add node1's wallet transactions back to the mempool, to
                     # avoid the mined blocks from being too small.
                     self.nodes[1].resendwallettransactions()
-                    self.nodes[1].generate(1) #tx's already in mempool from previous disconnects
+                    self.nodes[1].generate(1) # tx's already in mempool from previous disconnects
 
             # Reorg back with 25 block chain from node 0
-            for i in range(25):
+            for _ in range(25):
                 mine_large_block(self.nodes[0], self.utxo_cache_0)
 
             # Create connections in the order so both nodes can see the reorg at the same time
@@ -134,20 +136,20 @@ class PruneTest(RavenTestFramework):
         height = self.nodes[1].getblockcount()
         self.log.info("Current block height: %d" % height)
 
-        invalidheight = height-287
-        badhash = self.nodes[1].getblockhash(invalidheight)
-        self.log.info("Invalidating block %s at height %d" % (badhash,invalidheight))
-        self.nodes[1].invalidateblock(badhash)
+        invalid_height = height-287
+        bad_hash = self.nodes[1].getblockhash(invalid_height)
+        self.log.info("Invalidating block %s at height %d" % (bad_hash,invalid_height))
+        self.nodes[1].invalidateblock(bad_hash)
 
         # We've now switched to our previously mined-24 block fork on node 1, but that's not what we want
         # So invalidate that fork as well, until we're on the same chain as node 0/2 (but at an ancestor 288 blocks ago)
-        mainchainhash = self.nodes[0].getblockhash(invalidheight - 1)
-        curhash = self.nodes[1].getblockhash(invalidheight - 1)
-        while curhash != mainchainhash:
-            self.nodes[1].invalidateblock(curhash)
-            curhash = self.nodes[1].getblockhash(invalidheight - 1)
+        mainchainhash = self.nodes[0].getblockhash(invalid_height - 1)
+        current_hash = self.nodes[1].getblockhash(invalid_height - 1)
+        while current_hash != mainchainhash:
+            self.nodes[1].invalidateblock(current_hash)
+            current_hash = self.nodes[1].getblockhash(invalid_height - 1)
 
-        assert(self.nodes[1].getblockcount() == invalidheight - 1)
+        assert(self.nodes[1].getblockcount() == invalid_height - 1)
         self.log.info("New best height: %d" % self.nodes[1].getblockcount())
 
         # Reboot node1 to clear those giant tx's from mempool
@@ -171,7 +173,7 @@ class PruneTest(RavenTestFramework):
         # mined blocks from being too small.
         self.nodes[0].resendwallettransactions()
 
-        for i in range(22):
+        for _ in range(22):
             # This can be slow, so do this in multiple RPC calls to avoid
             # RPC timeouts.
             self.nodes[0].generate(10) #node 0 has many large tx's in its mempool from the disconnects
@@ -179,15 +181,15 @@ class PruneTest(RavenTestFramework):
 
         usage = calc_usage(self.prunedir)
         self.log.info("Usage should be below target: %d" % usage)
-        if (usage > 550):
+        if usage > 550:
             raise AssertionError("Pruning target not being met")
 
-        return invalidheight,badhash
+        return invalid_height,bad_hash
 
     def reorg_back(self):
         # Verify that a block on the old main chain fork has been pruned away
         assert_raises_rpc_error(-1, "Block not available (pruned data)", self.nodes[2].getblock, self.forkhash)
-        self.log.info("Will need to redownload block %d" % self.forkheight)
+        self.log.info("Will need to re-download block %d" % self.forkheight)
 
         # Verify that we have enough history to reorg back to the fork point
         # Although this is more than 288 blocks, because this chain was written more recently
@@ -196,14 +198,14 @@ class PruneTest(RavenTestFramework):
         self.nodes[2].getblock(self.nodes[2].getblockhash(self.forkheight))
 
         first_reorg_height = self.nodes[2].getblockcount()
-        curchainhash = self.nodes[2].getblockhash(self.mainchainheight)
-        self.nodes[2].invalidateblock(curchainhash)
-        goalbestheight = self.mainchainheight
-        goalbesthash = self.mainchainhash2
+        current_chain_hash = self.nodes[2].getblockhash(self.mainchainheight)
+        self.nodes[2].invalidateblock(current_chain_hash)
+        goal_best_height = self.mainchainheight
+        goal_best_hash = self.mainchainhash2
 
         # As of 0.10 the current block download logic is not able to reorg to the original chain created in
         # create_chain_with_stale_blocks because it doesn't know of any peer that's on that chain from which to
-        # redownload its missing blocks.
+        # re-download its missing blocks.
         # Invalidate the reorg_test chain in node 0 as well, it can successfully switch to the original chain
         # because it has all the block data.
         # However it must mine enough blocks to have a more work chain than the reorg_test chain in order
@@ -211,20 +213,20 @@ class PruneTest(RavenTestFramework):
         # At this point node 2 is within 288 blocks of the fork point so it will preserve its ability to reorg
         if self.nodes[2].getblockcount() < self.mainchainheight:
             blocks_to_mine = first_reorg_height + 1 - self.mainchainheight
-            self.log.info("Rewind node 0 to prev main chain to mine longer chain to trigger redownload. Blocks needed: %d" % blocks_to_mine)
-            self.nodes[0].invalidateblock(curchainhash)
+            self.log.info("Rewind node 0 to prev main chain to mine longer chain to trigger re-download. Blocks needed: %d" % blocks_to_mine)
+            self.nodes[0].invalidateblock(current_chain_hash)
             assert(self.nodes[0].getblockcount() == self.mainchainheight)
             assert(self.nodes[0].getbestblockhash() == self.mainchainhash2)
-            goalbesthash = self.nodes[0].generate(blocks_to_mine)[-1]
-            goalbestheight = first_reorg_height + 1
+            goal_best_hash = self.nodes[0].generate(blocks_to_mine)[-1]
+            goal_best_height = first_reorg_height + 1
 
-        self.log.info("Verify node 2 reorged back to the main chain, some blocks of which it had to redownload")
-        waitstart = time.time()
-        while self.nodes[2].getblockcount() < goalbestheight:
+        self.log.info("Verify node 2 reorged back to the main chain, some blocks of which it had to re-download")
+        wait_start = time.time()
+        while self.nodes[2].getblockcount() < goal_best_height:
             time.sleep(0.1)
-            if time.time() - waitstart > 900:
+            if time.time() - wait_start > 900:
                 raise AssertionError("Node 2 didn't reorg to proper height")
-        assert(self.nodes[2].getbestblockhash() == goalbesthash)
+        assert(self.nodes[2].getbestblockhash() == goal_best_hash)
         # Verify we can now have the data for a block previously pruned
         assert(self.nodes[2].getblock(self.forkhash)["height"] == self.forkheight)
 
@@ -364,7 +366,7 @@ class PruneTest(RavenTestFramework):
         # N0=N1=N2 **...*(1020)
 
         self.log.info("Check that we'll exceed disk space target if we have a very high stale block rate")
-        self.create_chain_with_staleblocks()
+        self.create_chain_with_stale_blocks()
         # Disconnect N0
         # And mine a 24 block chain on N1 and a separate 25 block chain on N0
         # N1=N2 **...*+...+(1044)
@@ -420,11 +422,11 @@ class PruneTest(RavenTestFramework):
         #                                 \
         #                                  *...**(1320)
 
-        self.log.info("Test that we can rerequest a block we previously pruned if needed for a reorg")
+        self.log.info("Test that we can re-request a block we previously pruned if needed for a reorg")
         self.reorg_back()
         # Verify that N2 still has block 1033 on current chain (@), but not on main chain (*)
         # Invalidate 1033 on current chain (@) on N2 and we should be able to reorg to
-        # original main chain (*), but will require redownload of some blocks
+        # original main chain (*), but will require re-download of some blocks
         # In order to have a peer we think we can download from, must also perform this invalidation
         # on N0 and mine a new longest chain to trigger.
         # Final result:

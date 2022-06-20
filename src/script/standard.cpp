@@ -1,6 +1,6 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
 // Copyright (c) 2009-2016 The Bitcoin Core developers
-// Copyright (c) 2017 The Raven Core developers
+// Copyright (c) 2017-2019 The Raven Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -31,14 +31,15 @@ const char* GetTxnOutputType(txnouttype t)
     case TX_SCRIPTHASH: return "scripthash";
     case TX_MULTISIG: return "multisig";
     case TX_NULL_DATA: return "nulldata";
+    case TX_RESTRICTED_ASSET_DATA: return "nullassetdata";
     case TX_WITNESS_V0_KEYHASH: return "witness_v0_keyhash";
     case TX_WITNESS_V0_SCRIPTHASH: return "witness_v0_scripthash";
 
-    /** RVN START */
+    /** AVN START */
     case TX_NEW_ASSET: return ASSET_NEW_STRING;
     case TX_TRANSFER_ASSET: return ASSET_TRANSFER_STRING;
     case TX_REISSUE_ASSET: return ASSET_REISSUE_STRING;
-    /** RVN END */
+    /** AVN END */
     }
     return nullptr;
 }
@@ -70,7 +71,7 @@ bool Solver(const CScript& scriptPubKey, txnouttype& typeRet, std::vector<std::v
         vSolutionsRet.push_back(hashBytes);
         return true;
     }
-    /** RVN START */
+    /** AVN START */
     int nType = 0;
     bool fIsOwner = false;
     if (scriptPubKey.IsAssetScript(nType, fIsOwner)) {
@@ -79,7 +80,7 @@ bool Solver(const CScript& scriptPubKey, txnouttype& typeRet, std::vector<std::v
         vSolutionsRet.push_back(hashBytes);
         return true;
     }
-    /** RVN END */
+    /** AVN END */
 
     int witnessversion;
     std::vector<unsigned char> witnessprogram;
@@ -104,6 +105,20 @@ bool Solver(const CScript& scriptPubKey, txnouttype& typeRet, std::vector<std::v
     // script.
     if (scriptPubKey.size() >= 1 && scriptPubKey[0] == OP_RETURN && scriptPubKey.IsPushOnly(scriptPubKey.begin()+1)) {
         typeRet = TX_NULL_DATA;
+        return true;
+    }
+
+    // Provably prunable, asset data-carrying output
+    //
+    // So long as script passes the IsUnspendable() test and all but the first three
+    // byte passes the IsPushOnly()
+    if (scriptPubKey.size() >= 1 && scriptPubKey[0] == OP_AVN_ASSET && scriptPubKey.IsPushOnly(scriptPubKey.begin()+1)) {
+        typeRet = TX_RESTRICTED_ASSET_DATA;
+
+        if (scriptPubKey.size() >= 23 && scriptPubKey[1] != OP_RESERVED) {
+            std::vector<unsigned char> hashBytes(scriptPubKey.begin() + 2, scriptPubKey.begin() + 22);
+            vSolutionsRet.push_back(hashBytes);
+        }
         return true;
     }
 
@@ -218,12 +233,17 @@ bool ExtractDestination(const CScript& scriptPubKey, CTxDestination& addressRet)
     {
         addressRet = CScriptID(uint160(vSolutions[0]));
         return true;
-    /** RVN START */
+    /** AVN START */
     } else if (whichType == TX_NEW_ASSET || whichType == TX_REISSUE_ASSET || whichType == TX_TRANSFER_ASSET) {
         addressRet = CKeyID(uint160(vSolutions[0]));
         return true;
+    } else if (whichType == TX_RESTRICTED_ASSET_DATA) {
+        if (vSolutions.size()) {
+            addressRet = CKeyID(uint160(vSolutions[0]));
+            return true;
+        }
     }
-     /** RVN END */
+     /** AVN END */
     // Multisig txns have more than one address...
     return false;
 }
@@ -296,11 +316,47 @@ public:
 };
 } // namespace
 
+namespace
+{
+    class CNullAssetScriptVisitor : public boost::static_visitor<bool>
+    {
+    private:
+        CScript *script;
+    public:
+        explicit CNullAssetScriptVisitor(CScript *scriptin) { script = scriptin; }
+
+        bool operator()(const CNoDestination &dest) const {
+            script->clear();
+            return false;
+        }
+
+        bool operator()(const CKeyID &keyID) const {
+            script->clear();
+            *script << OP_AVN_ASSET << ToByteVector(keyID);
+            return true;
+        }
+
+        bool operator()(const CScriptID &scriptID) const {
+            script->clear();
+            *script << OP_AVN_ASSET << ToByteVector(scriptID);
+            return true;
+        }
+    };
+} // namespace
+
 CScript GetScriptForDestination(const CTxDestination& dest)
 {
     CScript script;
 
     boost::apply_visitor(CScriptVisitor(&script), dest);
+    return script;
+}
+
+CScript GetScriptForNullAssetDataDestination(const CTxDestination &dest)
+{
+    CScript script;
+
+    boost::apply_visitor(CNullAssetScriptVisitor(&script), dest);
     return script;
 }
 

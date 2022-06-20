@@ -1,5 +1,5 @@
 // Copyright (c) 2015-2016 The Bitcoin Core developers
-// Copyright (c) 2017 The Raven Core developers
+// Copyright (c) 2017-2019 The Raven Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -26,9 +26,9 @@ static const struct {
     const bool useExtraSpacing;
 } platform_styles[] = {
     {"macosx", false, true, true},
-    {"windows", true, true, false},
+    {"windows", false, true, false},
     /* Other: linux, unix, ... */
-    {"other", true, true, false}
+    {"other", false, true, false}
 };
 static const unsigned platform_styles_count = sizeof(platform_styles)/sizeof(*platform_styles);
 
@@ -107,11 +107,26 @@ QImage PlatformStyle::SingleColorImage(const QString& filename) const
     return ColorizeImage(filename, SingleColor());
 }
 
+QImage PlatformStyle::SingleColorImage(const QString& filename, const QColor& color) const
+{
+    if (!colorizeIcons)
+        return QImage(filename);
+    return ColorizeImage(filename, color);
+}
+
+
 QIcon PlatformStyle::SingleColorIcon(const QString& filename) const
 {
     if (!colorizeIcons)
         return QIcon(filename);
     return ColorizeIcon(filename, SingleColor());
+}
+
+QIcon PlatformStyle::SingleColorIcon(const QString& filename, const QColor& color) const
+{
+    if (!colorizeIcons)
+        return QIcon(filename);
+    return ColorizeIcon(filename, color);
 }
 
 QIcon PlatformStyle::SingleColorIconOnOff(const QString& filenameOn, const QString& filenameOff) const
@@ -150,15 +165,26 @@ QIcon PlatformStyle::OrangeColorIcon(const QIcon& icon) const
     return ColorizeIcon(icon, DarkOrangeColor());
 }
 
-
 QIcon PlatformStyle::TextColorIcon(const QString& filename) const
 {
-    return ColorizeIcon(filename, TextColor());
+    return ColorizeIcon(filename, ToolBarSelectedTextColor());
+}
+
+
+QIcon PlatformStyle::TextColorIcon(const QString& filename, const QColor& color) const
+{
+    return ColorizeIcon(filename, color);
 }
 
 QIcon PlatformStyle::TextColorIcon(const QIcon& icon) const
 {
-    return ColorizeIcon(icon, TextColor());
+    return ColorizeIcon(icon, ToolBarSelectedTextColor());
+}
+
+
+QIcon PlatformStyle::TextColorIcon(const QIcon& icon, const QColor& color) const
+{
+    return ColorizeIcon(icon, color);
 }
 
 QColor PlatformStyle::TextColor() const
@@ -166,7 +192,7 @@ QColor PlatformStyle::TextColor() const
     if (darkModeEnabled)
         return COLOR_TOOLBAR_SELECTED_TEXT_DARK_MODE;
 
-    return textColor;
+    return STRING_LABEL_COLOR;
 }
 
 QColor PlatformStyle::ToolBarSelectedTextColor() const
@@ -188,7 +214,7 @@ QColor PlatformStyle::ToolBarNotSelectedTextColor() const
 QColor PlatformStyle::MainBackGroundColor() const
 {
     if (darkModeEnabled)
-        return COLOR_BLACK;
+        return COLOR_WIDGET_BACKGROUND_DARK;
 
     return COLOR_BACKGROUND_LIGHT;
 }
@@ -206,15 +232,17 @@ QColor PlatformStyle::WidgetBackGroundColor() const
     if (darkModeEnabled)
         return COLOR_WIDGET_BACKGROUND_DARK;
 
-    return COLOR_WHITE;
+    return COLOR_WIDGET_BACKGROUND;
 }
 
 QColor PlatformStyle::SendEntriesBackGroundColor() const
 {
     if (darkModeEnabled)
-        return QColor(21,20,17);
+     // return QColor(21,20,17);
+        return COLOR_SENDENTRIES_BACKGROUND_DARK;
 
-    return QColor("#faf9f6");
+//  return QColor("#faf9f6");
+    return COLOR_SENDENTRIES_BACKGROUND;
 }
 
 QColor PlatformStyle::ShadowColor() const
@@ -251,12 +279,40 @@ QColor PlatformStyle::DarkOrangeColor() const
     return COLOR_DARK_ORANGE;
 }
 
+QColor PlatformStyle:: Avian_18A7B7() const
+{
+    return COLOR_AVIAN_18A7B7;
+}
+
+QColor PlatformStyle:: Avian_19827B() const
+{
+    return COLOR_AVIAN_19827B;
+}
+
+QColor PlatformStyle:: Avian_2B737F() const
+{
+    return COLOR_AVIAN_2B737F;
+}
+
+QColor PlatformStyle:: Avian_34E2D6() const
+{
+    return COLOR_AVIAN_34E2D6;
+}
+
 QColor PlatformStyle::SingleColor() const
 {
-    if (darkModeEnabled)
-        return COLOR_ASSET_TEXT; // WHITE (black -> white)
+    //if (darkModeEnabled)
+    //    return COLOR_ASSET_TEXT; // WHITE (black -> white)
 
-    return singleColor;
+    return COLOR_AVIAN_34E2D6;
+}
+
+QColor PlatformStyle::AssetTxColor() const
+{
+    if (darkModeEnabled)
+        return COLOR_LIGHT_BLUE;
+
+    return COLOR_DARK_BLUE;
 }
 
 

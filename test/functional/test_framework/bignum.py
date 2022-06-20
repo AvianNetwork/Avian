@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
-#
+# Copyright (c) 2017-2020 The Raven Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
-"""Big number routines.
 
-This file is copied from python-ravenlib.
+"""
+Big number routines.
+This file is copied from python-avianlib.
 """
 
 import struct
-
 
 # generic big endian MPI format
 
@@ -48,7 +48,7 @@ def bn2mpi(v):
             v_bin[0] |= 0x80
     return s + ext + v_bin
 
-# raven-specific little endian format, with implicit size
+# avian-specific little endian format, with implicit size
 def mpi2vch(s):
     r = s[4:]           # strip size
     r = r[::-1]         # reverse string, converting BE->LE

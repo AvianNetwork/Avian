@@ -1,11 +1,11 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
 // Copyright (c) 2009-2016 The Bitcoin Core developers
-// Copyright (c) 2017 The Raven Core developers
+// Copyright (c) 2017-2019 The Raven Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef RAVEN_VALIDATIONINTERFACE_H
-#define RAVEN_VALIDATIONINTERFACE_H
+#ifndef AVIAN_VALIDATIONINTERFACE_H
+#define AVIAN_VALIDATIONINTERFACE_H
 
 #include <memory>
 
@@ -21,6 +21,7 @@ class CValidationInterface;
 class CValidationState;
 class uint256;
 class CScheduler;
+class CMessage;
 
 // These functions dispatch to one or all registered wallets
 
@@ -33,6 +34,12 @@ void UnregisterAllValidationInterfaces();
 
 class CValidationInterface {
 protected:
+    /**
+    * Protected destructor so that instances can only be deleted by derived
+    * classes. If that restriction is no longer desired, this should be made
+    * public and virtual.
+    */
+    ~CValidationInterface() = default;
     /** Notifies listeners of updated block chain tip */
     virtual void UpdatedBlockTip(const CBlockIndex *pindexNew, const CBlockIndex *pindexFork, bool fInitialDownload) {}
     /** Notifies listeners of a transaction having been added to mempool. */
@@ -46,6 +53,8 @@ protected:
     virtual void BlockDisconnected(const std::shared_ptr<const CBlock> &block) {}
     /** Notifies listeners of the new active block chain on-disk. */
     virtual void SetBestChain(const CBlockLocator &locator) {}
+    /** Notifies listeners about an inventory item being seen on the network. */
+    virtual void Inventory(const uint256 &hash) {}
     /** Tells listeners to broadcast their data. */
     virtual void ResendWalletTransactions(int64_t nBestBlockTime, CConnman* connman) {}
     /**
@@ -61,6 +70,7 @@ protected:
     virtual void NewPoWValidBlock(const CBlockIndex *pindex, const std::shared_ptr<const CBlock>& block) {};
 
     virtual void BlockFound(const uint256 &hash) {};
+    virtual void NewAssetMessage(const CMessage &message) {};
 
 //    virtual void GetScriptForMining(std::shared_ptr<CReserveScript>&) {};
 
@@ -92,14 +102,16 @@ public:
     void BlockConnected(const std::shared_ptr<const CBlock> &, const CBlockIndex *pindex, const std::vector<CTransactionRef> &);
     void BlockDisconnected(const std::shared_ptr<const CBlock> &);
     void SetBestChain(const CBlockLocator &);
+    void Inventory(const uint256 &);
     void Broadcast(int64_t nBestBlockTime, CConnman* connman);
     void BlockChecked(const CBlock&, const CValidationState&);
     void NewPoWValidBlock(const CBlockIndex *, const std::shared_ptr<const CBlock>&);
     void BlockFound(const uint256 &);
+    void NewAssetMessage(const CMessage&);
 //    void ScriptForMining(std::shared_ptr<CReserveScript>&);
 
 };
 
 CMainSignals& GetMainSignals();
 
-#endif // RAVEN_VALIDATIONINTERFACE_H
+#endif // AVIAN_VALIDATIONINTERFACE_H
