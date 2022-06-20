@@ -477,14 +477,8 @@ bool CheckProofOfWork(uint256 hash, unsigned int nBits, const Consensus::Consens
 
     bnTarget.SetCompact(nBits, &fNegative, &fOverflow);
 
-    // Crow: Use highest pow limit for limit check
-    arith_uint256 powLimit = 0;
-    for (int i = 0; i < NUM_BLOCK_TYPES; i++)
-        if (UintToArith256(params.powTypeLimits[i]) > powLimit)
-            powLimit = UintToArith256(params.powTypeLimits[i]);
-
     // Check range
-    if (fNegative || bnTarget == 0 || fOverflow || bnTarget > powLimit)
+    if (fNegative || bnTarget == 0 || fOverflow || bnTarget > UintToArith256(params.powLimit))
         return false;
 
     // Check proof of work matches claimed amount

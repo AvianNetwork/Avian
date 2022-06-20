@@ -29,8 +29,8 @@ WalletFrame {
 }
 
 QWidget {
-    selection-color: #110202;
-    selection-background-color: #ffffff;
+    selection-color: #FFFFFF;
+    selection-background-color: #3d3939;
     font: 12pt 'Manrope';
     background-color: #ffffff;
     color: #110202;
@@ -1933,9 +1933,13 @@ TransactionView QComboBox {
 }
 
 /* PaperWalletDialog */
-QDialog#PaperWalletDialog .VerticalLabel#privateKeyText,
+QDialog#PaperWalletDialog .VerticalLabel#privateKeyText {
+    font: 7pt 'Monospace';
+    background-color: transparent;
+}
+
 QDialog#PaperWalletDialog .VerticalLabel#addressText {
-    font: 8pt 'Monospace';
+    font: 9pt 'Monospace';
     background-color: transparent;
 }
 
