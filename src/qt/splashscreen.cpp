@@ -90,11 +90,18 @@ SplashScreen::SplashScreen(const NetworkStyle* networkStyle)
         gradient.setColorAt(1, QColor(42, 115, 127));
         QRect rGradient(QPoint(0, 0), splashSize);
         pixPaint.fillRect(rGradient, gradient);
-    } else {
+    } else if(titleAddText == QT_TRANSLATE_NOOP("SplashScreen", "[testnet]")) {
         // Testnet
         QRadialGradient gradient(QPoint(0, 0), splashSize.width() / devicePixelRatio);
         gradient.setColorAt(0, QColor(68, 73, 205));
         gradient.setColorAt(1, QColor(31, 22, 142));
+        QRect rGradient(QPoint(0, 0), splashSize);
+        pixPaint.fillRect(rGradient, gradient);
+    } else if(titleAddText == "[regtest]") {
+        // Regtest
+        QRadialGradient gradient(QPoint(0, 0), splashSize.width() / devicePixelRatio);
+        gradient.setColorAt(0, QColor(255, 41, 41));
+        gradient.setColorAt(1, QColor(255, 115, 115));
         QRect rGradient(QPoint(0, 0), splashSize);
         pixPaint.fillRect(rGradient, gradient);
     }
