@@ -466,6 +466,9 @@ public:
         consensus.diffRetargetFix = 0;             // Block of diff algo change
         consensus.diffRetargetTake2 = 1629951212;  // Third iteration of LWMA retarget activation timestamp
 
+        consensus.powTypeLimits.emplace_back(uint256S("7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"));   // x16rt limit
+        consensus.powTypeLimits.emplace_back(uint256S("7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"));   // Crow limit
+
         // regtest x16rt switch (genesis +1)
         consensus.nX16rtTimestamp = 1629951212;
 
