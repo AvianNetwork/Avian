@@ -110,8 +110,6 @@
 */
 #if !defined(lua_tmpnam)	/* { */
 
-#if defined(LUA_USE_POSIX)	/* { */
-
 #include <unistd.h>
 
 #define LUA_TMPNAMBUFSIZE	32
@@ -129,12 +127,11 @@
 #else				/* }{ */
 
 /* ISO C definitions */
-#define LUA_TMPNAMBUFSIZE	L_tmpnam
-#define lua_tmpnam(b,e)		{ e = (tmpnam(b) == NULL); }
+// #define LUA_TMPNAMBUFSIZE	L_tmpnam
+// #define lua_tmpnam(b,e)		{ e = (tmpnam(b) == NULL); }
 
 #endif				/* } */
 
-#endif				/* } */
 /* }================================================================== */
 
 
