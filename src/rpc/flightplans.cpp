@@ -92,7 +92,8 @@ UniValue list_flightplans(const JSONRPCRequest& request)
         UniValue plans(UniValue::VARR);
         fs::path path = GetDataDir(false) / "flightplans";
         for (auto& file : fs::directory_iterator(path)) {
-            plans.push_back(file.path().string());
+            if (file.path().extension() == ".lua")
+                plans.push_back(file.path().stem().string());
         }
         return plans;
     } else {
