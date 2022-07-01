@@ -125,6 +125,8 @@ UniValue getpeerinfo(const JSONRPCRequest& request)
             "       n,                        (numeric) The heights of blocks we're currently asking from this peer\n"
             "       ...\n"
             "    ],\n"
+            "    \"addr_processed\": n,       (numeric) The total number of addresses processed, excluding those dropped due to rate limiting\n"
+            "    \"addr_rate_limited\": n,    (numeric) The total number of addresses dropped due to rate limiting\n"
             "    \"whitelisted\": true|false, (boolean) Whether the peer is whitelisted\n"
             "    \"bytessent_per_msg\": {\n"
             "       \"addr\": n,              (numeric) The total bytes sent aggregated by message type\n"
@@ -192,6 +194,8 @@ UniValue getpeerinfo(const JSONRPCRequest& request)
             }
             obj.push_back(Pair("inflight", heights));
         }
+        obj.push_back(Pair("addr_processed", stats.nProcessedAddrs));
+        obj.push_back(Pair("addr_rate_limited", stats.nRatelimitedAddrs));
         obj.push_back(Pair("whitelisted", stats.fWhitelisted));
 
         UniValue sendPerMsgCmd(UniValue::VOBJ);
