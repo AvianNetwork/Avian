@@ -215,10 +215,7 @@ static const CRPCConvertParam vRPCConvertParams[] =
     { "getsnapshot", 1, "block_height"},
     { "purgesnapshot", 1, "block_height"},
     { "stop", 0, "wait"},
-    { "getkawpowhash", 3, "height"},
-    { "call_function", 0, "contract_name"},
-    { "call_function", 1, "function"},
-    { "call_function", 2, "args"},
+    { "getkawpowhash", 3, "height"}
 };
 
 class CRPCConvertTable

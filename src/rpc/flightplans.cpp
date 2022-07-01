@@ -7,6 +7,8 @@
 #include "flightplans/flightplans.h"
 
 #include "rpc/server.h"
+#include "validation.h"
+#include "fs.h"
 #include "util.h"
 
 #include <stdint.h>
@@ -49,22 +51,13 @@ UniValue call_function(const JSONRPCRequest& request)
 
         auto flightplans = AvianFlightPlans();
 
-        std::string datadir = boost::filesystem::canonical(GetDataDir(false)).string();
-
-        // TODO: Fix this to use lib instead of relying on marcos.
-
-#if !defined(_WIN32) && (defined(__unix__) || defined(__unix) || (defined(__APPLE__) && defined(__MACH__)))
-        std::string path = datadir + "/flightplans/" + request.params[0].get_str() + ".lua";
-#endif
-
-#ifdef _WIN32
-        std::string path = datadir + "\\flightplans\\" + request.params[0].get_str() + ".lua";
-#endif
+        // TODO: Make sure works on Windows and Linux
+        std::string path = (GetDataDir() / "flightplans" / (request.params[0].get_str() + ".lua")).string();
 
         FlightPlanResult result = flightplans.run_file(path.c_str(), request.params[1].get_str().c_str(), args);
 
-        boost::filesystem::path file(path);
-        if (boost::filesystem::exists(file)) {
+        fs::path file(path);
+        if (fs::exists(file)) {
             if (result.is_error) {
                 throw JSONRPCError(RPC_MISC_ERROR, result.result);
             } else {
@@ -81,7 +74,8 @@ UniValue call_function(const JSONRPCRequest& request)
 static const CRPCCommand commands[] =
     { //  category              name                      actor (function)         argNames
       //  --------------------- ------------------------  -----------------------  ----------
-        {"flightplans",         "call_function",          &call_function,          {"contract_name", "function", "args"}}};
+        {"flightplans",         "call_function",          &call_function,          {"contract_name", "function", "args"}}
+    };
 
 void RegisterFlightPlanRPCCommands(CRPCTable& t)
 {
