@@ -6,29 +6,12 @@
 #include "rpc/flightplans.h"
 #include "flightplans/flightplans.h"
 
-#include "chainparams.h"
-#include "clientversion.h"
-#include "core_io.h"
-#include "net.h"
-#include "net_processing.h"
-#include "netbase.h"
-#include "policy/policy.h"
-#include "protocol.h"
 #include "rpc/server.h"
-#include "sync.h"
-#include "timedata.h"
-#include "ui_interface.h"
 #include "util.h"
-#include "utilstrencodings.h"
-#include "validation.h"
-#include "version.h"
-#include "warnings.h"
 
 #include <stdint.h>
 #include <univalue.h>
 
-#include <cstddef>
-#include <cstdio>
 #include <string>
 #include <vector>
 
@@ -49,7 +32,7 @@ UniValue call_function(const JSONRPCRequest& request)
             "\nResult:\n"
             "1.    (string) Result from called function\n"
             "\nExamples:\n" +
-            HelpExampleCli("call_function", "\"Like Count Contract\" \"getLikes\"") + HelpExampleRpc("call_function", "\"Like Count Contract\" \"getLikes\""));
+            HelpExampleCli("call_function", "\"social\" \"getLikes\"") + HelpExampleRpc("call_function", "\"social\" \"getLikes\""));
 
     LOCK(cs_main);
 
@@ -88,17 +71,17 @@ UniValue call_function(const JSONRPCRequest& request)
                 return result.result;
             }
         } else {
-            throw JSONRPCError(RPC_MISC_ERROR, "Flightplan does not exist.");
+            throw JSONRPCError(RPC_MISC_ERROR, "Flight plan does not exist.");
         }
     } else {
-        throw JSONRPCError(RPC_MISC_ERROR, "Flight Plans are experimental and prone to bugs. Please take precautions when using this feature. To enable, launch Avian with the -flightplan flag.");
+        throw JSONRPCError(RPC_MISC_ERROR, "Flight Plans are experimental and prone to bugs. Please take precautions when using this feature. To enable, launch Avian with the -flightplans flag.");
     }
 }
 
 static const CRPCCommand commands[] =
     { //  category              name                      actor (function)         argNames
       //  --------------------- ------------------------  -----------------------  ----------
-        {"flightplans", "call_function", &call_function, {}}};
+        {"flightplans",         "call_function",          &call_function,          {"contract_name", "function", "args"}}};
 
 void RegisterFlightPlanRPCCommands(CRPCTable& t)
 {
