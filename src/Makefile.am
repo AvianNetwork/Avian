@@ -138,7 +138,7 @@ AVIAN_CORE_H = \
   algo/crow/hashx13.h \
   algo/crow/hashx15.h \
   algo/crow/hashx17.h \
-  algo/crow/crow.h \
+  algo/crow/minotaurx.h \
   algo/crow/yespower/yespower.c \
   algo/crow/yespower/crypto/sha256.c \
   spentindex.h \
