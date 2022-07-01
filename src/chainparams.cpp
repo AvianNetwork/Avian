@@ -461,19 +461,19 @@ public:
         consensus.vDeployments[Consensus::DEPLOYMENT_CROW].nTimeout = 999999999999ULL;
 
         // Crow Algo consensus
-        consensus.powForkTime = 1;                 // Time of PoW hash method change
+        consensus.powForkTime = 1629951212;        // Time of PoW hash method change
         consensus.lwmaAveragingWindow = 45;        // Averaging window size for LWMA diff adjust
-        consensus.diffRetargetFix = 1;             // Block of diff algo change
-        consensus.diffRetargetTake2 = 1;           // Third iteration of LWMA retarget activation timestamp
+        consensus.diffRetargetFix = 0;             // Block of diff algo change
+        consensus.diffRetargetTake2 = 1629951212;  // Third iteration of LWMA retarget activation timestamp
 
         // regtest x16rt switch (genesis +1)
         consensus.nX16rtTimestamp = 1629951212;
 
         // Avian Assets
-        consensus.nAssetActivationTime = 1;
+        consensus.nAssetActivationTime = 1629951212;
 
         // Avian Flight Plans
-        consensus.nFlightPlansActivationTime = 1;
+        consensus.nFlightPlansActivationTime = 1629951212;
 
         // The best chain should have at least this much work.
         consensus.nMinimumChainWork = uint256S("0x00");
@@ -504,7 +504,7 @@ public:
         for (int i=0;i<40000000;i++) {
             genesis = CreateGenesisBlock(1629951211, i, 0x207fffff, 2, 2500 * COIN);
             //genesis.hashPrevBlock = TempHashHolding;
-            consensus.hashGenesisBlock = genesis.GetX16RHash();
+            consensus.hashGenesisBlock = genesis.GetHash();
 
             arith_uint256 BestBlockHashArith = UintToArith256(BestBlockHash);
             if (UintToArith256(consensus.hashGenesisBlock) < BestBlockHashArith) {
@@ -549,11 +549,11 @@ public:
 //        /////////////////////////////////////////////////////////////////
 
 
-        genesis = CreateGenesisBlock(1629951211, 1, 0x207fffff, 4, 2500 * COIN);
-        consensus.hashGenesisBlock = genesis.GetX16RHash();
-
-        assert(consensus.hashGenesisBlock == uint256S("0x0d2d32f6d3fa3d0eb49602b7ea50eb684ada6dd5b411b1e5dbf6687c520dd9b1"));
-        assert(genesis.hashMerkleRoot == uint256S("3f3621f5a83a2697099fea380f24f2854e15c912828a09112942d543033bcbf8"));
+        genesis = CreateGenesisBlock(1629951211, 1, 0x207fffff, 2, 2500 * COIN);
+        consensus.hashGenesisBlock = genesis.GetHash();
+        
+        assert(consensus.hashGenesisBlock == uint256S("0x653634d03d27ed84e8aba5dd47903906ad7be4876a1d3677be0db2891dcf787f"));
+        assert(genesis.hashMerkleRoot == uint256S("63d9b6b6b549a2d96eb5ac4eb2ab80761e6d7bffa9ae1a647191e08d6416184d"));
 
         vFixedSeeds.clear(); //!< Regtest mode doesn't have any fixed seeds.
         vSeeds.clear();      //!< Regtest mode doesn't have any DNS seeds.
@@ -561,6 +561,7 @@ public:
         fDefaultConsistencyChecks = true;
         fRequireStandard = false;
         fMineBlocksOnDemand = true;
+        fMiningRequiresPeers = false;
 
         checkpointData = (CCheckpointData) {
             {
