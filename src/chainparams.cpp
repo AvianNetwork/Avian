@@ -164,11 +164,9 @@ public:
         consensus.nFlightPlansActivationTime = 999999999999ULL; // TODO
 
         // The best chain should have at least this much work.
-        consensus.nMinimumChainWork = uint256S("0x0000000000000000000000000000000000000000000000000000000000000002");
-
+        consensus.nMinimumChainWork = uint256S("0x0000000000000000000000000000000000000000000000002518d7bd53a1feec"); //Block 818787
         // By default assume that the signatures in ancestors of this block are valid.
-        consensus.defaultAssumeValid = uint256S("0x00000000006cd2496fb78aedbd6524c8b1993589097fb848740e37eeab651682");
-
+        consensus.defaultAssumeValid = uint256S("0x0000000247de51f4188fc43316cc5e1f8711cff6210b242d234004aae39163d5"); // Block 818787
 
         // The best chain should have at least this much work.
 
@@ -228,7 +226,8 @@ public:
             {
                 { 0, uint256S("0x000000cdb10fc01df7fba251f2168ef7cd7854b571049db4902c315694461dd0")},
                 { 275972, uint256S("0x0000004ac340f01da45c151990567a90a3c65010511ba7a05f3439a83c878efb")},
-                { 508245, uint256S("0x00000000006cd2496fb78aedbd6524c8b1993589097fb848740e37eeab651682")}
+                { 508245, uint256S("0x00000000006cd2496fb78aedbd6524c8b1993589097fb848740e37eeab651682")},
+                { 818787, uint256S("0x0000000247de51f4188fc43316cc5e1f8711cff6210b242d234004aae39163d5")}                
             }
         };
 
@@ -275,9 +274,9 @@ public:
         nMinReorganizationAge = 60 * 60 * 12; // 12 hours
 
         // TODO: Assets, Messaging, Restricted
-        // nAssetActivationHeight = 9999999999; // Asset activated block height
-        // nMessagingActivationBlock = 9999999999; // Messaging activated block height
-        // nRestrictedActivationBlock = 9999999999; // Restricted activated block height
+        nAssetActivationHeight = 9999999999; // Asset activated block height
+        nMessagingActivationBlock = 9999999999; // Messaging activated block height
+        nRestrictedActivationBlock = 9999999999; // Restricted activated block height
 
         /** AVN End **/
     }
