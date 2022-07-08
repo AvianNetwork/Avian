@@ -1613,10 +1613,12 @@ bool AppInitMain(boost::thread_group& threadGroup, CScheduler& scheduler)
                               passetsCache->Size());
 
                     // Check for changed -disablemessaging state
-                    if (gArgs.GetArg("-disablemessaging", false)) {
+                    // TODO: Change to !AreMessagesDeployed()
+                    if (!bNetwork.fOnTestnet || gArgs.GetArg("-disablemessaging", false)) {
                         LogPrintf("Messaging is disabled\n");
                         fMessaging = false;
                     } else {
+                        fMessaging = true;
                         LogPrintf("Messaging is enabled\n");
                     }
                 }

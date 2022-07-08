@@ -437,7 +437,7 @@ bool CBlockTreeDB::WriteTimestampBlockIndex(const CTimestampBlockIndexKey &block
 
 bool CBlockTreeDB::ReadTimestampBlockIndex(const uint256 &hash, unsigned int &ltimestamp) {
 
-    CTimestampBlockIndexValue(lts);
+    CTimestampBlockIndexValue lts;
     if (!Read(std::make_pair(DB_BLOCKHASHINDEX, hash), lts))
 	return false;
 
@@ -502,8 +502,12 @@ bool CBlockTreeDB::LoadBlockIndexGuts(const Consensus::ConsensusParams& consensu
                 pindexNew->nStatus        = diskindex.nStatus;
                 pindexNew->nTx            = diskindex.nTx;
 
-                if (!CheckProofOfWork(pindexNew->GetBlockHeader(), consensusParams))
-                    return error("%s: CheckProofOfWork failed: %s", __func__, pindexNew->ToString());
+                // Avian: Disable PoW Sanity check while loading block index from disk.
+                // While it is technically feasible to verify the PoW, doing so takes several minutes as it
+                // requires recomputing every PoW hash during every wallet startup.
+                // We opt instead to simply trust the data that is on your local disk.
+                //if (!CheckProofOfWork(pindexNew->GetBlockHeader(), consensusParams))
+                //    return error("%s: CheckProofOfWork failed: %s", __func__, pindexNew->ToString());
 
                 pcursor->Next();
             } else {
