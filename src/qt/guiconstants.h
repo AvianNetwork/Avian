@@ -4,6 +4,8 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
+#include "validation.h"
+
 #ifndef AVIAN_QT_GUICONSTANTS_H
 #define AVIAN_QT_GUICONSTANTS_H
 
@@ -131,5 +133,21 @@ static const int MAX_URI_LENGTH = 255;
 
 /* Default IPFS viewer */
 #define DEFAULT_IPFS_VIEWER "https://ipfs.io/ipfs/%s"
+
+/* One gigabyte (GB) in bytes */
+static constexpr uint64_t GB_BYTES{1000000000};
+
+/**
+ * Convert configured prune target bytes to displayed GB. Round up to avoid underestimating max disk usage.
+ */
+constexpr inline int PruneBytestoGB(uint64_t bytes) { return (bytes + GB_BYTES - 1) / GB_BYTES; }
+
+/**
+ * Convert displayed prune target GB to configured MiB. Round down so roundtrip GB -> MiB -> GB conversion is stable.
+ */
+constexpr inline int64_t PruneGBtoMiB(int gb) { return gb * GB_BYTES / 1024 / 1024; }
+
+// Default prune target displayed in GUI.
+static constexpr int DEFAULT_PRUNE_TARGET_GB{PruneBytestoGB(MIN_DISK_SPACE_FOR_BLOCK_FILES)};
 
 #endif // AVIAN_QT_GUICONSTANTS_H
