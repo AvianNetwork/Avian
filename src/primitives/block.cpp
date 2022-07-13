@@ -10,7 +10,7 @@
 
 #include "chainparams.h"
 
-#include "algo/crow/crow.h"             // Crow Algo
+#include "algo/crow/minotaurx.h"             // Minotaurx Algo
 
 #include "primitives/block.h"
 
@@ -77,7 +77,7 @@ uint256 CBlockHeader::GetHash() const
                 break;
             }
             case POW_TYPE_CROW: {
-                return Crow(BEGIN(nVersion), END(nNonce), true);
+                return Minotaurx(BEGIN(nVersion), END(nNonce), true);
                 break;
             }
             default: // Don't crash the client on invalid blockType, just return a bad hash
@@ -98,9 +98,9 @@ uint256 CBlockHeader::GetHash() const
     return thash;
 }
 
-// Crow algo
+// Minotaurx algo
 uint256 CBlockHeader::CrowHashArbitrary(const char* data) {
-    return Crow(data, data + strlen(data), true);
+    return Minotaurx(data, data + strlen(data), true);
 }
 
 uint256 CBlockHeader::GetX16RHash() const
