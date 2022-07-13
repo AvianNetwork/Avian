@@ -208,6 +208,11 @@ public:
 
         vFixedSeeds = std::vector<SeedSpec6>(pnSeed6_main, pnSeed6_main + ARRAYLEN(pnSeed6_main));
 
+        vector<FounderRewardStructure> rewardStructures = {
+            {INT_MAX, 5} // 5% founder/dev fee forever
+        };
+        consensus.nFounderPayment = FounderPayment(rewardStructures, 818787); // Block 818787
+
         fDefaultConsistencyChecks = false;
         fRequireStandard = true;
         fMineBlocksOnDemand = false;
@@ -358,6 +363,11 @@ public:
         nExtCoinType = 1;
 
         vFixedSeeds = std::vector<SeedSpec6>(pnSeed6_test, pnSeed6_test + ARRAYLEN(pnSeed6_test));
+
+        vector<FounderRewardStructure> rewardStructures = {
+            {INT_MAX, 5} // 5% founder/dev fee forever
+        };
+        consensus.nFounderPayment = FounderPayment(rewardStructures, 200, "n1BurnXXXXXXXXXXXXXXXXXXXXXXU1qejP"); // Block 200 (burn coins)
 
         fDefaultConsistencyChecks = false;
         fRequireStandard = false;
@@ -546,6 +556,11 @@ public:
         consensus.hashGenesisBlock = genesis.GetHash();
         assert(consensus.hashGenesisBlock == uint256S("0x653634d03d27ed84e8aba5dd47903906ad7be4876a1d3677be0db2891dcf787f"));
         assert(genesis.hashMerkleRoot == uint256S("63d9b6b6b549a2d96eb5ac4eb2ab80761e6d7bffa9ae1a647191e08d6416184d"));
+
+        vector<FounderRewardStructure> rewardStructures = {
+            {INT_MAX, 5} // 5% founder/dev fee forever
+        };
+        consensus.nFounderPayment = FounderPayment(rewardStructures, 1, "n1BurnXXXXXXXXXXXXXXXXXXXXXXU1qejP"); // Block 1 (burn coins)
 
         vFixedSeeds.clear(); //!< Regtest mode doesn't have any fixed seeds.
         vSeeds.clear();      //!< Regtest mode doesn't have any DNS seeds.

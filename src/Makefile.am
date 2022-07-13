@@ -473,6 +473,7 @@ libavian_consensus_a_CPPFLAGS = $(AM_CPPFLAGS) $(AVIAN_INCLUDES)
 libavian_consensus_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
 libavian_consensus_a_SOURCES = \
   amount.h \
+  founder_payment.h \
   arith_uint256.cpp \
   arith_uint256.h \
   consensus/merkle.cpp \
@@ -513,6 +514,7 @@ libavian_common_a_CPPFLAGS = $(AM_CPPFLAGS) $(AVIAN_INCLUDES)
 libavian_common_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
 libavian_common_a_SOURCES = \
   base58.cpp \
+  founder_payment.cpp \
   chainparams.cpp \
   coins.cpp \
   compressor.cpp \

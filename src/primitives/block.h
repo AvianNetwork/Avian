@@ -134,6 +134,9 @@ public:
     // network and disk
     std::vector<CTransactionRef> vtx;
 
+    // founder payment
+    mutable CTxOut txoutFounder;
+    
     // memory only
     mutable bool fChecked;
 
@@ -161,6 +164,7 @@ public:
         CBlockHeader::SetNull();
         vtx.clear();
         fChecked = false;
+        txoutFounder = CTxOut();
     }
 
     CBlockHeader GetBlockHeader() const
