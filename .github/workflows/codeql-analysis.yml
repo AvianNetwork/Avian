@@ -2,6 +2,14 @@
 name: CodeQL
 
 on:
+  push:
+    paths-ignore:
+      - '**/*.md'
+      - '**/*.txt'
+      - 'contrib'
+      - 'doc'
+      - 'share'
+      - 'test'
   pull_request:
     paths-ignore:
       - '**/*.md'
@@ -48,7 +56,7 @@ jobs:
         make -j4 HOST=x86_64-pc-linux-gnu
         popd
     - name: Initialize CodeQL
-      uses: github/codeql-action/init@v1
+      uses: github/codeql-action/init@v2
       with:
         languages: ${{ matrix.language }}
 
@@ -58,4 +66,4 @@ jobs:
        ./configure --prefix=`pwd`/depends/x86_64-pc-linux-gnu
        make -j4
     - name: Perform CodeQL Analysis
-      uses: github/codeql-action/analyze@v1
+      uses: github/codeql-action/analyze@v2
