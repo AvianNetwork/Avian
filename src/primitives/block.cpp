@@ -29,6 +29,7 @@ static const uint32_t REGTEST_X16RT_ACTIVATIONTIME = 1629951212;
 
 static const uint32_t MAINNET_CROW_MULTI_ACTIVATIONTIME = 1638847407;
 static const uint32_t TESTNET_CROW_MULTI_ACTIVATIONTIME = 1639005225;
+static const uint32_t REGTEST_CROW_MULTI_ACTIVATIONTIME = 1629951212;
 
 BlockNetwork bNetwork = BlockNetwork();
 
@@ -54,11 +55,12 @@ uint256 CBlockHeader::GetHash() const
     uint32_t nTimeToUse = MAINNET_X16RT_ACTIVATIONTIME;
     uint32_t nCrowTimeToUse = MAINNET_CROW_MULTI_ACTIVATIONTIME;
 
-    if (bNetwork.fOnTestnet){
+    if (bNetwork.fOnTestnet) {
         nTimeToUse = TESTNET_X16RT_ACTIVATIONTIME;
         nCrowTimeToUse = TESTNET_CROW_MULTI_ACTIVATIONTIME;
     } else if (bNetwork.fOnRegtest) {
         nTimeToUse = REGTEST_X16RT_ACTIVATIONTIME;
+        nCrowTimeToUse = REGTEST_CROW_MULTI_ACTIVATIONTIME;
     } else {
         nTimeToUse = MAINNET_X16RT_ACTIVATIONTIME;
         nCrowTimeToUse = MAINNET_CROW_MULTI_ACTIVATIONTIME;
