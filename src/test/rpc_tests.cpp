@@ -1,10 +1,12 @@
 // Copyright (c) 2012-2016 The Bitcoin Core developers
 // Copyright (c) 2017 The Raven Core developers
+// Copyright (c) 2022 The Avian Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include "rpc/server.h"
 #include "rpc/client.h"
+#include "validation.h"
 
 #include "base58.h"
 #include "core_io.h"
@@ -155,6 +157,8 @@ BOOST_FIXTURE_TEST_SUITE(rpc_tests, TestingSetup)
     {
         BOOST_TEST_MESSAGE("Running RPC CreateRaw Assets Test");
 
+        fUnitTest = true;
+
         BOOST_CHECK_NO_THROW(CallRPC("createrawtransaction [{\"txid\":\"a3b807410df0b60fcb9736768df5823938b2f838694939ba45f3c0a1bff150ed\",\"vout\":0}] {\"rNNjqrDbSHxJZNfC54WsF8dxqbcue9SoiB\":20000}"));
         BOOST_CHECK_NO_THROW(CallRPC("createrawtransaction [{\"txid\":\"a3b807410df0b60fcb9736768df5823938b2f838694939ba45f3c0a1bff150ed\",\"vout\":0}] {\"rNNjqrDbSHxJZNfC54WsF8dxqbcue9SoiB\":{\"transfer\":{\"AVIAN_ASSET\":20000}}}"));
         BOOST_CHECK_NO_THROW(CallRPC("createrawtransaction [{\"txid\":\"a3b807410df0b60fcb9736768df5823938b2f838694939ba45f3c0a1bff150ed\",\"vout\":0}] {\"rNNjqrDbSHxJZNfC54WsF8dxqbcue9SoiB\":{\"issue\":{\"name_length\":1,\"asset_name\":\"AVIAN_ASSET\",\"asset_quantity\":20000,\"units\":0,\"reissuable\":1,\"has_ipfs\":0}}}"));
@@ -170,6 +174,8 @@ BOOST_FIXTURE_TEST_SUITE(rpc_tests, TestingSetup)
 
         // bad command
         BOOST_CHECK_THROW(CallRPC("createrawtransaction [{\"txid\":\"a3b807410df0b60fcb9736768df5823938b2f838694939ba45f3c0a1bff150ed\",\"vout\":0}] {\"rNNjqrDbSHxJZNfC54WsF8dxqbcue9SoiB\":{\"badcommand\":{\"AVIAN_ASSET\":20000}}}"), std::runtime_error);
+    
+        fUnitTest = false;
     }
 
     BOOST_AUTO_TEST_CASE(rpc_format_monetary_values_test)
