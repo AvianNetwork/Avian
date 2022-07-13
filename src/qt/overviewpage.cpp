@@ -209,23 +209,8 @@ public:
         QLinearGradient gradient(mainRect.topLeft(), mainRect.bottomRight());
 
         // Select the color of the gradient
-        if (admin) {
-            //if (darkModeEnabled) {
-            //    gradient.setColorAt(0, COLOR_ADMIN_CARD_DARK);
-            //    gradient.setColorAt(1, COLOR_ADMIN_CARD_DARK);
-            //} else {
-                gradient.setColorAt(0, COLOR_AVIAN_19827B);
-                gradient.setColorAt(1, COLOR_AVIAN_18A7B7);
-           // }
-        } else {
-            //if (darkModeEnabled) {
-            //    gradient.setColorAt(0, COLOR_REGULAR_CARD_LIGHT_BLUE_DARK_MODE);
-            //    gradient.setColorAt(1, COLOR_REGULAR_CARD_DARK_BLUE_DARK_MODE);
-            //} else {
-                gradient.setColorAt(0, COLOR_AVIAN_2B737F);
-                gradient.setColorAt(1, COLOR_AVIAN_34E2D6);
-            //}
-        }
+        gradient.setColorAt(0, COLOR_AVIAN_19827B);
+        gradient.setColorAt(1, COLOR_AVIAN_18A7B7);
 
         // Using 4 are the radius because the pixels are solid
         QPainterPath path;
