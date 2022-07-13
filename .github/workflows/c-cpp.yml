@@ -54,7 +54,7 @@ jobs:
             host: x86_64-unknown-linux-gnu
             os: ubuntu-18.04
             packages: bc python3-zmq
-            run-tests: false
+            run-tests: true
             dep-opts: ""
             config-opts: "--enable-gui=qt5 --enable-zmq --enable-glibc-back-compat --enable-reduce-exports CPPFLAGS=-DDEBUG_LOCKORDER"
             goal: install
