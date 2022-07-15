@@ -6,29 +6,14 @@
 #include "rpc/flightplans.h"
 #include "flightplans/flightplans.h"
 
-#include "chainparams.h"
-#include "clientversion.h"
-#include "core_io.h"
-#include "net.h"
-#include "net_processing.h"
-#include "netbase.h"
-#include "policy/policy.h"
-#include "protocol.h"
 #include "rpc/server.h"
-#include "sync.h"
-#include "timedata.h"
-#include "ui_interface.h"
-#include "util.h"
-#include "utilstrencodings.h"
 #include "validation.h"
-#include "version.h"
-#include "warnings.h"
+#include "fs.h"
+#include "util.h"
 
 #include <stdint.h>
 #include <univalue.h>
 
-#include <cstddef>
-#include <cstdio>
 #include <string>
 #include <vector>
 
@@ -49,12 +34,13 @@ UniValue call_function(const JSONRPCRequest& request)
             "\nResult:\n"
             "1.    (string) Result from called function\n"
             "\nExamples:\n" +
-            HelpExampleCli("call_function", "\"Like Count Contract\" \"getLikes\"") + HelpExampleRpc("call_function", "\"Like Count Contract\" \"getLikes\""));
+            HelpExampleCli("call_function", "\"social\" \"getLikes\"") + HelpExampleRpc("call_function", "\"social\" \"getLikes\""));
 
     LOCK(cs_main);
 
     if (gArgs.IsArgSet("-flightplans")) {
         std::vector<std::string> args = {};
+        std::string file = request.params[0].get_str() + ".lua";
 
         for (size_t i = 0; i < request.params.size(); i++) {
             args.push_back(request.params[i].get_str());
@@ -66,39 +52,61 @@ UniValue call_function(const JSONRPCRequest& request)
 
         auto flightplans = AvianFlightPlans();
 
-        std::string datadir = boost::filesystem::canonical(GetDataDir(false)).string();
+        // TODO: Make sure works on Windows and Linux
+        fs::path path = GetDataDir(false) / "flightplans" / file.c_str();
 
-        // TODO: Fix this to use lib instead of relying on marcos.
+        FlightPlanResult result = flightplans.run_file(path.string().c_str(), request.params[1].get_str().c_str(), args);
 
-#if !defined(_WIN32) && (defined(__unix__) || defined(__unix) || (defined(__APPLE__) && defined(__MACH__)))
-        std::string path = datadir + "/flightplans/" + request.params[0].get_str() + ".lua";
-#endif
-
-#ifdef _WIN32
-        std::string path = datadir + "\\flightplans\\" + request.params[0].get_str() + ".lua";
-#endif
-
-        FlightPlanResult result = flightplans.run_file(path.c_str(), request.params[1].get_str().c_str(), args);
-
-        boost::filesystem::path file(path);
-        if (boost::filesystem::exists(file)) {
+        if (fs::exists(path)) {
             if (result.is_error) {
                 throw JSONRPCError(RPC_MISC_ERROR, result.result);
             } else {
                 return result.result;
             }
         } else {
-            throw JSONRPCError(RPC_MISC_ERROR, "Flightplan does not exist.");
+            throw JSONRPCError(RPC_MISC_ERROR, "Flight plan does not exist.");
         }
     } else {
-        throw JSONRPCError(RPC_MISC_ERROR, "Flight Plans are experimental and prone to bugs. Please take precautions when using this feature. To enable, launch Avian with the -flightplan flag.");
+        throw JSONRPCError(RPC_MISC_ERROR, "Flight Plans are experimental and prone to bugs. Please take precautions when using this feature. To enable, launch Avian with the -flightplans flag.");
+    }
+}
+
+UniValue list_flightplans(const JSONRPCRequest& request)
+{
+    if (!AreFlightPlansDeployed())
+        throw std::runtime_error(
+            "Coming soon: Avian flight plan function will be available in a future release.\n");
+
+    if (request.fHelp)
+        throw std::runtime_error(
+            "list_flightplans\n"
+            "\nList avian flight plans.\n"
+            "\nResult:\n"
+            "[ flight plan name ]     (array) list of avian flight plans\n"
+            "\nExamples:\n" +
+            HelpExampleCli("list_flightplans", "") + HelpExampleRpc("list_flightplans", ""));
+
+    LOCK(cs_main);
+
+    if (gArgs.IsArgSet("-flightplans")) {
+        UniValue plans(UniValue::VARR);
+        fs::path path = GetDataDir(false) / "flightplans";
+        for (auto& file : fs::directory_iterator(path)) {
+            if (file.path().extension() == ".lua")
+                plans.push_back(file.path().stem().string());
+        }
+        return plans;
+    } else {
+        throw JSONRPCError(RPC_MISC_ERROR, "Flight Plans are experimental and prone to bugs. Please take precautions when using this feature. To enable, launch Avian with the -flightplans flag.");
     }
 }
 
 static const CRPCCommand commands[] =
     { //  category              name                      actor (function)         argNames
       //  --------------------- ------------------------  -----------------------  ----------
-        {"flightplans", "call_function", &call_function, {}}};
+        {"flightplans",         "call_function",          &call_function,          {"contract_name", "function", "args"}},
+        {"flightplans",         "list_flightplans",       &list_flightplans,       {}}
+    };
 
 void RegisterFlightPlanRPCCommands(CRPCTable& t)
 {
