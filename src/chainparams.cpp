@@ -157,8 +157,10 @@ public:
         // x16rt switch
         consensus.nX16rtTimestamp = 1638748799;
 
-        // Avian Assets
+        // Avian Assets, Messaging, Restricted
         consensus.nAssetActivationTime = 999999999999ULL; // TODO
+        consensus.nMessagingActivationTime = 999999999999ULL; // TODO
+        consensus.nRestrictedActivationTime = 999999999999ULL; // TODO
 
         // Avian Flight Plans
         consensus.nFlightPlansActivationTime = 999999999999ULL; // TODO
@@ -275,9 +277,6 @@ public:
 
         // TODO: Assets, Messaging, Restricted
         nAssetActivationHeight = 9999999999; // Asset activated block height
-        nMessagingActivationBlock = 9999999999; // Messaging activated block height
-        nRestrictedActivationBlock = 9999999999; // Restricted activated block height
-
         /** AVN End **/
     }
 };
@@ -329,6 +328,11 @@ public:
 
         // Avian Assets
         consensus.nAssetActivationTime = 1645104453; // Feb 17, 2022
+
+        // Avian Assets, Messaging, Restricted
+        consensus.nAssetActivationTime = 1645104453; // Feb 17, 2022
+        consensus.nMessagingActivationTime = 1645104453; // Feb 17, 2022
+        consensus.nRestrictedActivationTime = 1645104453; // Feb 17, 2022
 
         // Avian Flight Plans
         consensus.nFlightPlansActivationTime = 1645104453; // Feb 17, 2022
@@ -420,9 +424,7 @@ public:
         nMinReorganizationPeers = 4;
         nMinReorganizationAge = 60 * 60 * 12; // 12 hours
 
-        nAssetActivationHeight = 0; // Asset activated block height
-        nMessagingActivationBlock = 0; // Messaging activated block height
-        nRestrictedActivationBlock = 0; // Restricted activated block height
+        nAssetActivationHeight = 1; // Asset activated block height
         /** AVN End **/
     }
 };
@@ -473,6 +475,11 @@ public:
 
         // Avian Assets
         consensus.nAssetActivationTime = 1629951212;
+
+        // Avian Assets, Messaging, Restricted
+        consensus.nAssetActivationTime = 1629951212; // (genesis +1)
+        consensus.nMessagingActivationTime = 1629951212; // (genesis +1)
+        consensus.nRestrictedActivationTime = 1629951212; // (genesis +1)
 
         // Avian Flight Plans
         consensus.nFlightPlansActivationTime = 1629951212;
@@ -618,9 +625,7 @@ public:
         nMinReorganizationPeers = 4;
         nMinReorganizationAge = 60 * 60 * 12; // 12 hours
 
-        nAssetActivationHeight = 0; // Asset activated block height
-        nMessagingActivationBlock = 0; // Messaging activated block height
-        nRestrictedActivationBlock = 0; // Restricted activated block height
+        nAssetActivationHeight = 1; // Asset activated block height
         /** AVN End **/
     }
 };

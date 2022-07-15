@@ -94,6 +94,7 @@ int nScriptCheckThreads = 0;
 std::atomic_bool fImporting(false);
 std::atomic_bool fReindex(false);
 bool fMessaging = false;
+bool fRestricted = false;
 bool fTxIndex = false;
 bool fAssetIndex = false;
 bool fAddressIndex = false;
@@ -5892,21 +5893,24 @@ bool AreFlightPlansDeployed()
     return fFlightPlansIsActive;
 }
 
-bool IsRip5Active()
-{
-    if (fRip5IsActive)
+bool AreMessagesDeployed() {
+    if (fMessaging)
         return true;
 
-    // TODO: Fix
-    // const ThresholdState thresholdState = VersionBitsTipState(Params().GetConsensus(), Consensus::DEPLOYMENT_MSG_REST_ASSETS);
-    // if (thresholdState == THRESHOLD_ACTIVE)
-    //     fRip5IsActive = true;
+    if ((chainActive.Tip() != nullptr) && chainActive.Tip()->nTime > Params().GetConsensus().nMessagingActivationTime)
+        fMessaging = true;
 
-    return false;
+    return fMessaging;
 }
 
-bool AreMessagesDeployed() {
-    return IsRip5Active();
+bool AreRestrictedAssetsDeployed() {
+    if (fRestricted)
+        return true;
+
+    if ((chainActive.Tip() != nullptr) && chainActive.Tip()->nTime > Params().GetConsensus().nRestrictedActivationTime)
+        fRestricted = true;
+
+    return fRestricted;
 }
 
 bool AreTransferScriptsSizeDeployed() {
@@ -5922,30 +5926,8 @@ bool AreTransferScriptsSizeDeployed() {
     return false;
 }
 
-bool AreRestrictedAssetsDeployed() {
-
-    return IsRip5Active();
-}
-
 bool IsDGWActive(unsigned int nBlockNumber) {
     return nBlockNumber >= Params().DGWActivationBlock();
-}
-
-bool IsMessagingActive(unsigned int nBlockNumber) {
-    if (Params().MessagingActivationBlock()) {
-        return nBlockNumber > Params().MessagingActivationBlock();
-    } else {
-        return AreMessagesDeployed();
-    }
-}
-
-bool IsRestrictedActive(unsigned int nBlockNumber)
-{
-    if (Params().RestrictedActivationBlock()) {
-        return nBlockNumber > Params().RestrictedActivationBlock();
-    } else {
-        return AreRestrictedAssetsDeployed();
-    }
 }
 
 CAssetsCache* GetCurrentAssetCache()
