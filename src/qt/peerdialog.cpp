@@ -91,7 +91,7 @@ AddPeerDialog::AddPeerDialog(QWidget *parent) :
 
     ui->peerPort->setValidator( new QIntValidator(1, 65535, this) );
 
-    connect(ui->pushButton, SIGNAL(clicked()), this, SLOT(on_addPeer_clicked()));
+    connect(ui->addPeer, SIGNAL(clicked()), this, SLOT(on_addPeerClicked()));
 }
 
 AddPeerDialog::~AddPeerDialog()
@@ -99,7 +99,7 @@ AddPeerDialog::~AddPeerDialog()
     delete ui;
 }
 
-void AddPeerDialog::on_addPeer_clicked()
+void AddPeerDialog::on_addPeerClicked()
 {
     QString address = ui->peerAddress->text();
     QString port = ui->peerPort->text();
@@ -138,7 +138,7 @@ TestPeerDialog::TestPeerDialog(QWidget *parent) :
 
     ui->peerPort->setValidator( new QIntValidator(1, 65535, this) );
 
-    connect(ui->pushButton, SIGNAL(clicked()), this, SLOT(on_testPeer_clicked()));
+    connect(ui->testPeer, SIGNAL(clicked()), this, SLOT(on_testPeerClicked()));
 }
 
 TestPeerDialog::~TestPeerDialog()
@@ -146,7 +146,7 @@ TestPeerDialog::~TestPeerDialog()
     delete ui;
 }
 
-void TestPeerDialog::on_testPeer_clicked()
+void TestPeerDialog::on_testPeerClicked()
 {
     QString address = ui->peerAddress->text();
     QString port = ui->peerPort->text();
