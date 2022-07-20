@@ -22,7 +22,6 @@
 #include "optionsmodel.h"
 #include "platformstyle.h"
 #include "rpcconsole.h"
-#include "poolpicker.h"
 #include "utilitydialog.h"
 #include "validation.h"
 
@@ -141,7 +140,6 @@ AvianGUI::AvianGUI(const PlatformStyle *_platformStyle, const NetworkStyle *netw
     getMyWordsAction(0),
     aboutQtAction(0),
     openRPCConsoleAction(0),
-    openPoolPicker(0),
     openAction(0),
     showHelpMessageAction(0),
     transferAssetAction(0),
@@ -525,9 +523,6 @@ void AvianGUI::createActions()
     // initially disable the debug window menu item
     openRPCConsoleAction->setEnabled(false);
 
-    openPoolPicker = new QAction(tr("&Pool Picker"), this);
-    openPoolPicker->setStatusTip(tr("Open pool picker"));
-
     usedSendingAddressesAction = new QAction(tr("&Sending addresses..."), this);
     usedSendingAddressesAction->setStatusTip(tr("Show the list of used sending addresses and labels"));
     usedReceivingAddressesAction = new QAction(tr("&Receiving addresses..."), this);
@@ -550,7 +545,6 @@ void AvianGUI::createActions()
     connect(toggleHideAction, SIGNAL(triggered()), this, SLOT(toggleHidden()));
     connect(showHelpMessageAction, SIGNAL(triggered()), this, SLOT(showHelpMessageClicked()));
     connect(openRPCConsoleAction, SIGNAL(triggered()), this, SLOT(showDebugWindow()));
-    connect(openPoolPicker, SIGNAL(triggered()), this, SLOT(showPoolPicker()));
     // prevents an open debug window from becoming stuck/unusable on client shutdown
     connect(quitAction, SIGNAL(triggered()), rpcConsole, SLOT(hide()));
 
@@ -620,9 +614,6 @@ void AvianGUI::createMenuBar()
 
     help->addAction(showHelpMessageAction);
     help->addSeparator();
-    // TODO: pool picker
-    // help->addAction(openPoolPicker);
-    //help->addSeparator();
     help->addAction(aboutAction);
     help->addAction(aboutQtAction);
 }
@@ -1007,12 +998,6 @@ void AvianGUI::showDebugWindow()
     rpcConsole->show();
     rpcConsole->raise();
     rpcConsole->activateWindow();
-}
-
-void AvianGUI::showPoolPicker()
-{
-    PoolPicker poolPicker(this);
-    poolPicker.exec();
 }
 
 void AvianGUI::showDebugWindowActivateConsole()
