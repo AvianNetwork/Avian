@@ -73,6 +73,8 @@
         <file alias="asset_manage_selected">res/icons/asset_manage_selected.png</file>
         <file alias="asset_transfer">res/icons/asset_transfer.png</file>
         <file alias="asset_transfer_selected">res/icons/asset_transfer_selected.png</file>
+        <file alias="asset_edit">res/icons/asset_edit.png</file>
+        <file alias="asset_edit_selected">res/icons/asset_edit_selected.png</file>
         <file alias="aviantext">res/icons/aviantext.png</file>
         <file alias="avianlogo">res/icons/avianlogo.png</file>
 	<file alias="restricted_asset">res/icons/restricted_asset.png</file>

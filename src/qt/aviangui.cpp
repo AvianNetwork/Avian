@@ -449,7 +449,7 @@ void AvianGUI::createActions()
     votingAction->setFont(font);
     tabGroup->addAction(votingAction);
 
-    restrictedAssetAction = new QAction(platformStyle->SingleColorIcon(":/icons/edit"), tr("&Restricted Assets"), this);
+    restrictedAssetAction = new QAction(platformStyle->SingleColorIconOnOff(":/icons/asset_edit_selected", ":/icons/asset_edit"), tr("&Restricted Assets"), this);
     restrictedAssetAction->setStatusTip(tr("Manage restricted assets"));
     restrictedAssetAction->setToolTip(restrictedAssetAction->statusTip());
     restrictedAssetAction->setCheckable(true);
