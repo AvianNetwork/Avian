@@ -149,7 +149,6 @@ AvianGUI::AvianGUI(const PlatformStyle *_platformStyle, const NetworkStyle *netw
     manageAssetAction(0),
     messagingAction(0),
     votingAction(0),
-    devAction(0),
     wrapAction(0),
     headerWidget(0),
     labelCurrentMarket(0),
@@ -451,17 +450,9 @@ void AvianGUI::createActions()
     votingAction->setFont(font);
     tabGroup->addAction(votingAction);
 
-    devAction = new QAction(platformStyle->SingleColorIcon(":/icons/external_link"), tr(""), this);
-    devAction->setStatusTip(tr("Coming Soon"));
-    devAction->setToolTip(devAction->statusTip());
-    devAction->setCheckable(true);
-    // devAction->setShortcut(QKeySequence(Qt::ALT + Qt::Key_9));
-    devAction->setFont(font);
-    tabGroup->addAction(devAction);
-
     wrapAction = new QAction(platformStyle->SingleColorIconOnOff(":/icons/external_link", ":/icons/external_link"), tr(""), this);
     wrapAction->setStatusTip(tr("Wrapped Avian"));
-    wrapAction->setToolTip(devAction->statusTip());
+    wrapAction->setToolTip(wrapAction->statusTip());
     wrapAction->setCheckable(true);
     // wrapAction->setShortcut(QKeySequence(Qt::ALT + Qt::Key_9));
     wrapAction->setFont(font);
@@ -670,7 +661,6 @@ void AvianGUI::createToolBars()
         toolbar->addAction(manageAssetAction);
         // toolbar->addAction(messagingAction);
         // toolbar->addAction(votingAction);
-        // toolbar->addAction(devAction);
         // toolbar->addAction(wrapAction);
 
         /** AVN START */
@@ -928,7 +918,6 @@ void AvianGUI::setWalletActionsEnabled(bool enabled)
     manageAssetAction->setEnabled(false);
     messagingAction->setEnabled(false);
     votingAction->setEnabled(false);
-    devAction->setEnabled(false);
     wrapAction->setEnabled(false);
     /** AVN END */
 }
