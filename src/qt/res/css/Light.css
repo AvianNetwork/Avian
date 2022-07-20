@@ -355,20 +355,11 @@ QComboBox::drop-down {
     border: 0px;
 }
 
-QComboBox::indicator {
-    background-color: #f4f4f4;
-    selection-background-color: #3d3939;
-    color: #110202;
-    selection-color: #FFFFFF;
-}
-
 QComboBox QListView {
-    padding: 3px;
     background-color: #ffffff;
     color: #110202;
     border: 1px solid #18a7b7;
     border-radius: 4px;
-    font: 12pt 'Manrope';
 }
 
 QComboBox QAbstractItemView::item {
@@ -377,12 +368,10 @@ QComboBox QAbstractItemView::item {
 
 QComboBox::item {
     color: #110202;
-    font: 12pt 'Manrope';
 }
 
 QComboBox::item:alternate {
     background-color: #f4f4f4;
-    font: 12pt 'Manrope';
 }
 
 QComboBox::item:selected {
@@ -553,7 +542,6 @@ QProgressBar > QToolButton {
     padding: 1px;
     text-align: center;
     color: #f4f4f4;
-    font: 12pt 'Source Sans Pro';
 }
 
 QProgressBar > QToolButton > QLabel {
