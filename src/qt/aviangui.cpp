@@ -147,6 +147,7 @@ AvianGUI::AvianGUI(const PlatformStyle *_platformStyle, const NetworkStyle *netw
     manageAssetAction(0),
     messagingAction(0),
     votingAction(0),
+    restrictedAssetAction(0),
     wrapAction(0),
     headerWidget(0),
     labelCurrentMarket(0),
@@ -448,6 +449,14 @@ void AvianGUI::createActions()
     votingAction->setFont(font);
     tabGroup->addAction(votingAction);
 
+    restrictedAssetAction = new QAction(platformStyle->SingleColorIconOnOff(":/icons/asset_edit_selected", ":/icons/asset_edit"), tr("&Restricted Assets"), this);
+    restrictedAssetAction->setStatusTip(tr("Manage restricted assets"));
+    restrictedAssetAction->setToolTip(restrictedAssetAction->statusTip());
+    restrictedAssetAction->setCheckable(true);
+    restrictedAssetAction->setShortcut(QKeySequence(Qt::ALT + Qt::Key_9));
+    restrictedAssetAction->setFont(font);
+    tabGroup->addAction(restrictedAssetAction);
+
     wrapAction = new QAction(platformStyle->SingleColorIconOnOff(":/icons/external_link", ":/icons/external_link"), tr(""), this);
     wrapAction->setStatusTip(tr("Wrapped Avian"));
     wrapAction->setToolTip(wrapAction->statusTip());
@@ -479,6 +488,9 @@ void AvianGUI::createActions()
     connect(createAssetAction, SIGNAL(triggered()), this, SLOT(gotoCreateAssetsPage()));
     connect(manageAssetAction, SIGNAL(triggered()), this, SLOT(showNormalIfMinimized()));
     connect(manageAssetAction, SIGNAL(triggered()), this, SLOT(gotoManageAssetsPage()));
+    connect(restrictedAssetAction, SIGNAL(triggered()), this, SLOT(showNormalIfMinimized()));
+    connect(restrictedAssetAction, SIGNAL(triggered()), this, SLOT(gotoRestrictedAssetsPage()));
+    connect(wrapAction, SIGNAL(triggered()), this, SLOT(showNormalIfMinimized()));
     connect(wrapAction, SIGNAL(triggered()), this, SLOT(gotoWrapPage()));
     // TODO add messaging actions to go to messaging page when clicked
     // TODO add voting actions to go to voting page when clicked
@@ -650,6 +662,7 @@ void AvianGUI::createToolBars()
         toolbar->addAction(createAssetAction);
         toolbar->addAction(transferAssetAction);
         toolbar->addAction(manageAssetAction);
+        toolbar->addAction(restrictedAssetAction);
         // toolbar->addAction(messagingAction);
         // toolbar->addAction(votingAction);
         // toolbar->addAction(wrapAction);
@@ -1074,6 +1087,12 @@ void AvianGUI::gotoManageAssetsPage()
     if (walletFrame) walletFrame->gotoManageAssetsPage();
 };
 
+void AvianGUI::gotoRestrictedAssetsPage()
+{
+    restrictedAssetAction->setChecked(true);
+    if (walletFrame) walletFrame->gotoRestrictedAssetsPage();
+};
+
 void AvianGUI::gotoWrapPage()
 {
     wrapAction->setChecked(true);
@@ -1372,7 +1391,7 @@ void AvianGUI::incomingTransaction(const QString& date, int unit, const CAmount&
 
 void AvianGUI::checkAssets()
 {
-    // Check that status of RIP2 and activate the assets icon if it is active
+    // Check that status of assets and activate the assets icon if it is active
     if(AreAssetsDeployed()) {
         transferAssetAction->setDisabled(false);
         transferAssetAction->setToolTip(tr("Transfer assets to AVN addresses"));
@@ -1388,6 +1407,15 @@ void AvianGUI::checkAssets()
         createAssetAction->setToolTip(tr("Assets not yet active"));
         manageAssetAction->setDisabled(true);
         manageAssetAction->setToolTip(tr("Assets not yet active"));
+    }
+
+    if (AreRestrictedAssetsDeployed()) {
+        restrictedAssetAction->setDisabled(false);
+        restrictedAssetAction->setToolTip(tr("Manage restricted assets"));
+
+    } else {
+        restrictedAssetAction->setDisabled(true);
+        restrictedAssetAction->setToolTip(tr("Restricted Assets not yet active"));
     }
 }
 #endif // ENABLE_WALLET

@@ -133,6 +133,7 @@ private:
     QAction *messagingAction;
     QAction *getMyWordsAction;
     QAction *votingAction;
+    QAction *restrictedAssetAction;
     QAction *wrapAction;
     QWidget *headerWidget;
     QLabel *labelCurrentMarket;
@@ -252,6 +253,7 @@ private Q_SLOTS:
     void gotoAssetsPage();
     void gotoCreateAssetsPage();
     void gotoManageAssetsPage();
+    void gotoRestrictedAssetsPage();
     void gotoWrapPage();
     /** AVN END */
 
