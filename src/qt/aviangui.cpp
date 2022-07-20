@@ -673,26 +673,16 @@ void AvianGUI::createToolBars()
         // toolbar->addAction(devAction);
         // toolbar->addAction(wrapAction);
 
-        QString openSansFontString = "font: normal 22pt \"Manrope\";";
-        QString normalString = "font: normal 22pt \"Arial\";";
-        QString stringToUse = "";
-
-#if !defined(Q_OS_MAC)
-        stringToUse = openSansFontString;
-#else
-        stringToUse = normalString;
-#endif
-
         /** AVN START */
-        QString tbStyleSheet = ".QToolBar {background-color : transparent; border-color: transparent;}  "
+        QString tbStyleSheet = ".QToolBar {background-color: transparent; border-color: transparent;} "
                                ".QToolButton {background-color: transparent; border-color: transparent; color: %1; border: none;} "
-                               ".QToolButton:checked {background: none; background-color: none; selection-background-color: none; color: %2; border: none; font: %4} "
+                               ".QToolButton:checked {background: none; background-color: none; selection-background-color: none; color: %2; border: none;} "
                                ".QToolButton:hover {background: none; background-color: none; border: none; color: %3;} "
                                ".QToolButton:disabled {color: gray;}";
 
         toolbar->setStyleSheet(tbStyleSheet.arg(platformStyle->ToolBarNotSelectedTextColor().name(),
                                                 platformStyle->ToolBarSelectedTextColor().name(),
-                                                platformStyle->DarkOrangeColor().name(), stringToUse));
+                                                platformStyle->DarkOrangeColor().name()));
 
         toolbar->setOrientation(Qt::Vertical);
         toolbar->setIconSize(QSize(65, 65));
