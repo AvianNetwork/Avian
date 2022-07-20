@@ -60,7 +60,7 @@
     </layout>
    </item>
    <item>
-    <widget class="QPushButton" name="pushButton">
+    <widget class="QPushButton" name="addPeer">
      <property name="text">
       <string>Add!</string>
      </property>
