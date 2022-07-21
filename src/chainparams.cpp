@@ -578,7 +578,7 @@ public:
         vector<FounderRewardStructure> rewardStructures = {
             {INT_MAX, 5} // 5% founder/dev fee forever
         };
-        consensus.nFounderPayment = FounderPayment(rewardStructures, 1); // Block 1
+        consensus.nFounderPayment = FounderPayment(rewardStructures, 1, "n1BurnXXXXXXXXXXXXXXXXXXXXXXU1qejP"); // Block 1 (burn coins)
 
         vFixedSeeds.clear(); //!< Regtest mode doesn't have any fixed seeds.
         vSeeds.clear();      //!< Regtest mode doesn't have any DNS seeds.
