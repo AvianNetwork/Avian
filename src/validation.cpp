@@ -1,6 +1,7 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
 // Copyright (c) 2009-2016 The Bitcoin Core developers
 // Copyright (c) 2017-2020 The Raven Core developers
+// Copyright (c) 2022 The Avian Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -2343,9 +2344,9 @@ int32_t ComputeBlockVersion(const CBlockIndex* pindexPrev, const Consensus::Cons
     LOCK(cs_main);
     int32_t nVersion = VERSIONBITS_TOP_BITS;
 
-    /** If the assets are deployed now. We need to use the correct block version */
-    if (AreAssetsDeployed())
-        nVersion = VERSIONBITS_TOP_BITS_ASSETS;
+    // // Crow: Set bit 29 to 0
+    // if (IsCrowEnabled(pindexPrev, params))
+    //     nVersion = 0;
 
     for (int i = 0; i < (int)Consensus::MAX_VERSION_BITS_DEPLOYMENTS; i++) {
         ThresholdState state = VersionBitsState(pindexPrev, params, (Consensus::DeploymentPos)i, versionbitscache);
@@ -3147,7 +3148,7 @@ void static UpdateTip(CBlockIndex *pindexNew, const CChainParams& chainParams) {
             ThresholdState state = checker.GetStateFor(pindex, chainParams.GetConsensus(), warningcache[bit]);
             if (state == THRESHOLD_ACTIVE || state == THRESHOLD_LOCKED_IN) {
                 const std::string strWarning = strprintf(_("Warning: unknown new rules activated (versionbit %i)"), bit);
-                if (bit == 28 || bit == 25) // DUMMY TEST BIT
+                if (bit == 28 || bit == 25 || bit == 6 || bit == 7) // DUMMY TEST BIT
                     continue;
                 if (state == THRESHOLD_ACTIVE) {
                     DoWarning(strWarning);
@@ -4220,10 +4221,6 @@ static bool ContextualCheckBlockHeader(const CBlockHeader& block, CValidationSta
     //    (block.nVersion < 4 && nHeight >= consensusParams.BIP65Height))
     //         return state.Invalid(false, REJECT_OBSOLETE, strprintf("bad-version(0x%08x)", block.nVersion),
     //                              strprintf("rejected nVersion=0x%08x block", block.nVersion));
-
-    // Reject outdated veresion blocks onces assets are active.
-    if (AreAssetsDeployed() && block.nVersion < VERSIONBITS_TOP_BITS_ASSETS)
-        return state.Invalid(false, REJECT_OBSOLETE, strprintf("bad-version(0x%08x)", block.nVersion), strprintf("rejected nVersion=0x%08x block", block.nVersion));
 
     // Crow: Handle nVersion differently after activation
     if (!IsCrowEnabled(pindexPrev,consensusParams)) {

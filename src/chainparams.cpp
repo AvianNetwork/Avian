@@ -135,14 +135,6 @@ public:
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].bit = 28;
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nStartTime = 1199145601; // January 1, 2008
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nTimeout = 1230767999; // December 31, 2008
-        consensus.vDeployments[Consensus::DEPLOYMENT_ASSETS].bit = 6;  //Assets (RIP2)
-        consensus.vDeployments[Consensus::DEPLOYMENT_ASSETS].nStartTime = 1540944000; // Oct 31, 2018
-        consensus.vDeployments[Consensus::DEPLOYMENT_ASSETS].nTimeout = 1572480000; // Oct 31, 2019
-
-        // Crow Algo Deployment
-        consensus.vDeployments[Consensus::DEPLOYMENT_CROW].bit = 7;
-        consensus.vDeployments[Consensus::DEPLOYMENT_CROW].nStartTime = 2208988800;  // Jan 1, 2040
-        consensus.vDeployments[Consensus::DEPLOYMENT_CROW].nTimeout = 2208988800 + 31536000;  // Start + 1 year
 
         // Crow Algo consensus
         consensus.powForkTime = 1638847407;                 // Time of PoW hash method change (Dec 06 2021)
@@ -305,14 +297,6 @@ public:
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].bit = 28;
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nStartTime = 0;
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nTimeout = 999999999999ULL;
-        consensus.vDeployments[Consensus::DEPLOYMENT_ASSETS].bit = 6;
-        consensus.vDeployments[Consensus::DEPLOYMENT_ASSETS].nStartTime = 0;
-        consensus.vDeployments[Consensus::DEPLOYMENT_ASSETS].nTimeout = 999999999999ULL;
-
-        // Crow Algo Deployment (testnet)
-        consensus.vDeployments[Consensus::DEPLOYMENT_CROW].bit = 7;
-        consensus.vDeployments[Consensus::DEPLOYMENT_CROW].nStartTime = -1;
-        consensus.vDeployments[Consensus::DEPLOYMENT_CROW].nTimeout = std::numeric_limits<int64_t>::max();
 
         // Crow Algo consensus
         consensus.powForkTime = 1639005225;                 // Time of PoW hash method change
@@ -452,14 +436,6 @@ public:
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].bit = 28;
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nStartTime = 0;
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nTimeout = 999999999999ULL;
-        consensus.vDeployments[Consensus::DEPLOYMENT_ASSETS].bit = 6;
-        consensus.vDeployments[Consensus::DEPLOYMENT_ASSETS].nStartTime = 0;
-        consensus.vDeployments[Consensus::DEPLOYMENT_ASSETS].nTimeout = 999999999999ULL;
-
-        // Crow Algo Deployment (testnet)
-        consensus.vDeployments[Consensus::DEPLOYMENT_CROW].bit = 7;
-        consensus.vDeployments[Consensus::DEPLOYMENT_CROW].nStartTime = 0;
-        consensus.vDeployments[Consensus::DEPLOYMENT_CROW].nTimeout = 999999999999ULL;
 
         // Crow Algo consensus
         consensus.powForkTime = 1629951212;        // Time of PoW hash method change
