@@ -367,7 +367,7 @@ public:
         vector<FounderRewardStructure> rewardStructures = {
             {INT_MAX, 5} // 5% founder/dev fee forever
         };
-        consensus.nFounderPayment = FounderPayment(rewardStructures, 200, "n1BurnXXXXXXXXXXXXXXXXXXXXXXU1qejP"); // Block 200 (burn coins)
+        consensus.nFounderPayment = FounderPayment(rewardStructures, 150, "n1BurnXXXXXXXXXXXXXXXXXXXXXXU1qejP"); // Block 150 (burn coins)
 
         fDefaultConsistencyChecks = false;
         fRequireStandard = false;
@@ -381,14 +381,11 @@ public:
         };
 
         chainTxData = ChainTxData{
-            // Update as we know more about the contents of the Avian chain
-            // Stats as of 0000cd2943664b4bda8be6e80351f9ff022475ae6a341a868babc4efd846000d block 42000
-            1654349227, // * UNIX timestamp of last known number of transactions
-            66085,     // * total number of transactions between genesis and that timestamp
-                       //   (the tx=... number in the SetBestChain debug.log lines)
-            0.001      // * estimated number of transactions per second after that timestamp
+            0,
+            0,
+            0
         };
-	    
+
         /** AVN Start **/
         // Burn Amounts
         nIssueAssetBurnAmount = 500 * COIN;
