@@ -379,8 +379,7 @@ public:
         vector<FounderRewardStructure> rewardStructures = {
             {INT_MAX, 5} // 5% founder/dev fee forever
         };
-        // TODO: NEED TO SET TESTNET REWARD ADDRESS
-        consensus.nFounderPayment = FounderPayment(rewardStructures, 200, "NEEDTOSETASTESTNETREWARDADDRESS"); // Block 200
+        consensus.nFounderPayment = FounderPayment(rewardStructures, 200, "n1BurnXXXXXXXXXXXXXXXXXXXXXXU1qejP"); // Block 200 (burn coins)
 
         fDefaultConsistencyChecks = false;
         fRequireStandard = false;
