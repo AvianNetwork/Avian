@@ -379,7 +379,7 @@ public:
         vector<FounderRewardStructure> rewardStructures = {
             {INT_MAX, 5} // 5% founder/dev fee forever
         };
-        consensus.nFounderPayment = FounderPayment(rewardStructures, 200, "n1BurnXXXXXXXXXXXXXXXXXXXXXXU1qejP"); // Block 200 (burn coins)
+        consensus.nFounderPayment = FounderPayment(rewardStructures, 47963, "n1BurnXXXXXXXXXXXXXXXXXXXXXXU1qejP"); // Block 47963 (burn coins)
 
         fDefaultConsistencyChecks = false;
         fRequireStandard = false;
