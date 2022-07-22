@@ -17,7 +17,7 @@
 #include <string>
 #include <vector>
 
-UniValue call_function(const JSONRPCRequest& request)
+UniValue call_flightplan(const JSONRPCRequest& request)
 {
     if (!AreFlightPlansDeployed())
         throw std::runtime_error(
@@ -25,16 +25,16 @@ UniValue call_function(const JSONRPCRequest& request)
 
     if (request.fHelp || request.params.size() < 2)
         throw std::runtime_error(
-            "call_function\n"
+            "call_flightplan\n"
             "\nCall an Avian flight plan function.\n"
             "\nArguments:\n"
-            "1. contract name      (string, required) Lua file.\n"
-            "2. function      (string, required) Lua function.\n"
-            "3. args      (string, not needed) Lua args.\n"
+            "1. flightplan_name    (string, required) Lua file.\n"
+            "2. function           (string, required) Lua function.\n"
+            "3. args               (string, not needed) Lua args.\n"
             "\nResult:\n"
             "1.    (string) Result from called function\n"
             "\nExamples:\n" +
-            HelpExampleCli("call_function", "\"social\" \"getLikes\"") + HelpExampleRpc("call_function", "\"social\" \"getLikes\""));
+            HelpExampleCli("call_flightplan", "\"social\" \"getLikes\"") + HelpExampleRpc("call_flightplan", "\"social\" \"getLikes\""));
 
     LOCK(cs_main);
 
@@ -104,7 +104,7 @@ UniValue list_flightplans(const JSONRPCRequest& request)
 static const CRPCCommand commands[] =
     { //  category              name                      actor (function)         argNames
       //  --------------------- ------------------------  -----------------------  ----------
-        {"flightplans",         "call_function",          &call_function,          {"contract_name", "function", "args"}},
+        {"flightplans",         "call_flightplan",        &call_flightplan,        {"flightplan_name", "function", "args"}},
         {"flightplans",         "list_flightplans",       &list_flightplans,       {}}
     };
 
