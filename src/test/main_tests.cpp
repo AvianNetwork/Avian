@@ -17,7 +17,7 @@ BOOST_FIXTURE_TEST_SUITE(main_tests, TestingSetup)
     static void TestBlockSubsidyHalvings(const Consensus::ConsensusParams &consensusParams)
     {
         int maxHalvings = 64;
-        CAmount nInitialSubsidy = 5000 * COIN;
+        CAmount nInitialSubsidy = 2500 * COIN;
 
         CAmount nPreviousSubsidy = nInitialSubsidy * 2; // for height == 0
         BOOST_CHECK_EQUAL(nPreviousSubsidy, nInitialSubsidy * 2);
@@ -62,7 +62,7 @@ BOOST_FIXTURE_TEST_SUITE(main_tests, TestingSetup)
             nSum += nSubsidy * 1000;
             BOOST_CHECK(MoneyRange(nSum));
         }
-        BOOST_CHECK_EQUAL(nSum, 2078125000000000000ULL);
+        BOOST_CHECK_EQUAL(nSum, 1039062500000000000);
     }
 
     bool ReturnFalse()

@@ -162,6 +162,7 @@ BOOST_FIXTURE_TEST_SUITE(script_tests, BasicTestingSetup)
         {
             flags |= SCRIPT_VERIFY_P2SH;
             flags |= SCRIPT_VERIFY_WITNESS;
+            flags |= SCRIPT_ENABLE_SIGHASH_FORKID;
         }
         ScriptError err;
         CMutableTransaction txCredit = BuildCreditingTransaction(scriptPubKey, nValue);
@@ -1465,15 +1466,11 @@ BOOST_FIXTURE_TEST_SUITE(script_tests, BasicTestingSetup)
                 CScript() << ToByteVector(ParseHex(derSig + "01")) << vchPubKey, true));
         BOOST_CHECK_EQUAL(derSig + "[NONE] " + pubKey, ScriptToAsmStr(
                 CScript() << ToByteVector(ParseHex(derSig + "02")) << vchPubKey, true));
-        BOOST_CHECK_EQUAL(derSig + "[SINGLE] " + pubKey, ScriptToAsmStr(
-                CScript() << ToByteVector(ParseHex(derSig + "03")) << vchPubKey, true));
         BOOST_CHECK_EQUAL(derSig + "[ALL|ANYONECANPAY] " + pubKey, ScriptToAsmStr(
                 CScript() << ToByteVector(ParseHex(derSig + "81")) << vchPubKey, true));
         BOOST_CHECK_EQUAL(derSig + "[NONE|ANYONECANPAY] " + pubKey, ScriptToAsmStr(
                 CScript() << ToByteVector(ParseHex(derSig + "82")) << vchPubKey, true));
-        BOOST_CHECK_EQUAL(derSig + "[SINGLE|ANYONECANPAY] " + pubKey, ScriptToAsmStr(
-                CScript() << ToByteVector(ParseHex(derSig + "83")) << vchPubKey, true));
-
+                
         BOOST_CHECK_EQUAL(derSig + "00 " + pubKey, ScriptToAsmStr(
                 CScript() << ToByteVector(ParseHex(derSig + "00")) << vchPubKey));
         BOOST_CHECK_EQUAL(derSig + "80 " + pubKey, ScriptToAsmStr(
