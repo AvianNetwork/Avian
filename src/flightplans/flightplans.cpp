@@ -32,8 +32,10 @@ FlightPlanResult AvianFlightPlans::run_file(const char* file, const char* func, 
     lua_State* L = luaL_newstate();
 
     // Make standard libraries available in the Lua object
-    // TODO: Add security measures here
-    luaL_openlibs(L);
+    luaopen_base(L);
+    luaopen_table(L);
+    luaopen_string(L);
+    luaopen_math(L);
 
     // Register Avian lib
     register_avianlib(L);
