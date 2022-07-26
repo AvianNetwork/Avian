@@ -25,6 +25,9 @@
 #include "sph_whirlpool.h"
 #include "sph_sha2.h"
 #include "sph_haval.h"
+
+#include "version.h"
+#include "serialize.h"
 #include "../crypto/sha256.h"
 
 #include "sph_tiger.h"
@@ -90,7 +93,50 @@ inline uint256 Hash(const T1 pbegin, const T1 pend)
     return result;
 }
 
-//x16r
+/** A writer stream (for serialization) that computes a 256-bit hash. */
+class CHashWriter
+{
+private:
+    CHash256 ctx;
+
+public:
+    int nType;
+    int nVersion;
+
+    CHashWriter(int nTypeIn, int nVersionIn) : nType(nTypeIn), nVersion(nVersionIn) {}
+
+    int GetType() const { return nType; }
+    int GetVersion() const { return nVersion; }
+
+    void write(const char *pch, size_t size) {
+        ctx.Write((const unsigned char*)pch, size);
+    }
+
+    // invalidates the object
+    uint256 GetHash() {
+        uint256 result;
+        ctx.Finalize((unsigned char*)&result);
+        return result;
+    }
+
+    template<typename T>
+    CHashWriter& operator<<(const T& obj) {
+        // Serialize to this stream
+        ::Serialize(*this, obj);
+        return (*this);
+    }
+};
+
+/** Compute the 256-bit hash of an object's serialization. */
+template<typename T>
+uint256 SerializeHash(const T& obj, int nType=SER_GETHASH, int nVersion=PROTOCOL_VERSION)
+{
+    CHashWriter ss(nType, nVersion);
+    ss << obj;
+    return ss.GetHash();
+}
+
+// x16r
 template<typename T1>
 inline uint256 HashX16R(const T1 pbegin, const T1 pend, const uint256 PrevBlockHash)
 {

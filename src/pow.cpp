@@ -491,7 +491,7 @@ bool CheckProofOfWork(uint256 hash, unsigned int nBits, const Consensus::Consens
 bool CheckProofOfWork(const CBlockHeader& blockheader, const Consensus::ConsensusParams& params)
 {
 	if (blockheader.GetBlockTime() > params.diffRetargetTake2)
-		return CheckProofOfWorkCrow(blockheader.GetHash(), blockheader.nBits, params, blockheader.GetPoWType());
+		return CheckProofOfWorkCrow(blockheader.GetPoWHash(), blockheader.nBits, params, blockheader.GetPoWType());
 	else
-		return CheckProofOfWork(blockheader.GetHash(), blockheader.nBits, params);
+		return CheckProofOfWork(blockheader.GetPoWHash(), blockheader.nBits, params);
 }
