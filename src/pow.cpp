@@ -128,7 +128,7 @@ bool IsTransitioningToX16rt(const CBlockIndex* pindexLast, const CBlockHeader *p
     if (pblock->nTime <= params.nX16rtTimestamp)
         return false;
         
-    int64_t dgwWindow = 0; // RVL does not have DGWPastBlocks so no need to check.
+    int64_t dgwWindow = 0; // AVN does not have DGWPastBlocks so no need to check.
 
     const CBlockIndex* pindex = pindexLast;
     
