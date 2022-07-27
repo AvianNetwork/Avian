@@ -528,7 +528,7 @@ BOOST_FIXTURE_TEST_SUITE(asset_tx_tests, BasicTestingSetup)
         bool fCheckBlock = false;
 
         // Check that the CheckTransaction will fail when trying to add it to the mempool
-        bool fCheck = !CheckTransaction(tx, state, true, fCheckMempool, fCheckBlock);
+        bool fCheck = !CheckTransaction(tx, state, 0, 0, true, fCheckMempool, fCheckBlock);
 
         BOOST_CHECK(fCheck);
         BOOST_CHECK(state.GetRejectReason() == "bad-mempool-txns-asset-reissued-amount-isn't-zero");
@@ -539,7 +539,7 @@ BOOST_FIXTURE_TEST_SUITE(asset_tx_tests, BasicTestingSetup)
         // Turn on the BIP that enforces the block check
         SetEnforcedValues(true);
 
-        fCheck = !CheckTransaction(tx, state, true, fCheckMempool, fCheckBlock);
+        fCheck = !CheckTransaction(tx, state, 0, 0, true, fCheckMempool, fCheckBlock);
         BOOST_CHECK(fCheck);
         BOOST_CHECK(state.GetRejectReason() == "bad-txns-asset-reissued-amount-isn't-zero");
     }
@@ -591,14 +591,14 @@ BOOST_FIXTURE_TEST_SUITE(asset_tx_tests, BasicTestingSetup)
         // Setting the coinbase check to true
         // This check should now fail on the CheckTransaction call
         SetEnforcedCoinbase(true);
-        bool fCheck = CheckTransaction(tx, state, true);
+        bool fCheck = CheckTransaction(tx, state, 0, 0, true);
         BOOST_CHECK(!fCheck);
         BOOST_CHECK(state.GetRejectReason() == "bad-txns-coinbase-contains-asset-txes");
 
         // Setting the coinbase check to false
         // This check should now pass the CheckTransaction call
         SetEnforcedCoinbase(false);
-        fCheck = CheckTransaction(tx, state, true);
+        fCheck = CheckTransaction(tx, state, 0, 0, true);
         BOOST_CHECK(fCheck);
 
         // Remove wallet used for testing

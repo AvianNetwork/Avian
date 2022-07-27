@@ -205,7 +205,7 @@ BOOST_FIXTURE_TEST_SUITE(sighash_tests, BasicTestingSetup)
                 stream >> tx;
 
                 CValidationState state;
-                BOOST_CHECK_MESSAGE(CheckTransaction(*tx, state), strTest);
+                BOOST_CHECK_MESSAGE(CheckTransaction(*tx, state, 0, 0), strTest);
                 BOOST_CHECK(state.IsValid());
 
                 std::vector<unsigned char> raw = ParseHex(raw_script);
