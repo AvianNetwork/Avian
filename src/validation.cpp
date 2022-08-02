@@ -4246,9 +4246,9 @@ static bool ContextualCheckBlockHeader(const CBlockHeader& block, CValidationSta
     if (!IsCrowEnabled(pindexPrev,consensusParams)) {
         // nothing to do
     } else {
-        // // Top 8 bits must be zero
-        // if (block.nVersion & 0xFF000000)
-        //     return state.Invalid(false, REJECT_OBSOLETE, strprintf("old-versionbits(0x%08x)", block.nVersion), strprintf("rejected nVersion=0x%08x block (old versionbits)", block.nVersion));
+        // Top 8 bits must be zero
+        if (block.nVersion & 0xFF000000 != 536870912)
+            return state.Invalid(false, REJECT_OBSOLETE, strprintf("old-versionbits(0x%08x)", block.nVersion), strprintf("rejected nVersion=0x%08x block (old versionbits)", block.nVersion));
 
         // Blocktype must be valid
         uint8_t blockType = (block.nVersion >> 16) & 0xFF;
