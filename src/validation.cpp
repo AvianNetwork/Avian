@@ -2349,6 +2349,10 @@ int32_t ComputeBlockVersion(const CBlockIndex* pindexPrev, const Consensus::Cons
         if (IsCrowEnabled(pindexPrev, params))
             nVersion = 0;
     }
+    
+    /** If the assets are deployed now. We need to use the correct block version */
+    if (AreAssetsDeployed())
+        nVersion = VERSIONBITS_TOP_BITS_ASSETS;
 
     for (int i = 0; i < (int)Consensus::MAX_VERSION_BITS_DEPLOYMENTS; i++) {
         ThresholdState state = VersionBitsState(pindexPrev, params, (Consensus::DeploymentPos)i, versionbitscache);
@@ -4221,6 +4225,10 @@ static bool ContextualCheckBlockHeader(const CBlockHeader& block, CValidationSta
         if (block.GetBlockTime() > nAdjustedTime + max_future_block_time)
             return state.Invalid(false, REJECT_INVALID, "time-too-new", "block timestamp too far in the future");
     }
+
+    // Reject outdated veresion blocks onces assets are active.
+    if (AreAssetsDeployed() && block.nVersion < VERSIONBITS_TOP_BITS_ASSETS)
+        return state.Invalid(false, REJECT_OBSOLETE, strprintf("bad-version(0x%08x)", block.nVersion), strprintf("rejected nVersion=0x%08x block", block.nVersion));
 
     // Reject outdated version blocks when 95% (75% on testnet) of the network has upgraded:
     // check for version 2, 3 and 4 upgrades
