@@ -10,7 +10,7 @@
  * network protocol versioning
  */
 
-static const int PROTOCOL_VERSION = 70032;
+static const int PROTOCOL_VERSION = 70033;
 
 //! initial proto version, to be increased after version/verack negotiation
 static const int INIT_PROTO_VERSION = 209;
@@ -22,7 +22,7 @@ static const int GETHEADERS_VERSION = 31800;
 static const int ASSETDATA_VERSION = 70017;
 
 //! x16rt + crow algo
-static const int CROW_VERSION = 70031;
+static const int CROW_VERSION = 70032;
 
 //! disconnect from peers older than this proto version
 static const int MIN_PEER_PROTO_VERSION = CROW_VERSION;
