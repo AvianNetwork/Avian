@@ -107,7 +107,7 @@ bool fIsBareMultisigStd = DEFAULT_PERMIT_BAREMULTISIG;
 bool fRequireStandard = true;
 bool fCheckBlockIndex = false;
 bool fCheckpointsEnabled = DEFAULT_CHECKPOINTS_ENABLED;
-size_t nCoinCacheUsage = 5000 * 300;
+size_t nCoinCacheUsage = 2500 * 300;
 uint64_t nPruneTarget = 0;
 int64_t nMaxTipAge = DEFAULT_MAX_TIP_AGE;
 bool fEnableReplacement = DEFAULT_ENABLE_REPLACEMENT;
@@ -2344,9 +2344,15 @@ int32_t ComputeBlockVersion(const CBlockIndex* pindexPrev, const Consensus::Cons
     LOCK(cs_main);
     int32_t nVersion = VERSIONBITS_TOP_BITS;
 
-    // // Crow: Set bit 29 to 0
-    // if (IsCrowEnabled(pindexPrev, params))
-    //     nVersion = 0;
+    // Crow: Set bit 29 to 0
+    if (pindexPrev != nullptr) {
+        if (IsCrowEnabled(pindexPrev, params))
+            nVersion = 0;
+    }
+    
+    /** If the assets are deployed now. We need to use the correct block version */
+    if (AreAssetsDeployed())
+        nVersion = VERSIONBITS_TOP_BITS_ASSETS;
 
     for (int i = 0; i < (int)Consensus::MAX_VERSION_BITS_DEPLOYMENTS; i++) {
         ThresholdState state = VersionBitsState(pindexPrev, params, (Consensus::DeploymentPos)i, versionbitscache);
@@ -2354,6 +2360,9 @@ int32_t ComputeBlockVersion(const CBlockIndex* pindexPrev, const Consensus::Cons
             nVersion |= VersionBitsMask(params, (Consensus::DeploymentPos)i);
         }
     }
+
+    // TODO: fix this
+    nVersion |= 1 << 25;
 
     return nVersion;
 }
@@ -2376,9 +2385,15 @@ public:
 
     bool Condition(const CBlockIndex* pindex, const Consensus::ConsensusParams& params) const override
     {
-        return ((pindex->nVersion & VERSIONBITS_TOP_MASK) == VERSIONBITS_TOP_BITS) &&
-               ((pindex->nVersion >> bit) & 1) != 0 &&
-               ((ComputeBlockVersion(pindex->pprev, params) >> bit) & 1) == 0;
+        // Crow: Versionbits always active since powforktime and high bits repurposed at minotaurx UASF activation;
+        // So, don't use VERSIONBITS_TOP_MASK any time past powforktime
+        if (pindex->nTime > params.powForkTime)
+            return ((pindex->nVersion >> bit) & 1) != 0 &&
+                ((ComputeBlockVersion(pindex->pprev, params) >> bit) & 1) == 0;
+        else
+            return ((pindex->nVersion & VERSIONBITS_TOP_MASK) == VERSIONBITS_TOP_BITS) &&
+                ((pindex->nVersion >> bit) & 1) != 0 &&
+                ((ComputeBlockVersion(pindex->pprev, params) >> bit) & 1) == 0;
     }
 };
 
@@ -3161,8 +3176,11 @@ void static UpdateTip(CBlockIndex *pindexNew, const CChainParams& chainParams) {
         for (int i = 0; i < 100 && pindex != nullptr; i++)
         {
             int32_t nExpectedVersion = ComputeBlockVersion(pindex->pprev, chainParams.GetConsensus());
-            if (pindex->nVersion > nExpectedVersion)
-                ++nUpgraded;
+            // Crow: Mask out blocktype before checking for possible unknown upgrade
+            if (IsCrowEnabled(pindex, chainParams.GetConsensus())) {
+                if (pindex->nVersion & 0xFF00FFFF != nExpectedVersion)
+                    ++nUpgraded;
+            }
             pindex = pindex->pprev;
         }
         if (nUpgraded > 0)
@@ -4208,6 +4226,10 @@ static bool ContextualCheckBlockHeader(const CBlockHeader& block, CValidationSta
             return state.Invalid(false, REJECT_INVALID, "time-too-new", "block timestamp too far in the future");
     }
 
+    // Reject outdated veresion blocks onces assets are active.
+    if (AreAssetsDeployed() && block.nVersion < VERSIONBITS_TOP_BITS_ASSETS)
+        return state.Invalid(false, REJECT_OBSOLETE, strprintf("bad-version(0x%08x)", block.nVersion), strprintf("rejected nVersion=0x%08x block", block.nVersion));
+
     // Reject outdated version blocks when 95% (75% on testnet) of the network has upgraded:
     // check for version 2, 3 and 4 upgrades
     // if((block.nVersion < 2 && nHeight >= consensusParams.BIP34Height) ||
@@ -4217,10 +4239,9 @@ static bool ContextualCheckBlockHeader(const CBlockHeader& block, CValidationSta
     //                              strprintf("rejected nVersion=0x%08x block", block.nVersion));
 
     // Crow: Handle nVersion differently after activation
-    if (!IsCrowEnabled(pindexPrev,consensusParams)) {
-        // nothing to do
-    } else {
-        // Top 8 bits must be zero
+    if (IsCrowEnabled(pindexPrev,consensusParams)) {
+        // TODO: Fix version bit checking 
+        // // Top 8 bits must be zero
         // if (block.nVersion & 0xFF000000)
         //     return state.Invalid(false, REJECT_OBSOLETE, strprintf("old-versionbits(0x%08x)", block.nVersion), strprintf("rejected nVersion=0x%08x block (old versionbits)", block.nVersion));
 
