@@ -2349,7 +2349,7 @@ int32_t ComputeBlockVersion(const CBlockIndex* pindexPrev, const Consensus::Cons
         if (IsCrowEnabled(pindexPrev, params))
             nVersion = 0;
     }
-    
+
     /** If the assets are deployed now. We need to use the correct block version */
     if (AreAssetsDeployed())
         nVersion = VERSIONBITS_TOP_BITS_ASSETS;
