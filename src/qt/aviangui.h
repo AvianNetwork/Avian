@@ -32,7 +32,6 @@ class UnitDisplayStatusBarControl;
 class WalletFrame;
 class WalletModel;
 class HelpMessageDialog;
-class PoolPicker;
 class ModalOverlay;
 
 QT_BEGIN_NAMESPACE
@@ -124,7 +123,6 @@ private:
     QAction *changePassphraseAction;
     QAction *aboutQtAction;
     QAction *openRPCConsoleAction;
-    QAction *openPoolPicker;
     QAction *openAction;
     QAction *showHelpMessageAction;
 
@@ -135,7 +133,7 @@ private:
     QAction *messagingAction;
     QAction *getMyWordsAction;
     QAction *votingAction;
-    QAction *devAction;
+    QAction *restrictedAssetAction;
     QAction *wrapAction;
     QWidget *headerWidget;
     QLabel *labelCurrentMarket;
@@ -255,6 +253,7 @@ private Q_SLOTS:
     void gotoAssetsPage();
     void gotoCreateAssetsPage();
     void gotoManageAssetsPage();
+    void gotoRestrictedAssetsPage();
     void gotoWrapPage();
     /** AVN END */
 
@@ -265,8 +264,6 @@ private Q_SLOTS:
     void aboutClicked();
     /** Show debug window */
     void showDebugWindow();
-    /** Show pool picker window */
-    void showPoolPicker();
     /** Show debug window and set focus to the console */
     void showDebugWindowActivateConsole();
     /** Show help message dialog */

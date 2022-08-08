@@ -1,6 +1,7 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
 // Copyright (c) 2009-2016 The Bitcoin Core developers
 // Copyright (c) 2017-2020 The Raven Core developers
+// Copyright (c) 2022 The Avian Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -94,6 +95,7 @@ int nScriptCheckThreads = 0;
 std::atomic_bool fImporting(false);
 std::atomic_bool fReindex(false);
 bool fMessaging = false;
+bool fRestricted = false;
 bool fTxIndex = false;
 bool fAssetIndex = false;
 bool fAddressIndex = false;
@@ -3161,7 +3163,7 @@ void static UpdateTip(CBlockIndex *pindexNew, const CChainParams& chainParams) {
             ThresholdState state = checker.GetStateFor(pindex, chainParams.GetConsensus(), warningcache[bit]);
             if (state == THRESHOLD_ACTIVE || state == THRESHOLD_LOCKED_IN) {
                 const std::string strWarning = strprintf(_("Warning: unknown new rules activated (versionbit %i)"), bit);
-                if (bit == 28 || bit == 25) // DUMMY TEST BIT
+                if (bit == 28 || bit == 25 || bit == 6 || bit == 7) // DUMMY TEST BIT
                     continue;
                 if (state == THRESHOLD_ACTIVE) {
                     DoWarning(strWarning);
@@ -3183,12 +3185,6 @@ void static UpdateTip(CBlockIndex *pindexNew, const CChainParams& chainParams) {
         }
         if (nUpgraded > 0)
             warningMessages.push_back(strprintf(_("%d of last 100 blocks have unexpected version"), nUpgraded));
-        if (nUpgraded > 100/2)
-        {
-            std::string strWarning = _("Warning: Unknown block versions being mined! It's possible unknown rules are in effect");
-            // notify GetWarnings(), called by Qt and the JSON-RPC code to warn the user:
-            DoWarning(strWarning);
-        }
     }
     LogPrintf("%s: new best=%s height=%d version=0x%08x log2_work=%.8g tx=%lu date='%s' progress=%f cache=%.1fMiB(%utxo)", __func__,
       chainActive.Tip()->GetBlockHash().ToString(), chainActive.Height(), chainActive.Tip()->nVersion,
@@ -4230,6 +4226,10 @@ static bool ContextualCheckBlockHeader(const CBlockHeader& block, CValidationSta
             return state.Invalid(false, REJECT_INVALID, "time-too-new", "block timestamp too far in the future");
     }
 
+    // Reject outdated veresion blocks onces assets are active.
+    if (AreAssetsDeployed() && block.nVersion < VERSIONBITS_TOP_BITS_ASSETS)
+        return state.Invalid(false, REJECT_OBSOLETE, strprintf("bad-version(0x%08x)", block.nVersion), strprintf("rejected nVersion=0x%08x block", block.nVersion));
+
     // Reject outdated version blocks when 95% (75% on testnet) of the network has upgraded:
     // check for version 2, 3 and 4 upgrades
     // if((block.nVersion < 2 && nHeight >= consensusParams.BIP34Height) ||
@@ -4238,17 +4238,12 @@ static bool ContextualCheckBlockHeader(const CBlockHeader& block, CValidationSta
     //         return state.Invalid(false, REJECT_OBSOLETE, strprintf("bad-version(0x%08x)", block.nVersion),
     //                              strprintf("rejected nVersion=0x%08x block", block.nVersion));
 
-    // Reject outdated veresion blocks onces assets are active.
-    if (AreAssetsDeployed() && block.nVersion < VERSIONBITS_TOP_BITS_ASSETS)
-        return state.Invalid(false, REJECT_OBSOLETE, strprintf("bad-version(0x%08x)", block.nVersion), strprintf("rejected nVersion=0x%08x block", block.nVersion));
-
     // Crow: Handle nVersion differently after activation
-    if (!IsCrowEnabled(pindexPrev,consensusParams)) {
-        // nothing to do
-    } else {
-        // Top 8 bits must be zero
-        if (block.nVersion & 0xFF000000 != 536870912)
-            return state.Invalid(false, REJECT_OBSOLETE, strprintf("old-versionbits(0x%08x)", block.nVersion), strprintf("rejected nVersion=0x%08x block (old versionbits)", block.nVersion));
+    if (IsCrowEnabled(pindexPrev,consensusParams)) {
+        // TODO: Fix version bit checking 
+        // // Top 8 bits must be zero
+        // if (block.nVersion & 0xFF000000)
+        //     return state.Invalid(false, REJECT_OBSOLETE, strprintf("old-versionbits(0x%08x)", block.nVersion), strprintf("rejected nVersion=0x%08x block (old versionbits)", block.nVersion));
 
         // Blocktype must be valid
         uint8_t blockType = (block.nVersion >> 16) & 0xFF;
@@ -5910,21 +5905,24 @@ bool AreFlightPlansDeployed()
     return fFlightPlansIsActive;
 }
 
-bool IsRip5Active()
-{
-    if (fRip5IsActive)
+bool AreMessagesDeployed() {
+    if (fMessaging)
         return true;
 
-    // TODO: Fix
-    // const ThresholdState thresholdState = VersionBitsTipState(Params().GetConsensus(), Consensus::DEPLOYMENT_MSG_REST_ASSETS);
-    // if (thresholdState == THRESHOLD_ACTIVE)
-    //     fRip5IsActive = true;
+    if ((chainActive.Tip() != nullptr) && chainActive.Tip()->nTime > Params().GetConsensus().nMessagingActivationTime)
+        fMessaging = true;
 
-    return false;
+    return fMessaging;
 }
 
-bool AreMessagesDeployed() {
-    return IsRip5Active();
+bool AreRestrictedAssetsDeployed() {
+    if (fRestricted)
+        return true;
+
+    if ((chainActive.Tip() != nullptr) && chainActive.Tip()->nTime > Params().GetConsensus().nRestrictedActivationTime)
+        fRestricted = true;
+
+    return fRestricted;
 }
 
 bool AreTransferScriptsSizeDeployed() {
@@ -5940,30 +5938,8 @@ bool AreTransferScriptsSizeDeployed() {
     return false;
 }
 
-bool AreRestrictedAssetsDeployed() {
-
-    return IsRip5Active();
-}
-
 bool IsDGWActive(unsigned int nBlockNumber) {
     return nBlockNumber >= Params().DGWActivationBlock();
-}
-
-bool IsMessagingActive(unsigned int nBlockNumber) {
-    if (Params().MessagingActivationBlock()) {
-        return nBlockNumber > Params().MessagingActivationBlock();
-    } else {
-        return AreMessagesDeployed();
-    }
-}
-
-bool IsRestrictedActive(unsigned int nBlockNumber)
-{
-    if (Params().RestrictedActivationBlock()) {
-        return nBlockNumber > Params().RestrictedActivationBlock();
-    } else {
-        return AreRestrictedAssetsDeployed();
-    }
 }
 
 CAssetsCache* GetCurrentAssetCache()

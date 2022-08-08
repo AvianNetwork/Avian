@@ -199,6 +199,7 @@ extern CConditionVariable cvBlockChange;
 extern std::atomic_bool fImporting;
 extern std::atomic_bool fReindex;
 extern bool fMessaging;
+extern bool fRestricted;
 extern int nScriptCheckThreads;
 extern bool fTxIndex;
 extern bool fAssetIndex;
@@ -616,14 +617,9 @@ bool AreCoinbaseCheckAssetsDeployed();
 void SetEnforcedValues(bool value);
 void SetEnforcedCoinbase(bool value);
 
-bool IsRip5Active();
-
-
 bool AreTransferScriptsSizeDeployed();
 
 bool IsDGWActive(unsigned int nBlockNumber);
-bool IsMessagingActive(unsigned int nBlockNumber);
-bool IsRestrictedActive(unsigned int nBlockNumber);
 
 CAssetsCache* GetCurrentAssetCache();
 /** AVN END */
