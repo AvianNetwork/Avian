@@ -1486,15 +1486,6 @@ ReceiveRequestDialog#outUri {
 QWidget#RPCConsole QLabel#label_9,
 QWidget#RPCConsole QLabel#labelNetwork,
 QWidget#RPCConsole QLabel#label_10,
-QWidget#RPCConsole QLabel#labelMempoolTitle,
-QWidget#RPCConsole QLabel#label_repair_header,
-QWidget#RPCConsole QLabel#peerHeading,
-QWidget#RPCConsole QLabel#banHeading {
-}
-
-QWidget#RPCConsole QLabel#label_9,
-QWidget#RPCConsole QLabel#labelNetwork,
-QWidget#RPCConsole QLabel#label_10,
 QWidget#RPCConsole QLabel#labelMempoolTitle {
     qproperty-alignment: 'AlignLeft | AlignBottom';
     min-height: 25px;
@@ -1507,7 +1498,6 @@ QWidget#RPCConsole  QLabel#banHeading {
     margin-bottom: 15px;
     font-weight: bold;
 }
-
 
 QWidget#RPCConsole QPushButton#promptIcon {
     background-color: #2E2E2E;
@@ -1545,10 +1535,8 @@ QWidget#RPCConsole QLineEdit#lineEdit {
 }
 
 QWidget#RPCConsole .QToolButton {
-    background-color: transparent;
     margin-left: 3px;
-    margin-bottom:5px;
-    border: 0;
+    margin-bottom: 5px;
 }
 
 QWidget#RPCConsole .QGroupBox #line {
