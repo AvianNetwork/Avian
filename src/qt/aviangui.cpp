@@ -716,7 +716,6 @@ void AvianGUI::createToolBars()
         // Set the headers widget options
         headerWidget->setContentsMargins(0,0,0,50);
         headerWidget->setStyleSheet(widgetBackgroundSytleSheet);
-        headerWidget->setGraphicsEffect(GUIUtil::getShadowEffect());
         headerWidget->setFixedHeight(75);
 
         // Set the pricing information
