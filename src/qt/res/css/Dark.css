@@ -1525,8 +1525,8 @@ QWidget#RPCConsole QPushButton#clearButton {
 }
 
 QWidget#RPCConsole QTextEdit#messagesWidget {
-    background-color: #f4f4f4;
-    color: #110202;    
+    background-color: #272727;
+    color: #ffffff;    
     padding: 10px;
 }
 
