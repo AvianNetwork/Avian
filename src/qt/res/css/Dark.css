@@ -1406,6 +1406,10 @@ QWidget .QFrame#frame .QLabel#labelWatchTotal {
     font-weight: bold;
 }
 
+QWidget .QFrame#frame {
+    border-radius: 10px;
+}
+
 /* Header */
 
 QLabel#labelCurrentMarket,
@@ -1437,10 +1441,15 @@ QWidget .QFrame#assetFrame QListView {
     margin-right: 10px;
 }
 
+QWidget .QFrame#assetFrame {
+    border-radius: 10px;
+}
+
 /* OverviewPage RecentTransactions */
 
 QWidget .QFrame#frame_2 {
     min-width: 430;
+    border-radius: 10px;
 }
 
 QWidget .QFrame#frame_2 .QLabel#recentTransactionsLabel {
