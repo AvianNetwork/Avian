@@ -1310,106 +1310,27 @@ QWidget#OverviewPage QLabel#labelAlerts {
 
 /* OverviewPage Balances */
 
-QWidget .QFrame#frame .QLabel#avnBalancesLabel {
-    margin-right: 5px;
+QWidget .QFrame#frame .QLabel#avnBalancesLabel { 
     font-weight: bold;
 }
 
-QWidget .QFrame#frame .QLabel#labelSpendable { 
-    qproperty-alignment: 'AlignVCenter | AlignLeft';
-    margin-left: 15px;
-}
-
-QWidget .QFrame#frame .QLabel#labelWatchonly { 
-    qproperty-alignment: 'AlignVCenter | AlignLeft';
-    margin-left: 16px;
-}
-
-QWidget .QFrame#frame .QLabel#labelBalance { 
-    qproperty-alignment: 'AlignVCenter | AlignLeft';
-    margin-bottom: -1px;
-    margin-left: 0px;
-}
-
 QWidget .QFrame#frame .QLabel#avnBalancesLabel {
-    qproperty-alignment: 'AlignVCenter | AlignLeft';
-    margin-bottom: -1px;
-    margin-left: 0px;
-    color:#2B737F;    
+    color: #2B737F;    
     font: 15pt 'Manrope';
     font-weight: bold;
 }
 
-QWidget .QFrame#frame .QLabel#labelWatchAvailable {
-    qproperty-alignment: 'AlignVCenter | AlignLeft';
-    margin-bottom: -2px;
-    margin-left: 16px;
-}
-
-QWidget .QFrame#frame .QLabel#labelPendingText,
-QWidget .QFrame#frame .QLabel#labelBalanceText {
-    qproperty-alignment: 'AlignVCenter | AlignRight';
-    min-width: 100px;
-    margin-right: 5px;
-    padding-right: 5px;
-}
-
-QWidget .QFrame#frame .QLabel#labelUnconfirmed {
-    qproperty-alignment: 'AlignVCenter | AlignLeft';
-    margin-bottom: -2px;
-    margin-left: 0px;
-}
-
-QWidget .QFrame#frame .QLabel#labelWatchPending { 
-    qproperty-alignment: 'AlignVCenter | AlignLeft';
-    margin-bottom: -2px;
-    margin-left: 16px;
-}
-
-QWidget .QFrame#frame .QLabel#labelImmatureText {
-    qproperty-alignment: 'AlignVCenter | AlignRight';
-    min-width: 100px;
-    margin-right: 5px;
-    padding-right: 5px;
-}
-
-QWidget .QFrame#frame .QLabel#labelImmature { 
-    qproperty-alignment: 'AlignVCenter | AlignLeft';
-    margin-bottom: -2px;
-    margin-left: 0px;
-}
-
-QWidget .QFrame#frame .QLabel#labelWatchImmature {
-    qproperty-alignment: 'AlignVCenter | AlignLeft';
-    margin-bottom: -2px;
-    margin-left: 16px;
-}
-
-QWidget .QFrame#frame .QLabel#labelTotalText { 
-    qproperty-alignment: 'AlignVCenter | AlignRight';
-    min-width: 100px;
-    margin-right: 5px;
-    padding-right: 5px;
-}
-
 QWidget .QFrame#frame .QLabel#labelTotal { 
-    qproperty-alignment: 'AlignVCenter | AlignLeft';
-    margin-bottom: -2px;
-    margin-left: 0px;
     font-weight: bold;
 }
 
 QWidget .QFrame#frame .QLabel#labelWatchTotal {
-    qproperty-alignment: 'AlignVCenter | AlignLeft';
-    margin-bottom: -2px;
-    margin-left: 16px;
     font-weight: bold;
 }
 
 QWidget .QFrame#frame {
     border-radius: 10px;
 }
-
 /* Header */
 
 QLabel#labelCurrentMarket,
