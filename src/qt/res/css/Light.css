@@ -1282,21 +1282,12 @@ QWidget#OverviewPage > .QLabel {
     font: 13pt 'Manrope';    
 }
 
-QWidget#OverviewPage #line,
-QWidget#OverviewPage #line_2,
-QWidget#OverviewPage #line_3,
-QWidget#OverviewPage #assetBalanceLine,
-QWidget#OverviewPage #lineWatchBalance {
-    border-top: 1px solid #110202;
-}
-
 QWidget#OverviewPage QLabel#labelAlerts {
     background-color: #c79304;
     color: #222222;
     border-radius: 4px;
     padding: 5px;
 }
-
 
 #labelTransactionsStatus,
 #labelAssetStatus,
