@@ -36,7 +36,7 @@ jobs:
         include:
           - name: armhf-linux
             host: arm-linux-gnueabihf
-            os: ubuntu-18.04
+            os: ubuntu-22.04
             packages: g++-arm-linux-gnueabihf
             run-tests: false
             dep-opts: ""
@@ -44,7 +44,7 @@ jobs:
             goal: install
           - name: aarch64-linux
             host: aarch64-linux-gnu
-            os: ubuntu-18.04
+            os: ubuntu-22.04
             packages: g++-aarch64-linux-gnu
             run-tests: false
             dep-opts: ""
@@ -52,7 +52,7 @@ jobs:
             goal: install
           - name: x86_64-linux
             host: x86_64-unknown-linux-gnu
-            os: ubuntu-18.04
+            os: ubuntu-22.04
             packages: bc python3-zmq
             run-tests: false
             dep-opts: ""
@@ -62,7 +62,7 @@ jobs:
           - name: x86_64-win
             host: x86_64-w64-mingw32
             arch: "i386"
-            os: ubuntu-20.04
+            os: ubuntu-22.04
             packages: python3 nsis g++-mingw-w64-x86-64 wine64 bc wine-binfmt
             postinstall: |
               sudo update-alternatives --set x86_64-w64-mingw32-gcc  /usr/bin/x86_64-w64-mingw32-gcc-posix
