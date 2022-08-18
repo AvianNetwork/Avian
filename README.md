@@ -127,18 +127,71 @@ make -j8
 
 A digital peer to peer network for the facilitation of asset transfer.
 
-Having started development on August 12th of 2021, and active on mainnet since September 1st, Avian Lite (RVL) is a fork of Avian Classic (RVC), aimed primarily at bringing the means of development back into the hands of the community after RVC has been abandoned by its creators. With the RVC github locked, and software in disrepair, RVL seeks to improve upon the existing foundations by implementing the necessary updates and bug fixes need to bring the original x16r fork of Avian up to par with modern cryptocurrencies. 
+Having started development on August 12th of 2021, and active on mainnet since September 1st, Avian (AVN) is a fork of Ravencoin Lite (RVL) which is a fork of Ravencoin Classic (RVC), aimed primarily at bringing the means of development back into the hands of the community after RVC had been abandoned by its creators. With the RVC github locked, and software in disrepair, RVL seeked to improve upon the existing foundations by implementing the necessary updates and bug fixes need to bring the original x16r fork of Ravencoin Classic up to par with modern cryptocurrencies. 
 
-This project is being spearheaded by a small group of enthusiasts, representing the interests of the actual RVC community, as opposed to the original fork, which was created and maintained by Chinese ASIC manufacturers looking to make a return on their machines after AVN switched to the x16rv2 algorithm. As such, we are always seeking for people wishing to contribute their experience and knowhow to the development of Avian Lite.
+This project is being spearheaded by a small group of enthusiasts, representing the interests of the actual community, as opposed to the original fork, which was created and maintained by Chinese ASIC manufacturers looking to make a return on their machines after AVN switched to the x16rv2 algorithm. As such, we are always seeking for people wishing to contribute their experience and knowhow to the development of Avian.
 
-Our goal is to stick to the x16r algorithm as previously declared by the RVC project, however, we are aware of the potential threat that ASICs pose to the network, and are looking to mitigate it while staying true to our roots. Once all existing bugs have been fixed, and asset functionality restored, we aim to implement a secondary CPU algorithm, somewhat akin to Myriad (XMY), in order to help decentralize the mining of RVL without resorting to replacing the primary algo.
+Our oringinal goal was to stick to the x16r algorithm as previously declared by the RVC project, however, we were aware of the potential threat that ASICs pose to the network, and looked to mitigate it while staying true to our roots. All existing bugs have been fixed, and asset functionality is being developed. We implemented a secondary CPU algorithm, somewhat akin to Myriad (XMY) called MinotaurX which was developed by LitecoinCash (LCC), in order to help decentralize the mining of AVN without resorting to replacing the primary algo.
 
-I would like to reiterate that there are no professional developers on the dev team as of this date; we are merely a group of dedicated community members who got tired of waiting around for change and took matters into their own hands. As such, the speed of development will greatly depend on the amount of contributors. Let us come together as a community, and make the restoration of RVC a reality!
+I would like to reiterate that there are no professional developers on the dev team as of this date; we are merely a group of dedicated community members who got tired of waiting around for change and took matters into their own hands. As such, the speed of development will greatly depend on the amount of contributors. Let us come together as a community and help give AVN the wings it needs to soar high into the sky!
 
-Thank you to the Bitcoin developers.
+Thank you to the Bitcoin developers and the rest of the open source community for your hard work in the cryptospace.
 
-The Avian project is launched based on the hard work and continuous effort of over 400 Bitcoin developers who made over 14,000 commits over the life to date of the Bitcoin project. We are eternally grateful to you for your efforts and diligence in making a secure network and for their support of free and open source software development.  The Avian experiment is made on the foundation you built.
+The Avian project is launched based on the hard work and continuous effort of over 400 Bitcoin developers who made over 14,000 commits over the life to date of the Bitcoin project. We are eternally grateful to you for your efforts and diligence in making a secure network and for their support of free and open source software development.  The Avian experiment is made on the foundation you built and we will continue to expand upon the foundations laid.
 
 
 # Abstract
 
+                                      AVN
+                                   AVNAVNAVN
+                                AVNAVNAVNAVNA
+                              AVNAVNAVNAVNAVNAA
+                            AVNAVNAVNAVNAVNAVNAVN
+                            AVNAVNAA      AVNAVNA
+                            AVNAVNAA      AVNAVNAA
+            AVNA            AVNAVNAA      AVNAVNAA             AVNA
+        AVNAVNAVNA          AVNAVNAA      AVNAVNAA          AVNAVNAVNA
+      AVNAVNAVNAVNAA    AVNAVNAVNA        AVNAVNAVNAVN  AVNAVNAVNAVNAVNA
+    AVNAVNAVNAVNAVNAVNAVNAVNAVNAVN          AVNAVNAVNAVNAVNAVNAVNAVNAVNAVN
+  AVNAVNAVNA  AVNAVNAVNAVNAVNAVN            AVNAVNAVNAVNAVNAVNAVNAVNAVNAVNAA
+  AVNAVNAA        AVNAVNAVNAVNAA            AVNAVNAVNAVNAVNA        AVNAVNAA
+AVNAVNAVNA                AVNAVNAA          AVNAVNAA                AVNAVNAVNA
+AVNAVNAA                  AVNAVNAA        AVNAVNAVNA                  AVNAVNAA
+AVNAVNAA                  AVNAVNAVNA    AVNAVNAVNA                    AVNAVNAA
+AVNAVNAA    AVNA            AVNAVNAVNAVNAVNAVNAA              AVNA    AVNAVNAA
+AVNAVNAA    AVNAA             AVNAVNAVNAVNAVNA               AVNAA    AVNAVNAA
+AVNAVNAA    AVNAVN                AVNAVNAVNA                AVNAVN    AVNAVNAA
+AVNAVNAA    AVNAVNA                 AVNAVN                 AVNAVNA    AVNAVNAA
+AVNAVNA     AVNAA                     AA                    AVNAVN     AVNAVNA
+AVNAVNA     AVNAA       AVN                       AVNA      AVNAVN     AVNAVNA
+AVNAVNA     AVNAA       AVNAA                   AVNAVN      AVNAVN     AVNAVNA
+AVNAVNA     AVNAA       AVNAA                   AVNAVN      AVNAVN     AVNAVNA
+AVNAVNA     AVNAA       AVNAA                   AVNAVN      AVNAVN     AVNAVNA
+AVNAVNA     AVNAA       AVNAA                   AVNAVN      AVNAVN     AVNAVNA
+AVNAVNA     AVNAA       AVNAA                   AVNAVN      AVNAVN     AVNAVNA
+AVNAVNA     AVNAA       AVNAA                  AVNAVN       AVNAVN     AVNAVNA
+AVNAVNA     AVNAA       AVNAVNA             AVNAVNAVN       AVNAVN     AVNAVNA
+AVNAVNA     AVNAA         AVNAVNA           AVNAVNA         AVNAVN     AVNAVNA
+AVNAVNA     AVN           AVNAVNAVN       AVNAVNAVN            AVN     AVNAVNA
+AVNAVNA     A             AVNAVNAVN       AVNAVNAVN              A     AVNAVNA
+AVNAVNA         AVNAVNAVNAVNAVNAA           AVNAVNAVNAVNAVN            AVNAVNA
+AVNAVNA       AVNAVNAVNAVNAVNAA               AVNAVNAVNAVNAVNAA        AVNAVNA
+AVNAVNA     AVNAVNAVNAVNAVNAVNA               AVNAVNAVNAVNAVNAVNA      AVNAVNA
+AVNAVNA     AVNAVNAVNAVNAVNAVNAVN           AVNAVNAVNAVNAVNAVNAVN      AVNAVNA
+AVNAVNA     A   AVNAVNA        AA          AA         AVNAVNA   A      AVNAVNA
+AVNAVNA         AVNAA       AVNAA          AVNAA         AVNA          AVNAVNA
+AVNAVNA           AVN        AVN            AVN         AVN            AVNAVNA
+AVNAA             A                                     A                AVNAA
+AVN                     AVNAA                   AVNAA                      AVN
+                        AVNAA                   AVNAA
+                        AVNAA                   AVNAA
+                        AVNAA                   AVNAA
+                        AVNAA                   AVNAA
+                        AVNAVNA               AVNAVNA
+                        AVNAVNAVN           AVNAVNAVN
+                          AVNAVNAVN       AVNAVNAVN
+                           AVNAVNAVNAVNAVNAVNAVN
+                             AVNAVNAVNAVNAVNAA
+                                AVNAVNAVNAA
+                                  AVNAVNA
+                                     A
