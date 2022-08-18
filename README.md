@@ -138,6 +138,3 @@ I would like to reiterate that there are no professional developers on the dev t
 Thank you to the Bitcoin developers and the rest of the open source community for your hard work in the cryptospace.
 
 The Avian project is launched based on the hard work and continuous effort of over 400 Bitcoin developers who made over 14,000 commits over the life to date of the Bitcoin project. We are eternally grateful to you for your efforts and diligence in making a secure network and for their support of free and open source software development.  The Avian experiment is made on the foundation you built and we will continue to expand upon the foundations laid.
-
-
-# Abstract
