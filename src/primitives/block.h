@@ -100,6 +100,7 @@ public:
 
     uint256 GetHash() const;
     uint256 GetX16RHash() const;
+    uint256 GetSha256Hash() const;
 
     // Crow: MinotaurX
     static uint256 CrowHashArbitrary(const char* data);
@@ -135,7 +136,7 @@ class CBlockHeader : public CBlockHeaderUncached
 public:
     mutable CCriticalSection cache_lock;
     mutable bool cache_init;
-    mutable uint256 cache_PoW_hash;
+    mutable uint256 cache_block_hash, cache_PoW_hash;
 
     CBlockHeader()
     {
@@ -151,6 +152,7 @@ public:
     {
         *(CBlockHeaderUncached*)this = (CBlockHeaderUncached)header;
         cache_init = header.cache_init;
+        cache_block_hash = header.cache_block_hash;
         cache_PoW_hash = header.cache_PoW_hash;
         return *this;
     }

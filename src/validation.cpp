@@ -4543,6 +4543,7 @@ bool ProcessNewBlock(const CChainParams& chainparams, const std::shared_ptr<cons
             if (!pblock->cache_init && pindex->cache_init) {
                 LOCK(pblock->cache_lock); // Probably unnecessary since no concurrent access to pblock is expected
                 pblock->cache_init = true;
+                pblock->cache_block_hash = pindex->cache_block_hash;
                 pblock->cache_PoW_hash = pindex->cache_PoW_hash;
             }
         }
