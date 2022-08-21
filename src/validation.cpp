@@ -4529,6 +4529,25 @@ static bool AcceptBlock(const std::shared_ptr<const CBlock>& pblock, CValidation
 
 bool ProcessNewBlock(const CChainParams& chainparams, const std::shared_ptr<const CBlock> pblock, bool fForceProcessing, bool *fNewBlock)
 {
+    // Look for this block's header in the index like AcceptBlock() will
+    uint256 hash = pblock->GetHash();
+
+    {
+        LOCK(cs_main);
+
+        BlockMap::iterator miSelf = mapBlockIndex.find(hash);
+        CBlockIndex *pindex = NULL;
+        if (miSelf != mapBlockIndex.end()) {
+            // Block header is already known
+            pindex = miSelf->second;
+            if (!pblock->cache_init && pindex->cache_init) {
+                LOCK(pblock->cache_lock); // Probably unnecessary since no concurrent access to pblock is expected
+                pblock->cache_init = true;
+                pblock->cache_PoW_hash = pindex->cache_PoW_hash;
+            }
+        }
+    }
+
     {
         CBlockIndex *pindex = nullptr;
         if (fNewBlock) *fNewBlock = false;

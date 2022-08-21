@@ -1,6 +1,7 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
 // Copyright (c) 2009-2016 The Bitcoin Core developers
 // Copyright (c) 2017 The Raven Core developers
+// Copyright (c) 2022 The Avian Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -11,6 +12,8 @@
 #include "serialize.h"
 #include "uint256.h"
 #include <string>
+
+#include "sync.h" // PoW cache
 
 // Crow: An impossible pow hash (can't meet any target)
 const uint256 HIGH_HASH = uint256S("0x0fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
@@ -52,7 +55,7 @@ public:
 extern BlockNetwork bNetwork;
 
 
-class CBlockHeader
+class CBlockHeaderUncached
 {
 public:
     // header
@@ -63,7 +66,7 @@ public:
     uint32_t nBits;
     uint32_t nNonce;
 
-    CBlockHeader()
+    CBlockHeaderUncached()
     {
         SetNull();
     }
@@ -127,6 +130,33 @@ public:
     }
 };
 
+class CBlockHeader : public CBlockHeaderUncached
+{
+public:
+    mutable CCriticalSection cache_lock;
+    mutable bool cache_init;
+    mutable uint256 cache_PoW_hash;
+
+    CBlockHeader()
+    {
+        cache_init = false;
+    }
+
+    CBlockHeader(const CBlockHeader& header)
+    {
+        *this = header;
+    }
+
+    CBlockHeader& operator=(const CBlockHeader& header)
+    {
+        *(CBlockHeaderUncached*)this = (CBlockHeaderUncached)header;
+        cache_init = header.cache_init;
+        cache_PoW_hash = header.cache_PoW_hash;
+        return *this;
+    }
+
+    uint256 GetPoWHashCached() const;
+};
 
 class CBlock : public CBlockHeader
 {

@@ -1,6 +1,7 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
 // Copyright (c) 2009-2016 The Bitcoin Core developers
 // Copyright (c) 2017 The Raven Core developers
+// Copyright (c) 2022 The Avian Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -10,7 +11,7 @@
 
 #include "chainparams.h"
 
-#include "algo/crow/minotaurx.h"             // Minotaurx Algo
+#include "algo/crow/minotaurx.h"  // Minotaurx Algo
 
 #include "primitives/block.h"
 
@@ -18,6 +19,8 @@
 #include "tinyformat.h"
 #include "utilstrencodings.h"
 #include "crypto/common.h"
+
+#include "sync.h" // PoW cache
 
 #include "consensus/consensus.h"
 
@@ -48,7 +51,7 @@ void BlockNetwork::SetNetwork(const std::string& net)
     }
 }
 
-uint256 CBlockHeader::GetHash() const
+uint256 CBlockHeaderUncached::GetHash() const
 {
     uint256 thash;
     unsigned int profile = 0x0;
@@ -98,12 +101,32 @@ uint256 CBlockHeader::GetHash() const
     return thash;
 }
 
+uint256 CBlockHeader::GetPoWHashCached() const
+{
+    uint256 block_hash = GetPoWHash();
+    LOCK(cache_lock);
+    if (cache_init) {
+        if (block_hash != cache_block_hash) {
+            fprintf(stderr, "Error: CBlockHeader: block hash changed unexpectedly\n");
+            exit(1);
+        }
+        // yespower cache: log // O (cyan) = HIT
+        printf("\033[36;1mO\033[0m block, PoW = %s\n", cache_PoW_hash.ToString().c_str());
+    } else {
+        cache_PoW_hash = block_hash;
+        cache_init = true;
+        // yespower cache: log // x = MISS
+        printf("x block, PoW = %s\n", cache_PoW_hash.ToString().c_str());
+    }
+    return cache_PoW_hash;
+}
+
 // Minotaurx algo
-uint256 CBlockHeader::CrowHashArbitrary(const char* data) {
+uint256 CBlockHeaderUncached::CrowHashArbitrary(const char* data) {
     return Minotaurx(data, data + strlen(data), true);
 }
 
-uint256 CBlockHeader::GetX16RHash() const
+uint256 CBlockHeaderUncached::GetX16RHash() const
 {
     return HashX16R(BEGIN(nVersion), END(nNonce), hashPrevBlock);
 }
