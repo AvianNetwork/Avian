@@ -1,6 +1,7 @@
 // Copyright (c) 2010 Satoshi Nakamoto
 // Copyright (c) 2009-2016 The Bitcoin Core developers
 // Copyright (c) 2017-2020 The Raven Core developers
+// Copyright (c) 2022 The Avian Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -103,6 +104,8 @@ static const CRPCConvertParam vRPCConvertParams[] =
     { "listtransactions", 1, "count" },
     { "listtransactions", 2, "skip" },
     { "listtransactions", 3, "include_watchonly" },
+    { "liststucktransactions", 0, "verbose" },
+    { "liststucktransactions", 1, "include_watchonly" },
     { "listaccounts", 0, "minconf" },
     { "listaccounts", 1, "include_watchonly" },
     { "walletpassphrase", 1, "timeout" },
@@ -215,7 +218,7 @@ static const CRPCConvertParam vRPCConvertParams[] =
     { "getsnapshot", 1, "block_height"},
     { "purgesnapshot", 1, "block_height"},
     { "stop", 0, "wait"},
-    { "getkawpowhash", 3, "height"},
+    { "getkawpowhash", 3, "height"}
 };
 
 class CRPCConvertTable

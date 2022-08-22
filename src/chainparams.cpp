@@ -1,7 +1,7 @@
 // Copyright (c) 2010 Satoshi Nakamoto
 // Copyright (c) 2009-2016 The Bitcoin Core developers
 // Copyright (c) 2017 The Raven Core developers
-// Copyright (c) 2021 The Avian Core developers
+// Copyright (c) 2022 The Avian Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -135,14 +135,6 @@ public:
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].bit = 28;
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nStartTime = 1199145601; // January 1, 2008
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nTimeout = 1230767999; // December 31, 2008
-        consensus.vDeployments[Consensus::DEPLOYMENT_ASSETS].bit = 6;  //Assets (RIP2)
-        consensus.vDeployments[Consensus::DEPLOYMENT_ASSETS].nStartTime = 1540944000; // Oct 31, 2018
-        consensus.vDeployments[Consensus::DEPLOYMENT_ASSETS].nTimeout = 1572480000; // Oct 31, 2019
-
-        // Crow Algo Deployment
-        consensus.vDeployments[Consensus::DEPLOYMENT_CROW].bit = 7;
-        consensus.vDeployments[Consensus::DEPLOYMENT_CROW].nStartTime = 2208988800;  // Jan 1, 2040
-        consensus.vDeployments[Consensus::DEPLOYMENT_CROW].nTimeout = 2208988800 + 31536000;  // Start + 1 year
 
         // Crow Algo consensus
         consensus.powForkTime = 1638847407;                 // Time of PoW hash method change (Dec 06 2021)
@@ -155,10 +147,12 @@ public:
         consensus.powTypeLimits.emplace_back(uint256S("000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"));   // Crow limit
 
         // x16rt switch
-        consensus.nX16rtTimestamp = 1638748799;
+        consensus.nX16rtTimestamp = 1638847406;
 
-        // Avian Assets
+        // Avian Assets, Messaging, Restricted
         consensus.nAssetActivationTime = 999999999999ULL; // TODO
+        consensus.nMessagingActivationTime = 999999999999ULL; // TODO
+        consensus.nRestrictedActivationTime = 999999999999ULL; // TODO
 
         // Avian Flight Plans
         consensus.nFlightPlansActivationTime = 999999999999ULL; // TODO
@@ -191,7 +185,7 @@ public:
 
         genesis = CreateGenesisBlock(1630067829, 8650489, 0x1e00ffff, 4, 10 * COIN);
 
-        consensus.hashGenesisBlock = genesis.GetHash();
+        consensus.hashGenesisBlock = genesis.GetX16RHash();
         assert(consensus.hashGenesisBlock == uint256S("0x000000cdb10fc01df7fba251f2168ef7cd7854b571049db4902c315694461dd0"));
         assert(genesis.hashMerkleRoot == uint256S("0x63d9b6b6b549a2d96eb5ac4eb2ab80761e6d7bffa9ae1a647191e08d6416184d"));
 
@@ -277,9 +271,6 @@ public:
 
         // TODO: Assets, Messaging, Restricted
         nAssetActivationHeight = 9999999999; // Asset activated block height
-        nMessagingActivationBlock = 9999999999; // Messaging activated block height
-        nRestrictedActivationBlock = 9999999999; // Restricted activated block height
-
         /** AVN End **/
     }
 };
@@ -308,14 +299,6 @@ public:
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].bit = 28;
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nStartTime = 0;
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nTimeout = 999999999999ULL;
-        consensus.vDeployments[Consensus::DEPLOYMENT_ASSETS].bit = 6;
-        consensus.vDeployments[Consensus::DEPLOYMENT_ASSETS].nStartTime = 0;
-        consensus.vDeployments[Consensus::DEPLOYMENT_ASSETS].nTimeout = 999999999999ULL;
-
-        // Crow Algo Deployment (testnet)
-        consensus.vDeployments[Consensus::DEPLOYMENT_CROW].bit = 7;
-        consensus.vDeployments[Consensus::DEPLOYMENT_CROW].nStartTime = -1;
-        consensus.vDeployments[Consensus::DEPLOYMENT_CROW].nTimeout = std::numeric_limits<int64_t>::max();
 
         // Crow Algo consensus
         consensus.powForkTime = 1639005225;                 // Time of PoW hash method change
@@ -331,6 +314,11 @@ public:
 
         // Avian Assets
         consensus.nAssetActivationTime = 1645104453; // Feb 17, 2022
+
+        // Avian Assets, Messaging, Restricted
+        consensus.nAssetActivationTime = 1645104453; // Feb 17, 2022
+        consensus.nMessagingActivationTime = 1645104453; // Feb 17, 2022
+        consensus.nRestrictedActivationTime = 1645104453; // Feb 17, 2022
 
         // Avian Flight Plans
         consensus.nFlightPlansActivationTime = 1645104453; // Feb 17, 2022
@@ -351,7 +339,7 @@ public:
 
         genesis = CreateGenesisBlock(1630065295, 24922064, 0x1e00ffff, 4, 10 * COIN);
 
-        consensus.hashGenesisBlock = genesis.GetHash();
+        consensus.hashGenesisBlock = genesis.GetX16RHash();
         assert(consensus.hashGenesisBlock == uint256S("0x00000084af22998d2aed78cc29f1fa587f854150ccd2991dfc82241c8f049219"));
         assert(genesis.hashMerkleRoot == uint256S("0x63d9b6b6b549a2d96eb5ac4eb2ab80761e6d7bffa9ae1a647191e08d6416184d"));
 
@@ -422,9 +410,7 @@ public:
         nMinReorganizationPeers = 4;
         nMinReorganizationAge = 60 * 60 * 12; // 12 hours
 
-        nAssetActivationHeight = 0; // Asset activated block height
-        nMessagingActivationBlock = 0; // Messaging activated block height
-        nRestrictedActivationBlock = 0; // Restricted activated block height
+        nAssetActivationHeight = 1; // Asset activated block height
         /** AVN End **/
     }
 };
@@ -452,29 +438,29 @@ public:
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].bit = 28;
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nStartTime = 0;
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nTimeout = 999999999999ULL;
-        consensus.vDeployments[Consensus::DEPLOYMENT_ASSETS].bit = 6;
-        consensus.vDeployments[Consensus::DEPLOYMENT_ASSETS].nStartTime = 0;
-        consensus.vDeployments[Consensus::DEPLOYMENT_ASSETS].nTimeout = 999999999999ULL;
-
-        // Crow Algo Deployment (testnet)
-        consensus.vDeployments[Consensus::DEPLOYMENT_CROW].bit = 7;
-        consensus.vDeployments[Consensus::DEPLOYMENT_CROW].nStartTime = 0;
-        consensus.vDeployments[Consensus::DEPLOYMENT_CROW].nTimeout = 999999999999ULL;
 
         // Crow Algo consensus
-        consensus.powForkTime = 1;                 // Time of PoW hash method change
+        consensus.powForkTime = 1629951212;        // Time of PoW hash method change
         consensus.lwmaAveragingWindow = 45;        // Averaging window size for LWMA diff adjust
-        consensus.diffRetargetFix = 1;             // Block of diff algo change
-        consensus.diffRetargetTake2 = 1;           // Third iteration of LWMA retarget activation timestamp
+        consensus.diffRetargetFix = 0;             // Block of diff algo change
+        consensus.diffRetargetTake2 = 1629951212;  // Third iteration of LWMA retarget activation timestamp
+
+        consensus.powTypeLimits.emplace_back(uint256S("7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"));   // x16rt limit
+        consensus.powTypeLimits.emplace_back(uint256S("7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"));   // Crow limit
 
         // regtest x16rt switch (genesis +1)
         consensus.nX16rtTimestamp = 1629951212;
 
         // Avian Assets
-        consensus.nAssetActivationTime = 1;
+        consensus.nAssetActivationTime = 1629951212;
+
+        // Avian Assets, Messaging, Restricted
+        consensus.nAssetActivationTime = 1629951212; // (genesis +1)
+        consensus.nMessagingActivationTime = 1629951212; // (genesis +1)
+        consensus.nRestrictedActivationTime = 1629951212; // (genesis +1)
 
         // Avian Flight Plans
-        consensus.nFlightPlansActivationTime = 1;
+        consensus.nFlightPlansActivationTime = 1629951212;
 
         // The best chain should have at least this much work.
         consensus.nMinimumChainWork = uint256S("0x00");
@@ -505,7 +491,7 @@ public:
         for (int i=0;i<40000000;i++) {
             genesis = CreateGenesisBlock(1629951211, i, 0x207fffff, 2, 2500 * COIN);
             //genesis.hashPrevBlock = TempHashHolding;
-            consensus.hashGenesisBlock = genesis.GetX16RHash();
+            consensus.hashGenesisBlock = genesis.GetHash();
 
             arith_uint256 BestBlockHashArith = UintToArith256(BestBlockHash);
             if (UintToArith256(consensus.hashGenesisBlock) < BestBlockHashArith) {
@@ -550,11 +536,11 @@ public:
 //        /////////////////////////////////////////////////////////////////
 
 
-        genesis = CreateGenesisBlock(1629951211, 1, 0x207fffff, 4, 2500 * COIN);
-        consensus.hashGenesisBlock = genesis.GetX16RHash();
+        genesis = CreateGenesisBlock(1629951211, 1, 0x207fffff, 2, 2500 * COIN);
 
-        assert(consensus.hashGenesisBlock == uint256S("0x0d2d32f6d3fa3d0eb49602b7ea50eb684ada6dd5b411b1e5dbf6687c520dd9b1"));
-        assert(genesis.hashMerkleRoot == uint256S("3f3621f5a83a2697099fea380f24f2854e15c912828a09112942d543033bcbf8"));
+        consensus.hashGenesisBlock = genesis.GetHash();
+        assert(consensus.hashGenesisBlock == uint256S("0x653634d03d27ed84e8aba5dd47903906ad7be4876a1d3677be0db2891dcf787f"));
+        assert(genesis.hashMerkleRoot == uint256S("63d9b6b6b549a2d96eb5ac4eb2ab80761e6d7bffa9ae1a647191e08d6416184d"));
 
         vFixedSeeds.clear(); //!< Regtest mode doesn't have any fixed seeds.
         vSeeds.clear();      //!< Regtest mode doesn't have any DNS seeds.
@@ -562,6 +548,7 @@ public:
         fDefaultConsistencyChecks = true;
         fRequireStandard = false;
         fMineBlocksOnDemand = true;
+        fMiningRequiresPeers = false;
 
         checkpointData = (CCheckpointData) {
             {
@@ -616,9 +603,7 @@ public:
         nMinReorganizationPeers = 4;
         nMinReorganizationAge = 60 * 60 * 12; // 12 hours
 
-        nAssetActivationHeight = 0; // Asset activated block height
-        nMessagingActivationBlock = 0; // Messaging activated block height
-        nRestrictedActivationBlock = 0; // Restricted activated block height
+        nAssetActivationHeight = 1; // Asset activated block height
         /** AVN End **/
     }
 };

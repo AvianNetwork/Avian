@@ -29,6 +29,8 @@ bool NodeLessThan::operator()(const CNodeCombinedStats &left, const CNodeCombine
         return pLeft->nodeid < pRight->nodeid;
     case PeerTableModel::Address:
         return pLeft->addrName.compare(pRight->addrName) < 0;
+    case PeerTableModel::Direction:
+        return pLeft->fInbound > pRight->fInbound; // default sort Inbound, then Outbound
     case PeerTableModel::Subversion:
         return pLeft->cleanSubVer.compare(pRight->cleanSubVer) < 0;
     case PeerTableModel::Ping:
@@ -117,7 +119,7 @@ PeerTableModel::PeerTableModel(ClientModel *parent) :
     clientModel(parent),
     timer(0)
 {
-    columns << tr("NodeId") << tr("Node/Service") << tr("Ping") << tr("Sent") << tr("Received") << tr("User Agent");
+    columns << tr("NodeId") << tr("Node/Service") <<  tr("Direction") << tr("Ping") << tr("Sent") << tr("Received") << tr("User Agent");
     priv.reset(new PeerTablePriv());
     // default to unsorted
     priv->sortColumn = -1;
@@ -171,7 +173,10 @@ QVariant PeerTableModel::data(const QModelIndex &index, int role) const
         case NetNodeId:
             return (qint64)rec->nodeStats.nodeid;
         case Address:
-            return QString::fromStdString(rec->nodeStats.addrName);
+            // prepend to peer address down-arrow symbol for inbound connection and up-arrow for outbound connection
+            return QString::fromStdString((rec->nodeStats.fInbound ? "↓ " : "↑ ") + rec->nodeStats.addrName);
+        case Direction:
+            return QString(rec->nodeStats.fInbound ? tr("Inbound") : tr("Outbound"));
         case Subversion:
             return QString::fromStdString(rec->nodeStats.cleanSubVer);
         case Ping:
@@ -188,6 +193,8 @@ QVariant PeerTableModel::data(const QModelIndex &index, int role) const
         case Sent:
         case Received:
             return QVariant(Qt::AlignRight | Qt::AlignVCenter);
+        case Direction:
+            return QVariant(Qt::AlignCenter);
         default: return QVariant();
         }
     }

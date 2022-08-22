@@ -61,7 +61,6 @@ forms/ui_openuridialog.h
 forms/ui_optionsdialog.h
 forms/ui_overviewpage.h
 forms/ui_paperwalletdialog.h
-forms/ui_poolpicker.h
 forms/ui_receivecoinsdialog.h
 forms/ui_receiverequestdialog.h
 forms/ui_reissueassetdialog.h
@@ -122,7 +121,6 @@ moc_overviewpage.cpp
 moc_paymentserver.cpp
 moc_peerdialog.cpp
 moc_peertablemodel.cpp
-moc_poolpicker.cpp
 moc_qvalidatedlineedit.cpp
 moc_qvaluecombobox.cpp
 moc_receivecoinsdialog.cpp
@@ -180,8 +178,6 @@ peertablemodel.cpp
 peertablemodel.h
 platformstyle.cpp
 platformstyle.h
-poolpicker.cpp
-poolpicker.h
 qrc_avian.cpp
 qrc_avian_locale.cpp
 qvalidatedlineedit.cpp

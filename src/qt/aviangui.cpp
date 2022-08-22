@@ -22,7 +22,6 @@
 #include "optionsmodel.h"
 #include "platformstyle.h"
 #include "rpcconsole.h"
-#include "poolpicker.h"
 #include "utilitydialog.h"
 #include "validation.h"
 
@@ -141,7 +140,6 @@ AvianGUI::AvianGUI(const PlatformStyle *_platformStyle, const NetworkStyle *netw
     getMyWordsAction(0),
     aboutQtAction(0),
     openRPCConsoleAction(0),
-    openPoolPicker(0),
     openAction(0),
     showHelpMessageAction(0),
     transferAssetAction(0),
@@ -149,7 +147,7 @@ AvianGUI::AvianGUI(const PlatformStyle *_platformStyle, const NetworkStyle *netw
     manageAssetAction(0),
     messagingAction(0),
     votingAction(0),
-    devAction(0),
+    restrictedAssetAction(0),
     wrapAction(0),
     headerWidget(0),
     labelCurrentMarket(0),
@@ -451,17 +449,17 @@ void AvianGUI::createActions()
     votingAction->setFont(font);
     tabGroup->addAction(votingAction);
 
-    devAction = new QAction(platformStyle->SingleColorIcon(":/icons/external_link"), tr(""), this);
-    devAction->setStatusTip(tr("Coming Soon"));
-    devAction->setToolTip(devAction->statusTip());
-    devAction->setCheckable(true);
-    // devAction->setShortcut(QKeySequence(Qt::ALT + Qt::Key_9));
-    devAction->setFont(font);
-    tabGroup->addAction(devAction);
+    restrictedAssetAction = new QAction(platformStyle->SingleColorIconOnOff(":/icons/asset_edit_selected", ":/icons/asset_edit"), tr("&Restricted Assets"), this);
+    restrictedAssetAction->setStatusTip(tr("Manage restricted assets"));
+    restrictedAssetAction->setToolTip(restrictedAssetAction->statusTip());
+    restrictedAssetAction->setCheckable(true);
+    restrictedAssetAction->setShortcut(QKeySequence(Qt::ALT + Qt::Key_9));
+    restrictedAssetAction->setFont(font);
+    tabGroup->addAction(restrictedAssetAction);
 
     wrapAction = new QAction(platformStyle->SingleColorIconOnOff(":/icons/external_link", ":/icons/external_link"), tr(""), this);
     wrapAction->setStatusTip(tr("Wrapped Avian"));
-    wrapAction->setToolTip(devAction->statusTip());
+    wrapAction->setToolTip(wrapAction->statusTip());
     wrapAction->setCheckable(true);
     // wrapAction->setShortcut(QKeySequence(Qt::ALT + Qt::Key_9));
     wrapAction->setFont(font);
@@ -490,6 +488,9 @@ void AvianGUI::createActions()
     connect(createAssetAction, SIGNAL(triggered()), this, SLOT(gotoCreateAssetsPage()));
     connect(manageAssetAction, SIGNAL(triggered()), this, SLOT(showNormalIfMinimized()));
     connect(manageAssetAction, SIGNAL(triggered()), this, SLOT(gotoManageAssetsPage()));
+    connect(restrictedAssetAction, SIGNAL(triggered()), this, SLOT(showNormalIfMinimized()));
+    connect(restrictedAssetAction, SIGNAL(triggered()), this, SLOT(gotoRestrictedAssetsPage()));
+    connect(wrapAction, SIGNAL(triggered()), this, SLOT(showNormalIfMinimized()));
     connect(wrapAction, SIGNAL(triggered()), this, SLOT(gotoWrapPage()));
     // TODO add messaging actions to go to messaging page when clicked
     // TODO add voting actions to go to voting page when clicked
@@ -534,9 +535,6 @@ void AvianGUI::createActions()
     // initially disable the debug window menu item
     openRPCConsoleAction->setEnabled(false);
 
-    openPoolPicker = new QAction(tr("&Pool Picker"), this);
-    openPoolPicker->setStatusTip(tr("Open pool picker"));
-
     usedSendingAddressesAction = new QAction(tr("&Sending addresses..."), this);
     usedSendingAddressesAction->setStatusTip(tr("Show the list of used sending addresses and labels"));
     usedReceivingAddressesAction = new QAction(tr("&Receiving addresses..."), this);
@@ -559,7 +557,6 @@ void AvianGUI::createActions()
     connect(toggleHideAction, SIGNAL(triggered()), this, SLOT(toggleHidden()));
     connect(showHelpMessageAction, SIGNAL(triggered()), this, SLOT(showHelpMessageClicked()));
     connect(openRPCConsoleAction, SIGNAL(triggered()), this, SLOT(showDebugWindow()));
-    connect(openPoolPicker, SIGNAL(triggered()), this, SLOT(showPoolPicker()));
     // prevents an open debug window from becoming stuck/unusable on client shutdown
     connect(quitAction, SIGNAL(triggered()), rpcConsole, SLOT(hide()));
 
@@ -629,9 +626,6 @@ void AvianGUI::createMenuBar()
 
     help->addAction(showHelpMessageAction);
     help->addSeparator();
-    // TODO: pool picker
-    // help->addAction(openPoolPicker);
-    //help->addSeparator();
     help->addAction(aboutAction);
     help->addAction(aboutQtAction);
 }
@@ -668,31 +662,21 @@ void AvianGUI::createToolBars()
         toolbar->addAction(createAssetAction);
         toolbar->addAction(transferAssetAction);
         toolbar->addAction(manageAssetAction);
+        toolbar->addAction(restrictedAssetAction);
         // toolbar->addAction(messagingAction);
         // toolbar->addAction(votingAction);
-        // toolbar->addAction(devAction);
         // toolbar->addAction(wrapAction);
 
-        QString openSansFontString = "font: normal 22pt \"Manrope\";";
-        QString normalString = "font: normal 22pt \"Arial\";";
-        QString stringToUse = "";
-
-#if !defined(Q_OS_MAC)
-        stringToUse = openSansFontString;
-#else
-        stringToUse = normalString;
-#endif
-
         /** AVN START */
-        QString tbStyleSheet = ".QToolBar {background-color : transparent; border-color: transparent;}  "
+        QString tbStyleSheet = ".QToolBar {background-color: transparent; border-color: transparent;} "
                                ".QToolButton {background-color: transparent; border-color: transparent; color: %1; border: none;} "
-                               ".QToolButton:checked {background: none; background-color: none; selection-background-color: none; color: %2; border: none; font: %4} "
+                               ".QToolButton:checked {background: none; background-color: none; selection-background-color: none; color: %2; border: none;} "
                                ".QToolButton:hover {background: none; background-color: none; border: none; color: %3;} "
                                ".QToolButton:disabled {color: gray;}";
 
         toolbar->setStyleSheet(tbStyleSheet.arg(platformStyle->ToolBarNotSelectedTextColor().name(),
                                                 platformStyle->ToolBarSelectedTextColor().name(),
-                                                platformStyle->DarkOrangeColor().name(), stringToUse));
+                                                platformStyle->DarkOrangeColor().name()));
 
         toolbar->setOrientation(Qt::Vertical);
         toolbar->setIconSize(QSize(65, 65));
@@ -938,7 +922,6 @@ void AvianGUI::setWalletActionsEnabled(bool enabled)
     manageAssetAction->setEnabled(false);
     messagingAction->setEnabled(false);
     votingAction->setEnabled(false);
-    devAction->setEnabled(false);
     wrapAction->setEnabled(false);
     /** AVN END */
 }
@@ -1030,12 +1013,6 @@ void AvianGUI::showDebugWindow()
     rpcConsole->activateWindow();
 }
 
-void AvianGUI::showPoolPicker()
-{
-    PoolPicker poolPicker(this);
-    poolPicker.exec();
-}
-
 void AvianGUI::showDebugWindowActivateConsole()
 {
     rpcConsole->setTabFocus(RPCConsole::TAB_CONSOLE);
@@ -1050,7 +1027,7 @@ void AvianGUI::showHelpMessageClicked()
 #ifdef ENABLE_WALLET
 void AvianGUI::openClicked()
 {
-    OpenURIDialog dlg(this);
+    OpenURIDialog dlg(platformStyle, this);
     if(dlg.exec())
     {
         Q_EMIT receivedURI(dlg.getURI());
@@ -1108,6 +1085,12 @@ void AvianGUI::gotoManageAssetsPage()
 {
     manageAssetAction->setChecked(true);
     if (walletFrame) walletFrame->gotoManageAssetsPage();
+};
+
+void AvianGUI::gotoRestrictedAssetsPage()
+{
+    restrictedAssetAction->setChecked(true);
+    if (walletFrame) walletFrame->gotoRestrictedAssetsPage();
 };
 
 void AvianGUI::gotoWrapPage()
@@ -1408,7 +1391,7 @@ void AvianGUI::incomingTransaction(const QString& date, int unit, const CAmount&
 
 void AvianGUI::checkAssets()
 {
-    // Check that status of RIP2 and activate the assets icon if it is active
+    // Check that status of assets and activate the assets icon if it is active
     if(AreAssetsDeployed()) {
         transferAssetAction->setDisabled(false);
         transferAssetAction->setToolTip(tr("Transfer assets to AVN addresses"));
@@ -1424,6 +1407,15 @@ void AvianGUI::checkAssets()
         createAssetAction->setToolTip(tr("Assets not yet active"));
         manageAssetAction->setDisabled(true);
         manageAssetAction->setToolTip(tr("Assets not yet active"));
+    }
+
+    if (AreRestrictedAssetsDeployed()) {
+        restrictedAssetAction->setDisabled(false);
+        restrictedAssetAction->setToolTip(tr("Manage restricted assets"));
+
+    } else {
+        restrictedAssetAction->setDisabled(true);
+        restrictedAssetAction->setToolTip(tr("Restricted Assets not yet active"));
     }
 }
 #endif // ENABLE_WALLET

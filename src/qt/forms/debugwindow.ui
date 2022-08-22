@@ -426,13 +426,7 @@
           </spacer>
          </item>
          <item>
-          <widget class="QPushButton" name="fontSmallerButton">
-           <property name="maximumSize">
-            <size>
-             <width>24</width>
-             <height>24</height>
-            </size>
-           </property>
+          <widget class="QToolButton" name="fontSmallerButton">
            <property name="toolTip">
             <string>Decrease font size</string>
            </property>
@@ -445,26 +439,14 @@
            </property>
            <property name="iconSize">
             <size>
-             <width>24</width>
-             <height>16</height>
+             <width>22</width>
+             <height>22</height>
             </size>
-           </property>
-           <property name="autoDefault">
-            <bool>false</bool>
-           </property>
-           <property name="flat">
-            <bool>true</bool>
            </property>
           </widget>
          </item>
          <item>
-          <widget class="QPushButton" name="fontBiggerButton">
-           <property name="maximumSize">
-            <size>
-             <width>24</width>
-             <height>24</height>
-            </size>
-           </property>
+          <widget class="QToolButton" name="fontBiggerButton">
            <property name="toolTip">
             <string>Increase font size</string>
            </property>
@@ -477,26 +459,14 @@
            </property>
            <property name="iconSize">
             <size>
-             <width>24</width>
-             <height>16</height>
+             <width>22</width>
+             <height>22</height>
             </size>
-           </property>
-           <property name="autoDefault">
-            <bool>false</bool>
-           </property>
-           <property name="flat">
-            <bool>true</bool>
            </property>
           </widget>
          </item>
          <item>
-          <widget class="QPushButton" name="clearButton">
-           <property name="maximumSize">
-            <size>
-             <width>24</width>
-             <height>24</height>
-            </size>
-           </property>
+          <widget class="QToolButton" name="clearButton">
            <property name="toolTip">
             <string>Clear console</string>
            </property>
@@ -510,14 +480,14 @@
             <iconset resource="../avian.qrc">
              <normaloff>:/icons/remove</normaloff>:/icons/remove</iconset>
            </property>
+           <property name="iconSize">
+            <size>
+             <width>22</width>
+             <height>22</height>
+            </size>
+           </property>
            <property name="shortcut">
             <string notr="true">Ctrl+L</string>
-           </property>
-           <property name="autoDefault">
-            <bool>false</bool>
-           </property>
-           <property name="flat">
-            <bool>true</bool>
            </property>
           </widget>
          </item>
@@ -889,11 +859,17 @@
            <property name="tabKeyNavigation">
             <bool>false</bool>
            </property>
+           <property name="textElideMode">
+            <enum>Qt::ElideMiddle</enum>
+           </property>
            <property name="alternatingRowColors">
             <bool>true</bool>
            </property>
            <property name="sortingEnabled">
             <bool>true</bool>
+           </property>
+           <property name="wordWrap">
+              <bool>false</bool>
            </property>
            <attribute name="horizontalHeaderHighlightSections">
             <bool>false</bool>

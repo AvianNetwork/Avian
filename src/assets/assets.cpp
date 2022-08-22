@@ -76,7 +76,7 @@ static const std::regex QUALIFIER_INDICATOR("^[#][A-Z0-9._]{3,}$"); // Starts wi
 static const std::regex SUB_QUALIFIER_INDICATOR("^#[A-Z0-9._]+\\/#[A-Z0-9._]+$"); // Starts with #
 static const std::regex RESTRICTED_INDICATOR("^[\\$][A-Z0-9._]{3,}$"); // Starts with $
 
-static const std::regex AVIAN_NAMES("^AVN$|^AVIAN$|^AVIAN$|^#AVN$|^#AVIAN$|^#AVIAN$");
+static const std::regex AVIAN_NAMES("^RVN$|^AVN$|^AVIAN$|^AVIAN$|^#AVN$|^#AVIAN$|^#AVIAN$");
 
 bool IsRootNameValid(const std::string& name)
 {

@@ -1,11 +1,10 @@
 // Copyright (c) 2019-2021 The Litecoin Cash Core developers
-// Copyright (c) 2021 The Avian Core developers
-// Copyright (c) 2021 Shafil Alam
+// Copyright (c) 2022 The Avian Core developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef RVL_ALGO_CROW_H
-#define RVL_ALGO_CROW_H
+#ifndef AVN_ALGO_MINOTAURX_H
+#define AVN_ALGO_MINOTAURX_H
 
 #include <uint256.h>
 
@@ -14,8 +13,8 @@
 #include "yespower/yespower.h"
 
 // Config
-#define CROW_ALGO_COUNT 16
-//#define CROW_DEBUG
+#define MINOTAURX_ALGO_COUNT 16
+//#define MINOTAURX_DEBUG
 
 static const yespower_params_t yespower_params = {YESPOWER_1_0, 2048, 8, (const uint8_t*)"et in arcadia ego", 17};
 
@@ -130,7 +129,7 @@ uint512 GetHash(uint512 inputHash, TortureGarden *garden, unsigned int algo, yes
             sph_whirlpool(&garden->context_whirlpool, static_cast<const void*>(&inputHash), 64);
             sph_whirlpool_close(&garden->context_whirlpool, static_cast<void*>(&outputHash));
             break;
-        // NB: The CPU-hard gate must be case CROW_ALGO_COUNT.
+        // NB: The CPU-hard gate must be case MINOTAURX_ALGO_COUNT.
         case 16:
             if (local == NULL)  // Self-manage storage on current thread
                 yespower_tls(inputHash.begin(), 64, &yespower_params, (yespower_binary_t*)outputHash.begin());
@@ -150,7 +149,7 @@ uint512 GetHash(uint512 inputHash, TortureGarden *garden, unsigned int algo, yes
 uint512 TraverseGarden(TortureGarden *garden, uint512 hash, TortureNode *node, yespower_local_t *local) {
     uint512 partialHash = GetHash(hash, garden, node->algo, local);
 
-#ifdef CROW_DEBUG
+#ifdef MINOTAURX_DEBUG
     printf("* Ran algo %d. Partial hash:\t%s\n", node->algo, partialHash.ToString().c_str());
     fflush(0);
 #endif
@@ -172,10 +171,10 @@ void LinkNodes(TortureNode *parent, TortureNode *childLeft, TortureNode *childRi
     parent->childRight = childRight;
 }
 
-// Produce a Crow 32-byte hash from variable length data
+// Produce a Minotaurx 32-byte hash from variable length data
 // Optionally, use the MinotaurX hardened hash.
 // Optionally, use provided thread-local memory for yespower.
-template<typename T> uint256 Crow(const T begin, const T end, bool minotaurX, yespower_local_t *local = NULL) {
+template<typename T> uint256 Minotaurx(const T begin, const T end, bool minotaurX, yespower_local_t *local = NULL) {
     // Create torture garden nodes. Note that both sides of 19 and 20 lead to 21, and 21 has no children (to make traversal complete).
     // Every path through the garden stops at 7 nodes.
     TortureGarden garden;
@@ -210,24 +209,24 @@ template<typename T> uint256 Crow(const T begin, const T end, bool minotaurX, ye
     sph_sha512(&garden.context_sha2, (begin == end ? empty : static_cast<const void*>(&begin[0])), (end - begin) * sizeof(begin[0]));
     sph_sha512_close(&garden.context_sha2, static_cast<void*>(&hash));
 
-#ifdef CROW_DEBUG
+#ifdef MINOTAURX_DEBUG
     printf("** Initial hash:\t\t%s\n", hash.ToString().c_str());
     fflush(0);
 #endif    
 
     // Assign algos to torture net nodes based on initial hash
     for (int i = 0; i < 22; i++)
-        garden.nodes[i].algo = hash.ByteAt(i) % CROW_ALGO_COUNT;
+        garden.nodes[i].algo = hash.ByteAt(i) % MINOTAURX_ALGO_COUNT;
 
     // Hardened garden gates on minotaurX
     if (minotaurX)
-        garden.nodes[21].algo = CROW_ALGO_COUNT;
+        garden.nodes[21].algo = MINOTAURX_ALGO_COUNT;
 
     // Send the initial hash through the torture garden
     hash = TraverseGarden(&garden, hash, &garden.nodes[0], local);
 
-#ifdef CROW_DEBUG
-    printf("** Crow Final hash:\t\t\t%s\n", uint256(hash).ToString().c_str());
+#ifdef MINOTAURX_DEBUG
+    printf("** Minotaurx Final hash:\t\t\t%s\n", uint256(hash).ToString().c_str());
     fflush(0);
 #endif
 
@@ -235,4 +234,4 @@ template<typename T> uint256 Crow(const T begin, const T end, bool minotaurX, ye
     return uint256(hash);
 }
 
-#endif // RVL_ALGO_CROW_H
+#endif // AVN_ALGO_MINOTAURX_H
