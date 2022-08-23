@@ -895,6 +895,13 @@
                 </property>
                </widget>
               </item>
+              <item>
+               <widget class="QPushButton" name="openIpfsButton">
+                <property name="text">
+                 <string>Browse IPFS</string>
+                </property>
+               </widget>
+              </item>
              </layout>
             </item>
            </layout>
