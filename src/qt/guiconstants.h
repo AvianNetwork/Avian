@@ -70,7 +70,7 @@ static const bool DEFAULT_SPLASHSCREEN = true;
 /* Avian asset text */
 #define COLOR_ASSET_TEXT QColor(255, 255, 255)
 /* Avian shadow color - light mode */
-#define COLOR_SHADOW_LIGHT QColor("#999999")
+#define COLOR_SHADOW_LIGHT QColor("#e1e6f3")
 /* Toolbar not selected text color */
 #define COLOR_TOOLBAR_NOT_SELECTED_TEXT QColor("#e8e6e6")
 /* Toolbar selected text color */
