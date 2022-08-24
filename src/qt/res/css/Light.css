@@ -1203,7 +1203,8 @@ QWidget#contentWidget QLabel#newestBlockDate,
 QWidget#contentWidget QLabel#progressIncreasePerH,
 QWidget#contentWidget QLabel#percentageProgress,
 QWidget#contentWidget QLabel#expectedTimeLeft,
-QWidget#contentWidget QLabel#infoText {
+QWidget#contentWidget QLabel#infoText,
+QWidget#contentWidget QLabel#versionLabel {
     background-color: #f4f4f4;
 }
 
