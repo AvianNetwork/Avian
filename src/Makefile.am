@@ -153,6 +153,7 @@ AVIAN_CORE_H = \
   assets/snapshotrequestdb.h \
   assets/assetsnapshotdb.h \
   assets/rewards.h \
+  assets/ans.h \
   base58.h \
   bloom.h \
   blockencodings.h \
@@ -324,6 +325,7 @@ libavian_server_a_SOURCES = \
   assets/snapshotrequestdb.cpp \
   assets/assetsnapshotdb.cpp \
   assets/rewards.cpp \
+  assets/ans.cpp \
   policy/fees.cpp \
   policy/policy.cpp \
   policy/rbf.cpp \

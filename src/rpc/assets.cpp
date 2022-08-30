@@ -35,6 +35,7 @@
 #include "wallet/feebumper.h"
 #include "wallet/wallet.h"
 #include "wallet/walletdb.h"
+#include "assets/ans.h"
 
 void CheckRestrictedAssetTransferInputs(const CWalletTx& transaction, const std::string& asset_name) {
     // Do a validity check before commiting the transaction
@@ -3032,6 +3033,84 @@ UniValue purgesnapshot(const JSONRPCRequest& request)
     return NullUniValue;
 }
 
+UniValue ans_encode(const JSONRPCRequest& request)
+{
+    if (request.fHelp || request.params.size() < 2)
+        throw std::runtime_error(
+                "ans_encode \"type\" \"data\"\n"
+                "\nEncode ANS ID\n"
+
+                "\nArguments:\n"
+                "1. \"type\"               (string, required) type (addr, ip)\n"
+                "2. \"data\"            (string, required) data (addr, ip)\n"
+
+                "\nResult:\n"
+                "\nANS1ffffffff\n"
+
+                "\nExamples:\n"
+                + HelpExampleCli("ans_encode", "\"ip\" 127.0.0.1")
+                + HelpExampleRpc("ans_encode", "\"ip\" 127.0.0.1")
+        );
+
+    std::string strType = request.params[0].get_str();
+    std::string strData = request.params[1].get_str();
+
+    CAvianNameSystemID::Type type;
+
+    // Set type
+    if (strType == "addr") type = CAvianNameSystemID::ADDR;
+    else if (strType == "ip") type = CAvianNameSystemID::IP;
+    else throw JSONRPCError(RPC_INVALID_PARAMETER, std::string("Invalid type; try \"addr\" or \"ip\""));
+
+    // Check strData based on type.
+    if (type == CAvianNameSystemID::ADDR) {
+        CTxDestination destination = DecodeDestination(strData);
+        if (!IsValidDestination(destination)) throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, std::string("Invalid Avian address: ") + strData);
+
+    } else if (type == CAvianNameSystemID::IP) {
+        // check ip
+    }
+
+    CAvianNameSystemID ansID(type, strData);
+
+    return ansID.to_string();
+}
+
+UniValue ans_decode(const JSONRPCRequest& request)
+{
+    if (request.fHelp || request.params.size() < 1)
+        throw std::runtime_error(
+                "ans_decode \"ans_id\"\n"
+                "\nDecode ANS ID\n"
+
+                "\nArguments:\n"
+                "1. \"ans_id\"               (string, required) ANS ID\n"
+                "\nResult:\n"
+                "\nANS1ffffffff\n"
+
+                "\nExamples:\n"
+                + HelpExampleCli("ans_decode", "ANS1ffffffff")
+                + HelpExampleRpc("ans_decode", "ANS1ffffffff")
+        );
+
+    std::string strID = request.params[0].get_str();
+
+    CAvianNameSystemID ansID(strID);
+
+    UniValue result (UniValue::VOBJ);
+
+    result.pushKV("ans_id", ansID.to_string());
+    result.pushKV("type_hex", ansID.type());
+
+    if(ansID.type() == CAvianNameSystemID::ADDR) {
+        result.pushKV("ans_addr", ansID.addr());
+    } else if(ansID.type() == CAvianNameSystemID::IP) {
+        result.pushKV("ans_ip", ansID.ip());
+    }
+
+    return result;
+}
+
 static const CRPCCommand commands[] =
 { //  category    name                          actor (function)             argNames
   //  ----------- ------------------------      -----------------------      ----------
@@ -3076,6 +3155,9 @@ static const CRPCCommand commands[] =
 
     { "assets",   "getsnapshot",                &getsnapshot,                {"asset_name", "block_height"}},
     { "assets",   "purgesnapshot",              &purgesnapshot,              {"asset_name", "block_height"}},
+    { "assets",   "ans_encode",                 &ans_encode,                 {"type", "data"}},
+    { "assets",   "ans_decode",                 &ans_decode,                 {"ans_id"}},
+
 };
 
 void RegisterAssetRPCCommands(CRPCTable &t)
