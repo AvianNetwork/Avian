@@ -124,3 +124,13 @@ contrib/devtools/split-debug.sh
 cmake-build-debug
 
 CMakeLists.txt
+
+# qtcreator
+.qtc_clangd
+Avian.cflags
+Avian.config
+Avian.creator
+Avian.cxxflags
+Avian.files
+Avian.includes
+Avian.creator.user
