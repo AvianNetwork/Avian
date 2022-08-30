@@ -197,9 +197,6 @@ QColor PlatformStyle::TextColor() const
 
 QColor PlatformStyle::ToolBarSelectedTextColor() const
 {
-    if (darkModeEnabled)
-        return COLOR_TOOLBAR_SELECTED_TEXT_DARK_MODE;
-
     return COLOR_TOOLBAR_SELECTED_TEXT;
 }
 
