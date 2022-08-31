@@ -833,8 +833,10 @@ UniValue getassetdata(const JSONRPCRequest& request)
                 "  units: (number),\n"
                 "  reissuable: (number),\n"
                 "  has_ipfs: (number),\n"
+                "  has_ans: (number),\n"
                 "  ipfs_hash: (hash), (only if has_ipfs = 1 and that data is a ipfs hash)\n"
                 "  txid_hash: (hash), (only if has_ipfs = 1 and that data is a txid hash)\n"
+                "  ans_info: (obj), (only if has_ans = 1)\n"
                 "  verifier_string: (string)\n"
                 "}\n"
 
@@ -860,6 +862,7 @@ UniValue getassetdata(const JSONRPCRequest& request)
         result.push_back(Pair("units", asset.units));
         result.push_back(Pair("reissuable", asset.nReissuable));
         result.push_back(Pair("has_ipfs", asset.nHasIPFS));
+        result.push_back(Pair("has_ans", asset.nHasANS));
 
         if (asset.nHasIPFS) {
             if (asset.strIPFSHash.size() == 32) {
@@ -867,6 +870,24 @@ UniValue getassetdata(const JSONRPCRequest& request)
             } else {
                 result.push_back(Pair("ipfs_hash", EncodeAssetData(asset.strIPFSHash)));
             }
+        }
+
+        if (asset.nHasANS) {
+            UniValue ansInfo (UniValue::VOBJ);
+
+            result.push_back(Pair("ans_id", asset.strANSID));
+
+            CAvianNameSystemID ansID(asset.strANSID);
+
+            ansInfo.pushKV("type_hex", ansID.type());
+
+            if(ansID.type() == CAvianNameSystemID::ADDR) {
+                ansInfo.pushKV("ans_addr", ansID.addr());
+            } else if(ansID.type() == CAvianNameSystemID::IP) {
+                ansInfo.pushKV("ans_ip", ansID.ip());
+            }
+
+            result.push_back(Pair("ans_info"), ansInfo);
         }
 
         CNullAssetTxVerifierString verifier;
