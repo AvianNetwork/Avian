@@ -95,3 +95,7 @@ std::string CAvianNameSystemID::to_string() {
 
     return id;
 }
+
+bool CAvianNameSystemID::IsValidID(std::string ansID) {
+    return (ansID.substr(0, CAvianNameSystemID::prefix.length()) == CAvianNameSystemID::prefix) && (ansID.size() <= 64);
+}

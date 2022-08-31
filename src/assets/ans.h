@@ -11,19 +11,23 @@
 /* Class for ANS (Avian Name System) ID */
 class CAvianNameSystemID {
 public:  
+    inline static std::string prefix = "ANS";
+
     enum Type {
         ADDR = 0x0,
         IP = 0x1
     };
+
     CAvianNameSystemID(Type type, std::string rawData);
     CAvianNameSystemID(std::string ansID);
+
     std::string to_string();
 
     Type type() { return m_type; };
     std::string addr() { return m_addr; };
     std::string ip() { return m_ip; };
 
-    inline static std::string prefix = "ANS";
+    static bool IsValidID(std::string ansID);
 
 private:
     Type m_type;

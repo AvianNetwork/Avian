@@ -22,11 +22,13 @@
 
 #include <script/standard.h>
 #include <base58.h>
+#include <string>
 #include <validation.h> // mempool and minRelayTxFee
 #include <wallet/wallet.h>
 #include <core_io.h>
 #include <policy/policy.h>
 #include "assets/assettypes.h"
+#include "assets/ans.h"
 #include "assettablemodel.h"
 
 #include <QGraphicsDropShadowEffect>
@@ -413,17 +415,17 @@ bool CreateAssetDialog::checkIPFSHash(QString hash)
         std::string error;
         if (!CheckEncoded(DecodeAssetData(hash.toStdString()), error)) {
             ui->ipfsText->setStyleSheet("border: 2px solid red");
-            showMessage(tr("IPFS/Txid Hash must start with 'Qm' and be 46 characters or Txid Hash must have 64 hex characters"));
+            showMessage(tr("IPFS must start with 'Qm' and be 46 characters; ANS must start with 'ANS'; Txid must have 64 hex characters"));
             disableCreateButton();
             return false;
         }
-        else if (hash.size() != 46 && hash.size() != 64) {
+        else if (!CAvianNameSystemID::IsValidID(hash.toStdString()) && hash.size() != 46 && hash.size() != 64) {
             ui->ipfsText->setStyleSheet("border: 2px solid red");
-            showMessage(tr("IPFS/Txid Hash must have size of 46 characters, or 64 hex characters"));
+            showMessage(tr("IPFS Hash must be 46 characters, or Txid 64 hex characters"));
             disableCreateButton();
             return false;
         } else if (DecodeAssetData(hash.toStdString()).empty()) {
-            showMessage(tr("IPFS/Txid hash is not valid. Please use a valid IPFS/Txid hash"));
+            showMessage(tr("IPFS/ANS/Txid hash is not valid. Please use a valid IPFS/ANS/Txid hash"));
             disableCreateButton();
             return false;
         }
@@ -702,7 +704,17 @@ void CreateAssetDialog::onCreateAssetClicked()
     if (hasIPFS)
         ipfsDecoded = DecodeAssetData(ui->ipfsText->text().toStdString());
 
-    CNewAsset asset(name.toStdString(), quantity, units, reissuable ? 1 : 0, hasIPFS ? 1 : 0, ipfsDecoded);
+    // TODO: Improve ANS here.
+    std::string ansDecoded = "";
+    bool hasANS = false;
+    if(hasIPFS && CAvianNameSystemID::IsValidID(ipfsDecoded)) {
+        hasIPFS = false;
+        hasANS = true;
+        ansDecoded = ipfsDecoded;
+        ipfsDecoded = "";
+    }
+
+    CNewAsset asset(name.toStdString(), quantity, units, reissuable ? 1 : 0, hasIPFS ? 1 : 0, ipfsDecoded, hasANS ? 1 : 0, ansDecoded);
 
     std::string verifierStripped = GetStrippedVerifierString(ui->lineEditVerifierString->text().toStdString());
     bool fRestrictedAssetCreation = false;

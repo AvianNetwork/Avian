@@ -23,6 +23,7 @@
 #include "assets.h"
 #include "assetdb.h"
 #include "assettypes.h"
+#include "ans.h"
 #include "protocol.h"
 #include "wallet/coincontrol.h"
 #include "utilmoneystr.h"
@@ -447,8 +448,10 @@ CNewAsset::CNewAsset(const CNewAsset& asset)
     this->nAmount = asset.nAmount;
     this->units = asset.units;
     this->nHasIPFS = asset.nHasIPFS;
-    this->nReissuable = asset.nReissuable;
     this->strIPFSHash = asset.strIPFSHash;
+    this->nHasANS = asset.nHasANS;
+    this->strANSID = asset.strANSID;
+    this->nReissuable = asset.nReissuable;
 }
 
 CNewAsset& CNewAsset::operator=(const CNewAsset& asset)
@@ -457,8 +460,10 @@ CNewAsset& CNewAsset::operator=(const CNewAsset& asset)
     this->nAmount = asset.nAmount;
     this->units = asset.units;
     this->nHasIPFS = asset.nHasIPFS;
-    this->nReissuable = asset.nReissuable;
     this->strIPFSHash = asset.strIPFSHash;
+    this->nHasANS = asset.nHasANS;
+    this->strANSID = asset.strANSID;
+    this->nReissuable = asset.nReissuable;
     return *this;
 }
 
@@ -471,13 +476,18 @@ std::string CNewAsset::ToString()
     ss << "units : " << std::to_string(units) << "\n";
     ss << "reissuable : " << std::to_string(nReissuable) << "\n";
     ss << "has_ipfs : " << std::to_string(nHasIPFS) << "\n";
+    ss << "has_ans : " << std::to_string(nHasANS) << "\n";
 
     if (nHasIPFS)
         ss << "ipfs_hash : " << strIPFSHash;
 
+    if (nHasANS)
+        ss << "ans_id : " << strANSID;
+
     return ss.str();
 }
 
+// IPFS
 CNewAsset::CNewAsset(const std::string& strName, const CAmount& nAmount, const int& units, const int& nReissuable, const int& nHasIPFS, const std::string& strIPFSHash)
 {
     this->SetNull();
@@ -487,7 +497,24 @@ CNewAsset::CNewAsset(const std::string& strName, const CAmount& nAmount, const i
     this->nReissuable = int8_t(nReissuable);
     this->nHasIPFS = int8_t(nHasIPFS);
     this->strIPFSHash = strIPFSHash;
+    this->nHasANS = int8_t(DEFAULT_HAS_ANS);
+    this->strANSID = DEFAULT_ANS;
 }
+
+// IPFS + ANS
+CNewAsset::CNewAsset(const std::string& strName, const CAmount& nAmount, const int& units, const int& nReissuable, const int& nHasIPFS, const std::string& strIPFSHash, const int& nHasANS, const std::string& strANSID)
+{
+    this->SetNull();
+    this->strName = strName;
+    this->nAmount = nAmount;
+    this->units = int8_t(units);
+    this->nReissuable = int8_t(nReissuable);
+    this->nHasIPFS = int8_t(nHasIPFS);
+    this->strIPFSHash = strIPFSHash;
+    this->nHasANS = int8_t(nHasANS);
+    this->strANSID = strANSID;
+}
+
 CNewAsset::CNewAsset(const std::string& strName, const CAmount& nAmount)
 {
     this->SetNull();
@@ -497,6 +524,8 @@ CNewAsset::CNewAsset(const std::string& strName, const CAmount& nAmount)
     this->nReissuable = int8_t(DEFAULT_REISSUABLE);
     this->nHasIPFS = int8_t(DEFAULT_HAS_IPFS);
     this->strIPFSHash = DEFAULT_IPFS;
+    this->nHasANS = int8_t(DEFAULT_HAS_ANS);
+    this->strANSID = DEFAULT_ANS;
 }
 
 CDatabasedAssetData::CDatabasedAssetData(const CNewAsset& asset, const int& nHeight, const uint256& blockHash)
@@ -3795,12 +3824,19 @@ bool GetMyAssetBalance(const std::string& name, CAmount& balance, const int& con
 // 46 char base58 --> 34 char KAW compatible
 std::string DecodeAssetData(std::string encoded)
 {
-    if (encoded.size() == 46) {
+    // ANS
+    if (CAvianNameSystemID::IsValidID(encoded)) {
+        return encoded;
+    }
+
+    // IPFS
+    else if (encoded.size() == 46) {
         std::vector<unsigned char> b;
         DecodeBase58(encoded, b);
         return std::string(b.begin(), b.end());
     }
 
+    // TXID
     else if (encoded.size() == 64 && IsHex(encoded)) {
         std::vector<unsigned char> vec = ParseHex(encoded);
         return std::string(vec.begin(), vec.end());
@@ -3812,9 +3848,17 @@ std::string DecodeAssetData(std::string encoded)
 
 std::string EncodeAssetData(std::string decoded)
 {
-    if (decoded.size() == 34) {
+    // ANS
+    if (CAvianNameSystemID::IsValidID(decoded)) {
+        return decoded;
+    }
+
+    // IPFS
+    else if (decoded.size() == 34) {
         return EncodeIPFS(decoded);
     }
+
+    // TXID
     else if (decoded.size() == 32){
         return HexStr(decoded);
     }
@@ -3831,7 +3875,8 @@ std::string DecodeIPFS(std::string encoded)
 };
 
 // 34 char KAW compatible --> 46 char base58
-std::string EncodeIPFS(std::string decoded){
+std::string EncodeIPFS(std::string decoded)
+{
     std::vector<char> charData(decoded.begin(), decoded.end());
     std::vector<unsigned char> unsignedCharData;
     for (char c : charData)
@@ -4398,6 +4443,13 @@ bool CheckAmountWithUnits(const CAmount& nAmount, const int8_t nUnits)
 
 bool CheckEncoded(const std::string& hash, std::string& strError) {
     std::string encodedStr = EncodeAssetData(hash);
+
+    // ANS
+    if (AreMessagesDeployed() && CAvianNameSystemID::IsValidID(encodedStr)) {
+        return true;
+    }
+
+    // IPFS
     if (encodedStr.substr(0, 2) == "Qm" && encodedStr.size() == 46) {
         return true;
     }
@@ -4408,7 +4460,7 @@ bool CheckEncoded(const std::string& hash, std::string& strError) {
         }
     }
 
-    strError = _("Invalid parameter: ipfs_hash is not valid, or txid hash is not the right length");
+    strError = _("Invalid parameter: ipfs_hash/ans_id is not valid or txid hash is not the right length");
 
     return false;
 }
@@ -5381,8 +5433,19 @@ bool ContextualCheckNewAsset(CAssetsCache* assetCache, const CNewAsset& asset, s
         }
     }
 
+    // ANS not allowed when messages are not deployed
+    if (asset.nHasANS && !AreMessagesDeployed()) {
+        strError = _("Invalid parameter: ANS IDs not allowed when messages are not deployed.");
+        return false;
+    }
+
     if (asset.nHasIPFS) {
         if (!CheckEncoded(asset.strIPFSHash, strError))
+            return false;
+    }
+
+    if (asset.nHasANS) {
+        if (!CheckEncoded(asset.strANSID, strError))
             return false;
     }
 

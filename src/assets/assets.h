@@ -27,6 +27,8 @@
 #define DEFAULT_REISSUABLE 1
 #define DEFAULT_HAS_IPFS 0
 #define DEFAULT_IPFS ""
+#define DEFAULT_HAS_ANS 0
+#define DEFAULT_ANS ""
 #define MIN_ASSET_LENGTH 3
 #define MAX_ASSET_LENGTH 32
 #define OWNER_TAG "!"
@@ -519,7 +521,7 @@ bool GetAssetData(const CScript& script, CAssetOutputEntry& data);
 bool GetBestAssetAddressAmount(CAssetsCache& cache, const std::string& assetName, const std::string& address);
 
 
-//! Decode and Encode IPFS hashes, or OIP hashes
+//! Decode and Encode IPFS hashes, ANS IDs, or OIP hashes
 std::string DecodeAssetData(std::string encoded);
 std::string EncodeAssetData(std::string decoded);
 std::string DecodeIPFS(std::string encoded);
