@@ -875,19 +875,9 @@ UniValue getassetdata(const JSONRPCRequest& request)
         if (asset.nHasANS) {
             UniValue ansInfo (UniValue::VOBJ);
 
-            result.push_back(Pair("ans_id", asset.strANSID));
-
             CAvianNameSystemID ansID(asset.strANSID);
 
-            ansInfo.pushKV("type_hex", ansID.type());
-
-            if(ansID.type() == CAvianNameSystemID::ADDR) {
-                ansInfo.pushKV("ans_addr", ansID.addr());
-            } else if(ansID.type() == CAvianNameSystemID::IP) {
-                ansInfo.pushKV("ans_ip", ansID.ip());
-            }
-
-            result.push_back(Pair("ans_info"), ansInfo);
+            result.push_back(Pair("ans_info", ansID.to_object()));
         }
 
         CNullAssetTxVerifierString verifier;

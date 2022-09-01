@@ -8,6 +8,8 @@
 
 #include <string>
 
+#include "univalue.h"
+
 /* Class for ANS (Avian Name System) ID */
 class CAvianNameSystemID {
 public:  
@@ -22,6 +24,7 @@ public:
     CAvianNameSystemID(std::string ansID);
 
     std::string to_string();
+    UniValue to_object();
 
     Type type() { return m_type; };
     std::string addr() { return m_addr; };

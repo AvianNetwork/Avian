@@ -6,6 +6,7 @@
 #include "ans.h"
 
 #include "string.h"
+#include "univalue.h"
 
 #include <string>
 #include <sstream>
@@ -94,6 +95,22 @@ std::string CAvianNameSystemID::to_string() {
     }
 
     return id;
+}
+
+UniValue CAvianNameSystemID::to_object()
+{
+    UniValue ansInfo(UniValue::VOBJ);
+
+    ansInfo.pushKV("ans_id", this->to_string());
+    ansInfo.pushKV("type_hex", this->type());
+
+    if (this->type() == CAvianNameSystemID::ADDR) {
+        ansInfo.pushKV("ans_addr", this->addr());
+    } else if (this->type() == CAvianNameSystemID::IP) {
+        ansInfo.pushKV("ans_ip", this->ip());
+    }
+
+    return ansInfo;
 }
 
 bool CAvianNameSystemID::IsValidID(std::string ansID) {
