@@ -176,12 +176,14 @@ public:
         /** Get the icon for the administrator of the asset */
         QPixmap pixmap = qvariant_cast<QPixmap>(index.data(Qt::DecorationRole));
         QPixmap ipfspixmap = qvariant_cast<QPixmap>(index.data(AssetTableModel::AssetIPFSHashDecorationRole));
+        QPixmap anspixmap = qvariant_cast<QPixmap>(index.data(AssetTableModel::AssetANSDecorationRole));
 
         bool admin = index.data(AssetTableModel::AdministratorRole).toBool();
 
         /** Need to know the heigh to the pixmap. If it is 0 we dont own this asset so dont have room for the icon */
         int nIconSize = admin ? pixmap.height() : 0;
         int nIPFSIconSize = ipfspixmap.height();
+        int nANSIconSize = anspixmap.height();
         int extraNameSpacing = 12;
         if (nIconSize)
             extraNameSpacing = 0;
@@ -204,6 +206,7 @@ public:
         QRect assetNameRect(gradientRect.left() + xspace - extraNameSpacing, gradientRect.top()+ypad+(halfheight/2), gradientRect.width() - xspace, halfheight + ypad);
         QRect amountRect(gradientRect.left() + xspace, gradientRect.top()+ypad+(halfheight/2), gradientRect.width() - xspace - 24, halfheight);
         QRect ipfsLinkRect(QPoint(gradientRect.right() - nIconSize/2, gradientRect.top() + halfheight/1.5), QSize(nIconSize/2, nIconSize/2));
+        QRect ansRect(QPoint(gradientRect.right() - nIconSize/2, gradientRect.top() + halfheight/1.5), QSize(nIconSize/2, nIconSize/2));
 
         // Create the gradient for the asset items
         QLinearGradient gradient(mainRect.topLeft(), mainRect.bottomRight());
@@ -226,6 +229,9 @@ public:
 
         if (nIPFSIconSize)
             painter->drawPixmap(ipfsLinkRect, ipfspixmap);
+
+        if (nANSIconSize)
+            painter->drawPixmap(ansRect, anspixmap);
 
         /** Create the font that is used for painting the asset name */
         QFont nameFont;

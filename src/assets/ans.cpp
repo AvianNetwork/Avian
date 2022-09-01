@@ -68,9 +68,9 @@ CAvianNameSystemID::CAvianNameSystemID(std::string ansID) :
     std::string data = ansID.substr(prefix.length() + 1); // prefix + type
 
     if (this->m_type == Type::ADDR) {
-        this->m_addr = data;
+        this->m_addr = data; // TODO: Check address!
     } else if(this->m_type == Type::IP) {
-        this->m_ip = hex_to_ip(data.c_str());
+        this->m_ip = hex_to_ip(data.c_str()); // TODO: Check IP!
     }
 }
 

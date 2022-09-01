@@ -1,5 +1,6 @@
 // Copyright (c) 2011-2016 The Bitcoin Core developers
 // Copyright (c) 2017-2019 The Raven Core developers
+// Copyright (c) 2022 The Avian Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -56,6 +57,7 @@ public:
                     uint8_t units = OWNER_UNITS;
                     bool fIsAdministrator = true;
                     std::string ipfsHash = "";
+                    std::string ansID = "";
 
                     if (setAssetsToSkip.count(bal->first))
                         continue;
@@ -69,7 +71,8 @@ public:
                         }
                         units = assetData.units;
                         ipfsHash = assetData.strIPFSHash;
-                        // If we have the administrator asset, add it to the skip listå
+                        ansID = assetData.strANSID;
+                        // If we have the administrator asset, add it to the skip list
                         if (balances.count(bal->first + OWNER_TAG)) {
                             setAssetsToSkip.insert(bal->first + OWNER_TAG);
                         } else {
@@ -84,7 +87,7 @@ public:
                             continue;
                         }
                     }
-                    cachedBalances.append(AssetRecord(bal->first, bal->second, units, fIsAdministrator, EncodeAssetData(ipfsHash)));
+                    cachedBalances.append(AssetRecord(bal->first, bal->second, units, fIsAdministrator, EncodeAssetData(ipfsHash), ansID));
                 }
             }
         }
@@ -177,6 +180,25 @@ QVariant AssetTableModel::data(const QModelIndex &index, int role) const
                 pixmap = QPixmap::fromImage(QImage(":/icons/external_link_dark"));
             else
                 pixmap = QPixmap::fromImage(QImage(":/icons/external_link"));
+
+            return pixmap;
+        }
+        case AssetANSRole:
+            return QString::fromStdString(rec->ansID);
+        case AssetANSDecorationRole:
+        {
+            if (index.column() == Quantity)
+                return QVariant();
+
+            if (rec->ansID.size() == 0)
+                return QVariant();
+
+            QPixmap pixmap;
+
+            if (darkModeEnabled)
+                pixmap = QPixmap::fromImage(QImage(":/icons/info"));
+            else
+                pixmap = QPixmap::fromImage(QImage(":/icons/info"));
 
             return pixmap;
         }
