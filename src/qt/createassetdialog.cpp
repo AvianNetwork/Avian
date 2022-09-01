@@ -63,6 +63,7 @@ CreateAssetDialog::CreateAssetDialog(const PlatformStyle *_platformStyle, QWidge
     connect(ui->addressText, SIGNAL(textChanged(QString)), this, SLOT(onAddressNameChanged(QString)));
     connect(ui->ipfsText, SIGNAL(textChanged(QString)), this, SLOT(onIPFSHashChanged(QString)));
     connect(ui->ansText, SIGNAL(textChanged(QString)), this, SLOT(onANSDataChanged(QString)));
+    connect(ui->ansType, SIGNAL(currentIndexChanged(int)), this, SLOT(onANSTypeChanged(int)));
     connect(ui->createAssetButton, SIGNAL(clicked()), this, SLOT(onCreateAssetClicked()));
     connect(ui->unitBox, SIGNAL(valueChanged(int)), this, SLOT(onUnitChanged(int)));
     connect(ui->assetType, SIGNAL(activated(int)), this, SLOT(onAssetTypeActivated(int)));
@@ -309,9 +310,8 @@ void CreateAssetDialog::setUpValues()
 
     // Setup ANS types
     QStringList listTypes;
-    // TODO: Fix hardcoding
-    listTypes.append(tr("Address") + " (Type hex 0x1)");
-    listTypes.append(tr("IP [DNS A record]") + " (Type hex 0x2)");
+    for (const auto type : CAvianNameSystemID::AllTypes)
+        listTypes.append(QString::fromStdString(CAvianNameSystemID::enum_to_string(type).first));
 
     ui->ansType->addItems(listTypes);
 }
@@ -727,6 +727,12 @@ void CreateAssetDialog::onANSDataChanged(QString hash)
     // TODO: Fix for ANS
     // if (checkIPFSHash(hash))
     //     CheckFormState();
+}
+
+void CreateAssetDialog::onANSTypeChanged(int index) {
+    CAvianNameSystemID::Type type = static_cast<CAvianNameSystemID::Type>(index);
+    ui->ansText->setPlaceholderText(QString::fromStdString(CAvianNameSystemID::enum_to_string(type).second));
+    ui->ansText->clear();
 }
 
 void CreateAssetDialog::onCreateAssetClicked()
