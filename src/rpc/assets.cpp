@@ -3107,6 +3107,9 @@ UniValue ansdecode(const JSONRPCRequest& request)
 
     std::string strID = request.params[0].get_str();
 
+    // Check if ID is valid before trying to decode
+    if (!CAvianNameSystemID::IsValidID(strID)) throw JSONRPCError(RPC_INVALID_PARAMETER, std::string("Invalid ANS ID: ") + strID);
+
     CAvianNameSystemID ansID(strID);
 
     UniValue result (UniValue::VOBJ);

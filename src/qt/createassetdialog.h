@@ -91,7 +91,7 @@ private:
     // Update the passed in CCoinControl with state from the GUI
     void updateCoinControlState(CCoinControl& ctrl);
 
-    //Fee
+    // Fee
     void updateFeeMinimizedLabel();
     void minimizeFeeSection(bool fMinimize);
 
@@ -107,7 +107,6 @@ private Q_SLOTS:
     void onNameChanged(QString name);
     void onAddressNameChanged(QString address);
     void onIPFSHashChanged(QString hash);
-    void onANSDataChanged(QString hash);
     void onANSTypeChanged(int index);
     void onCreateAssetClicked();
     void onUnitChanged(int value);

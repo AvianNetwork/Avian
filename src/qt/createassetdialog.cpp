@@ -62,7 +62,6 @@ CreateAssetDialog::CreateAssetDialog(const PlatformStyle *_platformStyle, QWidge
     connect(ui->nameText, SIGNAL(textChanged(QString)), this, SLOT(onNameChanged(QString)));
     connect(ui->addressText, SIGNAL(textChanged(QString)), this, SLOT(onAddressNameChanged(QString)));
     connect(ui->ipfsText, SIGNAL(textChanged(QString)), this, SLOT(onIPFSHashChanged(QString)));
-    connect(ui->ansText, SIGNAL(textChanged(QString)), this, SLOT(onANSDataChanged(QString)));
     connect(ui->ansType, SIGNAL(currentIndexChanged(int)), this, SLOT(onANSTypeChanged(int)));
     connect(ui->createAssetButton, SIGNAL(clicked()), this, SLOT(onCreateAssetClicked()));
     connect(ui->unitBox, SIGNAL(valueChanged(int)), this, SLOT(onUnitChanged(int)));
@@ -440,19 +439,21 @@ bool CreateAssetDialog::checkIPFSHash(QString hash)
 
     if (!hash.isEmpty()) {
         std::string error;
-        if (!CheckEncoded(DecodeAssetData(hash.toStdString()), error)) {
+        // Do not allow ANS in IPFS
+        bool isANS = (hash.toStdString().substr(0, CAvianNameSystemID::prefix.length()) == CAvianNameSystemID::prefix);
+        if (!CheckEncoded(DecodeAssetData(hash.toStdString()), error) && !isANS) {
             ui->ipfsText->setStyleSheet("border: 2px solid red");
-            showMessage(tr("IPFS must start with 'Qm' and be 46 characters; ANS must start with 'ANS'; Txid must have 64 hex characters"));
+            showMessage(tr("IPFS must start with 'Qm' and be 46 characters or Txid must be 64 hex characters"));
             disableCreateButton();
             return false;
         }
-        else if (!CAvianNameSystemID::IsValidID(hash.toStdString()) && hash.size() != 46 && hash.size() != 64) {
+        else if (hash.size() != 46 && hash.size() != 64) {
             ui->ipfsText->setStyleSheet("border: 2px solid red");
             showMessage(tr("IPFS Hash must be 46 characters, or Txid 64 hex characters"));
             disableCreateButton();
             return false;
         } else if (DecodeAssetData(hash.toStdString()).empty()) {
-            showMessage(tr("IPFS/ANS/Txid hash is not valid. Please use a valid IPFS/ANS/Txid hash"));
+            showMessage(tr("IPFS/Txid hash is not valid. Please use a valid IPFS/Txid hash"));
             disableCreateButton();
             return false;
         }
@@ -541,11 +542,6 @@ void CreateAssetDialog::CheckFormState()
     if (ui->ipfsBox->isChecked())
         if (!checkIPFSHash(ui->ipfsText->text()))
             return;
-
-    // TODO: Fix for ANS
-    // if (ui->avnBox->isChecked())
-    //     if (!checkIPFSHash(ui->avnText->text()))
-    //         return;
 
     if (checkedAvailablity) {
         showValidMessage(tr("Valid Asset"));
@@ -722,13 +718,6 @@ void CreateAssetDialog::onIPFSHashChanged(QString hash)
         CheckFormState();
 }
 
-void CreateAssetDialog::onANSDataChanged(QString hash)
-{
-    // TODO: Fix for ANS
-    // if (checkIPFSHash(hash))
-    //     CheckFormState();
-}
-
 void CreateAssetDialog::onANSTypeChanged(int index) {
     CAvianNameSystemID::Type type = static_cast<CAvianNameSystemID::Type>(index);
     ui->ansText->setPlaceholderText(QString::fromStdString(CAvianNameSystemID::enum_to_string(type).second));
@@ -761,7 +750,7 @@ void CreateAssetDialog::onCreateAssetClicked()
     if (hasANS) {
         CAvianNameSystemID ansID(static_cast<CAvianNameSystemID::Type>(ui->ansType->currentIndex()), ui->ansText->text().toStdString());
         ansDecoded = ansID.to_string();
-
+        
         // Warn user
         QMessageBox::critical(this, "ANS Warning", tr("Storing data using the Avian Name System will forever stay in the blockchain. You can edit the ANS ID only if the asset is reissueable.") + QString("\n\nANS ID: ") + QString::fromStdString(ansDecoded), QMessageBox::Ok, QMessageBox::Ok);
     }

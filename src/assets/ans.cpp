@@ -5,11 +5,16 @@
 
 #include "ans.h"
 
-#include "string.h"
-#include "univalue.h"
-
 #include <string>
 #include <sstream>
+
+#include "string.h"
+
+#include "univalue.h"
+#include "util.h"
+#include "utilstrencodings.h"
+#include "base58.h"
+#include "script/standard.h"
 
 // TODO: Clean this up.
 unsigned int ip_to_hex(const char* strip)
@@ -114,5 +119,34 @@ UniValue CAvianNameSystemID::to_object()
 }
 
 bool CAvianNameSystemID::IsValidID(std::string ansID) {
-    return (ansID.substr(0, CAvianNameSystemID::prefix.length()) == CAvianNameSystemID::prefix) && (ansID.size() <= 64);
+    // Check for min length
+    if(ansID.length() <= prefix.size() + 1) return false;
+
+    // Check for prefix
+    bool hasPrefix = (ansID.substr(0, CAvianNameSystemID::prefix.length()) == CAvianNameSystemID::prefix) && (ansID.size() <= 64);
+    if (!hasPrefix) return false;
+
+    // Must be valid hex char
+    std::string hexStr = ansID.substr(prefix.length(), 1);
+    if (!IsHexNumber(hexStr)) return false;
+
+    // Hex value must be less than 0xf
+    int hexInt = stoi(hexStr, 0, 16);
+    if (hexInt > 0xf) return false;
+
+    // Check type
+    Type type = static_cast<Type>(hexInt);
+    std::string rawData = ansID.substr(prefix.length() + 1);
+
+    if (type == Type::ADDR) {
+        CTxDestination destination = DecodeDestination(rawData);
+        if (!IsValidDestination(destination)) return false;
+    } else if (type == Type::IP) {
+        // check ip
+    } else {
+        // Unknown type
+        return false;
+    }
+
+    return true;
 }
