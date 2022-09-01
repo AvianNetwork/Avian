@@ -827,13 +827,43 @@
             </property>
            </widget>
           </item>
-            <item>
-             <widget class="QPushButton" name="openIpfsButton">
-              <property name="text">
-               <string>Browse IPFS</string>
-              </property>
-             </widget>
-            </item>
+          <item>
+           <widget class="QPushButton" name="openIpfsButton">
+            <property name="text">
+             <string>Browse IPFS</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </item>
+        <item>
+         <layout class="QHBoxLayout" name="horizontalLayout_7">
+          <item>
+           <widget class="QCheckBox" name="ansBox">
+            <property name="toolTip">
+             <string>Enable Avian Name System for this asset</string>
+            </property>
+            <property name="text">
+             <string>Attach Avian Name System ID</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QComboBox" name="ansType"/>
+          </item>
+          <item>
+           <widget class="QLineEdit" name="ansText">
+            <property name="toolTip">
+             <string>Raw ANS data</string>
+            </property>
+            <property name="maxLength">
+             <number>64</number>
+            </property>
+            <property name="placeholderText">
+             <string>Raw ANS data...</string>
+            </property>
+           </widget>
+          </item>
          </layout>
         </item>
         <item>

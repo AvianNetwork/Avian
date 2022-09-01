@@ -57,10 +57,12 @@ CreateAssetDialog::CreateAssetDialog(const PlatformStyle *_platformStyle, QWidge
     setWindowTitle("Create Assets");
     connect(ui->ipfsBox, SIGNAL(clicked()), this, SLOT(ipfsStateChanged()));
     connect(ui->openIpfsButton, SIGNAL(clicked()), this, SLOT(openIpfsBrowser()));
+    connect(ui->ansBox, SIGNAL(clicked()), this, SLOT(ansStateChanged()));
     connect(ui->availabilityButton, SIGNAL(clicked()), this, SLOT(checkAvailabilityClicked()));
     connect(ui->nameText, SIGNAL(textChanged(QString)), this, SLOT(onNameChanged(QString)));
     connect(ui->addressText, SIGNAL(textChanged(QString)), this, SLOT(onAddressNameChanged(QString)));
     connect(ui->ipfsText, SIGNAL(textChanged(QString)), this, SLOT(onIPFSHashChanged(QString)));
+    connect(ui->ansText, SIGNAL(textChanged(QString)), this, SLOT(onANSDataChanged(QString)));
     connect(ui->createAssetButton, SIGNAL(clicked()), this, SLOT(onCreateAssetClicked()));
     connect(ui->unitBox, SIGNAL(valueChanged(int)), this, SLOT(onUnitChanged(int)));
     connect(ui->assetType, SIGNAL(activated(int)), this, SLOT(onAssetTypeActivated(int)));
@@ -272,6 +274,8 @@ void CreateAssetDialog::setUpValues()
     ui->unitBox->setValue(0);
     ui->reissuableBox->setCheckState(Qt::CheckState::Checked);
     ui->ipfsText->hide();
+    ui->ansText->hide();
+    ui->ansType->hide();
     ui->openIpfsButton->hide();
     ui->openIpfsButton->setDisabled(true);
     hideMessage();
@@ -302,6 +306,14 @@ void CreateAssetDialog::setUpValues()
     ui->assetFullName->setStyleSheet("font-weight: bold");
 
     //ui->assetType->setStyleSheet("font-weight: bold;");
+
+    // Setup ANS types
+    QStringList listTypes;
+    // TODO: Fix hardcoding
+    listTypes.append(tr("Address") + " (Type hex 0x1)");
+    listTypes.append(tr("IP [DNS A record]") + " (Type hex 0x2)");
+
+    ui->ansType->addItems(listTypes);
 }
 
 void CreateAssetDialog::setupCoinControlFrame(const PlatformStyle *platformStyle)
@@ -358,6 +370,18 @@ void CreateAssetDialog::toggleIPFSText()
     }
 }
 
+void CreateAssetDialog::toggleANSText()
+{
+    if (ui->ansBox->isChecked()) {
+        ui->ansType->show();
+        ui->ansText->show();
+    } else {
+        ui->ansType->hide();
+        ui->ansText->hide();
+        ui->ansText->clear();
+    }
+}
+
 void CreateAssetDialog::showMessage(QString string)
 {
     ui->messageLabel->setStyleSheet("color: red; font-size: 15pt;font-weight: bold;");
@@ -378,6 +402,8 @@ void CreateAssetDialog::hideMessage()
     ui->addressText->setStyleSheet("");
     if (ui->ipfsBox->isChecked())
         ui->ipfsText->setStyleSheet("");
+    if (ui->ansBox->isChecked())
+        ui->ansText->setStyleSheet("");
 
     ui->messageLabel->hide();
 }
@@ -516,6 +542,11 @@ void CreateAssetDialog::CheckFormState()
         if (!checkIPFSHash(ui->ipfsText->text()))
             return;
 
+    // TODO: Fix for ANS
+    // if (ui->avnBox->isChecked())
+    //     if (!checkIPFSHash(ui->avnText->text()))
+    //         return;
+
     if (checkedAvailablity) {
         showValidMessage(tr("Valid Asset"));
         enableCreateButton();
@@ -530,6 +561,11 @@ void CreateAssetDialog::CheckFormState()
 void CreateAssetDialog::ipfsStateChanged()
 {
     toggleIPFSText();
+}
+
+void CreateAssetDialog::ansStateChanged()
+{
+    toggleANSText();
 }
 
 void CreateAssetDialog::checkAvailabilityClicked()
@@ -686,6 +722,13 @@ void CreateAssetDialog::onIPFSHashChanged(QString hash)
         CheckFormState();
 }
 
+void CreateAssetDialog::onANSDataChanged(QString hash)
+{
+    // TODO: Fix for ANS
+    // if (checkIPFSHash(hash))
+    //     CheckFormState();
+}
+
 void CreateAssetDialog::onCreateAssetClicked()
 {
     WalletModel::UnlockContext ctx(model->requestUnlock());
@@ -700,20 +743,17 @@ void CreateAssetDialog::onCreateAssetClicked()
     int units = ui->unitBox->value();
     bool reissuable = ui->reissuableBox->isChecked();
     bool hasIPFS = ui->ipfsBox->isChecked() && !ui->ipfsText->text().isEmpty();
+    bool hasANS = ui->ansBox->isChecked() && !ui->ansText->text().isEmpty();
 
     std::string ipfsDecoded = "";
     if (hasIPFS)
         ipfsDecoded = DecodeAssetData(ui->ipfsText->text().toStdString());
 
-    // TODO: Improve ANS here.
+    // TODO: Improve ANS here (static_cast issues, etc).
     std::string ansDecoded = "";
-    bool hasANS = false;
-    if(hasIPFS && CAvianNameSystemID::IsValidID(ipfsDecoded)) {
-        hasIPFS = false;
-        hasANS = true;
-        ansDecoded = ipfsDecoded;
-        ipfsDecoded = "";
-    }
+    CAvianNameSystemID ansID(static_cast<CAvianNameSystemID::Type>(ui->ansType->currentIndex()), ui->ansText->text().toStdString());
+    ansDecoded = ansID.to_string();
+    std::cout << "ANS ID Output: " << ansID.to_string();
 
     CNewAsset asset(name.toStdString(), quantity, units, reissuable ? 1 : 0, hasIPFS ? 1 : 0, ipfsDecoded, hasANS ? 1 : 0, ansDecoded);
 

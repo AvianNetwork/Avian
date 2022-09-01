@@ -68,6 +68,7 @@ private:
     bool checkedAvailablity = false;
 
     void toggleIPFSText();
+    void toggleANSText();
     void setUpValues();
     void showMessage(QString string);
     void showValidMessage(QString string);
@@ -100,11 +101,13 @@ private:
 
 private Q_SLOTS:
     void ipfsStateChanged();
+    void ansStateChanged();
     void checkAvailabilityClicked();
     void openIpfsBrowser();
     void onNameChanged(QString name);
     void onAddressNameChanged(QString address);
     void onIPFSHashChanged(QString hash);
+    void onANSDataChanged(QString hash);
     void onCreateAssetClicked();
     void onUnitChanged(int value);
     void onChangeAddressChanged(QString changeAddress);
