@@ -752,14 +752,19 @@ void CreateAssetDialog::onCreateAssetClicked()
     bool hasANS = ui->ansBox->isChecked() && !ui->ansText->text().isEmpty();
 
     std::string ipfsDecoded = "";
-    if (hasIPFS)
+    if (hasIPFS) {
         ipfsDecoded = DecodeAssetData(ui->ipfsText->text().toStdString());
+    }
 
     // TODO: Improve ANS here (static_cast issues, etc).
     std::string ansDecoded = "";
-    CAvianNameSystemID ansID(static_cast<CAvianNameSystemID::Type>(ui->ansType->currentIndex()), ui->ansText->text().toStdString());
-    ansDecoded = ansID.to_string();
-    std::cout << "ANS ID Output: " << ansID.to_string();
+    if (hasANS) {
+        CAvianNameSystemID ansID(static_cast<CAvianNameSystemID::Type>(ui->ansType->currentIndex()), ui->ansText->text().toStdString());
+        ansDecoded = ansID.to_string();
+
+        // Warn user
+        QMessageBox::critical(this, "ANS Warning", tr("Storing data using the Avian Name System will forever stay in the blockchain. You can edit the ANS ID only if the asset is reissueable.") + QString("\n\nANS ID: ") + QString::fromStdString(ansDecoded), QMessageBox::Ok, QMessageBox::Ok);
+    }
 
     CNewAsset asset(name.toStdString(), quantity, units, reissuable ? 1 : 0, hasIPFS ? 1 : 0, ipfsDecoded, hasANS ? 1 : 0, ansDecoded);
 
