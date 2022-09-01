@@ -3044,11 +3044,11 @@ UniValue purgesnapshot(const JSONRPCRequest& request)
     return NullUniValue;
 }
 
-UniValue ans_encode(const JSONRPCRequest& request)
+UniValue ansencode(const JSONRPCRequest& request)
 {
     if (request.fHelp || request.params.size() < 2)
         throw std::runtime_error(
-                "ans_encode \"type\" \"data\"\n"
+                "ansencode \"type\" \"data\"\n"
                 "\nEncode ANS ID\n"
 
                 "\nArguments:\n"
@@ -3059,8 +3059,8 @@ UniValue ans_encode(const JSONRPCRequest& request)
                 "\nANS1ffffffff\n"
 
                 "\nExamples:\n"
-                + HelpExampleCli("ans_encode", "\"ip\" 127.0.0.1")
-                + HelpExampleRpc("ans_encode", "\"ip\" 127.0.0.1")
+                + HelpExampleCli("ansencode", "\"ip\" 127.0.0.1")
+                + HelpExampleRpc("ansencode", "\"ip\" 127.0.0.1")
         );
 
     std::string strType = request.params[0].get_str();
@@ -3087,11 +3087,11 @@ UniValue ans_encode(const JSONRPCRequest& request)
     return ansID.to_string();
 }
 
-UniValue ans_decode(const JSONRPCRequest& request)
+UniValue ansdecode(const JSONRPCRequest& request)
 {
     if (request.fHelp || request.params.size() < 1)
         throw std::runtime_error(
-                "ans_decode \"ans_id\"\n"
+                "ansdecode \"ans_id\"\n"
                 "\nDecode ANS ID\n"
 
                 "\nArguments:\n"
@@ -3100,8 +3100,8 @@ UniValue ans_decode(const JSONRPCRequest& request)
                 "\nANS1ffffffff\n"
 
                 "\nExamples:\n"
-                + HelpExampleCli("ans_decode", "ANS1ffffffff")
-                + HelpExampleRpc("ans_decode", "ANS1ffffffff")
+                + HelpExampleCli("ansdecode", "ANS1ffffffff")
+                + HelpExampleRpc("ansdecode", "ANS1ffffffff")
         );
 
     std::string strID = request.params[0].get_str();
@@ -3166,8 +3166,8 @@ static const CRPCCommand commands[] =
 
     { "assets",   "getsnapshot",                &getsnapshot,                {"asset_name", "block_height"}},
     { "assets",   "purgesnapshot",              &purgesnapshot,              {"asset_name", "block_height"}},
-    { "assets",   "ans_encode",                 &ans_encode,                 {"type", "data"}},
-    { "assets",   "ans_decode",                 &ans_decode,                 {"ans_id"}},
+    { "assets",   "ansencode",                  &ansencode,                  {"type", "data"}},
+    { "assets",   "ansdecode",                  &ansdecode,                  {"ans_id"}},
 
 };
 
