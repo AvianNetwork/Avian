@@ -1652,11 +1652,12 @@ void CAssetTransfer::ConstructTransaction(CScript& script) const
 }
 
 CReissueAsset::CReissueAsset(const std::string &strAssetName, const CAmount &nAmount, const int &nUnits, const int &nReissuable,
-                             const std::string &strIPFSHash)
+                             const std::string &strIPFSHash, const std::string &strANSID)
 {
     SetNull();
     this->strName = strAssetName;
     this->strIPFSHash = strIPFSHash;
+    this->strANSID = strANSID;
     this->nReissuable = int8_t(nReissuable);
     this->nAmount = nAmount;
     this->nUnits = nUnits;
@@ -1953,6 +1954,7 @@ bool CAssetsCache::AddReissueAsset(const CReissueAsset& reissue, const std::stri
     if (!mapReissuedAssetData.count(reissue.strName)) {
         asset.nAmount += reissue.nAmount;
         asset.nReissuable = reissue.nReissuable;
+
         if (reissue.nUnits != -1)
             asset.units = reissue.nUnits;
 
@@ -1960,16 +1962,29 @@ bool CAssetsCache::AddReissueAsset(const CReissueAsset& reissue, const std::stri
             asset.nHasIPFS = 1;
             asset.strIPFSHash = reissue.strIPFSHash;
         }
+
+        if (reissue.strANSID != "") {
+            asset.nHasANS = 1;
+            asset.strANSID = reissue.strANSID;
+        }
+
         mapReissuedAssetData.insert(make_pair(reissue.strName, asset));
     } else {
         mapReissuedAssetData.at(reissue.strName).nAmount += reissue.nAmount;
         mapReissuedAssetData.at(reissue.strName).nReissuable = reissue.nReissuable;
+
         if (reissue.nUnits != -1) {
             mapReissuedAssetData.at(reissue.strName).units = reissue.nUnits;
         }
+
         if (reissue.strIPFSHash != "") {
             mapReissuedAssetData.at(reissue.strName).nHasIPFS = 1;
             mapReissuedAssetData.at(reissue.strName).strIPFSHash = reissue.strIPFSHash;
+        }
+
+        if (reissue.strANSID != "") {
+            mapReissuedAssetData.at(reissue.strName).nHasANS = 1;
+            mapReissuedAssetData.at(reissue.strName).strANSID = reissue.strANSID;
         }
     }
 
@@ -5548,6 +5563,17 @@ bool ContextualCheckReissueAsset(CAssetsCache* assetCache, const CReissueAsset& 
             return false;
     }
 
+    // ANS not allowed when messages are not deployed
+    if (asset.nHasANS && !AreMessagesDeployed()) {
+        strError = _("Invalid parameter: ANS IDs not allowed when messages are not deployed.");
+        return false;
+    }
+
+    if (asset.nHasANS) {
+        if (!CheckEncoded(asset.strANSID, strError))
+            return false;
+    }
+
     if (IsAssetNameAnRestricted(reissue_asset.strName)) {
         CNullAssetTxVerifierString new_verifier;
         bool fNotFound = false;
@@ -5631,6 +5657,17 @@ bool ContextualCheckReissueAsset(CAssetsCache* assetCache, const CReissueAsset& 
 
     if (reissue_asset.strIPFSHash != "") {
         if (!CheckEncoded(reissue_asset.strIPFSHash, strError))
+            return false;
+    }
+
+    // ANS not allowed when messages are not deployed
+    if (asset.nHasANS && !AreMessagesDeployed()) {
+        strError = _("Invalid parameter: ANS IDs not allowed when messages are not deployed.");
+        return false;
+    }
+
+    if (asset.nHasANS) {
+        if (!CheckEncoded(asset.strANSID, strError))
             return false;
     }
 

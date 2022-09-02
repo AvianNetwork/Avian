@@ -108,6 +108,7 @@ private Q_SLOTS:
     void onAddressNameChanged(QString address);
     void onIPFSHashChanged(QString hash);
     void onANSTypeChanged(int index);
+    void onANSDataChanged(QString data);
     void onCreateAssetClicked();
     void onUnitChanged(int value);
     void onChangeAddressChanged(QString changeAddress);

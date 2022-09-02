@@ -62,6 +62,7 @@ CreateAssetDialog::CreateAssetDialog(const PlatformStyle *_platformStyle, QWidge
     connect(ui->nameText, SIGNAL(textChanged(QString)), this, SLOT(onNameChanged(QString)));
     connect(ui->addressText, SIGNAL(textChanged(QString)), this, SLOT(onAddressNameChanged(QString)));
     connect(ui->ipfsText, SIGNAL(textChanged(QString)), this, SLOT(onIPFSHashChanged(QString)));
+    connect(ui->ansText, SIGNAL(textChanged(QString)), this, SLOT(onANSDataChanged(QString)));
     connect(ui->ansType, SIGNAL(currentIndexChanged(int)), this, SLOT(onANSTypeChanged(int)));
     connect(ui->createAssetButton, SIGNAL(clicked()), this, SLOT(onCreateAssetClicked()));
     connect(ui->unitBox, SIGNAL(valueChanged(int)), this, SLOT(onUnitChanged(int)));
@@ -543,6 +544,21 @@ void CreateAssetDialog::CheckFormState()
         if (!checkIPFSHash(ui->ipfsText->text()))
             return;
 
+    if (ui->ansBox->isChecked()) {
+        CAvianNameSystemID::Type type = static_cast<CAvianNameSystemID::Type>(ui->ansType->currentIndex());
+        CAvianNameSystemID ans(type, ui->ansText->text().toStdString());
+        if (!CAvianNameSystemID::IsValidID(ans.to_string())) {
+            ui->ansText->setStyleSheet("border: 2px solid red");
+            showMessage(tr("Invalid ANS data."));
+            disableCreateButton();
+            return;
+        } else {
+            ui->ansText->setStyleSheet("");
+            hideMessage();
+            enableCreateButton();
+        }
+    }
+
     if (checkedAvailablity) {
         showValidMessage(tr("Valid Asset"));
         enableCreateButton();
@@ -724,6 +740,11 @@ void CreateAssetDialog::onANSTypeChanged(int index) {
     ui->ansText->clear();
 }
 
+void CreateAssetDialog::onANSDataChanged(QString data)
+{
+    CheckFormState();
+}
+
 void CreateAssetDialog::onCreateAssetClicked()
 {
     WalletModel::UnlockContext ctx(model->requestUnlock());
@@ -745,12 +766,11 @@ void CreateAssetDialog::onCreateAssetClicked()
         ipfsDecoded = DecodeAssetData(ui->ipfsText->text().toStdString());
     }
 
-    // TODO: Improve ANS here (static_cast issues, etc).
     std::string ansDecoded = "";
     if (hasANS) {
         CAvianNameSystemID ansID(static_cast<CAvianNameSystemID::Type>(ui->ansType->currentIndex()), ui->ansText->text().toStdString());
         ansDecoded = ansID.to_string();
-        
+
         // Warn user
         QMessageBox::critical(this, "ANS Warning", tr("Storing data using the Avian Name System will forever stay in the blockchain. You can edit the ANS ID only if the asset is reissueable.") + QString("\n\nANS ID: ") + QString::fromStdString(ansDecoded), QMessageBox::Ok, QMessageBox::Ok);
     }

@@ -1652,7 +1652,7 @@ UniValue reissue(const JSONRPCRequest& request)
     if (fMessageCheck)
         CheckIPFSTxidMessage(newipfs, expireTime);
 
-    CReissueAsset reissueAsset(asset_name, nAmount, newUnits, reissuable, DecodeAssetData(newipfs));
+    CReissueAsset reissueAsset(asset_name, nAmount, newUnits, reissuable, DecodeAssetData(newipfs), "");
 
     std::pair<int, std::string> error;
     CReserveKey reservekey(pwallet);
@@ -2757,7 +2757,7 @@ UniValue reissuerestrictedasset(const JSONRPCRequest& request)
     if (fMessageCheck)
         CheckIPFSTxidMessage(new_ipfs_data, expireTime);
 
-    CReissueAsset reissueAsset(assetName, nAmount, newUnits, reissuable ? 1 : 0, DecodeAssetData(new_ipfs_data));
+    CReissueAsset reissueAsset(assetName, nAmount, newUnits, reissuable ? 1 : 0, DecodeAssetData(new_ipfs_data), "");
 
     CReserveKey reservekey(pwallet);
     CWalletTx transaction;

@@ -281,7 +281,7 @@ public:
         READWRITE(strANSID);
     }
 
-    CReissueAsset(const std::string& strAssetName, const CAmount& nAmount, const int& nUnits, const int& nReissuable, const std::string& strIPFSHash);
+    CReissueAsset(const std::string& strAssetName, const CAmount& nAmount, const int& nUnits, const int& nReissuable, const std::string& strIPFSHash, const std::string& strANSID);
     void ConstructTransaction(CScript& script) const;
     bool IsNull() const;
 };

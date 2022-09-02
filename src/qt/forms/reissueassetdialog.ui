@@ -907,6 +907,53 @@
            </layout>
           </item>
           <item>
+           <layout class="QHBoxLayout" name="horizontalLayout_ans">
+            <property name="spacing">
+             <number>0</number>
+            </property>
+            <item>
+             <layout class="QHBoxLayout" name="horizontalLayout_ansid">
+              <property name="rightMargin">
+               <number>15</number>
+              </property>
+              <item>
+               <widget class="QCheckBox" name="ansBox">
+                <property name="layoutDirection">
+                 <enum>Qt::LeftToRight</enum>
+                </property>
+                <property name="text">
+                 <string>Change Avian Name System data</string>
+                </property>
+               </widget>
+              </item>
+             </layout>
+            </item>
+            <item>
+             <layout class="QHBoxLayout" name="horizontalLayout_anstext">
+              <property name="spacing">
+                <number>10</number>
+              </property>
+               <item>
+                <widget class="QComboBox" name="ansType"/>
+               </item>
+               <item>
+                <widget class="QLineEdit" name="ansText">
+                    <property name="toolTip">
+                        <string>Raw ANS data</string>
+                    </property>
+                    <property name="maxLength">
+                        <number>64</number>
+                    </property>
+                        <property name="placeholderText">
+                        <string>Raw ANS data...</string>
+                    </property>
+                </widget>
+                </item>
+             </layout>
+            </item>
+           </layout>
+          </item>
+          <item>
            <layout class="QHBoxLayout" name="horizontalLayout_5"/>
           </item>
           <item>
