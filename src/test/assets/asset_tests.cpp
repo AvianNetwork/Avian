@@ -627,8 +627,8 @@ BOOST_FIXTURE_TEST_SUITE(asset_tests, BasicTestingSetup)
 
         /// Generic Amount Tests ///
         {
-            CReissueAsset valid_amount_1("VALID", 1 * COIN, -1, 1, "");
-            CReissueAsset valid_amount_2("INVALID", MAX_MONEY - 1, -1, 1, "");
+            CReissueAsset valid_amount_1("VALID", 1 * COIN, -1, 1, "", "");
+            CReissueAsset valid_amount_2("INVALID", MAX_MONEY - 1, -1, 1, "", "");
 
             BOOST_CHECK_MESSAGE(CheckReissueAsset(valid_amount_1, error), "CheckReissueAsset: Valid Amount Test 1 failed - " + error);
             BOOST_CHECK_MESSAGE(CheckReissueAsset(valid_amount_2, error), "CheckReissueAsset: Valid Amount Test 2 failed - " + error);
@@ -638,7 +638,7 @@ BOOST_FIXTURE_TEST_SUITE(asset_tests, BasicTestingSetup)
         {
             // Check all units (-1 -> 8)
             for (int i = -1; i <= MAX_UNIT; i++) {
-                CReissueAsset reissue_unit("VALID", 1000 * COIN, i, 0, "");
+                CReissueAsset reissue_unit("VALID", 1000 * COIN, i, 0, "", "");
                 BOOST_CHECK_MESSAGE(CheckReissueAsset(reissue_unit, error), "CheckReissueAsset: Test Unit " + std::to_string(i) + " Failed - " + error);
             }
         }
@@ -646,8 +646,8 @@ BOOST_FIXTURE_TEST_SUITE(asset_tests, BasicTestingSetup)
         /// Generic Reissuable Flag Tests ///
         {
             // Check with invalid reissue flag
-            CReissueAsset valid_ressiue_1("VALID", 1000 * COIN, MAX_UNIT, 1, "");
-            CReissueAsset valid_ressiue_2("VALID", 1000 * COIN, MAX_UNIT, 0, "");
+            CReissueAsset valid_ressiue_1("VALID", 1000 * COIN, MAX_UNIT, 1, "", "");
+            CReissueAsset valid_ressiue_2("VALID", 1000 * COIN, MAX_UNIT, 0, "", "");
             BOOST_CHECK_MESSAGE(CheckReissueAsset(valid_ressiue_1, error), "CheckReissueAsset: Valid Reissue Test 1 failed - " + error);
             BOOST_CHECK_MESSAGE(CheckReissueAsset(valid_ressiue_2, error), "CheckReissueAsset: Valid Reissue Test 2 failed - " + error);
         }
@@ -661,8 +661,8 @@ BOOST_FIXTURE_TEST_SUITE(asset_tests, BasicTestingSetup)
 
         /// Generic Amount Tests ///
         {
-            CReissueAsset invalid_amount_less_zero("INVALID", -1, -1, 1, "");
-            CReissueAsset invalid_amount_over_max("INVALID", MAX_MONEY, -1, 1, "");
+            CReissueAsset invalid_amount_less_zero("INVALID", -1, -1, 1, "", "");
+            CReissueAsset invalid_amount_over_max("INVALID", MAX_MONEY, -1, 1, "", "");
 
             BOOST_CHECK_MESSAGE(!CheckReissueAsset(invalid_amount_less_zero, error), "CheckReissueAsset: Invalid Amount Test 1 should fail");
             BOOST_CHECK_MESSAGE(!CheckReissueAsset(invalid_amount_over_max, error), "CheckReissueAsset: Invalid Amount Test 2 should fail");
@@ -671,8 +671,8 @@ BOOST_FIXTURE_TEST_SUITE(asset_tests, BasicTestingSetup)
         /// Generic Units Tests ///
         {
             // Check with invalid units (-1, an 9)
-            CReissueAsset invalid_unit_1("INVALID", 1000 * COIN, -2, 0, "");
-            CReissueAsset invalid_unit_2("INVALID", 1000 * COIN, 9, 0, "");
+            CReissueAsset invalid_unit_1("INVALID", 1000 * COIN, -2, 0, "", "");
+            CReissueAsset invalid_unit_2("INVALID", 1000 * COIN, 9, 0, "", "");
             BOOST_CHECK_MESSAGE(!CheckReissueAsset(invalid_unit_1, error), "CheckReissueAsset: Invalid Unit Test 1 should fail");
             BOOST_CHECK_MESSAGE(!CheckReissueAsset(invalid_unit_2, error), "CheckReissueAsset: Invalid Unit Test 2 should fail");
         }
@@ -680,8 +680,8 @@ BOOST_FIXTURE_TEST_SUITE(asset_tests, BasicTestingSetup)
         /// Generic Reissuable Flag Tests ///
         {
             // Check with invalid reissue flag
-            CReissueAsset invalid_ressiue_1("INVALID", 1000 * COIN, MAX_UNIT, -1, "");
-            CReissueAsset invalid_ressiue_2("INVALID", 1000 * COIN, MAX_UNIT, 2, "");
+            CReissueAsset invalid_ressiue_1("INVALID", 1000 * COIN, MAX_UNIT, -1, "", "");
+            CReissueAsset invalid_ressiue_2("INVALID", 1000 * COIN, MAX_UNIT, 2, "", "");
             BOOST_CHECK_MESSAGE(!CheckReissueAsset(invalid_ressiue_1, error), "CheckReissueAsset: Invalid Reissue Test 1 should fail");
             BOOST_CHECK_MESSAGE(!CheckReissueAsset(invalid_ressiue_2, error), "CheckReissueAsset: Invalid Reissue Test 2 should fail");
         }
