@@ -421,7 +421,7 @@ UniValue issue(const JSONRPCRequest& request)
 {
     if (request.fHelp || !AreAssetsDeployed() || request.params.size() < 1 || request.params.size() > 8)
         throw std::runtime_error(
-            "issue \"asset_name\" qty \"( to_address )\" \"( change_address )\" ( units ) ( reissuable ) ( has_ipfs ) \"( ipfs_hash )\"\n"
+            "issue \"asset_name\" qty \"( to_address )\" \"( change_address )\" ( units ) ( reissuable ) ( has_ipfs ) \"( ipfs_hash )\" ( has_ans ) \"( ans_id )\"\n"
             + AssetActivationWarning() +
             "\nIssue an asset, subasset or unique asset.\n"
             "Asset name must not conflict with any existing asset.\n"
@@ -438,6 +438,8 @@ UniValue issue(const JSONRPCRequest& request)
             "6. \"reissuable\"            (boolean, optional, default=true (false for unique assets)), whether future reissuance is allowed\n"
             "7. \"has_ipfs\"              (boolean, optional, default=false), whether ipfs hash is going to be added to the asset\n"
             "8. \"ipfs_hash\"             (string, optional but required if has_ipfs = 1), an ipfs hash or a txid hash once RIP5 is activated\n"
+            "9. \"has_ans\"               (boolean, optional, default=false), whether ANS data is going to be added to the asset\n"
+            "10. \"ans_id\"               (string, optional but required if has_ans = 1), an ANS ID once messaging is activated\n"
 
             "\nResult:\n"
             "\"txid\"                     (string) The transaction id\n"
@@ -550,12 +552,25 @@ UniValue issue(const JSONRPCRequest& request)
         ipfs_hash = request.params[7].get_str();
     }
 
+    bool has_ans = false;
+    if (request.params.size() > 8)
+        has_ans = request.params[8].get_bool();
+
+    // Check the ipfs
+    std::string ans_id = "";
+    if (request.params.size() > 9 && has_ans) {
+        fMessageCheck = true;
+        ans_id = request.params[9].get_str();
+    }
+
     // Reissues don't have an expire time
     int64_t expireTime = 0;
 
     // Check the message data
-    if (fMessageCheck)
+    if (fMessageCheck) {
         CheckIPFSTxidMessage(ipfs_hash, expireTime);
+        CheckIPFSTxidMessage(ans_id, expireTime);
+    }
 
     // check for required unique asset params
     if ((assetType == AssetType::UNIQUE || assetType == AssetType::MSGCHANNEL) && (nAmount != COIN || units != 0 || reissuable)) {
@@ -567,7 +582,7 @@ UniValue issue(const JSONRPCRequest& request)
         throw JSONRPCError(RPC_INVALID_PARAMETER, std::string("Invalid parameters for issuing a qualifier asset."));
     }
 
-    CNewAsset asset(assetName, nAmount, units, reissuable ? 1 : 0, has_ipfs ? 1 : 0, DecodeAssetData(ipfs_hash));
+    CNewAsset asset(assetName, nAmount, units, reissuable ? 1 : 0, has_ipfs ? 1 : 0, DecodeAssetData(ipfs_hash), ans_id);
 
     CReserveKey reservekey(pwallet);
     CWalletTx transaction;
@@ -607,8 +622,9 @@ UniValue issueunique(const JSONRPCRequest& request)
                 "1. \"root_name\"             (string, required) name of the asset the unique asset(s) are being issued under\n"
                 "2. \"asset_tags\"            (array, required) the unique tag for each asset which is to be issued\n"
                 "3. \"ipfs_hashes\"           (array, optional) ipfs hashes or txid hashes corresponding to each supplied tag (should be same size as \"asset_tags\")\n"
-                "4. \"to_address\"            (string, optional, default=\"\"), address assets will be sent to, if it is empty, address will be generated for you\n"
-                "5. \"change_address\"        (string, optional, default=\"\"), address the the avn change will be sent to, if it is empty, change address will be generated for you\n"
+                "4. \"ans_ids\"               (array, optional) ANS IDs corresponding to each supplied tag (should be same size as \"asset_tags\")\n"
+                "5. \"to_address\"            (string, optional, default=\"\"), address assets will be sent to, if it is empty, address will be generated for you\n"
+                "6. \"change_address\"        (string, optional, default=\"\"), address the the avn change will be sent to, if it is empty, change address will be generated for you\n"
 
                 "\nResult:\n"
                 "\"txid\"                     (string) The transaction id\n"
@@ -651,9 +667,16 @@ UniValue issueunique(const JSONRPCRequest& request)
         }
     }
 
+    const UniValue& ansIDS = request.params[3];
+    if (!ansIDS.isNull()) {
+        if (!ansIDS.isArray() || ansIDS.size() != assetTags.size()) {
+            throw JSONRPCError(RPC_INVALID_PARAMETER, std::string("If provided, ANS IDs must be an array of the same size as the asset tags array."));
+        }
+    }
+
     std::string address = "";
-    if (request.params.size() > 3)
-        address = request.params[3].get_str();
+    if (request.params.size() > 4)
+        address = request.params[4].get_str();
 
     if (!address.empty()) {
         CTxDestination destination = DecodeDestination(address);
@@ -681,8 +704,8 @@ UniValue issueunique(const JSONRPCRequest& request)
     }
 
     std::string changeAddress = "";
-    if (request.params.size() > 4)
-        changeAddress = request.params[4].get_str();
+    if (request.params.size() > 5)
+        changeAddress = request.params[5].get_str();
     if (!changeAddress.empty()) {
         CTxDestination destination = DecodeDestination(changeAddress);
         if (!IsValidDestination(destination)) {
@@ -702,14 +725,18 @@ UniValue issueunique(const JSONRPCRequest& request)
         std::string assetName = GetUniqueAssetName(rootName, tag);
         CNewAsset asset;
 
-        if (ipfsHashes.isNull())
+        if (ipfsHashes.isNull() || ansIDS.isNull())
         {
-            asset = CNewAsset(assetName, UNIQUE_ASSET_AMOUNT, UNIQUE_ASSET_UNITS, UNIQUE_ASSETS_REISSUABLE, 0, "");
+            asset = CNewAsset(assetName, UNIQUE_ASSET_AMOUNT, UNIQUE_ASSET_UNITS, UNIQUE_ASSETS_REISSUABLE, 0, "", 0, "");
         }
-        else
+        else if(!ipfsHashes.isNull())
         {
             asset = CNewAsset(assetName, UNIQUE_ASSET_AMOUNT, UNIQUE_ASSET_UNITS, UNIQUE_ASSETS_REISSUABLE, 1,
-                              DecodeAssetData(ipfsHashes[i].get_str()));
+                              DecodeAssetData(ipfsHashes[i].get_str()), 0, "");
+        }
+        else if(!ansIDS.isNull())
+        {
+            asset = CNewAsset(assetName, UNIQUE_ASSET_AMOUNT, UNIQUE_ASSET_UNITS, UNIQUE_ASSETS_REISSUABLE, 0, "", 1, ansIDS[i].get_str());
         }
 
         assets.push_back(asset);
@@ -1584,11 +1611,12 @@ UniValue reissue(const JSONRPCRequest& request)
 {
     if (request.fHelp || !AreAssetsDeployed() || request.params.size() > 7 || request.params.size() < 3)
         throw std::runtime_error(
-                "reissue \"asset_name\" qty \"to_address\" \"change_address\" ( reissuable ) ( new_units) \"( new_ipfs )\" \n"
+                "reissue \"asset_name\" qty \"to_address\" \"change_address\" ( reissuable ) ( new_units ) \"( new_ipfs )\" \"( new_ans_id )\" \n"
                 + AssetActivationWarning() +
                 "\nReissues a quantity of an asset to an owned address if you own the Owner Token"
                 "\nCan change the reissuable flag during reissuance"
                 "\nCan change the ipfs hash during reissuance"
+                "\nCan change the ANS ID during reissuance"
 
                 "\nArguments:\n"
                 "1. \"asset_name\"               (string, required) name of asset that is being reissued\n"
@@ -1597,7 +1625,8 @@ UniValue reissue(const JSONRPCRequest& request)
                 "4. \"change_address\"           (string, optional) address that the change of the transaction will be sent to\n"
                 "5. \"reissuable\"               (boolean, optional, default=true), whether future reissuance is allowed\n"
                 "6. \"new_units\"                (numeric, optional, default=-1), the new units that will be associated with the asset\n"
-                "7. \"new_ipfs\"                 (string, optional, default=\"\"), whether to update the current ipfs hash or txid once RIP5 is active\n"
+                "7. \"new_ipfs\"                 (string, optional, default=\"\"), whether to update the current ipfs hash or txid once messaging is active\n"
+                "8. \"new_ans_id\"                (string, optional, default=\"\"), whether to update the current ANS ID once messaging is active\n"
 
                 "\nResult:\n"
                 "\"txid\"                     (string) The transaction id\n"
@@ -1645,14 +1674,22 @@ UniValue reissue(const JSONRPCRequest& request)
         newipfs = request.params[6].get_str();
     }
 
+    std::string newANSID = "";
+    if (request.params.size() > 7) {
+        fMessageCheck = true;
+        newANSID = request.params[7].get_str();
+    }
+
     // Reissues don't have an expire time
     int64_t expireTime = 0;
 
     // Check the message data
-    if (fMessageCheck)
+    if (fMessageCheck) {
         CheckIPFSTxidMessage(newipfs, expireTime);
+        CheckIPFSTxidMessage(newANSID, expireTime);
+    }
 
-    CReissueAsset reissueAsset(asset_name, nAmount, newUnits, reissuable, DecodeAssetData(newipfs), "");
+    CReissueAsset reissueAsset(asset_name, nAmount, newUnits, reissuable, DecodeAssetData(newipfs), newANSID);
 
     std::pair<int, std::string> error;
     CReserveKey reservekey(pwallet);

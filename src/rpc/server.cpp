@@ -1,6 +1,7 @@
 // Copyright (c) 2010 Satoshi Nakamoto
 // Copyright (c) 2009-2016 The Bitcoin Core developers
 // Copyright (c) 2017-2020 The Raven Core developers
+// Copyright (c) 2022 The Avian Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -32,6 +33,7 @@ using namespace boost::placeholders;
 #include <validation.h>
 
 #include "assets/assets.h"
+#include "assets/ans.h"
 
 static std::atomic<bool> g_rpc_running{false};
 static bool fRPCInWarmup = true;
@@ -650,6 +652,18 @@ CRPCTable tableRPC;
 void CheckIPFSTxidMessage(const std::string &message, int64_t expireTime)
 {
     size_t msglen = message.length();
+
+    // Start ANS checks
+    bool fHasANS = (msglen >= CAvianNameSystemID::prefix.size() + 1) && (message.substr(0, CAvianNameSystemID::prefix.length()) == CAvianNameSystemID::prefix) && (msglen <= 64);
+    if (fHasANS && !AreMessagesDeployed()) {
+        throw JSONRPCError(RPC_INVALID_PARAMS, std::string("ANS IDs not allowed when messages are not deployed."));
+    }
+
+    if (fHasANS && !CAvianNameSystemID::IsValidID(message)) {
+        throw JSONRPCError(RPC_INVALID_PARAMS, std::string("Invalid ANS ID"));
+    }
+    // End ANS checks
+
     if (msglen == 46 || msglen == 64) {
         if (msglen == 64 && !AreMessagesDeployed()) {
             throw JSONRPCError(RPC_INVALID_PARAMS, std::string("Invalid txid hash, only ipfs hashes available until RIP5 is activated"));
