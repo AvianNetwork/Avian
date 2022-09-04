@@ -556,7 +556,7 @@ UniValue issue(const JSONRPCRequest& request)
     if (request.params.size() > 8)
         has_ans = request.params[8].get_bool();
 
-    // Check the ipfs
+    // Check ANS ID
     std::string ans_id = "";
     if (request.params.size() > 9 && has_ans) {
         fMessageCheck = true;
@@ -582,7 +582,7 @@ UniValue issue(const JSONRPCRequest& request)
         throw JSONRPCError(RPC_INVALID_PARAMETER, std::string("Invalid parameters for issuing a qualifier asset."));
     }
 
-    CNewAsset asset(assetName, nAmount, units, reissuable ? 1 : 0, has_ipfs ? 1 : 0, DecodeAssetData(ipfs_hash), ans_id);
+    CNewAsset asset(assetName, nAmount, units, reissuable ? 1 : 0, has_ipfs ? 1 : 0, DecodeAssetData(ipfs_hash), has_ans ? 1 : 0, ans_id);
 
     CReserveKey reservekey(pwallet);
     CWalletTx transaction;
@@ -911,6 +911,52 @@ UniValue getassetdata(const JSONRPCRequest& request)
         CNullAssetTxVerifierString verifier;
         if (currentActiveAssetCache->GetAssetVerifierStringIfExists(asset.strName, verifier)) {
             result.push_back(Pair("verifier_string", verifier.verifier_string));
+        }
+
+        return result;
+    }
+
+    return NullUniValue;
+}
+
+UniValue getansdata(const JSONRPCRequest& request)
+{
+    if (request.fHelp || !AreAssetsDeployed() || request.params.size() != 1)
+        throw std::runtime_error(
+                "getansdata \"asset_name\"\n"
+                + AssetActivationWarning() +
+                "\nReturns asset ANS data if that asset exists\n"
+
+                "\nArguments:\n"
+                "1. \"asset_name\"               (string, required) the name of the asset\n"
+
+                "\nResult:\n"
+                "{\n"
+                "  ans_info: (obj)\n"
+                "}\n"
+
+                "\nExamples:\n"
+                + HelpExampleCli("getansdata", "\"ASSET_NAME\"")
+                + HelpExampleRpc("getansdata", "\"ASSET_NAME\"")
+        );
+
+
+    std::string asset_name = request.params[0].get_str();
+
+    LOCK(cs_main);
+    UniValue result (UniValue::VOBJ);
+
+    auto currentActiveAssetCache = GetCurrentAssetCache();
+    if (currentActiveAssetCache) {
+        CNewAsset asset;
+        if (!currentActiveAssetCache->GetAssetMetaDataIfExists(asset_name, asset))
+            return NullUniValue;
+
+        if (asset.nHasANS) {
+            CAvianNameSystemID ansID(asset.strANSID);
+            result = ansID.to_object();
+        } else {
+            return NullUniValue;
         }
 
         return result;
@@ -3173,6 +3219,7 @@ static const CRPCCommand commands[] =
 #endif
     { "assets",   "listassetbalancesbyaddress", &listassetbalancesbyaddress, {"address", "onlytotal", "count", "start"} },
     { "assets",   "getassetdata",               &getassetdata,               {"asset_name"}},
+    { "assets",   "getansdata",                 &getansdata,                 {"asset_name"}},
     { "assets",   "listaddressesbyasset",       &listaddressesbyasset,       {"asset_name", "onlytotal", "count", "start"}},
 #ifdef ENABLE_WALLET
     { "assets",   "transferfromaddress",        &transferfromaddress,        {"asset_name", "from_address", "qty", "to_address", "message", "expire_time", "avn_change_address", "asset_change_address"}},
