@@ -2009,7 +2009,7 @@ bool CAssetsCache::AddReissueAsset(const CReissueAsset& reissue, const std::stri
 }
 
 //! Changes Memory Only
-bool CAssetsCache::RemoveReissueAsset(const CReissueAsset& reissue, const std::string address, const COutPoint& out, const std::vector<std::pair<std::string, CBlockAssetUndo> >& vUndoIPFS)
+bool CAssetsCache::RemoveReissueAsset(const CReissueAsset& reissue, const std::string address, const COutPoint& out, const std::vector<std::pair<std::string, CBlockAssetUndo> >& vUndoData)
 {
     auto pair = std::make_pair(reissue.strName, address);
 
@@ -2026,14 +2026,18 @@ bool CAssetsCache::RemoveReissueAsset(const CReissueAsset& reissue, const std::s
     bool fVerifierStringChanged = false;
     std::string verifierString = "";
     // Find the ipfs hash in the undoblock data and restore the ipfs hash to its previous hash
-    for (auto undoItem : vUndoIPFS) {
+    for (auto undoItem : vUndoData) {
         if (undoItem.first == reissue.strName) {
             if (undoItem.second.fChangedIPFS)
                 assetData.strIPFSHash = undoItem.second.strIPFS;
+            if (undoItem.second.fChangedANS)
+                assetData.strANSID = undoItem.second.strANSID;
             if(undoItem.second.fChangedUnits)
                 assetData.units = undoItem.second.nUnits;
             if (assetData.strIPFSHash == "")
                 assetData.nHasIPFS = 0;
+            if (assetData.strANSID == "")
+                assetData.nHasANS = 0;
             if (undoItem.second.fChangedVerifierString) {
                 fVerifierStringChanged = true;
                 verifierString = undoItem.second.verifierString;
@@ -5564,13 +5568,13 @@ bool ContextualCheckReissueAsset(CAssetsCache* assetCache, const CReissueAsset& 
     }
 
     // ANS not allowed when messages are not deployed
-    if (asset.nHasANS && !AreMessagesDeployed()) {
+    if (reissue_asset.strANSID != "" && !AreMessagesDeployed()) {
         strError = _("Invalid parameter: ANS IDs not allowed when messages are not deployed.");
         return false;
     }
 
-    if (asset.nHasANS) {
-        if (!CheckEncoded(asset.strANSID, strError))
+    if (reissue_asset.strANSID != "") {
+        if (!CheckEncoded(reissue_asset.strANSID, strError))
             return false;
     }
 
@@ -5661,13 +5665,13 @@ bool ContextualCheckReissueAsset(CAssetsCache* assetCache, const CReissueAsset& 
     }
 
     // ANS not allowed when messages are not deployed
-    if (asset.nHasANS && !AreMessagesDeployed()) {
+    if (reissue_asset.strANSID != "" && !AreMessagesDeployed()) {
         strError = _("Invalid parameter: ANS IDs not allowed when messages are not deployed.");
         return false;
     }
 
-    if (asset.nHasANS) {
-        if (!CheckEncoded(asset.strANSID, strError))
+    if (reissue_asset.strANSID != "") {
+        if (!CheckEncoded(reissue_asset.strANSID, strError))
             return false;
     }
 

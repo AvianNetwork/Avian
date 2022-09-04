@@ -22,8 +22,10 @@ class CDatabasedAssetData;
 struct CBlockAssetUndo
 {
     bool fChangedIPFS;
+    bool fChangedANS;
     bool fChangedUnits;
     std::string strIPFS;
+    std::string strANSID;
     int32_t nUnits;
     int8_t version;
     bool fChangedVerifierString;
@@ -35,7 +37,9 @@ struct CBlockAssetUndo
     inline void SerializationOp(Stream& s, Operation ser_action) {
         READWRITE(fChangedUnits);
         READWRITE(fChangedIPFS);
+        READWRITE(fChangedANS);
         READWRITE(strIPFS);
+        READWRITE(strANSID);
         READWRITE(nUnits);
         if (ser_action.ForRead()) {
             if (!s.empty() and s.size() >= 1) {
