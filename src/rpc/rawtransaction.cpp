@@ -512,7 +512,7 @@ UniValue createrawtransaction(const JSONRPCRequest& request)
             "               \"has_ipfs\":[0-1],            (boolean, optional, default=false), whether ifps hash is going \n"
             "                                                to be added to the asset\n"
             "               \"ipfs_hash\":\"hash\",        (string, optional but required if has_ipfs = 1), an ipfs hash or a \n"
-            "                                                txid hash once RIP5 is activated\n"
+            "                                                txid hash once messaging is activated\n"
             "               \"root_change_address\"        (string, optional) Only applies when issuing subqualifiers.\n"
             "                                                The address where the root qualifier will be sent.\n"
             "                                                If not specified, it will be sent to the output address.\n"
