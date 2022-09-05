@@ -1980,7 +1980,7 @@ UniValue signrawtransaction(const JSONRPCRequest& request)
 #endif
 
     int nHashType = SIGHASH_ALL;
-    if (IsUAHFenabledForCurrentBlock()) {
+    if (IsForkIDUAHFenabledForCurrentBlock()) {
         nHashType |= SIGHASH_FORKID;
     }    
     if (!request.params[3].isNull()) {

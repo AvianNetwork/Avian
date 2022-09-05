@@ -3115,7 +3115,7 @@ bool CWallet::SignTransaction(CMutableTransaction &tx)
     CTransaction txNewConst(tx);
     int nIn = 0;
     uint32_t nHashType = SIGHASH_ALL;
-    if (IsUAHFenabledForCurrentBlock()) {
+    if (IsForkIDUAHFenabledForCurrentBlock()) {
         nHashType |= SIGHASH_FORKID;
     }
     for (const auto& input : tx.vin) {
@@ -3742,7 +3742,7 @@ bool CWallet::CreateTransactionAll(const std::vector<CRecipient>& vecSend, CWall
             // It is ok to use GetConfig here, because we'll just use replay
             // protected transaction only fairly soon anyway, so we can just
             // remove that call.
-            if (IsUAHFenabledForCurrentBlock()) {
+            if (IsForkIDUAHFenabledForCurrentBlock()) {
                 nHashType |= SIGHASH_FORKID;
             }
             CTransaction txNewConst(txNew);

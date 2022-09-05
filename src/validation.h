@@ -346,8 +346,8 @@ void PruneAndFlush();
 void PruneBlockFilesManual(int nManualPruneHeight);
 
 /** Check is FORKID UAHF has activated. */
-bool IsUAHFenabled(const CBlockIndex *pindexPrev);
-bool IsUAHFenabledForCurrentBlock();
+bool IsForkIDUAHFenabled(const CBlockIndex *pindexPrev);
+bool IsForkIDUAHFenabledForCurrentBlock();
 
 /** (try to) add transaction to memory pool
  * plTxnReplaced will be appended to with all transactions replaced from mempool **/
