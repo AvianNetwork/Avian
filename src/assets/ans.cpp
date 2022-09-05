@@ -17,6 +17,7 @@
 #include "script/standard.h"
 
 // TODO: Clean this up.
+// TODO: IP 1.1.1.1 is encoded incorrect.
 unsigned int ip_to_hex(const char* strip)
 {
    unsigned int ip = 0;
@@ -42,6 +43,8 @@ unsigned int ip_to_hex(const char* strip)
    return ip;
 }
 
+// TODO: Clean this up.
+// TODO: IP 1.1.1.1 is encoded incorrect.
 static std::string hex_to_ip(const char *input)
 {
     char *output = (char*)malloc(sizeof(char) * 16);
@@ -53,29 +56,80 @@ static std::string hex_to_ip(const char *input)
     return std::string(output);
 }
 
+bool CAvianNameSystemID::CheckTypeData(Type type, std::string typeData) {
+    if (type == Type::ADDR) {
+        CTxDestination destination = DecodeDestination(typeData);
+        if (!IsValidDestination(destination)) return false;
+    } else if (type == Type::IP) {
+        // check ip
+    } else {
+        // Unknown type
+        return false;
+    }
+    return true;
+}
+
+bool CAvianNameSystemID::IsValidID(std::string ansID) {
+    // Check for min length
+    if(ansID.length() <= prefix.size() + 1) return false;
+
+    // Check for prefix
+    bool hasPrefix = (ansID.substr(0, CAvianNameSystemID::prefix.length()) == CAvianNameSystemID::prefix) && (ansID.size() <= 64);
+    if (!hasPrefix) return false;
+
+    // Must be valid hex char
+    std::string hexStr = ansID.substr(prefix.length(), 1);
+    if (!IsHexNumber(hexStr)) return false;
+
+    // Hex value must be less than 0xf
+    int hexInt = stoi(hexStr, 0, 16);
+    if (hexInt > 0xf) return false;
+
+    // Check type
+    Type type = static_cast<Type>(hexInt);
+    std::string rawData = ansID.substr(prefix.length() + 1);
+
+    if (!CheckTypeData(type, rawData)) return false;
+
+    return true;
+}
+
 CAvianNameSystemID::CAvianNameSystemID(Type type, std::string rawData) :
     m_addr(""),
     m_ip("")
 {
     this->m_type = type;
 
-    if (this->m_type == Type::ADDR) this->m_addr = rawData;
-    else if (this->m_type == Type::IP) this->m_ip = rawData;
+    if (!CheckTypeData(this->m_type, rawData)) return;
+
+    if (this->m_type == Type::ADDR) {
+        // Avian address
+        this->m_addr = rawData;
+    }
+    else if (this->m_type == Type::IP) {
+        // Raw IP (127.0.0.1)
+        this->m_ip = rawData;
+    }
 }
 
 CAvianNameSystemID::CAvianNameSystemID(std::string ansID) :
     m_addr(""),
     m_ip("")
 {
+    // Check if valid ID
+    if(!IsValidID(ansID)) return;
+
+    // Get type
     Type type = static_cast<Type>(stoi(ansID.substr(prefix.length(), 1), 0, 16));
     this->m_type = type;
 
+    // Set info based on data
     std::string data = ansID.substr(prefix.length() + 1); // prefix + type
 
     if (this->m_type == Type::ADDR) {
-        this->m_addr = data; // TODO: Check address!
+        this->m_addr = data;
     } else if(this->m_type == Type::IP) {
-        this->m_ip = hex_to_ip(data.c_str()); // TODO: Check IP!
+        this->m_ip = hex_to_ip(data.c_str());
     }
 }
 
@@ -116,37 +170,4 @@ UniValue CAvianNameSystemID::to_object()
     }
 
     return ansInfo;
-}
-
-bool CAvianNameSystemID::IsValidID(std::string ansID) {
-    // Check for min length
-    if(ansID.length() <= prefix.size() + 1) return false;
-
-    // Check for prefix
-    bool hasPrefix = (ansID.substr(0, CAvianNameSystemID::prefix.length()) == CAvianNameSystemID::prefix) && (ansID.size() <= 64);
-    if (!hasPrefix) return false;
-
-    // Must be valid hex char
-    std::string hexStr = ansID.substr(prefix.length(), 1);
-    if (!IsHexNumber(hexStr)) return false;
-
-    // Hex value must be less than 0xf
-    int hexInt = stoi(hexStr, 0, 16);
-    if (hexInt > 0xf) return false;
-
-    // Check type
-    Type type = static_cast<Type>(hexInt);
-    std::string rawData = ansID.substr(prefix.length() + 1);
-
-    if (type == Type::ADDR) {
-        CTxDestination destination = DecodeDestination(rawData);
-        if (!IsValidDestination(destination)) return false;
-    } else if (type == Type::IP) {
-        // check ip
-    } else {
-        // Unknown type
-        return false;
-    }
-
-    return true;
 }

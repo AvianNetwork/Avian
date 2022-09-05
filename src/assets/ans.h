@@ -33,6 +33,7 @@ public:
     std::string ip() { return m_ip; };
 
     static bool IsValidID(std::string ansID);
+    static bool CheckTypeData(Type type, std::string typeData);
 
     static std::pair<std::string, std::string> enum_to_string(Type type) {
     switch(type) {
