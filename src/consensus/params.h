@@ -90,6 +90,9 @@ struct ConsensusParams {
     // AVN Flight Plans
     uint32_t nFlightPlansActivationTime;
 
+    // Avian Name System (ANS)
+    uint32_t nAvianNameSystemTime;
+
 };
 } // namespace Consensus
 

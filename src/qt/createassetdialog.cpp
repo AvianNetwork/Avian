@@ -547,6 +547,14 @@ void CreateAssetDialog::CheckFormState()
     if (ui->ansBox->isChecked()) {
         CAvianNameSystemID::Type type = static_cast<CAvianNameSystemID::Type>(ui->ansType->currentIndex());
         CAvianNameSystemID ans(type, ui->ansText->text().toStdString());
+
+        if (!IsAvianNameSystemDeployed()) {
+            ui->ansText->setStyleSheet("border: 2px solid red");
+            showMessage(tr("ANS not deployed yet."));
+            disableCreateButton();
+            return;
+        }
+
         if (!CAvianNameSystemID::IsValidID(ans.to_string())) {
             ui->ansText->setStyleSheet("border: 2px solid red");
             showMessage(tr("Invalid ANS data."));

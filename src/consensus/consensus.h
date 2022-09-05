@@ -42,6 +42,7 @@ static const size_t MIN_SERIALIZABLE_TRANSACTION_WEIGHT = WITNESS_SCALE_FACTOR *
 //! it causes unused variable warnings when compiling. This UNUSED_VAR removes the unused warnings
 UNUSED_VAR static bool fAssetsIsActive = false;
 UNUSED_VAR static bool fFlightPlansIsActive = false;
+UNUSED_VAR static bool fAvianNameSystemIsActive = false;
 UNUSED_VAR static bool fTransferScriptIsActive = false;
 UNUSED_VAR static bool fEnforcedValuesIsActive = true; // AVN: Always return true for enforced values.
 UNUSED_VAR static bool fCheckCoinbaseAssetsIsActive = true; // AVN: Always return true for coinbase asset checks.

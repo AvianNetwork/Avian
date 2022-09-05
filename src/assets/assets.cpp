@@ -4465,7 +4465,7 @@ bool CheckEncoded(const std::string& hash, std::string& strError) {
     std::string encodedStr = EncodeAssetData(hash);
 
     // ANS
-    if (AreMessagesDeployed() && CAvianNameSystemID::IsValidID(encodedStr)) {
+    if (IsAvianNameSystemDeployed() && CAvianNameSystemID::IsValidID(encodedStr)) {
         return true;
     }
 
@@ -5453,9 +5453,9 @@ bool ContextualCheckNewAsset(CAssetsCache* assetCache, const CNewAsset& asset, s
         }
     }
 
-    // ANS not allowed when messages are not deployed
-    if (asset.nHasANS && !AreMessagesDeployed()) {
-        strError = _("Invalid parameter: ANS IDs not allowed when messages are not deployed.");
+    // ANS not allowed when they are not deployed
+    if (asset.nHasANS && !IsAvianNameSystemDeployed()) {
+        strError = _("Invalid parameter: ANS IDs not allowed when they are not deployed.");
         return false;
     }
 
@@ -5567,9 +5567,9 @@ bool ContextualCheckReissueAsset(CAssetsCache* assetCache, const CReissueAsset& 
             return false;
     }
 
-    // ANS not allowed when messages are not deployed
-    if (reissue_asset.strANSID != "" && !AreMessagesDeployed()) {
-        strError = _("Invalid parameter: ANS IDs not allowed when messages are not deployed.");
+    // ANS not allowed when they are not deployed
+    if (reissue_asset.strANSID != "" && !IsAvianNameSystemDeployed()) {
+        strError = _("Invalid parameter: ANS IDs not allowed when they are not deployed.");
         return false;
     }
 
@@ -5664,9 +5664,9 @@ bool ContextualCheckReissueAsset(CAssetsCache* assetCache, const CReissueAsset& 
             return false;
     }
 
-    // ANS not allowed when messages are not deployed
-    if (reissue_asset.strANSID != "" && !AreMessagesDeployed()) {
-        strError = _("Invalid parameter: ANS IDs not allowed when messages are not deployed.");
+    // ANS not allowed when they are not deployed
+    if (reissue_asset.strANSID != "" && !IsAvianNameSystemDeployed()) {
+        strError = _("Invalid parameter: ANS IDs not allowed when they are not deployed.");
         return false;
     }
 

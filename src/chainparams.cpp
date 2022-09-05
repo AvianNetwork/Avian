@@ -157,6 +157,9 @@ public:
         // Avian Flight Plans
         consensus.nFlightPlansActivationTime = 999999999999ULL; // TODO
 
+        // Avian Name System (ANS)
+        consensus.nAvianNameSystemTime = 999999999999ULL; // TODO
+
         // The best chain should have at least this much work.
         consensus.nMinimumChainWork = uint256S("0x0000000000000000000000000000000000000000000000002518d7bd53a1feec"); //Block 818787
         // By default assume that the signatures in ancestors of this block are valid.
@@ -324,6 +327,9 @@ public:
         // Avian Flight Plans
         consensus.nFlightPlansActivationTime = 1645104453; // Feb 17, 2022
 
+        // Avian Name System (ANS)
+        consensus.nAvianNameSystemTime = 1645104453; // Feb 17, 2022
+
         // The best chain should have at least this much work.
         consensus.nMinimumChainWork = uint256S("0x0000000000000000000000000000000000000000000000000000000000000002");
 
@@ -461,7 +467,10 @@ public:
         consensus.nRestrictedActivationTime = 1629951212; // (genesis +1)
 
         // Avian Flight Plans
-        consensus.nFlightPlansActivationTime = 1629951212;
+        consensus.nFlightPlansActivationTime = 1629951212; // (genesis +1)
+
+        // Avian Name System (ANS)
+        consensus.nAvianNameSystemTime = 1629951212; // (genesis +1)
 
         // The best chain should have at least this much work.
         consensus.nMinimumChainWork = uint256S("0x00");
