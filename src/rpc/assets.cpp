@@ -3155,18 +3155,20 @@ UniValue ansencode(const JSONRPCRequest& request)
     // Set type
     if (strType == "addr") type = CAvianNameSystemID::ADDR;
     else if (strType == "ip") type = CAvianNameSystemID::IP;
-    else throw JSONRPCError(RPC_INVALID_PARAMETER, std::string("Invalid type; try \"addr\" or \"ip\""));
+    else throw JSONRPCError(RPC_INVALID_PARAMETER, std::string("Invalid type: try \"addr\" or \"ip\""));
 
-    // Check strData based on type.
-    if (type == CAvianNameSystemID::ADDR) {
-        CTxDestination destination = DecodeDestination(strData);
-        if (!IsValidDestination(destination)) throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, std::string("Invalid Avian address: ") + strData);
+    // Set strData based on type.
+    std::string error;
+    std::string formattedTypeData;
 
-    } else if (type == CAvianNameSystemID::IP) {
-        // check ip
-    }
+    formattedTypeData = CAvianNameSystemID::FormatTypeData(type, strData, error);
 
-    CAvianNameSystemID ansID(type, strData);
+    if(error != "") throw JSONRPCError(RPC_INVALID_PARAMETER, std::string("ANS error: ") + error);
+
+    // Check strData (sanity check, typeData already checked in FormatTypeData)
+    if (!CAvianNameSystemID::CheckTypeData(type, formattedTypeData)) throw JSONRPCError(RPC_INVALID_PARAMETER, std::string("Invalid ANS data: ") + strData);
+
+    CAvianNameSystemID ansID(type, formattedTypeData);
 
     return ansID.to_string();
 }

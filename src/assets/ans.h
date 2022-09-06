@@ -32,8 +32,12 @@ public:
     std::string addr() { return m_addr; };
     std::string ip() { return m_ip; };
 
+    static bool CheckIP(std::string rawip, bool isHex);
+
     static bool IsValidID(std::string ansID);
+
     static bool CheckTypeData(Type type, std::string typeData);
+    static std::string FormatTypeData(Type type, std::string typeData, std::string& error);
 
     static std::pair<std::string, std::string> enum_to_string(Type type) {
     switch(type) {

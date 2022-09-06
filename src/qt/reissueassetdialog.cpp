@@ -453,7 +453,21 @@ void ReissueAssetDialog::CheckFormState()
     
     if (ui->ansBox->isChecked()) {
         CAvianNameSystemID::Type type = static_cast<CAvianNameSystemID::Type>(ui->ansType->currentIndex());
-        CAvianNameSystemID ans(type, ui->ansText->text().toStdString());
+
+        std::string error;
+        std::string formattedTypeData;
+        std::string typeData = ui->ansText->text().toStdString();
+        
+        formattedTypeData = CAvianNameSystemID::FormatTypeData(type, typeData, error);
+
+        if (error != "") {
+            ui->ansText->setStyleSheet("border: 2px solid red");
+            showMessage(QString::fromStdString(error));
+            disableReissueButton();
+            return;
+        }
+
+        CAvianNameSystemID ans(type, formattedTypeData);
 
         if (!IsAvianNameSystemDeployed()) {
             ui->ansText->setStyleSheet("border: 2px solid red");
@@ -608,7 +622,12 @@ void ReissueAssetDialog::buildUpdatedData()
         QString qstr = QString::fromStdString(asset->strANSID);
         ansID = formatBlack.arg(tr("ANS ID"), ":", qstr) + "\n";
     } else if (ui->ansBox->isChecked() && !ui->ansBox->text().isEmpty()) {
-        CAvianNameSystemID ansData(static_cast<CAvianNameSystemID::Type>(ui->ansType->currentIndex()), ui->ansText->text().toStdString());
+        std::string error; // TODO: We already do type checking, should we check again here?
+        std::string formattedTypeData;
+        CAvianNameSystemID::Type type = static_cast<CAvianNameSystemID::Type>(ui->ansType->currentIndex());
+        formattedTypeData = CAvianNameSystemID::FormatTypeData(type, ui->ansText->text().toStdString(), error);
+
+        CAvianNameSystemID ansData(type, formattedTypeData);
         QString qstr = QString::fromStdString(ansData.to_string());
         ansID = formatGreen.arg(tr("ANS ID"), ":", qstr) + "\n";
     }
@@ -925,7 +944,12 @@ void ReissueAssetDialog::onReissueAssetClicked()
 
     std::string ansDecoded = "";
     if (hasANS) {
-        CAvianNameSystemID ansID(static_cast<CAvianNameSystemID::Type>(ui->ansType->currentIndex()), ui->ansText->text().toStdString());
+        std::string error; // TODO: We already do type checking, should we check again here?
+        std::string formattedTypeData;
+        CAvianNameSystemID::Type type = static_cast<CAvianNameSystemID::Type>(ui->ansType->currentIndex());
+        formattedTypeData = CAvianNameSystemID::FormatTypeData(type, ui->ansText->text().toStdString(), error);
+
+        CAvianNameSystemID ansID(type, formattedTypeData);
         ansDecoded = ansID.to_string();
 
         // Warn user
