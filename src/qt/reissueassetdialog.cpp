@@ -451,7 +451,7 @@ void ReissueAssetDialog::CheckFormState()
         else ui->openIpfsButton->setDisabled(false);
     }
     
-    if (ui->ansBox->isChecked()) {
+    if (ui->ansBox->isChecked() && !ui->ansText->text().isEmpty()) {
         CAvianNameSystemID::Type type = static_cast<CAvianNameSystemID::Type>(ui->ansType->currentIndex());
 
         std::string error;

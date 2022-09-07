@@ -544,7 +544,7 @@ void CreateAssetDialog::CheckFormState()
         if (!checkIPFSHash(ui->ipfsText->text()))
             return;
 
-    if (ui->ansBox->isChecked()) {
+    if (ui->ansBox->isChecked() && !ui->ansText->text().isEmpty()) {
         CAvianNameSystemID::Type type = static_cast<CAvianNameSystemID::Type>(ui->ansType->currentIndex());
 
         std::string error;
