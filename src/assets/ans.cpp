@@ -19,50 +19,26 @@
 
 #include "boost/asio.hpp"
 
-using namespace boost::asio;
+using namespace boost::asio::ip;
 
-// TODO: Clean this up.
-// TODO: IP 1.1.1.1 is encoded incorrect.
-static std::string IPToHex(const char* strip)
+static std::string IPToHex(std::string strIP)
 {
-   unsigned int ip = 0;
-   char* str = strdup(strip);
-   char delimiters[] = ".";
-   char* token = strtok(str, delimiters);
-   int tokencount = 0;
-   while(token != NULL)
-   {
-      if(tokencount < 4)
-      {
-         int n = atoi(token);
-         ip = ip | n << 8 * (3 - tokencount);
-      }
-      tokencount++;
-      token = strtok(NULL, delimiters);
-   }
-   free(str);
-
-   if(tokencount != 4)
-      ip = 0;
+    boost::system::error_code error;
+    auto ip = address_v4::from_string(strIP, error);
+    if (error) return "0";
 
     std::stringstream ss;
-    ss << std::hex << ip;
-
-   return ss.str();
+    ss << std::hex << ip.to_ulong();
+    return ss.str();
 }
 
-// TODO: Clean this up.
-// TODO: IP 1.1.1.1 is encoded incorrect.
-// If invalid hex, return 0.
-static std::string HexToIP(const char *input)
+static std::string HexToIP(std::string hexIP)
 {
-    char *output = (char*)malloc(sizeof(char) * 16);
-    unsigned int a, b, c, d;
+    if(!IsHexNumber(hexIP)) return "0.0.0.0";
 
-    if (sscanf(input, "%2x%2x%2x%2x", &a, &b, &c, &d) != 4)
-        return output;
-    sprintf(output, "%u.%u.%u.%u", a, b, c, d);
-    return std::string(output);
+    unsigned int hex = std::stoul(hexIP, 0, 16);
+    auto ip = address_v4(hex);
+    return ip.to_string();
 }
 
 bool CAvianNameSystemID::CheckIP(std::string rawip, bool isHex) {
@@ -70,7 +46,7 @@ bool CAvianNameSystemID::CheckIP(std::string rawip, bool isHex) {
     if (isHex) ip = HexToIP(rawip.c_str());
 
     boost::system::error_code error;
-    ip::address_v4::from_string(ip, error);
+    address_v4::from_string(ip, error);
 
     if (error) return false;
     else return true;
@@ -108,7 +84,7 @@ std::string CAvianNameSystemID::FormatTypeData(Type type, std::string typeData, 
             ? std::string("Invalid IPv4 address: ") + typeData 
             : std::string("Empty IPv4 addresss.");
         }
-        returnStr = IPToHex(typeData.c_str());
+        returnStr = IPToHex(typeData);
     }
 
     return returnStr;
@@ -193,7 +169,7 @@ std::string CAvianNameSystemID::to_string() {
     if (this->m_type == Type::ADDR) {
        id += m_addr;
     } else if (this->m_type == Type::IP) {
-        id += IPToHex(m_ip.c_str());
+        id += IPToHex(m_ip);
     }
 
     return id;
