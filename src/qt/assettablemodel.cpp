@@ -196,9 +196,9 @@ QVariant AssetTableModel::data(const QModelIndex &index, int role) const
             QPixmap pixmap;
 
             if (darkModeEnabled)
-                pixmap = QPixmap::fromImage(QImage(":/icons/info"));
+                pixmap = QPixmap::fromImage(QImage(":/icons/export"));
             else
-                pixmap = QPixmap::fromImage(QImage(":/icons/info"));
+                pixmap = QPixmap::fromImage(QImage(":/icons/export"));
 
             return pixmap;
         }
