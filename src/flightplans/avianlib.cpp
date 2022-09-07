@@ -402,6 +402,12 @@ static int getassetdata(lua_State* L)
     return RPCCall(L, "getassetdata");
 }
 
+// getansdata "asset_name"
+static int getansdata(lua_State* L)
+{
+    return RPCCall(L, "getansdata");
+}
+
 // getcacheinfo
 static int getcacheinfo(lua_State* L)
 {
@@ -478,6 +484,18 @@ static int transferfromaddress(lua_State* L)
 static int transferfromaddresses(lua_State* L)
 {
     return RPCCall(L, "transferfromaddresses");
+}
+
+// ansencode
+static int ansencode(lua_State* L)
+{
+    return RPCCall(L, "ansencode");
+}
+
+// ansdecode
+static int ansdecode(lua_State* L)
+{
+    return RPCCall(L, "ansdecode");
 }
 
 /* Blockchain */
@@ -1009,6 +1027,7 @@ void register_avianlib(lua_State* L)
 
     static const struct luaL_Reg avian_assets[] = {
         {"getassetdata", getassetdata},
+        {"getansdata", getansdata},
         {"getcacheinfo", getcacheinfo},
         {"getsnapshot", getsnapshot},
         {"issue", issue},
@@ -1022,6 +1041,8 @@ void register_avianlib(lua_State* L)
         {"transfer", transfer},
         {"transferfromaddress", transferfromaddress},
         {"transferfromaddresses", transferfromaddresses},
+        {"ansencode", ansencode},
+        {"ansdecode", ansdecode},
         {NULL, NULL}};
 
     static const struct luaL_Reg avian_blockchain[] = {
