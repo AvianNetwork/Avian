@@ -5858,12 +5858,8 @@ bool AreEnforcedValuesDeployed()
     if (fEnforcedValuesIsActive)
         return true;
 
-    // TODO: Fix
-    // const ThresholdState thresholdState = VersionBitsTipState(Params().GetConsensus(), Consensus::DEPLOYMENT_ENFORCE_VALUE);
-    // if (thresholdState == THRESHOLD_ACTIVE || thresholdState == THRESHOLD_LOCKED_IN)
-    //     fEnforcedValuesIsActive = true;
-
-    return false;
+    // AVN: Always return true for enforced values.
+    return true;
 }
 
 bool AreCoinbaseCheckAssetsDeployed()
@@ -5871,12 +5867,8 @@ bool AreCoinbaseCheckAssetsDeployed()
     if (fCheckCoinbaseAssetsIsActive)
         return true;
 
-    // TODO: Fix
-    // const ThresholdState thresholdState = VersionBitsTipState(Params().GetConsensus(), Consensus::DEPLOYMENT_COINBASE_ASSETS);
-    // if (thresholdState == THRESHOLD_ACTIVE)
-    //     fCheckCoinbaseAssetsIsActive = true;
-
-    return false;
+    // AVN: Always return true for coinbase asset checks.
+    return true;
 }
 
 bool AreAssetsDeployed()
@@ -5923,19 +5915,6 @@ bool AreRestrictedAssetsDeployed() {
         fRestricted = true;
 
     return fRestricted;
-}
-
-bool AreTransferScriptsSizeDeployed() {
-
-    if (fTransferScriptIsActive)
-        return true;
-
-    // TODO: Fix
-    // const ThresholdState thresholdState = VersionBitsTipState(Params().GetConsensus(), Consensus::DEPLOYMENT_TRANSFER_SCRIPT_SIZE);
-    // if (thresholdState == THRESHOLD_ACTIVE)
-    //     fTransferScriptIsActive = true;
-
-    return false;
 }
 
 bool IsDGWActive(unsigned int nBlockNumber) {

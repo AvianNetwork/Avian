@@ -617,8 +617,6 @@ bool AreCoinbaseCheckAssetsDeployed();
 void SetEnforcedValues(bool value);
 void SetEnforcedCoinbase(bool value);
 
-bool AreTransferScriptsSizeDeployed();
-
 bool IsDGWActive(unsigned int nBlockNumber);
 
 CAssetsCache* GetCurrentAssetCache();

@@ -674,15 +674,7 @@ bool TransferAssetFromScript(const CScript& scriptPubKey, CAssetTransfer& assetT
 
     std::vector<unsigned char> vchTransferAsset;
 
-    if (AreTransferScriptsSizeDeployed()) {
-        // Before kawpow activation we used the hardcoded 31 to find the data
-        // This created a bug where large transfers scripts would fail to serialize.
-        // This fixes that issue (https://github.com/AvianNetwork/Avian/issues/752)
-        // TODO, after the kawpow fork goes active, we should be able to remove this if/else statement and just use this line.
-        vchTransferAsset.insert(vchTransferAsset.end(), scriptPubKey.begin() + nStartingIndex, scriptPubKey.end());
-    } else {
-        vchTransferAsset.insert(vchTransferAsset.end(), scriptPubKey.begin() + 31, scriptPubKey.end());
-    }
+    vchTransferAsset.insert(vchTransferAsset.end(), scriptPubKey.begin() + nStartingIndex, scriptPubKey.end());
 
     CDataStream ssAsset(vchTransferAsset, SER_NETWORK, PROTOCOL_VERSION);
 

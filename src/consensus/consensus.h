@@ -43,8 +43,8 @@ static const size_t MIN_SERIALIZABLE_TRANSACTION_WEIGHT = WITNESS_SCALE_FACTOR *
 UNUSED_VAR static bool fAssetsIsActive = false;
 UNUSED_VAR static bool fFlightPlansIsActive = false;
 UNUSED_VAR static bool fTransferScriptIsActive = false;
-UNUSED_VAR static bool fEnforcedValuesIsActive = false;
-UNUSED_VAR static bool fCheckCoinbaseAssetsIsActive = false;
+UNUSED_VAR static bool fEnforcedValuesIsActive = true; // AVN: Always return true for enforced values.
+UNUSED_VAR static bool fCheckCoinbaseAssetsIsActive = true; // AVN: Always return true for coinbase asset checks.
 
 unsigned int GetMaxBlockWeight();
 unsigned int GetMaxBlockSerializedSize();
