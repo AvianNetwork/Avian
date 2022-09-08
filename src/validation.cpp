@@ -2798,6 +2798,11 @@ static bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockInd
                                block.vtx[0]->GetValueOut(AreEnforcedValuesDeployed()), blockReward),
                                REJECT_INVALID, "bad-cb-amount");
 
+    FounderPayment founderPayment = Params().GetConsensus().nFounderPayment;
+    if (!founderPayment.IsBlockPayeeValid(*block.vtx[0], pindex->nHeight, blockReward))
+        return state.DoS(0, error("ConnectBlock(): couldn't find founders fee payments"),
+                                REJECT_INVALID, "bad-cb-payee");
+
     if (!control.Wait())
         return state.DoS(100, error("%s: CheckQueue failed", __func__), REJECT_INVALID, "block-validation-failed");
     int64_t nTime4 = GetTimeMicros(); nTimeVerify += nTime4 - nTime2;
