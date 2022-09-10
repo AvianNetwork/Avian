@@ -40,15 +40,15 @@ public:
     static std::string FormatTypeData(Type type, std::string typeData, std::string& error);
 
     static std::pair<std::string, std::string> enum_to_string(Type type) {
-    switch(type) {
-        case ADDR:
-            return std::pair<std::string, std::string>("Avian address", "Enter an Avian address");
-        case IP:
-            return std::pair<std::string, std::string>("IP [DNS A record]", "Enter IP address");
-        default:
-            return std::pair<std::string, std::string>("Invalid", "Invalid");
+        switch(type) {
+            case ADDR:
+                return std::make_pair("Avian address", "Enter an Avian address");
+            case IP:
+                return std::make_pair("IP [DNS A record]", "Enter IP address");
+            default:
+                return std::make_pair("Invalid", "Invalid");
+        }
     }
-}
 
 private:
     Type m_type;
