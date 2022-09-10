@@ -1311,7 +1311,6 @@ QWidget .QFrame#assetFrame .QLabel#assetBalanceLabel {
 
 QWidget .QFrame#assetFrame QListView {
     background: #ffffff;
-    margin-right: 10px;
 }
 
 QWidget .QFrame#assetFrame {

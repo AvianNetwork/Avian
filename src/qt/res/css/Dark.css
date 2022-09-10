@@ -1249,7 +1249,6 @@ QWidget#OverviewPage QLabel#labelAlerts {
     padding: 5px;
 }
 
-
 #labelTransactionsStatus,
 #labelAssetStatus,
 #labelWalletStatus {
@@ -1280,6 +1279,7 @@ QWidget .QFrame#frame .QLabel#labelWatchTotal {
 QWidget .QFrame#frame {
     border-radius: 10px;
 }
+
 /* Header */
 
 QLabel#labelCurrentMarket,
@@ -1308,7 +1308,6 @@ QWidget .QFrame#assetFrame .QLabel#assetBalanceLabel {
 
 QWidget .QFrame#assetFrame QListView {
     background: #2E2E2E;
-    margin-right: 10px;
 }
 
 QWidget .QFrame#assetFrame {
@@ -1572,7 +1571,7 @@ QDialog#CreateAssetDialog QLabel#labelBalance {
 }
 
 QDialog#CreateAssetDialog QPushButton#createAssetButton {
-    margin-left:10px;
+    margin-left :10px;
 }
 
 QDialog#CreateAssetDialog QPushButton#clearButton {
