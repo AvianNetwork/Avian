@@ -478,44 +478,6 @@ QHeaderView::section:hover {
     font: 12pt 'Manrope';
 }
 
-/* QMenu */
-
-QMenu {
-    border: 1px solid;
-    border-radius: 4px;
-    background-color: #f4f4f4;
-    border-color: #2b737f;
-}
-
-QMenu::item {
-    padding: 2px 6px 2px 6px;
-    color: #110202;
-    font: 12pt 'Manrope';
-}
-
-QMenu::item:checked {
-    padding-left: 18px;
-}
-
-QMenu::item:selected:!disabled {
-    background-color: #d2d2d2;
-}
-
-QMenu::item:disabled {
-    color: #878787;
-}
-
-QMenu::separator {
-    height: 1px;
-    background-color: #878787;
-}
-
-/* QMenuBar */
-
-QMenuBar {
-    background-color: #f4f4f4;
-}
-
 /* QProgressBar */
 
 QProgressBar {
