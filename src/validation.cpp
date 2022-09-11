@@ -428,45 +428,22 @@ static bool IsCurrentForFeeEstimation()
     return true;
 }
 
-//static bool IsUAHFenabled(const Config &config, int64_t nMedianTimePast) {
-static bool IsUAHFenabled(int64_t nMedianTimePast) {
-    return nMedianTimePast >= DEFAULT_UAHF_START_TIME ;
+/** FORKID UAHF (from RVC) */
+static bool IsForkIDUAHFenabled(int64_t nMedianTimePast) {
+    return nMedianTimePast >= DEFAULT_FORKID_UAHF_START_TIME;
 }
 
-//bool IsUAHFenabled(const Config &config, const CBlockIndex *pindexPrev) {
-bool IsUAHFenabled(const CBlockIndex *pindexPrev) {
+bool IsForkIDUAHFenabled(const CBlockIndex *pindexPrev) {
     if (pindexPrev == nullptr) {
         return false;
     }
 
-    return IsUAHFenabled(pindexPrev->GetMedianTimePast());
+    return IsForkIDUAHFenabled(pindexPrev->GetMedianTimePast());
 }
 
-//bool IsUAHFenabledForCurrentBlock(const Config &config) {
-bool IsUAHFenabledForCurrentBlock() {
+bool IsForkIDUAHFenabledForCurrentBlock() {
     AssertLockHeld(cs_main);
-    return IsUAHFenabled(chainActive.Tip());
-}
-
-
-//static bool IsUAHFForAssetsenabled(const Config &config, int64_t nMedianTimePast) {
-static bool IsUAHFForAssetsenabled(int64_t nMedianTimePast) {
-    return nMedianTimePast >= DEFAULT_UAHF_FOR_ASSETS_START_TIME ;
-}
-
-//bool IsUAHFenabled(const Config &config, const CBlockIndex *pindexPrev) {
-bool IsUAHFForAssetsenabled(const CBlockIndex *pindexPrev) {
-    if (pindexPrev == nullptr) {
-        return false;
-    }
-
-    return IsUAHFForAssetsenabled(pindexPrev->GetMedianTimePast());
-}
-
-//bool IsUAHFenabledForCurrentBlock(const Config &config) {
-bool IsUAHFForAssetsenabledForCurrentBlock() {
-    AssertLockHeld(cs_main);
-    return IsUAHFForAssetsenabled(chainActive.Tip());
+    return IsForkIDUAHFenabled(chainActive.Tip());
 }
 
 /* Make mempool consistent after a reorg, by re-adding or recursively erasing
@@ -929,7 +906,7 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
             scriptVerifyFlags = gArgs.GetArg("-promiscuousmempoolflags", scriptVerifyFlags);
         }
 
-        const bool hasUAHF = IsUAHFenabledForCurrentBlock();
+        const bool hasUAHF = IsForkIDUAHFenabledForCurrentBlock();
         if (hasUAHF) {
             scriptVerifyFlags |= SCRIPT_ENABLE_SIGHASH_FORKID;
         }
@@ -2560,7 +2537,7 @@ static bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockInd
 
     // Get the script flags for this block
     unsigned int flags = GetBlockScriptFlags(pindex, chainparams.GetConsensus());
-    const bool hasUAHF = IsUAHFenabledForCurrentBlock();
+    const bool hasUAHF = IsForkIDUAHFenabledForCurrentBlock();
     if (hasUAHF) {
         flags |= SCRIPT_VERIFY_STRICTENC;
         flags |= SCRIPT_ENABLE_SIGHASH_FORKID;
@@ -2938,7 +2915,7 @@ static bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockInd
 
     // If this block activates UAHF, we clear the mempool. This ensure that
     // we'll only get replay protected transaction in the mempool going forward.
-    if (!hasUAHF && IsUAHFenabled(pindex)) {
+    if (!hasUAHF && IsForkIDUAHFenabled(pindex)) {
         mempool.clear();
     }
 
