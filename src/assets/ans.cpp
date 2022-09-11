@@ -21,6 +21,9 @@
 
 using namespace boost::asio::ip;
 
+/* Static prefix */
+const std::string CAvianNameSystemID::prefix = "ANS";
+
 static std::string IPToHex(std::string strIP)
 {
     boost::system::error_code error;

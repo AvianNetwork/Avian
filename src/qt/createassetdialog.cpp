@@ -310,7 +310,7 @@ void CreateAssetDialog::setUpValues()
 
     // Setup ANS types
     QStringList listTypes;
-    for (const auto type : CAvianNameSystemID::AllTypes)
+    for (const auto type : ANSTypes)
         listTypes.append(QString::fromStdString(CAvianNameSystemID::enum_to_string(type).first));
 
     ui->ansType->addItems(listTypes);

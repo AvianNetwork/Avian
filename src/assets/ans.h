@@ -7,20 +7,19 @@
 #define AVIAN_ANS_H
 
 #include <string>
+#include <array>
 
 #include "univalue.h"
 
 /* Class for ANS (Avian Name System) ID */
 class CAvianNameSystemID {
 public:  
-    inline const static std::string prefix = "ANS";
+    static const std::string prefix;
 
     enum Type {
         ADDR = 0x0,
         IP = 0x1
     };
-
-    inline const static Type AllTypes[] = { ADDR, IP };
 
     CAvianNameSystemID(Type type, std::string rawData);
     CAvianNameSystemID(std::string ansID);
@@ -54,6 +53,11 @@ private:
     Type m_type;
     std::string m_addr;
     std::string m_ip;
+};
+
+constexpr std::array<CAvianNameSystemID::Type, 2> ANSTypes { 
+    CAvianNameSystemID::ADDR, 
+    CAvianNameSystemID::IP
 };
 
 #endif
