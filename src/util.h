@@ -33,6 +33,8 @@
 // Application startup time (used for uptime calculation)
 int64_t GetStartupTime();
 
+static const int DEFAULT_POW_CACHE_SIZE = 1000000;
+
 static const bool DEFAULT_LOGTIMEMICROS = false;
 static const bool DEFAULT_LOGIPS        = false;
 static const bool DEFAULT_LOGTIMESTAMPS = true;

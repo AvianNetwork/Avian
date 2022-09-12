@@ -628,7 +628,7 @@ void static AvianMiner(const CChainParams& chainparams, const POW_TYPE powType)
                 uint256 hash;
                 while (true)
                 {
-                    hash = pblock->GetHash();
+                    hash = pblock->ComputePoWHash();
                     if (UintToArith256(hash) <= hashTarget)
                     {
                         // Found a solution

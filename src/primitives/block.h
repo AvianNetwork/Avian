@@ -12,6 +12,9 @@
 #include "uint256.h"
 #include <string>
 
+#include "unordered_lru_cache.h"
+#include "util.h"
+
 // Crow: An impossible pow hash (can't meet any target)
 const uint256 HIGH_HASH = uint256S("0x0fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
 
@@ -95,7 +98,16 @@ public:
         return (nBits == 0);
     }
 
-    uint256 GetHash() const;
+    /// Compute the SHA256 hash from the block
+    uint256 GetSHA256Hash() const;
+
+    /// Compute the PoW hash
+    uint256 ComputePoWHash() const;
+
+    /// Caching lookup/computation of POW hash
+    uint256 GetHash(bool readCache = true) const;
+
+    /// Compute X16R hash
     uint256 GetX16RHash() const;
 
     // Crow: MinotaurX

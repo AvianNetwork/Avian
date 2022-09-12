@@ -58,6 +58,9 @@
 #include <stdio.h>
 #include <memory>
 
+#include "primitives/powcache.h"
+#include "flat-database.h"
+
 #ifndef WIN32
 #include <signal.h>
 #endif
@@ -206,12 +209,29 @@ void PrepareShutdown()
 #endif
     GenerateAvians(false, 0, Params());
 
+    // fRPCInWarmup should be `false` if we completed the loading sequence
+    // before a shutdown request was received
+    std::string statusmessage;
+    bool fRPCInWarmup = RPCIsInWarmup(&statusmessage);
+
     MapPort(false);
 
     // Because these depend on each-other, we make sure that neither can be
     // using the other before destroying them.
     UnregisterValidationInterface(peerLogic.get());
     if(g_connman) g_connman->Stop();
+
+    // After there are no more peers/RPC left to give us new data which may generate
+    // CValidationInterface callbacks, flush them...
+    GetMainSignals().FlushBackgroundCallbacks();
+
+    if (!fRPCInWarmup) {
+        CFlatDB<CPowCache> flatdb7("powcache.dat", "powCache");
+        flatdb7.Dump(CPowCache::Instance());
+    }
+
+    // After the threads that potentially access these pointers have been stopped,
+    // destruct and reset all to nullptr.
     peerLogic.reset();
     g_connman.reset();
 
@@ -235,10 +255,6 @@ void PrepareShutdown()
     if (pcoinsTip != nullptr) {
         FlushStateToDisk();
     }
-
-    // After there are no more peers/RPC left to give us new data which may generate
-    // CValidationInterface callbacks, flush them...
-    GetMainSignals().FlushBackgroundCallbacks();
 
     // Any future callbacks will be dropped. This should absolutely be safe - if
     // missing a callback results in an unrecoverable situation, unclean shutdown
@@ -1385,7 +1401,25 @@ bool AppInitMain(boost::thread_group& threadGroup, CScheduler& scheduler)
     // Generate coins in the background
     GenerateAvians(fGenerate, gArgs.GetArg("-genproclimit", DEFAULT_GENERATE_THREADS), chainparams);
 
-    // ********************************************************* Step 6: network initialization
+
+    // ********************************************************* Step 6: Load cache data
+
+    fs::path pathDB = GetDataDir();
+    std::string strDBName = "powcache.dat";
+
+    // Always load the powcache if available:
+    uiInterface.InitMessage(_("Loading POW cache..."));
+    fs::path powCacheFile = pathDB / strDBName;
+    if (!fs::exists(powCacheFile)) {
+        uiInterface.InitMessage("Loading POW cache for the first time. This could take a minute...");
+    }
+
+    CFlatDB<CPowCache> flatdb7(strDBName, "powCache");
+    if(!flatdb7.Load(CPowCache::Instance())) {
+        return InitError(_("Failed to load POW cache from") + "\n" + (pathDB / strDBName).string());
+    }
+
+    // ********************************************************* Step 7: network initialization
     // Note that we absolutely cannot open any actual connections
     // until the very end ("start node") as the UTXO/block state
     // is not yet setup and may end up being set up twice if we
@@ -1498,7 +1532,7 @@ bool AppInitMain(boost::thread_group& threadGroup, CScheduler& scheduler)
         nMaxOutboundLimit = gArgs.GetArg("-maxuploadtarget", DEFAULT_MAX_UPLOAD_TARGET)*1024*1024;
     }
 
-    // ********************************************************* Step 7: load block chain
+    // ********************************************************* Step 8: load block chain
 
     fReindex = gArgs.GetBoolArg("-reindex", false);
     bool fReindexChainState = gArgs.GetBoolArg("-reindex-chainstate", false);
@@ -1804,7 +1838,7 @@ bool AppInitMain(boost::thread_group& threadGroup, CScheduler& scheduler)
         ::feeEstimator.Read(est_filein);
     fFeeEstimatesInitialized = true;
 
-    // ********************************************************* Step 8: load wallet
+    // ********************************************************* Step 9: load wallet
 #ifdef ENABLE_WALLET
     if (!OpenWallets())
         return false;
@@ -1812,7 +1846,7 @@ bool AppInitMain(boost::thread_group& threadGroup, CScheduler& scheduler)
     LogPrintf("No wallet support compiled in!\n");
 #endif
 
-    // ********************************************************* Step 9: data directory maintenance
+    // ********************************************************* Step 10: data directory maintenance
 
     // if pruning, unset the service bit and perform the initial blockstore prune
     // after any wallet rescanning has taken place.
@@ -1828,7 +1862,14 @@ bool AppInitMain(boost::thread_group& threadGroup, CScheduler& scheduler)
     if(chainparams.GetConsensus().nSegwitEnabled) {
     		nLocalServices = ServiceFlags(nLocalServices | NODE_WITNESS);
     }
-    // ********************************************************* Step 10: import blocks
+
+    // ********************************************************* Step 11: Schedule PoW cache flush
+
+    // Periodic flush of PoW Cache if cache has grown enough
+    scheduler.scheduleEvery(std::bind(&CPowCache::DoMaintenance, &CPowCache::Instance()), 60 * 1000);
+
+
+    // ********************************************************* Step 12: import blocks
 
     if (!CheckDiskSpace())
         return false;
@@ -1860,7 +1901,7 @@ bool AppInitMain(boost::thread_group& threadGroup, CScheduler& scheduler)
         uiInterface.NotifyBlockTip.disconnect(BlockNotifyGenesisWait);
     }
 
-    // ********************************************************* Step 11: start node
+    // ********************************************************* Step 13: start node
 
     int chain_active_height;
 
@@ -1947,7 +1988,7 @@ bool AppInitMain(boost::thread_group& threadGroup, CScheduler& scheduler)
     StartWallets(scheduler);
 
 
-    // ********************************************************* Step 12: Init Msg Channel list
+    // ********************************************************* Step 14: Init Msg Channel list
     if (!fReindex && fLoaded && fMessaging && pmessagechanneldb && !gArgs.GetBoolArg("-disablewallet", false)) {
         bool found;
         if (!pmessagechanneldb->ReadFlag("init", found)) {
@@ -1962,7 +2003,7 @@ bool AppInitMain(boost::thread_group& threadGroup, CScheduler& scheduler)
     }
 #endif
 
-    // ********************************************************* Step 13: finished
+    // ********************************************************* Step 15: finished
     uiInterface.InitMessage(_("Done Loading"));
 
     return !fRequestShutdown;
