@@ -684,12 +684,18 @@ void OverviewPage::showAssets()
         ui->assetFrame->show();
         ui->assetBalanceLabel->show();
         ui->labelAssetStatus->show();
-        ui->verticalSpacer_2->changeSize(0,0, QSizePolicy::Fixed, QSizePolicy::Fixed);        
+
+        // Disable the vertical space so that listAssets goes to the bottom of the screen
+        ui->assetVerticalSpaceWidget->hide();
+        ui->assetVerticalSpaceWidget2->hide();
     } else {
         ui->assetFrame->hide();
         ui->assetBalanceLabel->hide();
         ui->labelAssetStatus->hide();
-        ui->verticalSpacer_2->changeSize(0,0, QSizePolicy::Fixed, QSizePolicy::Expanding);        
+
+        // This keeps the balance grid from expanding and looking terrible when asset balance is hidden
+        ui->assetVerticalSpaceWidget->show();
+        ui->assetVerticalSpaceWidget2->show();
     }
 }
 
