@@ -5464,6 +5464,15 @@ bool ContextualCheckNewAsset(CAssetsCache* assetCache, const CNewAsset& asset, s
         return false;
     }
 
+    // Check asset name for ANS
+    if (IsAssetNameARoot(asset.strName) && asset.nHasANS) {
+        bool shortLength = asset.strName.length() <= CAvianNameSystemID::domain.length();
+        if (shortLength || asset.strName.substr(asset.strName.length() - CAvianNameSystemID::domain.length()) != CAvianNameSystemID::domain) {
+            strError = std::string(_("Invalid parameter: asset name needs to end in '")) + CAvianNameSystemID::domain + std::string(_("' since ANS data is attached."));
+            return false;
+        }
+    }
+
     if (asset.nHasIPFS) {
         if (!CheckEncoded(asset.strIPFSHash, strError))
             return false;
@@ -5578,6 +5587,15 @@ bool ContextualCheckReissueAsset(CAssetsCache* assetCache, const CReissueAsset& 
         return false;
     }
 
+    // Check asset name for ANS
+    if (IsAssetNameARoot(reissue_asset.strName) && reissue_asset.strANSID != "") {
+        bool shortLength = reissue_asset.strName.length() <= CAvianNameSystemID::domain.length();
+        if (shortLength || reissue_asset.strName.substr(reissue_asset.strName.length() - CAvianNameSystemID::domain.length()) != CAvianNameSystemID::domain) {
+            strError = std::string(_("Invalid parameter: asset name needs to end in '")) + CAvianNameSystemID::domain + std::string(_("' since ANS data is attached."));
+            return false;
+        }
+    }
+
     if (reissue_asset.strANSID != "") {
         if (!CheckEncoded(reissue_asset.strANSID, strError))
             return false;
@@ -5673,6 +5691,15 @@ bool ContextualCheckReissueAsset(CAssetsCache* assetCache, const CReissueAsset& 
     if (reissue_asset.strANSID != "" && !IsAvianNameSystemDeployed()) {
         strError = _("Invalid parameter: ANS IDs not allowed when they are not deployed.");
         return false;
+    }
+
+    // Check asset name for ANS
+    if (IsAssetNameARoot(reissue_asset.strName) && reissue_asset.strANSID != "") {
+        bool shortLength = reissue_asset.strName.length() <= CAvianNameSystemID::domain.length();
+        if (shortLength || reissue_asset.strName.substr(reissue_asset.strName.length() - CAvianNameSystemID::domain.length()) != CAvianNameSystemID::domain) {
+            strError = std::string(_("Invalid parameter: asset name needs to end in '")) + CAvianNameSystemID::domain + std::string(_("' since ANS data is attached."));
+            return false;
+        }
     }
 
     if (reissue_asset.strANSID != "") {

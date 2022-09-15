@@ -15,6 +15,7 @@
 class CAvianNameSystemID {
 public:  
     static const std::string prefix;
+    static const std::string domain;
 
     enum Type {
         ADDR = 0x0,
