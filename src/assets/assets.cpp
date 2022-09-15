@@ -5413,6 +5413,11 @@ bool CheckNewAsset(const CNewAsset& asset, std::string& strError)
         return false;
     }
 
+    if (asset.nHasANS != 0 && asset.nHasANS != 1) {
+        strError = _("Invalid parameter: has_ans must be 0 or 1.");
+        return false;
+    }
+
     return true;
 }
 
