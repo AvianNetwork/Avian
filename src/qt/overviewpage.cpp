@@ -409,16 +409,26 @@ OverviewPage::OverviewPage(const PlatformStyle *platformStyle, QWidget *parent) 
     // Network request code for price
     QObject::connect(networkManager, &QNetworkAccessManager::finished,
         this, [=](QNetworkReply* reply) {
+
+            // Default values
+            int unit = 0;
+            QString currency = "usd";
+
             if (reply->error()) {
                 qDebug() << reply->errorString();
+                // Failed to get price info, just display total balance.
+                ui->labelTotal->setText(AvianUnits::formatWithUnit(unit, currentBalance + currentUnconfirmedBalance + currentImmatureBalance, false, AvianUnits::separatorAlways));
                 return;
             }
+            
+            if (walletModel->getOptionsModel()) {
+                // Get selected unit
+                unit = walletModel->getOptionsModel()->getDisplayUnit();
 
-            // Get selected unit
-            int unit = walletModel->getOptionsModel()->getDisplayUnit();
+                // Get user currency unit
+                currency = walletModel->getOptionsModel()->getDisplayCurrency();
+            }
 
-            // Get user currency unit
-            QString currency = walletModel->getOptionsModel()->getDisplayCurrency();
 
             // Get the data from the network request
             QString answer = reply->readAll();
