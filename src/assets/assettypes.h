@@ -1,4 +1,5 @@
 // Copyright (c) 2019 The Raven Core developers
+// Copyright (c) 2022 The Avian Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -56,7 +57,7 @@ const char TXID_NOTIFIER = 0x54;
 const char IPFS_SHA2_256_LEN = 0x20;
 
 template <typename Stream, typename Operation>
-bool ReadWriteAssetHash(Stream &s, Operation ser_action, std::string &strIPFSHash)
+bool ReadWriteAssetIPFSHash(Stream &s, Operation ser_action, std::string &strIPFSHash)
 {
     // assuming 34-byte IPFS SHA2-256 decoded hash (0x12, 0x20, 32 more bytes)
     if (ser_action.ForRead())
@@ -102,7 +103,9 @@ public:
     int8_t units;        // 1 Byte
     int8_t nReissuable;  // 1 Byte
     int8_t nHasIPFS;     // 1 Byte
+    int8_t nHasANS;      // 1 Byte
     std::string strIPFSHash; // MAX 40 Bytes
+    std::string strANSID;    // MAX 40 Bytes
 
     CNewAsset()
     {
@@ -110,6 +113,7 @@ public:
     }
 
     CNewAsset(const std::string& strName, const CAmount& nAmount, const int& units, const int& nReissuable, const int& nHasIPFS, const std::string& strIPFSHash);
+    CNewAsset(const std::string& strName, const CAmount& nAmount, const int& units, const int& nReissuable, const int& nHasIPFS, const std::string& strIPFSHash, const int& nHasANS, const std::string& strANSID);
     CNewAsset(const std::string& strName, const CAmount& nAmount);
 
     CNewAsset(const CNewAsset& asset);
@@ -123,6 +127,8 @@ public:
         nReissuable = int8_t(0);
         nHasIPFS = int8_t(0);
         strIPFSHash = "";
+        nHasANS = int8_t(0);
+        strANSID = "";
     }
 
     bool IsNull() const;
@@ -142,7 +148,11 @@ public:
         READWRITE(nReissuable);
         READWRITE(nHasIPFS);
         if (nHasIPFS == 1) {
-            ReadWriteAssetHash(s, ser_action, strIPFSHash);
+            ReadWriteAssetIPFSHash(s, ser_action, strIPFSHash);
+        }
+        READWRITE(nHasANS);
+        if (nHasANS == 1) {
+            READWRITE(strANSID);
         }
     }
 };
@@ -212,7 +222,7 @@ public:
     {
         READWRITE(strName);
         READWRITE(nAmount);
-        bool validIPFS = ReadWriteAssetHash(s, ser_action, message);
+        bool validIPFS = ReadWriteAssetIPFSHash(s, ser_action, message);
         if (validIPFS) {
             if (ser_action.ForRead()) {
                 if (!s.empty() && s.size() >= sizeof(int64_t)) {
@@ -241,6 +251,7 @@ public:
     int8_t nUnits;
     int8_t nReissuable;
     std::string strIPFSHash;
+    std::string strANSID;
 
     CReissueAsset()
     {
@@ -254,6 +265,7 @@ public:
         nUnits = 0;
         nReissuable = 1;
         strIPFSHash = "";
+        strANSID = "";
     }
 
     ADD_SERIALIZE_METHODS;
@@ -265,10 +277,11 @@ public:
         READWRITE(nAmount);
         READWRITE(nUnits);
         READWRITE(nReissuable);
-        ReadWriteAssetHash(s, ser_action, strIPFSHash);
+        ReadWriteAssetIPFSHash(s, ser_action, strIPFSHash);
+        READWRITE(strANSID);
     }
 
-    CReissueAsset(const std::string& strAssetName, const CAmount& nAmount, const int& nUnits, const int& nReissuable, const std::string& strIPFSHash);
+    CReissueAsset(const std::string& strAssetName, const CAmount& nAmount, const int& nUnits, const int& nReissuable, const std::string& strIPFSHash, const std::string& strANSID);
     void ConstructTransaction(CScript& script) const;
     bool IsNull() const;
 };

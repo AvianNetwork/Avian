@@ -19,6 +19,7 @@
 #include "assettablemodel.h"
 #include "walletmodel.h"
 #include "assetrecord.h"
+#include "assets/ans.h"
 
 #include <QAbstractItemDelegate>
 #include <QDateTime>
@@ -169,20 +170,23 @@ public:
     }
 
     inline void paint(QPainter *painter, const QStyleOptionViewItem &option,
-                      const QModelIndex &index ) const
+                      const QModelIndex &index) const
     {
         painter->save();
 
         /** Get the icon for the administrator of the asset */
         QPixmap pixmap = qvariant_cast<QPixmap>(index.data(Qt::DecorationRole));
         QPixmap ipfspixmap = qvariant_cast<QPixmap>(index.data(AssetTableModel::AssetIPFSHashDecorationRole));
+        QPixmap anspixmap = qvariant_cast<QPixmap>(index.data(AssetTableModel::AssetANSDecorationRole));
 
         bool admin = index.data(AssetTableModel::AdministratorRole).toBool();
 
-        /** Need to know the heigh to the pixmap. If it is 0 we dont own this asset so dont have room for the icon */
+        /** Need to know the height to the pixmap. If it is 0 we don't own this asset so don't have room for the icon */
         int nIconSize = admin ? pixmap.height() : 0;
         int nIPFSIconSize = ipfspixmap.height();
+        int nANSIconSize = anspixmap.height();
         int extraNameSpacing = 12;
+        int extraDataSpacing = 0;
         if (nIconSize)
             extraNameSpacing = 0;
 
@@ -199,11 +203,12 @@ public:
 
         int halfheight = (gradientRect.height() - 2*ypad)/2;
 
-        /** Create the three main rectangles  (Icon, Name, Amount) */
+        /** Create the three main rectangles (Icon, Name, Amount) */
         QRect assetAdministratorRect(QPoint(20, gradientRect.top() + halfheight/2 - 3*ypad), QSize(nIconSize, nIconSize));
         QRect assetNameRect(gradientRect.left() + xspace - extraNameSpacing, gradientRect.top()+ypad+(halfheight/2), gradientRect.width() - xspace, halfheight + ypad);
         QRect amountRect(gradientRect.left() + xspace, gradientRect.top()+ypad+(halfheight/2), gradientRect.width() - xspace - 24, halfheight);
         QRect ipfsLinkRect(QPoint(gradientRect.right() - nIconSize/2, gradientRect.top() + halfheight/1.5), QSize(nIconSize/2, nIconSize/2));
+        QRect ansRect(QPoint(4, gradientRect.top() + halfheight/1.5), QSize(nIconSize/2, nIconSize/2));
 
         // Create the gradient for the asset items
         QLinearGradient gradient(mainRect.topLeft(), mainRect.bottomRight());
@@ -226,6 +231,9 @@ public:
 
         if (nIPFSIconSize)
             painter->drawPixmap(ipfsLinkRect, ipfspixmap);
+
+        if (nANSIconSize)
+            painter->drawPixmap(ansRect, anspixmap);
 
         /** Create the font that is used for painting the asset name */
         QFont nameFont;
@@ -382,6 +390,7 @@ OverviewPage::OverviewPage(const PlatformStyle *platformStyle, QWidget *parent) 
     issueUnique = new QAction(tr("Issue Unique Asset"), this);
     reissue = new QAction(tr("Reissue Asset"), this);
     openURL = new QAction(tr("Open IPFS in Browser"), this);
+    viewANS = new QAction(tr("View ANS info"), this);
 
     sendAction->setObjectName("Send");
     issueSub->setObjectName("Sub");
@@ -391,6 +400,7 @@ OverviewPage::OverviewPage(const PlatformStyle *platformStyle, QWidget *parent) 
     copyAmountAction->setObjectName("Copy Amount");
     copyHashAction->setObjectName("Copy Hash");
     openURL->setObjectName("Browse");
+    viewANS->setObjectName("View ANS");
 
     // context menu
     contextMenu = new QMenu(this);
@@ -401,6 +411,8 @@ OverviewPage::OverviewPage(const PlatformStyle *platformStyle, QWidget *parent) 
     contextMenu->addSeparator();
     contextMenu->addAction(openURL);
     contextMenu->addAction(copyHashAction);
+    contextMenu->addSeparator();
+    contextMenu->addAction(viewANS);
     contextMenu->addSeparator();
     contextMenu->addAction(copyNameAction);
     contextMenu->addAction(copyAmountAction);
@@ -475,7 +487,7 @@ bool OverviewPage::eventFilter(QObject *object, QEvent *event)
         if (mouseEv->buttons() & Qt::RightButton ) {
             handleAssetRightClicked(currentIndex);
         } else if (mouseEv->buttons() & Qt::LeftButton) {
-            openIPFSForAsset(currentIndex);
+            openDataForAsset(currentIndex, false);
         }
     }
 
@@ -494,6 +506,7 @@ void OverviewPage::handleAssetRightClicked(const QModelIndex &index)
         // Grab the data elements from the index that we need to disable and enable menu items
         QString name = index.data(AssetTableModel::AssetNameRole).toString();
         QString ipfshash = index.data(AssetTableModel::AssetIPFSHashRole).toString();
+        QString ansid = index.data(AssetTableModel::AssetANSRole).toString();
         QString ipfsbrowser = walletModel->getOptionsModel()->getIpfsUrl();
 
         if (IsAssetNameAnOwner(name.toStdString())) {
@@ -514,6 +527,12 @@ void OverviewPage::handleAssetRightClicked(const QModelIndex &index)
             copyHashAction->setDisabled(false);
         } else {
             copyHashAction->setDisabled(true);
+        }
+
+        if(ansid.count() > 0) {
+            viewANS->setDisabled(false);
+        } else {
+            viewANS->setDisabled(true);
         }
 
         if (!index.data(AssetTableModel::AdministratorRole).toBool()) {
@@ -549,8 +568,10 @@ void OverviewPage::handleAssetRightClicked(const QModelIndex &index)
                 GUIUtil::setClipboard(index.data(AssetTableModel::FormattedAmountRole).toString());
             else if (action->objectName() == "Copy Hash")
                 GUIUtil::setClipboard(ipfshash);
-            else if (action->objectName() == "Browse") {
+            else if (action->objectName() == "Browse")
                 QDesktopServices::openUrl(QUrl::fromUserInput(ipfsbrowser.replace("%s", ipfshash)));
+            else if (action->objectName() == "View ANS") {
+                openDataForAsset(index, true);
             }
         }
     }
@@ -716,26 +737,35 @@ void OverviewPage::assetSearchChanged()
     assetFilter->setAssetNamePrefix(ui->assetSearch->text());
 }
 
-void OverviewPage::openIPFSForAsset(const QModelIndex &index)
+void OverviewPage::openDataForAsset(const QModelIndex &index, bool forceANS)
 {
+    QString assetname = index.data(AssetTableModel::AssetNameRole).toString();
+
     // Get the ipfs hash of the asset clicked
     QString ipfshash = index.data(AssetTableModel::AssetIPFSHashRole).toString();
     QString ipfsbrowser = walletModel->getOptionsModel()->getIpfsUrl();
 
+    // Get ANS ID of the asset clicked
+    QString ansid = index.data(AssetTableModel::AssetANSRole).toString();
+
     // If the ipfs hash isn't there or doesn't start with Qm, disable the action item
-    if (ipfshash.count() > 0 && ipfshash.indexOf("Qm") == 0 && ipfsbrowser.indexOf("http") == 0)
+    if (ipfshash.count() > 0 && ipfshash.indexOf("Qm") == 0 && ipfsbrowser.indexOf("http") == 0 && !forceANS)
     {
         QUrl ipfsurl = QUrl::fromUserInput(ipfsbrowser.replace("%s", ipfshash));
 
         // Create the box with everything.
-        if(QMessageBox::Yes == QMessageBox::question(this,
-                                                        tr("Open IPFS content?"),
-                                                        tr("Open the following IPFS content in your default browser?\n")
-                                                        + ipfsurl.toString()
-                                                    ))
-        {
-        QDesktopServices::openUrl(ipfsurl);
-        }
+        if (QMessageBox::Yes == QMessageBox::question(this, tr("Open IPFS content?"), tr("Open the following IPFS content in your default browser?\n")+ ipfsurl.toString()))
+            QDesktopServices::openUrl(ipfsurl);
+    }
+    // Show ANS data if attached to asset
+    else if (ansid.count() > 0) {
+        CAvianNameSystemID ans(ansid.toStdString());
+        QString ansData = "";
+
+        if(ans.type() == CAvianNameSystemID::ADDR) ansData = "Address: " + QString::fromStdString(ans.addr());
+        if(ans.type() == CAvianNameSystemID::IP) ansData = "IPv4: " + QString::fromStdString(ans.ip());
+
+        QMessageBox::information(this, "ANS Info", assetname + " links to:\n" + ansData);
     }
 }
 

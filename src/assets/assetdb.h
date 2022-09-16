@@ -1,4 +1,5 @@
 // Copyright (c) 2017-2019 The Raven Core developers
+// Copyright (c) 2022 The Avian Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -22,8 +23,10 @@ class CDatabasedAssetData;
 struct CBlockAssetUndo
 {
     bool fChangedIPFS;
+    bool fChangedANS;
     bool fChangedUnits;
     std::string strIPFS;
+    std::string strANSID;
     int32_t nUnits;
     int8_t version;
     bool fChangedVerifierString;
@@ -35,7 +38,9 @@ struct CBlockAssetUndo
     inline void SerializationOp(Stream& s, Operation ser_action) {
         READWRITE(fChangedUnits);
         READWRITE(fChangedIPFS);
+        READWRITE(fChangedANS);
         READWRITE(strIPFS);
+        READWRITE(strANSID);
         READWRITE(nUnits);
         if (ser_action.ForRead()) {
             if (!s.empty() and s.size() >= 1) {

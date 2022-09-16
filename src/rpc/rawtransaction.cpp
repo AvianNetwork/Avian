@@ -444,6 +444,8 @@ UniValue createrawtransaction(const JSONRPCRequest& request)
             "               \"reissuable\":[0-1],         (number, required) 1=reissuable asset\n"
             "               \"has_ipfs\":[0-1],           (number, required) 1=passing ipfs_hash\n"
             "               \"ipfs_hash\":\"hash\"          (string, optional) an ipfs hash for discovering asset metadata\n"
+            "               \"has_ans\":[0-1],           (number, required) 1=passing ans_id\n"
+            "               \"ans_id\":\"id\"          (string, optional) an ANS ID to attach Avian Name System data\n"
             // TODO if we decide to remove the consensus check from issue 675 https://github.com/AvianNetwork/Avian/issues/675
    //TODO"               \"custom_owner_address\": \"addr\" (string, optional) owner token will get sent to this address if set\n"
             "             }\n"
@@ -456,6 +458,7 @@ UniValue createrawtransaction(const JSONRPCRequest& request)
             "                                                      are being issued under\n"
             "               \"asset_tags\":[\"asset_tag\", ...], (array, required) the unique tag for each asset which is to be issued\n"
             "               \"ipfs_hashes\":[\"hash\", ...],     (array, optional) ipfs hashes corresponding to each supplied tag \n"
+            "               \"ans_ids\":[\"hash\", ...],     (array, optional) ANS IDs corresponding to each supplied tag \n"
             "                                                      (should be same size as \"asset_tags\")\n"
             "             }\n"
             "         }\n"
@@ -468,6 +471,8 @@ UniValue createrawtransaction(const JSONRPCRequest& request)
             "               \"reissuable\":[0-1],          (number, optional) default is 1, 1=reissuable asset\n"
             "               \"ipfs_hash\":\"hash\",        (string, optional) An ipfs hash for discovering asset metadata, \n"
             "                                                Overrides the current ipfs hash if given\n"
+            "               \"has_ans\":[0-1],           (number, required) 1=passing ans_id\n"
+            "               \"ans_id\":\"id\"          (string, optional) an ANS ID to attach Avian Name System data\n"
             "               \"owner_change_address\"       (string, optional) the address where the owner token will be sent to. \n"
             "                                                If not given, it will be sent to the output address\n"
             "             }\n"
@@ -484,6 +489,8 @@ UniValue createrawtransaction(const JSONRPCRequest& request)
             "               \"reissuable\":[0-1],         (number, required) 1=reissuable asset\n"
             "               \"has_ipfs\":[0-1],           (number, required) 1=passing ipfs_hash\n"
             "               \"ipfs_hash\":\"hash\",       (string, optional) an ipfs hash for discovering asset metadata\n"
+            "               \"has_ans\":[0-1],           (number, required) 1=passing ans_id\n"
+            "               \"ans_id\":\"id\"          (string, optional) an ANS ID to attach Avian Name System data\n"
             "               \"owner_change_address\"      (string, optional) the address where the owner token will be sent to. \n"
             "                                               If not given, it will be sent to the output address\n"
             "             }\n"
@@ -499,6 +506,8 @@ UniValue createrawtransaction(const JSONRPCRequest& request)
             "                                                transfer verification\n"
             "               \"ipfs_hash\":\"hash\",        (string, optional) An ipfs hash for discovering asset metadata, \n"
             "                                                Overrides the current ipfs hash if given\n"
+            "               \"has_ans\":[0-1],           (number, required) 1=passing ans_id\n"
+            "               \"ans_id\":\"id\"          (string, optional) an ANS ID to attach Avian Name System data\n"
             "               \"owner_change_address\"       (string, optional) the address where the owner token will be sent to. \n"
             "                                                If not given, it will be sent to the output address\n"
             "             }\n"
@@ -512,7 +521,9 @@ UniValue createrawtransaction(const JSONRPCRequest& request)
             "               \"has_ipfs\":[0-1],            (boolean, optional, default=false), whether ifps hash is going \n"
             "                                                to be added to the asset\n"
             "               \"ipfs_hash\":\"hash\",        (string, optional but required if has_ipfs = 1), an ipfs hash or a \n"
-            "                                                txid hash once RIP5 is activated\n"
+            "                                                txid hash once messaging is activated\n"
+            "               \"has_ans\":[0-1],           (number, required) 1=passing ans_id\n"
+            "               \"ans_id\":\"id\"          (string, optional) an ANS ID to attach Avian Name System data\n"
             "               \"root_change_address\"        (string, optional) Only applies when issuing subqualifiers.\n"
             "                                                The address where the root qualifier will be sent.\n"
             "                                                If not specified, it will be sent to the output address.\n"
@@ -740,6 +751,16 @@ UniValue createrawtransaction(const JSONRPCRequest& request)
                             throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid parameter, missing asset metadata for key: has_ipfs");
                     }
 
+                    const UniValue& has_ans = find_value(assetData, "has_ans");
+                    if (!has_ans.isNum())
+                        throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid parameter, missing asset metadata for key: has_ans");                    
+
+                    UniValue ans_id = "";
+                    if (ans_id.get_int() == 1) {
+                        ans_id = find_value(assetData, "ans_id");
+                        if (!ans_id.isStr())
+                            throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid parameter, missing asset metadata for key: ans_id");
+                    }
 
                     if (IsAssetNameAnRestricted(asset_name.get_str()))
                         throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid parameter, asset_name can't be a restricted asset name. Please use issue_restricted with the correct parameters");
@@ -747,7 +768,7 @@ UniValue createrawtransaction(const JSONRPCRequest& request)
                     CAmount nAmount = AmountFromValue(asset_quantity);
 
                     // Create a new asset
-                    CNewAsset asset(asset_name.get_str(), nAmount, units.get_int(), reissuable.get_int(), has_ipfs.get_int(), DecodeAssetData(ipfs_hash.get_str()));
+                    CNewAsset asset(asset_name.get_str(), nAmount, units.get_int(), reissuable.get_int(), has_ipfs.get_int(), DecodeAssetData(ipfs_hash.get_str()), has_ans.get_int(), ans_id.get_str());
 
                     // Verify that data
                     std::string strError = "";
@@ -802,6 +823,15 @@ UniValue createrawtransaction(const JSONRPCRequest& request)
                         }
                     }
 
+                    const UniValue& ans_ids = find_value(assetData, "ans_ids");
+                    if (!ans_ids.isNull()) {
+                        if (!ans_ids.isArray() || ans_ids.size() != asset_tags.size()) {
+                            if (!ans_ids.isNum())
+                                throw JSONRPCError(RPC_INVALID_PARAMETER,
+                                                   "Invalid parameter, missing asset metadata for key: ans_ids");
+                        }
+                    }
+
                     // Create the scripts for the change of the ownership token
                     CScript scriptTransferOwnerAsset = GetScriptForDestination(destination);
                     CAssetTransfer assetTransfer(root_name.get_str() + OWNER_TAG, OWNER_ASSET_AMOUNT);
@@ -816,13 +846,23 @@ UniValue createrawtransaction(const JSONRPCRequest& request)
 
                         // Create a new asset
                         CNewAsset asset;
-                        if (ipfs_hashes.isNull()) {
+
+                        if (ipfs_hashes.isNull() || ans_ids.isNull())
+                        {
                             asset = CNewAsset(GetUniqueAssetName(root_name.get_str(), asset_tags[i].get_str()),
                                               UNIQUE_ASSET_AMOUNT,  UNIQUE_ASSET_UNITS, UNIQUE_ASSETS_REISSUABLE, 0, "");
-                        } else {
+                        }
+                        else if(!ipfs_hashes.isNull())
+                        {
                             asset = CNewAsset(GetUniqueAssetName(root_name.get_str(), asset_tags[i].get_str()),
                                               UNIQUE_ASSET_AMOUNT, UNIQUE_ASSET_UNITS, UNIQUE_ASSETS_REISSUABLE,
                                               1, DecodeAssetData(ipfs_hashes[i].get_str()));
+                        }
+                        else if(!ans_ids.isNull())
+                        {
+                            asset = CNewAsset(GetUniqueAssetName(root_name.get_str(), asset_tags[i].get_str()),
+                                              UNIQUE_ASSET_AMOUNT, UNIQUE_ASSET_UNITS, UNIQUE_ASSETS_REISSUABLE,
+                                              0, "", 1, ans_ids[i].get_str());
                         }
 
                         // Verify that data
@@ -879,6 +919,14 @@ UniValue createrawtransaction(const JSONRPCRequest& request)
                             throw JSONRPCError(RPC_INVALID_PARAMETER,
                                                "Invalid parameter, missing reissue metadata for key: ipfs_hash");
                         reissueObj.strIPFSHash = DecodeAssetData(ipfs_hash.get_str());
+                    }
+
+                    const UniValue& ans_id = find_value(reissueData, "ans_id");
+                    if (!ans_id.isNull()) {
+                        if (!ans_id.isStr())
+                            throw JSONRPCError(RPC_INVALID_PARAMETER,
+                                               "Invalid parameter, missing reissue metadata for key: ans_id");
+                        reissueObj.strANSID = ans_id.get_str();
                     }
 
                     bool fHasOwnerChange = false;
@@ -1584,6 +1632,9 @@ UniValue decodescript(const JSONRPCRequest& request)
             "  \"hasIPFS\": true|false,    (boolean) If this asset has an IPFS hash. (Only appears in type (new_asset if hasIPFS is true))\n"
             "  \"ipfs_hash\": \"hash\",      (string) The ipfs hash for the new asset. (Only appears in type (new_asset))\n"
             "  \"new_ipfs_hash\":\"hash\",    (string) If new ipfs hash (Only appears in type. (reissue_asset))\n"
+            "  \"hasANS\": true|false,    (boolean) If this asset has an ANS ID. (Only appears in type (new_asset if hasANS is true))\n"
+            "  \"ans_id\": \"hash\",      (string) The ANS ID for the new asset. (Only appears in type (new_asset))\n"
+            "  \"new_ans_id\":\"hash\",    (string) If new ANS ID (Only appears in type. (reissue_asset))\n"
             "}\n"
             "\nExamples:\n"
             + HelpExampleCli("decodescript", "\"hexstring\"")
@@ -1648,6 +1699,9 @@ UniValue decodescript(const JSONRPCRequest& request)
         if (reissue.strIPFSHash != "")
             r.push_back(Pair("new_ipfs_hash", EncodeAssetData(reissue.strIPFSHash)));
 
+        if (reissue.strANSID != "")
+            r.push_back(Pair("new_ans_id", EncodeAssetData(reissue.strANSID)));
+
     } else if (type.isStr() && type.get_str() == ASSET_NEW_STRING) {
         if (!AreAssetsDeployed())
             throw JSONRPCError(RPC_DESERIALIZATION_ERROR, "Assets are not active");
@@ -1667,8 +1721,14 @@ UniValue decodescript(const JSONRPCRequest& request)
             bool hasIPFS = asset.nHasIPFS ? true : false;
             r.push_back(Pair("hasIPFS", hasIPFS));
 
+            bool hasANS = asset.nHasANS ? true : false;
+            r.push_back(Pair("hasANS", hasANS));
+
             if (hasIPFS)
                 r.push_back(Pair("ipfs_hash", EncodeAssetData(asset.strIPFSHash)));
+
+            if (hasANS)
+                r.push_back(Pair("ans_id", asset.strANSID));
         }
         else if (OwnerAssetFromScript(script, ownerAsset, address))
         {

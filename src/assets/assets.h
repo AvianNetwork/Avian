@@ -1,4 +1,5 @@
 // Copyright (c) 2017-2019 The Raven Core developers
+// Copyright (c) 2022 The Avian Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -27,6 +28,8 @@
 #define DEFAULT_REISSUABLE 1
 #define DEFAULT_HAS_IPFS 0
 #define DEFAULT_IPFS ""
+#define DEFAULT_HAS_ANS 0
+#define DEFAULT_ANS ""
 #define MIN_ASSET_LENGTH 3
 #define MAX_ASSET_LENGTH 32
 #define OWNER_TAG "!"
@@ -271,7 +274,7 @@ public :
     bool RemoveNewAsset(const CNewAsset& asset, const std::string address);
     bool RemoveTransfer(const CAssetTransfer& transfer, const std::string& address, const COutPoint& out);
     bool RemoveOwnerAsset(const std::string& assetsName, const std::string address);
-    bool RemoveReissueAsset(const CReissueAsset& reissue, const std::string address, const COutPoint& out, const std::vector<std::pair<std::string, CBlockAssetUndo> >& vUndoIPFS);
+    bool RemoveReissueAsset(const CReissueAsset& reissue, const std::string address, const COutPoint& out, const std::vector<std::pair<std::string, CBlockAssetUndo> >& vUndoData);
     bool UndoAssetCoin(const Coin& coin, const COutPoint& out);
     bool RemoveQualifierAddress(const std::string& assetName, const std::string& address, const QualifierType type);
     bool RemoveRestrictedAddress(const std::string& assetName, const std::string& address, const RestrictedType type);
@@ -519,7 +522,7 @@ bool GetAssetData(const CScript& script, CAssetOutputEntry& data);
 bool GetBestAssetAddressAmount(CAssetsCache& cache, const std::string& assetName, const std::string& address);
 
 
-//! Decode and Encode IPFS hashes, or OIP hashes
+//! Decode and Encode IPFS hashes, ANS IDs, or OIP hashes
 std::string DecodeAssetData(std::string encoded);
 std::string EncodeAssetData(std::string decoded);
 std::string DecodeIPFS(std::string encoded);

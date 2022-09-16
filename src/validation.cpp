@@ -5895,6 +5895,17 @@ bool AreRestrictedAssetsDeployed() {
     return fRestricted;
 }
 
+bool IsAvianNameSystemDeployed()
+{
+    if (fAvianNameSystemIsActive)
+        return true;
+
+    if ((chainActive.Tip() != nullptr) && chainActive.Tip()->nTime > Params().GetConsensus().nAvianNameSystemTime)
+        fAvianNameSystemIsActive = true;
+
+    return fAvianNameSystemIsActive;
+}
+
 bool IsDGWActive(unsigned int nBlockNumber) {
     return nBlockNumber >= Params().DGWActivationBlock();
 }

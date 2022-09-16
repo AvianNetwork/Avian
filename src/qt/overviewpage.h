@@ -49,7 +49,7 @@ public:
     void showAssets();
 
     bool eventFilter(QObject *object, QEvent *event);
-    void openIPFSForAsset(const QModelIndex &index);
+    void openDataForAsset(const QModelIndex &index, bool forceANS);
 
     void setPriceBalance();
 
@@ -88,6 +88,7 @@ private:
     QAction *issueUnique;
     QAction *reissue;
     QAction *openURL;
+    QAction *viewANS;
     QAction *copyHashAction;
 
     /** AVN START */

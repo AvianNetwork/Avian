@@ -13,6 +13,7 @@
 #include "core_io.h"
 #include "univalue.h"
 #include "assets/assettypes.h"
+#include "assets/ans.h"
 #include "avianunits.h"
 #include "optionsmodel.h"
 #include "sendcoinsdialog.h"
@@ -58,8 +59,11 @@ ReissueAssetDialog::ReissueAssetDialog(const PlatformStyle *_platformStyle, QWid
     connect(ui->comboBox, SIGNAL(activated(int)), this, SLOT(onAssetSelected(int)));
     connect(ui->quantitySpinBox, SIGNAL(valueChanged(double)), this, SLOT(onQuantityChanged(double)));
     connect(ui->ipfsBox, SIGNAL(clicked()), this, SLOT(onIPFSStateChanged()));
+    connect(ui->ansBox, SIGNAL(clicked()), this, SLOT(onANSStateChanged()));
     connect(ui->openIpfsButton, SIGNAL(clicked()), this, SLOT(openIpfsBrowser()));
     connect(ui->ipfsText, SIGNAL(textChanged(QString)), this, SLOT(onIPFSHashChanged(QString)));
+    connect(ui->ansText, SIGNAL(textChanged(QString)), this, SLOT(onANSDataChanged(QString)));
+    connect(ui->ansType, SIGNAL(currentIndexChanged(int)), this, SLOT(onANSTypeChanged(int)));
     connect(ui->addressText, SIGNAL(textChanged(QString)), this, SLOT(onAddressNameChanged(QString)));
     connect(ui->reissueAssetButton, SIGNAL(clicked()), this, SLOT(onReissueAssetClicked()));
     connect(ui->reissuableBox, SIGNAL(clicked()), this, SLOT(onReissueBoxChanged()));
@@ -280,6 +284,8 @@ void ReissueAssetDialog::setUpValues()
 
     ui->reissuableBox->setCheckState(Qt::CheckState::Checked);
     ui->ipfsText->setDisabled(true);
+    ui->ansText->setDisabled(true);
+    ui->ansType->setDisabled(true);
     ui->openIpfsButton->setDisabled(true);
     hideMessage();
 
@@ -299,6 +305,13 @@ void ReissueAssetDialog::setUpValues()
 
     // Hide the reissue Warning Label
     ui->reissueWarningLabel->hide();
+
+    // Setup ANS types
+    QStringList listTypes;
+    for (const auto type : ANSTypes)
+        listTypes.append(QString::fromStdString(CAvianNameSystemID::enum_to_string(type).first));
+
+    ui->ansType->addItems(listTypes);
 
     disableAll();
 }
@@ -353,6 +366,20 @@ void ReissueAssetDialog::toggleIPFSText()
         ui->ipfsText->setDisabled(false);
     } else {
         ui->ipfsText->setDisabled(true);
+    }
+
+    buildUpdatedData();
+    CheckFormState();
+}
+
+void ReissueAssetDialog::toggleANSText()
+{
+    if (ui->ansBox->isChecked()) {
+        ui->ansText->setDisabled(false);
+        ui->ansType->setDisabled(false);
+    } else {
+        ui->ansText->setDisabled(true);
+        ui->ansType->setDisabled(true);
     }
 
     buildUpdatedData();
@@ -421,8 +448,44 @@ void ReissueAssetDialog::CheckFormState()
             ui->openIpfsButton->setDisabled(true);
             return;
         }
-        else
-            ui->openIpfsButton->setDisabled(false);
+        else ui->openIpfsButton->setDisabled(false);
+    }
+    
+    if (ui->ansBox->isChecked() && !ui->ansText->text().isEmpty()) {
+        CAvianNameSystemID::Type type = static_cast<CAvianNameSystemID::Type>(ui->ansType->currentIndex());
+
+        std::string error;
+        std::string formattedTypeData;
+        std::string typeData = ui->ansText->text().toStdString();
+        
+        formattedTypeData = CAvianNameSystemID::FormatTypeData(type, typeData, error);
+
+        if (error != "") {
+            ui->ansText->setStyleSheet("border: 2px solid red");
+            showMessage(QString::fromStdString(error));
+            disableReissueButton();
+            return;
+        }
+
+        CAvianNameSystemID ans(type, formattedTypeData);
+
+        if (!IsAvianNameSystemDeployed()) {
+            ui->ansText->setStyleSheet("border: 2px solid red");
+            showMessage(tr("ANS not deployed yet."));
+            disableReissueButton();
+            return;
+        }
+
+        if (!CAvianNameSystemID::IsValidID(ans.to_string())) {
+            ui->ansText->setStyleSheet("border: 2px solid red");
+            showMessage(tr("Invalid ANS data."));
+            disableReissueButton();
+            return;
+        } else {
+            ui->ansText->setStyleSheet("");
+            hideMessage();
+            enableReissueButton();
+        }
     }
 
     if (fReissuingRestricted) {
@@ -470,7 +533,7 @@ void ReissueAssetDialog::CheckFormState()
     }
 
     // Keep the button disabled if no changes have been made
-    if ((!ui->ipfsBox->isChecked() || (ui->ipfsBox->isChecked() && ui->ipfsText->text().isEmpty())) && ui->reissuableBox->isChecked() && ui->quantitySpinBox->value() == 0 && ui->unitSpinBox->value() == asset->units && ui->lineEditVerifierString->text().isEmpty()) {
+    if ((!ui->ipfsBox->isChecked() || (ui->ipfsBox->isChecked() && ui->ipfsText->text().isEmpty())) && (!ui->ansBox->isChecked() || (ui->ansBox->isChecked() && ui->ansText->text().isEmpty())) && ui->reissuableBox->isChecked() && ui->quantitySpinBox->value() == 0 && ui->unitSpinBox->value() == asset->units && ui->lineEditVerifierString->text().isEmpty()) {
         hideMessage();
         return;
     }
@@ -553,6 +616,22 @@ void ReissueAssetDialog::buildUpdatedData()
         }
     }
 
+    QString ansID;
+
+    if (asset->nHasANS && (!ui->ansBox->isChecked() || (ui->ansBox->isChecked() && ui->ansText->text().isEmpty()))) {
+        QString qstr = QString::fromStdString(asset->strANSID);
+        ansID = formatBlack.arg(tr("ANS ID"), ":", qstr) + "\n";
+    } else if (ui->ansBox->isChecked() && !ui->ansBox->text().isEmpty()) {
+        std::string error; // TODO: We already do type checking, should we check again here?
+        std::string formattedTypeData;
+        CAvianNameSystemID::Type type = static_cast<CAvianNameSystemID::Type>(ui->ansType->currentIndex());
+        formattedTypeData = CAvianNameSystemID::FormatTypeData(type, ui->ansText->text().toStdString(), error);
+
+        CAvianNameSystemID ansData(type, formattedTypeData);
+        QString qstr = QString::fromStdString(ansData.to_string());
+        ansID = formatGreen.arg(tr("ANS ID"), ":", qstr) + "\n";
+    }
+
     QString verifierString;
     if (!ui->lineEditVerifierString->isHidden()) {
         if (!ui->lineEditVerifierString->text().isEmpty()) {
@@ -576,6 +655,8 @@ void ReissueAssetDialog::buildUpdatedData()
     ui->updatedAssetData->append(reissue);
     if (!ipfs.isEmpty())
         ui->updatedAssetData->append(ipfs);
+    if (!ansID.isEmpty())
+        ui->updatedAssetData->append(ansID);
     if (!verifierString.isEmpty())
         ui->updatedAssetData->append(verifierString);
     ui->updatedAssetData->show();
@@ -640,6 +721,7 @@ void ReissueAssetDialog::onAssetSelected(int index)
         QString quantity = formatBlack.arg(tr("Current Quantity"), ":", QString::fromStdString(ss.str())) + "\n";
         QString units = formatBlack.arg(tr("Current Units"), ":", QString::number(ui->unitSpinBox->value()));
         QString reissue = formatBlack.arg(tr("Can Reissue"), ":", tr("Yes")) + "\n";
+
         QString assetdatahash = "";
         if (asset->nHasIPFS) {
             QString qstr = QString::fromStdString(EncodeAssetData(asset->strIPFSHash));
@@ -651,6 +733,12 @@ void ReissueAssetDialog::onAssetSelected(int index)
             else {
                 assetdatahash = formatBlack.arg(tr("Unknown data hash type"), ":", qstr) + "\n";
             }
+        }
+
+        QString assetdataANS = "";
+        if (asset->nHasANS) {
+            QString qstr = QString::fromStdString(asset->strANSID);
+            assetdataANS = formatBlack.arg(tr("ANS ID"), ":", qstr) + "\n";
         }
 
         QString verifierString = "";
@@ -670,6 +758,8 @@ void ReissueAssetDialog::onAssetSelected(int index)
         ui->currentAssetData->append(reissue);
         if (asset->nHasIPFS)
             ui->currentAssetData->append(assetdatahash);
+        if (asset->nHasANS)
+            ui->currentAssetData->append(assetdataANS);
         if (fRestrictedAssetSelected)
             ui->currentAssetData->append(verifierString);
         ui->currentAssetData->setFixedHeight(ui->currentAssetData->document()->size().height());
@@ -695,6 +785,11 @@ void ReissueAssetDialog::onIPFSStateChanged()
     toggleIPFSText();
 }
 
+void ReissueAssetDialog::onANSStateChanged()
+{
+    toggleANSText();
+}
+
 void ReissueAssetDialog::onVerifierStringChanged(QString verifier)
 {
     buildUpdatedData();
@@ -706,7 +801,7 @@ bool ReissueAssetDialog::checkIPFSHash(QString hash)
     if (!hash.isEmpty()) {
         if (!AreMessagesDeployed()) {
             if (hash.length() > 46) {
-                showMessage(tr("Only IPFS Hashes allowed until RIP5 is activated"));
+                showMessage(tr("Only IPFS Hashes allowed until messaging is activated"));
                 disableReissueButton();
                 return false;
             }
@@ -743,6 +838,21 @@ void ReissueAssetDialog::onIPFSHashChanged(QString hash)
 
     if (checkIPFSHash(hash))
         CheckFormState();
+
+    buildUpdatedData();
+}
+
+void ReissueAssetDialog::onANSDataChanged(QString data)
+{
+    CheckFormState();
+    buildUpdatedData();
+}
+
+void ReissueAssetDialog::onANSTypeChanged(int index)
+{
+    CAvianNameSystemID::Type type = static_cast<CAvianNameSystemID::Type>(index);
+    ui->ansText->setPlaceholderText(QString::fromStdString(CAvianNameSystemID::enum_to_string(type).second));
+    ui->ansText->clear();
 
     buildUpdatedData();
 }
@@ -814,6 +924,7 @@ void ReissueAssetDialog::onReissueAssetClicked()
     CAmount quantity = ui->quantitySpinBox->value() * COIN;
     bool reissuable = ui->reissuableBox->isChecked();
     bool hasIPFS = ui->ipfsBox->isChecked() && !ui->ipfsText->text().isEmpty();
+    bool hasANS = ui->ansBox->isChecked() && !ui->ansText->text().isEmpty();
 
     int unit = ui->unitSpinBox->value();
     if (unit == asset->units)
@@ -827,10 +938,25 @@ void ReissueAssetDialog::onReissueAssetClicked()
     updateCoinControlState(ctrl);
 
     std::string ipfsDecoded = "";
-    if (hasIPFS)
+    if (hasIPFS) {
         ipfsDecoded = DecodeAssetData(ui->ipfsText->text().toStdString());
+    }
 
-    CReissueAsset reissueAsset(name.toStdString(), quantity, unit, reissuable ? 1 : 0, ipfsDecoded);
+    std::string ansDecoded = "";
+    if (hasANS) {
+        std::string error; // TODO: We already do type checking, should we check again here?
+        std::string formattedTypeData;
+        CAvianNameSystemID::Type type = static_cast<CAvianNameSystemID::Type>(ui->ansType->currentIndex());
+        formattedTypeData = CAvianNameSystemID::FormatTypeData(type, ui->ansText->text().toStdString(), error);
+
+        CAvianNameSystemID ansID(type, formattedTypeData);
+        ansDecoded = ansID.to_string();
+
+        // Warn user
+        QMessageBox::critical(this, "ANS Warning", tr("Storing data using the Avian Name System will forever stay in the blockchain. You can edit the ANS ID only if the asset is reissueable.") + QString("\n\nANS ID: ") + QString::fromStdString(ansDecoded), QMessageBox::Ok, QMessageBox::Ok);
+    }
+
+    CReissueAsset reissueAsset(name.toStdString(), quantity, unit, reissuable ? 1 : 0, ipfsDecoded, ansDecoded);
 
     CWalletTx tx;
     CReserveKey reservekey(model->getWallet());

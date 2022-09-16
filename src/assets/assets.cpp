@@ -1,4 +1,5 @@
 // Copyright (c) 2017-2020 The Raven Core developers
+// Copyright (c) 2022 The Avian Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -23,6 +24,7 @@
 #include "assets.h"
 #include "assetdb.h"
 #include "assettypes.h"
+#include "ans.h"
 #include "protocol.h"
 #include "wallet/coincontrol.h"
 #include "utilmoneystr.h"
@@ -447,8 +449,10 @@ CNewAsset::CNewAsset(const CNewAsset& asset)
     this->nAmount = asset.nAmount;
     this->units = asset.units;
     this->nHasIPFS = asset.nHasIPFS;
-    this->nReissuable = asset.nReissuable;
     this->strIPFSHash = asset.strIPFSHash;
+    this->nHasANS = asset.nHasANS;
+    this->strANSID = asset.strANSID;
+    this->nReissuable = asset.nReissuable;
 }
 
 CNewAsset& CNewAsset::operator=(const CNewAsset& asset)
@@ -457,8 +461,10 @@ CNewAsset& CNewAsset::operator=(const CNewAsset& asset)
     this->nAmount = asset.nAmount;
     this->units = asset.units;
     this->nHasIPFS = asset.nHasIPFS;
-    this->nReissuable = asset.nReissuable;
     this->strIPFSHash = asset.strIPFSHash;
+    this->nHasANS = asset.nHasANS;
+    this->strANSID = asset.strANSID;
+    this->nReissuable = asset.nReissuable;
     return *this;
 }
 
@@ -471,13 +477,18 @@ std::string CNewAsset::ToString()
     ss << "units : " << std::to_string(units) << "\n";
     ss << "reissuable : " << std::to_string(nReissuable) << "\n";
     ss << "has_ipfs : " << std::to_string(nHasIPFS) << "\n";
+    ss << "has_ans : " << std::to_string(nHasANS) << "\n";
 
     if (nHasIPFS)
         ss << "ipfs_hash : " << strIPFSHash;
 
+    if (nHasANS)
+        ss << "ans_id : " << strANSID;
+
     return ss.str();
 }
 
+// IPFS
 CNewAsset::CNewAsset(const std::string& strName, const CAmount& nAmount, const int& units, const int& nReissuable, const int& nHasIPFS, const std::string& strIPFSHash)
 {
     this->SetNull();
@@ -487,7 +498,24 @@ CNewAsset::CNewAsset(const std::string& strName, const CAmount& nAmount, const i
     this->nReissuable = int8_t(nReissuable);
     this->nHasIPFS = int8_t(nHasIPFS);
     this->strIPFSHash = strIPFSHash;
+    this->nHasANS = int8_t(DEFAULT_HAS_ANS);
+    this->strANSID = DEFAULT_ANS;
 }
+
+// IPFS + ANS
+CNewAsset::CNewAsset(const std::string& strName, const CAmount& nAmount, const int& units, const int& nReissuable, const int& nHasIPFS, const std::string& strIPFSHash, const int& nHasANS, const std::string& strANSID)
+{
+    this->SetNull();
+    this->strName = strName;
+    this->nAmount = nAmount;
+    this->units = int8_t(units);
+    this->nReissuable = int8_t(nReissuable);
+    this->nHasIPFS = int8_t(nHasIPFS);
+    this->strIPFSHash = strIPFSHash;
+    this->nHasANS = int8_t(nHasANS);
+    this->strANSID = strANSID;
+}
+
 CNewAsset::CNewAsset(const std::string& strName, const CAmount& nAmount)
 {
     this->SetNull();
@@ -497,6 +525,8 @@ CNewAsset::CNewAsset(const std::string& strName, const CAmount& nAmount)
     this->nReissuable = int8_t(DEFAULT_REISSUABLE);
     this->nHasIPFS = int8_t(DEFAULT_HAS_IPFS);
     this->strIPFSHash = DEFAULT_IPFS;
+    this->nHasANS = int8_t(DEFAULT_HAS_ANS);
+    this->strANSID = DEFAULT_ANS;
 }
 
 CDatabasedAssetData::CDatabasedAssetData(const CNewAsset& asset, const int& nHeight, const uint256& blockHash)
@@ -1622,11 +1652,12 @@ void CAssetTransfer::ConstructTransaction(CScript& script) const
 }
 
 CReissueAsset::CReissueAsset(const std::string &strAssetName, const CAmount &nAmount, const int &nUnits, const int &nReissuable,
-                             const std::string &strIPFSHash)
+                             const std::string &strIPFSHash, const std::string &strANSID)
 {
     SetNull();
     this->strName = strAssetName;
     this->strIPFSHash = strIPFSHash;
+    this->strANSID = strANSID;
     this->nReissuable = int8_t(nReissuable);
     this->nAmount = nAmount;
     this->nUnits = nUnits;
@@ -1923,6 +1954,7 @@ bool CAssetsCache::AddReissueAsset(const CReissueAsset& reissue, const std::stri
     if (!mapReissuedAssetData.count(reissue.strName)) {
         asset.nAmount += reissue.nAmount;
         asset.nReissuable = reissue.nReissuable;
+
         if (reissue.nUnits != -1)
             asset.units = reissue.nUnits;
 
@@ -1930,16 +1962,29 @@ bool CAssetsCache::AddReissueAsset(const CReissueAsset& reissue, const std::stri
             asset.nHasIPFS = 1;
             asset.strIPFSHash = reissue.strIPFSHash;
         }
+
+        if (reissue.strANSID != "") {
+            asset.nHasANS = 1;
+            asset.strANSID = reissue.strANSID;
+        }
+
         mapReissuedAssetData.insert(make_pair(reissue.strName, asset));
     } else {
         mapReissuedAssetData.at(reissue.strName).nAmount += reissue.nAmount;
         mapReissuedAssetData.at(reissue.strName).nReissuable = reissue.nReissuable;
+
         if (reissue.nUnits != -1) {
             mapReissuedAssetData.at(reissue.strName).units = reissue.nUnits;
         }
+
         if (reissue.strIPFSHash != "") {
             mapReissuedAssetData.at(reissue.strName).nHasIPFS = 1;
             mapReissuedAssetData.at(reissue.strName).strIPFSHash = reissue.strIPFSHash;
+        }
+
+        if (reissue.strANSID != "") {
+            mapReissuedAssetData.at(reissue.strName).nHasANS = 1;
+            mapReissuedAssetData.at(reissue.strName).strANSID = reissue.strANSID;
         }
     }
 
@@ -1964,7 +2009,7 @@ bool CAssetsCache::AddReissueAsset(const CReissueAsset& reissue, const std::stri
 }
 
 //! Changes Memory Only
-bool CAssetsCache::RemoveReissueAsset(const CReissueAsset& reissue, const std::string address, const COutPoint& out, const std::vector<std::pair<std::string, CBlockAssetUndo> >& vUndoIPFS)
+bool CAssetsCache::RemoveReissueAsset(const CReissueAsset& reissue, const std::string address, const COutPoint& out, const std::vector<std::pair<std::string, CBlockAssetUndo> >& vUndoData)
 {
     auto pair = std::make_pair(reissue.strName, address);
 
@@ -1981,14 +2026,18 @@ bool CAssetsCache::RemoveReissueAsset(const CReissueAsset& reissue, const std::s
     bool fVerifierStringChanged = false;
     std::string verifierString = "";
     // Find the ipfs hash in the undoblock data and restore the ipfs hash to its previous hash
-    for (auto undoItem : vUndoIPFS) {
+    for (auto undoItem : vUndoData) {
         if (undoItem.first == reissue.strName) {
             if (undoItem.second.fChangedIPFS)
                 assetData.strIPFSHash = undoItem.second.strIPFS;
+            if (undoItem.second.fChangedANS)
+                assetData.strANSID = undoItem.second.strANSID;
             if(undoItem.second.fChangedUnits)
                 assetData.units = undoItem.second.nUnits;
             if (assetData.strIPFSHash == "")
                 assetData.nHasIPFS = 0;
+            if (assetData.strANSID == "")
+                assetData.nHasANS = 0;
             if (undoItem.second.fChangedVerifierString) {
                 fVerifierStringChanged = true;
                 verifierString = undoItem.second.verifierString;
@@ -3795,12 +3844,19 @@ bool GetMyAssetBalance(const std::string& name, CAmount& balance, const int& con
 // 46 char base58 --> 34 char KAW compatible
 std::string DecodeAssetData(std::string encoded)
 {
-    if (encoded.size() == 46) {
+    // ANS
+    if (CAvianNameSystemID::IsValidID(encoded)) {
+        return encoded;
+    }
+
+    // IPFS
+    else if (encoded.size() == 46) {
         std::vector<unsigned char> b;
         DecodeBase58(encoded, b);
         return std::string(b.begin(), b.end());
     }
 
+    // TXID
     else if (encoded.size() == 64 && IsHex(encoded)) {
         std::vector<unsigned char> vec = ParseHex(encoded);
         return std::string(vec.begin(), vec.end());
@@ -3812,9 +3868,17 @@ std::string DecodeAssetData(std::string encoded)
 
 std::string EncodeAssetData(std::string decoded)
 {
-    if (decoded.size() == 34) {
+    // ANS
+    if (CAvianNameSystemID::IsValidID(decoded)) {
+        return decoded;
+    }
+
+    // IPFS
+    else if (decoded.size() == 34) {
         return EncodeIPFS(decoded);
     }
+
+    // TXID
     else if (decoded.size() == 32){
         return HexStr(decoded);
     }
@@ -3831,7 +3895,8 @@ std::string DecodeIPFS(std::string encoded)
 };
 
 // 34 char KAW compatible --> 46 char base58
-std::string EncodeIPFS(std::string decoded){
+std::string EncodeIPFS(std::string decoded)
+{
     std::vector<char> charData(decoded.begin(), decoded.end());
     std::vector<unsigned char> unsignedCharData;
     for (char c : charData)
@@ -4398,6 +4463,13 @@ bool CheckAmountWithUnits(const CAmount& nAmount, const int8_t nUnits)
 
 bool CheckEncoded(const std::string& hash, std::string& strError) {
     std::string encodedStr = EncodeAssetData(hash);
+
+    // ANS
+    if (IsAvianNameSystemDeployed() && CAvianNameSystemID::IsValidID(encodedStr)) {
+        return true;
+    }
+
+    // IPFS
     if (encodedStr.substr(0, 2) == "Qm" && encodedStr.size() == 46) {
         return true;
     }
@@ -4408,7 +4480,7 @@ bool CheckEncoded(const std::string& hash, std::string& strError) {
         }
     }
 
-    strError = _("Invalid parameter: ipfs_hash is not valid, or txid hash is not the right length");
+    strError = _("Invalid parameter: ipfs_hash/ans_id is not valid or txid hash is not the right length");
 
     return false;
 }
@@ -5357,6 +5429,11 @@ bool CheckNewAsset(const CNewAsset& asset, std::string& strError)
         return false;
     }
 
+    if (asset.nHasANS != 0 && asset.nHasANS != 1) {
+        strError = _("Invalid parameter: has_ans must be 0 or 1.");
+        return false;
+    }
+
     return true;
 }
 
@@ -5397,8 +5474,28 @@ bool ContextualCheckNewAsset(CAssetsCache* assetCache, const CNewAsset& asset, s
         }
     }
 
+    // ANS not allowed when they are not deployed
+    if (asset.nHasANS && !IsAvianNameSystemDeployed()) {
+        strError = _("Invalid parameter: ANS IDs not allowed when they are not deployed.");
+        return false;
+    }
+
+    // Check asset name for ANS
+    if (IsAssetNameARoot(asset.strName) && asset.nHasANS) {
+        bool shortLength = asset.strName.length() <= CAvianNameSystemID::domain.length();
+        if (shortLength || asset.strName.substr(asset.strName.length() - CAvianNameSystemID::domain.length()) != CAvianNameSystemID::domain) {
+            strError = std::string(_("Invalid parameter: asset name needs to end in '")) + CAvianNameSystemID::domain + std::string(_("' since ANS data is attached."));
+            return false;
+        }
+    }
+
     if (asset.nHasIPFS) {
         if (!CheckEncoded(asset.strIPFSHash, strError))
+            return false;
+    }
+
+    if (asset.nHasANS) {
+        if (!CheckEncoded(asset.strANSID, strError))
             return false;
     }
 
@@ -5500,6 +5597,26 @@ bool ContextualCheckReissueAsset(CAssetsCache* assetCache, const CReissueAsset& 
             return false;
     }
 
+    // ANS not allowed when they are not deployed
+    if (reissue_asset.strANSID != "" && !IsAvianNameSystemDeployed()) {
+        strError = _("Invalid parameter: ANS IDs not allowed when they are not deployed.");
+        return false;
+    }
+
+    // Check asset name for ANS
+    if (IsAssetNameARoot(reissue_asset.strName) && reissue_asset.strANSID != "") {
+        bool shortLength = reissue_asset.strName.length() <= CAvianNameSystemID::domain.length();
+        if (shortLength || reissue_asset.strName.substr(reissue_asset.strName.length() - CAvianNameSystemID::domain.length()) != CAvianNameSystemID::domain) {
+            strError = std::string(_("Invalid parameter: asset name needs to end in '")) + CAvianNameSystemID::domain + std::string(_("' since ANS data is attached."));
+            return false;
+        }
+    }
+
+    if (reissue_asset.strANSID != "") {
+        if (!CheckEncoded(reissue_asset.strANSID, strError))
+            return false;
+    }
+
     if (IsAssetNameAnRestricted(reissue_asset.strName)) {
         CNullAssetTxVerifierString new_verifier;
         bool fNotFound = false;
@@ -5583,6 +5700,26 @@ bool ContextualCheckReissueAsset(CAssetsCache* assetCache, const CReissueAsset& 
 
     if (reissue_asset.strIPFSHash != "") {
         if (!CheckEncoded(reissue_asset.strIPFSHash, strError))
+            return false;
+    }
+
+    // ANS not allowed when they are not deployed
+    if (reissue_asset.strANSID != "" && !IsAvianNameSystemDeployed()) {
+        strError = _("Invalid parameter: ANS IDs not allowed when they are not deployed.");
+        return false;
+    }
+
+    // Check asset name for ANS
+    if (IsAssetNameARoot(reissue_asset.strName) && reissue_asset.strANSID != "") {
+        bool shortLength = reissue_asset.strName.length() <= CAvianNameSystemID::domain.length();
+        if (shortLength || reissue_asset.strName.substr(reissue_asset.strName.length() - CAvianNameSystemID::domain.length()) != CAvianNameSystemID::domain) {
+            strError = std::string(_("Invalid parameter: asset name needs to end in '")) + CAvianNameSystemID::domain + std::string(_("' since ANS data is attached."));
+            return false;
+        }
+    }
+
+    if (reissue_asset.strANSID != "") {
+        if (!CheckEncoded(reissue_asset.strANSID, strError))
             return false;
     }
 
