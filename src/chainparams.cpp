@@ -193,13 +193,6 @@ public:
         vSeeds.emplace_back("dnsseed.us.avn.network", true);
         vSeeds.emplace_back("dnsseed.eu.avn.network", true);
 
-        // Backup nodes
-        vSeeds.emplace_back("159.65.178.148:7895", true);
-	    vSeeds.emplace_back("144.91.77.184:7895", true);
-        vSeeds.emplace_back("51.89.166.31:7895", true);			    
-        vSeeds.emplace_back("66.191.202.105:7895", true);
-	    vSeeds.emplace_back("71.202.82.78:7895", true);
-
         base58Prefixes[PUBKEY_ADDRESS] = std::vector<unsigned char>(1,60);
         base58Prefixes[SCRIPT_ADDRESS] = std::vector<unsigned char>(1,122);
         base58Prefixes[SECRET_KEY] =     std::vector<unsigned char>(1,128);
