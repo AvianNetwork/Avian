@@ -1632,6 +1632,9 @@ UniValue decodescript(const JSONRPCRequest& request)
             "  \"hasIPFS\": true|false,    (boolean) If this asset has an IPFS hash. (Only appears in type (new_asset if hasIPFS is true))\n"
             "  \"ipfs_hash\": \"hash\",      (string) The ipfs hash for the new asset. (Only appears in type (new_asset))\n"
             "  \"new_ipfs_hash\":\"hash\",    (string) If new ipfs hash (Only appears in type. (reissue_asset))\n"
+            "  \"hasANS\": true|false,    (boolean) If this asset has an ANS ID. (Only appears in type (new_asset if hasANS is true))\n"
+            "  \"ans_id\": \"hash\",      (string) The ANS ID for the new asset. (Only appears in type (new_asset))\n"
+            "  \"new_ans_id\":\"hash\",    (string) If new ANS ID (Only appears in type. (reissue_asset))\n"
             "}\n"
             "\nExamples:\n"
             + HelpExampleCli("decodescript", "\"hexstring\"")
@@ -1696,6 +1699,9 @@ UniValue decodescript(const JSONRPCRequest& request)
         if (reissue.strIPFSHash != "")
             r.push_back(Pair("new_ipfs_hash", EncodeAssetData(reissue.strIPFSHash)));
 
+        if (reissue.strANSID != "")
+            r.push_back(Pair("new_ans_id", EncodeAssetData(reissue.strANSID)));
+
     } else if (type.isStr() && type.get_str() == ASSET_NEW_STRING) {
         if (!AreAssetsDeployed())
             throw JSONRPCError(RPC_DESERIALIZATION_ERROR, "Assets are not active");
@@ -1715,8 +1721,14 @@ UniValue decodescript(const JSONRPCRequest& request)
             bool hasIPFS = asset.nHasIPFS ? true : false;
             r.push_back(Pair("hasIPFS", hasIPFS));
 
+            bool hasANS = asset.nHasANS ? true : false;
+            r.push_back(Pair("hasANS", hasANS));
+
             if (hasIPFS)
                 r.push_back(Pair("ipfs_hash", EncodeAssetData(asset.strIPFSHash)));
+
+            if (hasANS)
+                r.push_back(Pair("ans_id", asset.strANSID));
         }
         else if (OwnerAssetFromScript(script, ownerAsset, address))
         {
