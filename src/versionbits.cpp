@@ -11,20 +11,11 @@ const struct VBDeploymentInfo VersionBitsDeploymentInfo[Consensus::MAX_VERSION_B
     {
         /*.name =*/ "testdummy",
         /*.gbt_force =*/ true,
-    },
+    }
 //	{
 //		/*.name =*/ "segwit",
 //		/*.gbt_force =*/ true,
 //	}
-    {
-        /*.name =*/ "assets",
-        /*.gbt_force =*/ true,
-    },
-    // Crow: Deployment
-    {
-        /*.name =*/ "minotaurx",
-        /*.gbt_force =*/ true,
-    }
 };
 
 ThresholdState AbstractThresholdConditionChecker::GetStateFor(const CBlockIndex* pindexPrev, const Consensus::ConsensusParams& params, ThresholdConditionCache& cache) const

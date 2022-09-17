@@ -1,6 +1,7 @@
 // Copyright (c) 2010 Satoshi Nakamoto
 // Copyright (c) 2009-2016 The Bitcoin Core developers
 // Copyright (c) 2017-2020 The Raven Core developers
+// Copyright (c) 2022 The Avian Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -32,8 +33,9 @@ using namespace boost::placeholders;
 #include <validation.h>
 
 #include "assets/assets.h"
+#include "assets/ans.h"
 
-static bool fRPCRunning = false;
+static std::atomic<bool> g_rpc_running{false};
 static bool fRPCInWarmup = true;
 static std::string rpcWarmupStatus("RPC server started");
 static CCriticalSection cs_rpcWarmup;
@@ -393,7 +395,7 @@ bool CRPCTable::appendCommand(const std::string& name, const CRPCCommand* pcmd)
 bool StartRPC()
 {
     LogPrint(BCLog::RPC, "Starting RPC\n");
-    fRPCRunning = true;
+    g_rpc_running = true;
     g_rpcSignals.Started();
     return true;
 }
@@ -402,7 +404,7 @@ void InterruptRPC()
 {
     LogPrint(BCLog::RPC, "Interrupting RPC\n");
     // Interrupt e.g. running longpolls
-    fRPCRunning = false;
+    g_rpc_running = false;
 }
 
 void StopRPC()
@@ -415,7 +417,7 @@ void StopRPC()
 
 bool IsRPCRunning()
 {
-    return fRPCRunning;
+    return g_rpc_running;
 }
 
 void SetRPCWarmupStatus(const std::string& newStatus)
@@ -650,9 +652,21 @@ CRPCTable tableRPC;
 void CheckIPFSTxidMessage(const std::string &message, int64_t expireTime)
 {
     size_t msglen = message.length();
+
+    // Start ANS checks
+    bool fHasANS = (msglen >= CAvianNameSystemID::prefix.size() + 1) && (message.substr(0, CAvianNameSystemID::prefix.length()) == CAvianNameSystemID::prefix) && (msglen <= 64);
+    if (fHasANS && !IsAvianNameSystemDeployed()) {
+        throw JSONRPCError(RPC_INVALID_PARAMS, std::string("ANS IDs not allowed when they are not deployed."));
+    }
+
+    if (fHasANS && !CAvianNameSystemID::IsValidID(message)) {
+        throw JSONRPCError(RPC_INVALID_PARAMS, std::string("Invalid ANS ID"));
+    }
+    // End ANS checks
+
     if (msglen == 46 || msglen == 64) {
         if (msglen == 64 && !AreMessagesDeployed()) {
-            throw JSONRPCError(RPC_INVALID_PARAMS, std::string("Invalid txid hash, only ipfs hashes available until RIP5 is activated"));
+            throw JSONRPCError(RPC_INVALID_PARAMS, std::string("Invalid txid hash, only ipfs hashes available until messaging is activated"));
         }
     } else {
         if (msglen)

@@ -138,7 +138,7 @@ AVIAN_CORE_H = \
   algo/crow/hashx13.h \
   algo/crow/hashx15.h \
   algo/crow/hashx17.h \
-  algo/crow/crow.h \
+  algo/crow/minotaurx.h \
   algo/crow/yespower/yespower.c \
   algo/crow/yespower/crypto/sha256.c \
   spentindex.h \
@@ -153,6 +153,7 @@ AVIAN_CORE_H = \
   assets/snapshotrequestdb.h \
   assets/assetsnapshotdb.h \
   assets/rewards.h \
+  assets/ans.h \
   base58.h \
   bloom.h \
   blockencodings.h \
@@ -251,12 +252,10 @@ AVIAN_CORE_H = \
   zmq/zmqconfig.h\
   zmq/zmqnotificationinterface.h \
   zmq/zmqpublishnotifier.h \
-  flightplans/weblib.h \
   flightplans/avianlib.h \
   flightplans/flightplans.h \
   flightplans/json/strbuf.h \
   flightplans/json/fpconv.h \
-  flightplans/keccak.h \
   lua/lapi.h \
   lua/lauxlib.h \
   lua/lbaselib.h \
@@ -326,6 +325,7 @@ libavian_server_a_SOURCES = \
   assets/snapshotrequestdb.cpp \
   assets/assetsnapshotdb.cpp \
   assets/rewards.cpp \
+  assets/ans.cpp \
   policy/fees.cpp \
   policy/policy.cpp \
   policy/rbf.cpp \
@@ -353,13 +353,11 @@ libavian_server_a_SOURCES = \
   validation.cpp \
   validationinterface.cpp \
   versionbits.cpp \
-  flightplans/weblib.cpp \  
   flightplans/avianlib.cpp \  
   flightplans/flightplans.cpp \
   flightplans/json/strbuf.c \
   flightplans/json/fpconv.c \
   flightplans/json/lua_cjson.c \
-  flightplans/keccak.cpp \
   lua/lapi.c \
   lua/lauxlib.c \
   lua/lbaselib.c \

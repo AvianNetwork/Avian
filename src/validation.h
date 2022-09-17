@@ -199,6 +199,7 @@ extern CConditionVariable cvBlockChange;
 extern std::atomic_bool fImporting;
 extern std::atomic_bool fReindex;
 extern bool fMessaging;
+extern bool fRestricted;
 extern int nScriptCheckThreads;
 extern bool fTxIndex;
 extern bool fAssetIndex;
@@ -344,13 +345,9 @@ void PruneAndFlush();
 /** Prune block files up to a given height */
 void PruneBlockFilesManual(int nManualPruneHeight);
 
-/** Check is UAHF has activated. */
-bool IsUAHFenabled(const CBlockIndex *pindexPrev);
-bool IsUAHFenabledForCurrentBlock();
-
-/** Check is UAHF FOR Assets has activated. */
-bool IsUAHFForAssetsenabled(const CBlockIndex *pindexPrev);
-bool IsUAHFForAssetsenabledForCurrentBlock();
+/** Check is FORKID UAHF has activated. */
+bool IsForkIDUAHFenabled(const CBlockIndex *pindexPrev);
+bool IsForkIDUAHFenabledForCurrentBlock();
 
 /** (try to) add transaction to memory pool
  * plTxnReplaced will be appended to with all transactions replaced from mempool **/
@@ -612,18 +609,13 @@ bool AreEnforcedValuesDeployed();
 
 bool AreCoinbaseCheckAssetsDeployed();
 
+bool IsAvianNameSystemDeployed();
+
 // Only used by test framework
 void SetEnforcedValues(bool value);
 void SetEnforcedCoinbase(bool value);
 
-bool IsRip5Active();
-
-
-bool AreTransferScriptsSizeDeployed();
-
 bool IsDGWActive(unsigned int nBlockNumber);
-bool IsMessagingActive(unsigned int nBlockNumber);
-bool IsRestrictedActive(unsigned int nBlockNumber);
 
 CAssetsCache* GetCurrentAssetCache();
 /** AVN END */

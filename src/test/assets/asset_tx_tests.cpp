@@ -489,7 +489,7 @@ BOOST_FIXTURE_TEST_SUITE(asset_tx_tests, BasicTestingSetup)
         SelectParams(CBaseChainParams::MAIN);
 
         // Create the reissue asset
-        CReissueAsset reissueAsset("ENFORCE_VALUE", 100, 8, true, "");
+        CReissueAsset reissueAsset("ENFORCE_VALUE", 100, 8, true, "", "");
         CScript scriptPubKey = GetScriptForDestination(DecodeDestination(Params().GlobalBurnAddress()));
         reissueAsset.ConstructTransaction(scriptPubKey);
 

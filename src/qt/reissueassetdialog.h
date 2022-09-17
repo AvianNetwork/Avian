@@ -62,6 +62,7 @@ private:
     CNewAsset *asset;
 
     void toggleIPFSText();
+    void toggleANSText();
     void setUpValues();
     void showMessage(QString string);
     void showValidMessage(QString string);
@@ -98,13 +99,17 @@ private Q_SLOTS:
     void onAssetSelected(int index);
     void onQuantityChanged(double qty);
     void onIPFSStateChanged();
+    void onANSStateChanged();
     void onIPFSHashChanged(QString hash);
+    void onANSDataChanged(QString data);
+    void onANSTypeChanged(int index);
     void onAddressNameChanged(QString address);
     void onReissueAssetClicked();
     void onReissueBoxChanged();
     void onUnitChanged(int value);
     void onClearButtonClicked();
     void onVerifierStringChanged(QString verifier);
+    void openIpfsBrowser();
 
     //CoinControl
     void coinControlFeatureChanged(bool);

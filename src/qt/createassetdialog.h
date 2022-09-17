@@ -68,6 +68,7 @@ private:
     bool checkedAvailablity = false;
 
     void toggleIPFSText();
+    void toggleANSText();
     void setUpValues();
     void showMessage(QString string);
     void showValidMessage(QString string);
@@ -86,23 +87,28 @@ private:
     void setQualifierSelected();
     void clearSelected();
 
-    //CoinControl
+    // CoinControl
     // Update the passed in CCoinControl with state from the GUI
     void updateCoinControlState(CCoinControl& ctrl);
 
-    //Fee
+    // Fee
     void updateFeeMinimizedLabel();
     void minimizeFeeSection(bool fMinimize);
 
-    //Validation
+    // Validation
+    // Returns true if this is an IPFS-hash or TXID.
     bool checkIPFSHash(QString hash);
 
 private Q_SLOTS:
     void ipfsStateChanged();
+    void ansStateChanged();
     void checkAvailabilityClicked();
+    void openIpfsBrowser();
     void onNameChanged(QString name);
     void onAddressNameChanged(QString address);
     void onIPFSHashChanged(QString hash);
+    void onANSTypeChanged(int index);
+    void onANSDataChanged(QString data);
     void onCreateAssetClicked();
     void onUnitChanged(int value);
     void onChangeAddressChanged(QString changeAddress);

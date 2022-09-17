@@ -113,7 +113,6 @@ QT_FORMS_UI = \
   qt/forms/debugwindow.ui \
   qt/forms/addpeerdialog.ui \
   qt/forms/testpeerdialog.ui \
-  qt/forms/poolpicker.ui \
   qt/forms/wrapping.ui \
   qt/forms/sendcoinsdialog.ui \
   qt/forms/sendcoinsentry.ui \
@@ -169,7 +168,6 @@ QT_MOC_CPP = \
   qt/moc_receiverequestdialog.cpp \
   qt/moc_recentrequeststablemodel.cpp \
   qt/moc_rpcconsole.cpp \
-  qt/moc_poolpicker.cpp \
   qt/moc_wrapping.cpp \
   qt/moc_sendcoinsdialog.cpp \
   qt/moc_sendcoinsentry.cpp \
@@ -269,7 +267,6 @@ AVIAN_QT_H = \
   qt/restrictedassignqualifier.h \
   qt/restrictedfreezeaddress.h \
   qt/rpcconsole.h \
-  qt/poolpicker.h \
   qt/sendassetsentry.h \
   qt/sendcoinsdialog.h \
   qt/sendcoinsentry.h \
@@ -447,7 +444,6 @@ AVIAN_QT_BASE_CPP = \
   qt/qvalidatedlineedit.cpp \
   qt/qvaluecombobox.cpp \
   qt/rpcconsole.cpp \
-  qt/poolpicker.cpp \
   qt/splashscreen.cpp \
   qt/trafficgraphwidget.cpp \
   qt/utilitydialog.cpp

@@ -135,8 +135,6 @@ public:
     }
 
     unsigned int DGWActivationBlock() const { return nDGWActivationBlock; }
-    unsigned int MessagingActivationBlock() const { return nMessagingActivationBlock; }
-    unsigned int RestrictedActivationBlock() const { return nRestrictedActivationBlock; }
 
     int MaxReorganizationDepth() const { return nMaxReorganizationDepth; }
     int MinReorganizationPeers() const { return nMinReorganizationPeers; }
@@ -192,8 +190,6 @@ protected:
     std::string strGlobalBurnAddress;
 
     unsigned int nDGWActivationBlock;
-    unsigned int nMessagingActivationBlock;
-    unsigned int nRestrictedActivationBlock;
     uint32_t nX16RV2ActivationTime;
 
     int nMaxReorganizationDepth;

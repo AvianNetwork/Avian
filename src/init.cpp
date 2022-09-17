@@ -624,7 +624,8 @@ std::string HelpMessage(HelpMessageMode mode)
     }
     // Crow: Allow switching of default pow algo via conf / command line, for miners that can't easily adjust their getblocktemplate calls
     strUsage += HelpMessageOpt("-powalgo=x16rt|minotaurx", strprintf(_("Default pow mining algorithm. Miners who can't easily adjust their getblocktemplate calls should use this argument to set their preferred mining algorithm. (default: %s)"), DEFAULT_POW_TYPE));
-
+    // Flightplan: Show how to enable flightplans
+    strUsage += HelpMessageOpt("-flightplans", strprintf(_("Enable Avian Flightplans for use via JSON-RPC")));
     return strUsage;
 }
 
@@ -1613,12 +1614,11 @@ bool AppInitMain(boost::thread_group& threadGroup, CScheduler& scheduler)
                               passetsCache->Size());
 
                     // Check for changed -disablemessaging state
-                    // TODO: Change to !AreMessagesDeployed()
-                    if (!bNetwork.fOnTestnet || gArgs.GetArg("-disablemessaging", false)) {
+                    if (gArgs.GetBoolArg("-disablemessaging", false)) {
                         LogPrintf("Messaging is disabled\n");
                         fMessaging = false;
                     } else {
-                        fMessaging = true;
+                        // TODO: This can be misleading.
                         LogPrintf("Messaging is enabled\n");
                     }
                 }

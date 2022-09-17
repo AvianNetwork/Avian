@@ -1,6 +1,7 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
 // Copyright (c) 2009-2016 The Bitcoin Core developers
 // Copyright (c) 2017-2020 The Raven Core developers
+// Copyright (c) 2022 The Avian Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -94,6 +95,7 @@ int nScriptCheckThreads = 0;
 std::atomic_bool fImporting(false);
 std::atomic_bool fReindex(false);
 bool fMessaging = false;
+bool fRestricted = false;
 bool fTxIndex = false;
 bool fAssetIndex = false;
 bool fAddressIndex = false;
@@ -426,45 +428,22 @@ static bool IsCurrentForFeeEstimation()
     return true;
 }
 
-//static bool IsUAHFenabled(const Config &config, int64_t nMedianTimePast) {
-static bool IsUAHFenabled(int64_t nMedianTimePast) {
-    return nMedianTimePast >= DEFAULT_UAHF_START_TIME ;
+/** FORKID UAHF (from RVC) */
+static bool IsForkIDUAHFenabled(int64_t nMedianTimePast) {
+    return nMedianTimePast >= DEFAULT_FORKID_UAHF_START_TIME;
 }
 
-//bool IsUAHFenabled(const Config &config, const CBlockIndex *pindexPrev) {
-bool IsUAHFenabled(const CBlockIndex *pindexPrev) {
+bool IsForkIDUAHFenabled(const CBlockIndex *pindexPrev) {
     if (pindexPrev == nullptr) {
         return false;
     }
 
-    return IsUAHFenabled(pindexPrev->GetMedianTimePast());
+    return IsForkIDUAHFenabled(pindexPrev->GetMedianTimePast());
 }
 
-//bool IsUAHFenabledForCurrentBlock(const Config &config) {
-bool IsUAHFenabledForCurrentBlock() {
+bool IsForkIDUAHFenabledForCurrentBlock() {
     AssertLockHeld(cs_main);
-    return IsUAHFenabled(chainActive.Tip());
-}
-
-
-//static bool IsUAHFForAssetsenabled(const Config &config, int64_t nMedianTimePast) {
-static bool IsUAHFForAssetsenabled(int64_t nMedianTimePast) {
-    return nMedianTimePast >= DEFAULT_UAHF_FOR_ASSETS_START_TIME ;
-}
-
-//bool IsUAHFenabled(const Config &config, const CBlockIndex *pindexPrev) {
-bool IsUAHFForAssetsenabled(const CBlockIndex *pindexPrev) {
-    if (pindexPrev == nullptr) {
-        return false;
-    }
-
-    return IsUAHFForAssetsenabled(pindexPrev->GetMedianTimePast());
-}
-
-//bool IsUAHFenabledForCurrentBlock(const Config &config) {
-bool IsUAHFForAssetsenabledForCurrentBlock() {
-    AssertLockHeld(cs_main);
-    return IsUAHFForAssetsenabled(chainActive.Tip());
+    return IsForkIDUAHFenabled(chainActive.Tip());
 }
 
 /* Make mempool consistent after a reorg, by re-adding or recursively erasing
@@ -927,7 +906,7 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
             scriptVerifyFlags = gArgs.GetArg("-promiscuousmempoolflags", scriptVerifyFlags);
         }
 
-        const bool hasUAHF = IsUAHFenabledForCurrentBlock();
+        const bool hasUAHF = IsForkIDUAHFenabledForCurrentBlock();
         if (hasUAHF) {
             scriptVerifyFlags |= SCRIPT_ENABLE_SIGHASH_FORKID;
         }
@@ -2558,7 +2537,7 @@ static bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockInd
 
     // Get the script flags for this block
     unsigned int flags = GetBlockScriptFlags(pindex, chainparams.GetConsensus());
-    const bool hasUAHF = IsUAHFenabledForCurrentBlock();
+    const bool hasUAHF = IsForkIDUAHFenabledForCurrentBlock();
     if (hasUAHF) {
         flags |= SCRIPT_VERIFY_STRICTENC;
         flags |= SCRIPT_ENABLE_SIGHASH_FORKID;
@@ -2936,7 +2915,7 @@ static bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockInd
 
     // If this block activates UAHF, we clear the mempool. This ensure that
     // we'll only get replay protected transaction in the mempool going forward.
-    if (!hasUAHF && IsUAHFenabled(pindex)) {
+    if (!hasUAHF && IsForkIDUAHFenabled(pindex)) {
         mempool.clear();
     }
 
@@ -3161,7 +3140,7 @@ void static UpdateTip(CBlockIndex *pindexNew, const CChainParams& chainParams) {
             ThresholdState state = checker.GetStateFor(pindex, chainParams.GetConsensus(), warningcache[bit]);
             if (state == THRESHOLD_ACTIVE || state == THRESHOLD_LOCKED_IN) {
                 const std::string strWarning = strprintf(_("Warning: unknown new rules activated (versionbit %i)"), bit);
-                if (bit == 28 || bit == 25) // DUMMY TEST BIT
+                if (bit == 28 || bit == 25 || bit == 6 || bit == 7) // DUMMY TEST BIT
                     continue;
                 if (state == THRESHOLD_ACTIVE) {
                     DoWarning(strWarning);
@@ -3183,12 +3162,6 @@ void static UpdateTip(CBlockIndex *pindexNew, const CChainParams& chainParams) {
         }
         if (nUpgraded > 0)
             warningMessages.push_back(strprintf(_("%d of last 100 blocks have unexpected version"), nUpgraded));
-        if (nUpgraded > 100/2)
-        {
-            std::string strWarning = _("Warning: Unknown block versions being mined! It's possible unknown rules are in effect");
-            // notify GetWarnings(), called by Qt and the JSON-RPC code to warn the user:
-            DoWarning(strWarning);
-        }
     }
     LogPrintf("%s: new best=%s height=%d version=0x%08x log2_work=%.8g tx=%lu date='%s' progress=%f cache=%.1fMiB(%utxo)", __func__,
       chainActive.Tip()->GetBlockHash().ToString(), chainActive.Height(), chainActive.Tip()->nVersion,
@@ -4036,7 +4009,7 @@ bool CheckBlock(const CBlock& block, CValidationState& state, const Consensus::C
         return true;
 
     // Check that the header is valid (particularly PoW).  This is mostly
-    // redundant with the call in AcceptBlockHeader.
+    // redundant with the call in AcceptBlockHeader, but when IBD mode, it's SKIPPED.
     if (!CheckBlockHeader(block, state, consensusParams, fCheckPOW))
         return false;
 
@@ -4230,6 +4203,10 @@ static bool ContextualCheckBlockHeader(const CBlockHeader& block, CValidationSta
             return state.Invalid(false, REJECT_INVALID, "time-too-new", "block timestamp too far in the future");
     }
 
+    // Reject outdated veresion blocks onces assets are active.
+    if (AreAssetsDeployed() && block.nVersion < VERSIONBITS_TOP_BITS_ASSETS)
+        return state.Invalid(false, REJECT_OBSOLETE, strprintf("bad-version(0x%08x)", block.nVersion), strprintf("rejected nVersion=0x%08x block", block.nVersion));
+
     // Reject outdated version blocks when 95% (75% on testnet) of the network has upgraded:
     // check for version 2, 3 and 4 upgrades
     // if((block.nVersion < 2 && nHeight >= consensusParams.BIP34Height) ||
@@ -4238,17 +4215,12 @@ static bool ContextualCheckBlockHeader(const CBlockHeader& block, CValidationSta
     //         return state.Invalid(false, REJECT_OBSOLETE, strprintf("bad-version(0x%08x)", block.nVersion),
     //                              strprintf("rejected nVersion=0x%08x block", block.nVersion));
 
-    // Reject outdated veresion blocks onces assets are active.
-    if (AreAssetsDeployed() && block.nVersion < VERSIONBITS_TOP_BITS_ASSETS)
-        return state.Invalid(false, REJECT_OBSOLETE, strprintf("bad-version(0x%08x)", block.nVersion), strprintf("rejected nVersion=0x%08x block", block.nVersion));
-
     // Crow: Handle nVersion differently after activation
-    if (!IsCrowEnabled(pindexPrev,consensusParams)) {
-        // nothing to do
-    } else {
-        // Top 8 bits must be zero
-        if (block.nVersion & 0xFF000000 != 536870912)
-            return state.Invalid(false, REJECT_OBSOLETE, strprintf("old-versionbits(0x%08x)", block.nVersion), strprintf("rejected nVersion=0x%08x block (old versionbits)", block.nVersion));
+    if (IsCrowEnabled(pindexPrev,consensusParams)) {
+        // TODO: Fix version bit checking 
+        // // Top 8 bits must be zero
+        // if (block.nVersion & 0xFF000000)
+        //     return state.Invalid(false, REJECT_OBSOLETE, strprintf("old-versionbits(0x%08x)", block.nVersion), strprintf("rejected nVersion=0x%08x block (old versionbits)", block.nVersion));
 
         // Blocktype must be valid
         uint8_t blockType = (block.nVersion >> 16) & 0xFF;
@@ -4377,7 +4349,8 @@ static bool AcceptBlockHeader(const CBlockHeader& block, CValidationState& state
             return true;
         }
 
-        if (!CheckBlockHeader(block, state, chainparams.GetConsensus()))
+        // IBD: Do not check PoW when downloading headers for performance reason
+        if (!IsInitialBlockDownload() && !CheckBlockHeader(block, state, chainparams.GetConsensus()))
             return error("%s: Consensus::CheckBlockHeader: %s, %s", __func__, hash.ToString(), FormatStateMessage(state));
 
         // Get prev block index
@@ -5863,12 +5836,8 @@ bool AreEnforcedValuesDeployed()
     if (fEnforcedValuesIsActive)
         return true;
 
-    // TODO: Fix
-    // const ThresholdState thresholdState = VersionBitsTipState(Params().GetConsensus(), Consensus::DEPLOYMENT_ENFORCE_VALUE);
-    // if (thresholdState == THRESHOLD_ACTIVE || thresholdState == THRESHOLD_LOCKED_IN)
-    //     fEnforcedValuesIsActive = true;
-
-    return false;
+    // AVN: Always return true for enforced values.
+    return true;
 }
 
 bool AreCoinbaseCheckAssetsDeployed()
@@ -5876,12 +5845,8 @@ bool AreCoinbaseCheckAssetsDeployed()
     if (fCheckCoinbaseAssetsIsActive)
         return true;
 
-    // TODO: Fix
-    // const ThresholdState thresholdState = VersionBitsTipState(Params().GetConsensus(), Consensus::DEPLOYMENT_COINBASE_ASSETS);
-    // if (thresholdState == THRESHOLD_ACTIVE)
-    //     fCheckCoinbaseAssetsIsActive = true;
-
-    return false;
+    // AVN: Always return true for coinbase asset checks.
+    return true;
 }
 
 bool AreAssetsDeployed()
@@ -5910,60 +5875,39 @@ bool AreFlightPlansDeployed()
     return fFlightPlansIsActive;
 }
 
-bool IsRip5Active()
-{
-    if (fRip5IsActive)
-        return true;
-
-    // TODO: Fix
-    // const ThresholdState thresholdState = VersionBitsTipState(Params().GetConsensus(), Consensus::DEPLOYMENT_MSG_REST_ASSETS);
-    // if (thresholdState == THRESHOLD_ACTIVE)
-    //     fRip5IsActive = true;
-
-    return false;
-}
-
 bool AreMessagesDeployed() {
-    return IsRip5Active();
-}
-
-bool AreTransferScriptsSizeDeployed() {
-
-    if (fTransferScriptIsActive)
+    if (fMessaging)
         return true;
 
-    // TODO: Fix
-    // const ThresholdState thresholdState = VersionBitsTipState(Params().GetConsensus(), Consensus::DEPLOYMENT_TRANSFER_SCRIPT_SIZE);
-    // if (thresholdState == THRESHOLD_ACTIVE)
-    //     fTransferScriptIsActive = true;
+    if ((chainActive.Tip() != nullptr) && chainActive.Tip()->nTime > Params().GetConsensus().nMessagingActivationTime)
+        fMessaging = true;
 
-    return false;
+    return fMessaging;
 }
 
 bool AreRestrictedAssetsDeployed() {
+    if (fRestricted)
+        return true;
 
-    return IsRip5Active();
+    if ((chainActive.Tip() != nullptr) && chainActive.Tip()->nTime > Params().GetConsensus().nRestrictedActivationTime)
+        fRestricted = true;
+
+    return fRestricted;
+}
+
+bool IsAvianNameSystemDeployed()
+{
+    if (fAvianNameSystemIsActive)
+        return true;
+
+    if ((chainActive.Tip() != nullptr) && chainActive.Tip()->nTime > Params().GetConsensus().nAvianNameSystemTime)
+        fAvianNameSystemIsActive = true;
+
+    return fAvianNameSystemIsActive;
 }
 
 bool IsDGWActive(unsigned int nBlockNumber) {
     return nBlockNumber >= Params().DGWActivationBlock();
-}
-
-bool IsMessagingActive(unsigned int nBlockNumber) {
-    if (Params().MessagingActivationBlock()) {
-        return nBlockNumber > Params().MessagingActivationBlock();
-    } else {
-        return AreMessagesDeployed();
-    }
-}
-
-bool IsRestrictedActive(unsigned int nBlockNumber)
-{
-    if (Params().RestrictedActivationBlock()) {
-        return nBlockNumber > Params().RestrictedActivationBlock();
-    } else {
-        return AreRestrictedAssetsDeployed();
-    }
 }
 
 CAssetsCache* GetCurrentAssetCache()
