@@ -191,6 +191,7 @@ public:
 
         // Main seeders
         vSeeds.emplace_back("dnsseed.us.avn.network", true);
+        vSeeds.emplace_back("dnsseed.ap.avn.network", true);
         vSeeds.emplace_back("dnsseed.eu.avn.network", true);
 
         // Backup nodes
