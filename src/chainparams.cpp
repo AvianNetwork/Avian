@@ -194,6 +194,7 @@ public:
 
         // Main seeders
         vSeeds.emplace_back("dnsseed.us.avn.network", true);
+        vSeeds.emplace_back("dnsseed.ap.avn.network", true);
         vSeeds.emplace_back("dnsseed.eu.avn.network", true);
 
         base58Prefixes[PUBKEY_ADDRESS] = std::vector<unsigned char>(1,60);
