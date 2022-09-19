@@ -161,9 +161,9 @@ public:
         consensus.nAvianNameSystemTime = 999999999999ULL; // TODO
 
         // The best chain should have at least this much work.
-        consensus.nMinimumChainWork = uint256S("0x0000000000000000000000000000000000000000000000002518d7bd53a1feec"); //Block 818787
+        consensus.nMinimumChainWork = uint256S("0x00000000000000000000000000000000000000000000000029178e309cb56715"); // Block 1072359
         // By default assume that the signatures in ancestors of this block are valid.
-        consensus.defaultAssumeValid = uint256S("0x0000000247de51f4188fc43316cc5e1f8711cff6210b242d234004aae39163d5"); // Block 818787
+        consensus.defaultAssumeValid = uint256S("0x00000000005ab90c287e481b1f2911228d26723ac07bcadd65031158ad733316"); // Block 1072359
 
         // The best chain should have at least this much work.
 
@@ -221,17 +221,18 @@ public:
                 { 818787, uint256S("0x0000000247de51f4188fc43316cc5e1f8711cff6210b242d234004aae39163d5")},
                 { 939610, uint256S("0x00000003cb151bde7f7c91b0dd145fbd8a0d6267873980662819fcddc3c74e24")},
                 { 940202, uint256S("0x00000000ed69247f7ef177a14e44de41d9c1ba689cb930946ff773ebfe23f64c")},
-                { 952399, uint256S("0x0000000000a11f354eacb65fee963df9818ee8884d8dd926da33921691ec9969")}                
+                { 952399, uint256S("0x0000000000a11f354eacb65fee963df9818ee8884d8dd926da33921691ec9969")},
+                { 1072359, uint256S("0x00000000005ab90c287e481b1f2911228d26723ac07bcadd65031158ad733316")}
             }
         };
 
         chainTxData = ChainTxData{
             // Update as we know more about the contents of the Avian chain
-            // Stats as of 00000001ce6a1f7137c09b2279fdadc7c23249cef47f666e9df4f6c16187598d block 770056
-            1654373937, // * UNIX timestamp of last known number of transactions
-            1057391,     // * total number of transactions between genesis and that timestamp
+            // Stats as of 00000001ce6a1f7137c09b2279fdadc7c23249cef47f666e9df4f6c16187598d block 1072359
+            1663533875, // * UNIX timestamp of last known number of transactions
+            1451962,    // * total number of transactions between genesis and that timestamp
                         //   (the tx=... number in the SetBestChain debug.log lines)
-            0.022        // * estimated number of transactions per second after that timestamp
+            0.04        // * estimated number of transactions per second after that timestamp
         };
 
         /** AVN Start **/
