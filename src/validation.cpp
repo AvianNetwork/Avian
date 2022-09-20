@@ -1310,6 +1310,17 @@ static bool WriteBlockToDisk(const CBlock& block, CDiskBlockPos& pos, const CMes
     return true;
 }
 
+bool CheckPoW(const CBlock& block, const Consensus::ConsensusParams& consensusParams)
+{
+    if (!CheckProofOfWork(block.GetBlockHeader(), consensusParams)) {
+        LogPrintf("CheckPoW: CheckProofOfWork failed for %s (SHA256), retesting without POW cache\n", block.GetSHA256Hash().ToString());
+
+        // Retest without POW cache in case cache was corrupted:
+        return CheckProofOfWork(block.GetBlockHeader(), consensusParams, false);
+    }
+    return true;
+}
+
 bool ReadBlockFromDisk(CBlock& block, const CDiskBlockPos& pos, const Consensus::ConsensusParams& consensusParams)
 {
     block.SetNull();
@@ -1328,7 +1339,7 @@ bool ReadBlockFromDisk(CBlock& block, const CDiskBlockPos& pos, const Consensus:
     }
 
     // Check the header
-    if (!CheckProofOfWork(block.GetBlockHeader(), consensusParams))
+    if (!CheckPoW(block, consensusParams))
         return error("ReadBlockFromDisk: Errors in block header at %s", pos.ToString());
 
     return true;
@@ -3996,8 +4007,10 @@ static bool FindUndoPos(CValidationState &state, int nFile, CDiskBlockPos &pos, 
 static bool CheckBlockHeader(const CBlockHeader& block, CValidationState& state, const Consensus::ConsensusParams& consensusParams, bool fCheckPOW = true)
 {
     // Check proof of work matches claimed amount
-    if (fCheckPOW && !CheckProofOfWork(block, consensusParams))
+    if (fCheckPOW && !CheckPoW(block, consensusParams)) {
         return state.DoS(50, false, REJECT_INVALID, "high-hash", false, "proof of work failed");
+    }
+
     return true;
 }
 

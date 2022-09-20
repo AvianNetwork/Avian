@@ -488,10 +488,14 @@ bool CheckProofOfWork(uint256 hash, unsigned int nBits, const Consensus::Consens
     return true;
 }
 
-bool CheckProofOfWork(const CBlockHeader& blockheader, const Consensus::ConsensusParams& params)
+bool CheckProofOfWork(const CBlockHeader& blockheader, const Consensus::ConsensusParams& params, bool cache)
 {
-	if (blockheader.GetBlockTime() > params.diffRetargetTake2)
-		return CheckProofOfWorkCrow(blockheader.GetHash(), blockheader.nBits, params, blockheader.GetPoWType());
-	else
-		return CheckProofOfWork(blockheader.GetHash(), blockheader.nBits, params);
+	if (blockheader.GetBlockTime() > params.diffRetargetTake2) {
+		if(cache) return CheckProofOfWorkCrow(blockheader.GetHash(), blockheader.nBits, params, blockheader.GetPoWType());
+		else if(!cache) return CheckProofOfWorkCrow(blockheader.GetHash(false), blockheader.nBits, params, blockheader.GetPoWType());
+    }
+	else {
+        if (cache) return CheckProofOfWork(blockheader.GetHash(), blockheader.nBits, params);
+        else if(!cache) return CheckProofOfWork(blockheader.GetHash(false), blockheader.nBits, params);
+    }
 }
