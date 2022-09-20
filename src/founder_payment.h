@@ -1,5 +1,5 @@
-#ifndef AVN_FOUNDER_PAYMENT_H_
-#define AVN_FOUNDER_PAYMENT_H_
+#ifndef AVN_FOUNDER_PAYMENT_H
+#define AVN_FOUNDER_PAYMENT_H
 
 #include "amount.h"
 #include "primitives/transaction.h"
@@ -38,4 +38,4 @@ private:
 };
 
 
-#endif /* AVN_FOUNDER_PAYMENT_H_ */
+#endif /* AVN_FOUNDER_PAYMENT_H */

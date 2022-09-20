@@ -24,31 +24,25 @@ void FounderPayment::FillFounderPayment(CMutableTransaction& txNew, int nBlockHe
 {
     // Make sure it's not filled yet
     CAmount founderPayment = getFounderPaymentAmount(nBlockHeight, blockReward);
-    // if(founderPayment == 0) {
-    //     LogPrintf("FounderPayment::FillFounderPayment -- Founder payment has not started\n");
-    //     return;
-    // }
     txoutFounderRet = CTxOut();
     CScript payee;
-    // Fill payee with the foundFounderRewardStrcutureFounderRewardStrcutureer address
+
+    // Fill payee with the founder address
     CAvianAddress cbAddress(founderAddress);
     payee = GetScriptForDestination(cbAddress.Get());
-    // GET FOUNDER PAYMENT VARIABLES SETUP
 
-    // split reward between miner ...
+    // Split reward between miner
     txNew.vout[0].nValue -= founderPayment;
     txoutFounderRet = CTxOut(founderPayment, payee);
     txNew.vout.push_back(txoutFounderRet);
-    LogPrintf("FounderPayment::FillFounderPayment -- Founder payment %lld to %s\n", founderPayment, founderAddress.c_str());
 }
 
 bool FounderPayment::IsBlockPayeeValid(const CTransaction& txNew, const int height, const CAmount blockReward)
 {
     CScript payee;
-    // fill payee with the founder address
+    // Fill payee with the founder address
     payee = GetScriptForDestination(CAvianAddress(founderAddress).Get());
     const CAmount founderReward = getFounderPaymentAmount(height, blockReward);
-    // std::cout << "founderReward = " << founderReward << endl;
     BOOST_FOREACH (const CTxOut& out, txNew.vout) {
         if (out.scriptPubKey == payee && out.nValue >= founderReward) {
             return true;
