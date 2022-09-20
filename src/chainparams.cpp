@@ -150,9 +150,9 @@ public:
         consensus.nX16rtTimestamp = 1638847406;
 
         // Avian Assets, Messaging, Restricted
-        consensus.nAssetActivationTime = 999999999999ULL; // TODO
-        consensus.nMessagingActivationTime = 999999999999ULL; // TODO
-        consensus.nRestrictedActivationTime = 999999999999ULL; // TODO
+        consensus.nAssetActivationTime = 1666202400; // TODO
+        consensus.nMessagingActivationTime = 1666202400; // TODO
+        consensus.nRestrictedActivationTime = 1666202400; // TODO
 
         // Avian Flight Plans
         consensus.nFlightPlansActivationTime = 999999999999ULL; // TODO
@@ -317,9 +317,6 @@ public:
         // testnet x16rt switch
         consensus.nX16rtTimestamp = 1634101200; // Oct 13, 2021 
 
-        // Avian Assets
-        consensus.nAssetActivationTime = 1645104453; // Feb 17, 2022
-
         // Avian Assets, Messaging, Restricted
         consensus.nAssetActivationTime = 1645104453; // Feb 17, 2022
         consensus.nMessagingActivationTime = 1645104453; // Feb 17, 2022
@@ -461,9 +458,6 @@ public:
 
         // regtest x16rt switch (genesis +1)
         consensus.nX16rtTimestamp = 1629951212;
-
-        // Avian Assets
-        consensus.nAssetActivationTime = 1629951212;
 
         // Avian Assets, Messaging, Restricted
         consensus.nAssetActivationTime = 1629951212; // (genesis +1)
