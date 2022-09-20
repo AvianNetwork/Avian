@@ -208,6 +208,12 @@ public:
 
         vFixedSeeds = std::vector<SeedSpec6>(pnSeed6_main, pnSeed6_main + ARRAYLEN(pnSeed6_main));
 
+        // Founder reward
+        vector<FounderRewardStructure> rewardStructures = {
+            {INT_MAX, 5} // 5% founder/dev fee forever
+        };
+        consensus.nFounderPayment = FounderPayment(rewardStructures, 1121000); // Block 1121000
+
         fDefaultConsistencyChecks = false;
         fRequireStandard = true;
         fMineBlocksOnDemand = false;
@@ -359,6 +365,12 @@ public:
 
         vFixedSeeds = std::vector<SeedSpec6>(pnSeed6_test, pnSeed6_test + ARRAYLEN(pnSeed6_test));
 
+        // Founder reward
+        vector<FounderRewardStructure> rewardStructures = {
+            {INT_MAX, 5} // 5% founder/dev fee forever
+        };
+        consensus.nFounderPayment = FounderPayment(rewardStructures, 150, "n1BurnXXXXXXXXXXXXXXXXXXXXXXU1qejP"); // Block 150 (burn coins)
+
         fDefaultConsistencyChecks = false;
         fRequireStandard = false;
         fMineBlocksOnDemand = false;
@@ -371,14 +383,11 @@ public:
         };
 
         chainTxData = ChainTxData{
-            // Update as we know more about the contents of the Avian chain
-            // Stats as of 0000cd2943664b4bda8be6e80351f9ff022475ae6a341a868babc4efd846000d block 42000
-            1654349227, // * UNIX timestamp of last known number of transactions
-            66085,     // * total number of transactions between genesis and that timestamp
-                       //   (the tx=... number in the SetBestChain debug.log lines)
-            0.001      // * estimated number of transactions per second after that timestamp
+            0,
+            0,
+            0
         };
-	    
+
         /** AVN Start **/
         // Burn Amounts
         nIssueAssetBurnAmount = 500 * COIN;
@@ -546,6 +555,12 @@ public:
         consensus.hashGenesisBlock = genesis.GetHash();
         assert(consensus.hashGenesisBlock == uint256S("0x653634d03d27ed84e8aba5dd47903906ad7be4876a1d3677be0db2891dcf787f"));
         assert(genesis.hashMerkleRoot == uint256S("63d9b6b6b549a2d96eb5ac4eb2ab80761e6d7bffa9ae1a647191e08d6416184d"));
+
+        // Founder reward
+        vector<FounderRewardStructure> rewardStructures = {
+            {INT_MAX, 5} // 5% founder/dev fee forever
+        };
+        consensus.nFounderPayment = FounderPayment(rewardStructures, 1, "n1BurnXXXXXXXXXXXXXXXXXXXXXXU1qejP"); // Block 1 (burn coins)
 
         vFixedSeeds.clear(); //!< Regtest mode doesn't have any fixed seeds.
         vSeeds.clear();      //!< Regtest mode doesn't have any DNS seeds.

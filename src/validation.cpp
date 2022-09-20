@@ -549,7 +549,7 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
 
     bool fCheckDuplicates = true;
     bool fCheckMempool = true;
-    if (!CheckTransaction(tx, state, fCheckDuplicates, fCheckMempool))
+    if (!CheckTransaction(tx, state, 0, 0, fCheckDuplicates, fCheckMempool))
         return false; // state filled in by CheckTransaction
 
     // Coinbase is only valid in a block, not as a loose transaction
@@ -2456,7 +2456,7 @@ static bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockInd
     int64_t nTimeStart = GetTimeMicros();
 
     // Check it again in case a previous version let a bad block in
-    if (!CheckBlock(block, state, chainparams.GetConsensus(), !fJustCheck, !fJustCheck)) // Force the check of asset duplicates when connecting the block
+    if (!CheckBlock(block, state, chainparams.GetConsensus(), 0, !fJustCheck, !fJustCheck)) // Force the check of asset duplicates when connecting the block
         return error("%s: Consensus::CheckBlock: %s", __func__, FormatStateMessage(state));
 
     // verify that the view's current state corresponds to the previous block
@@ -2808,6 +2808,11 @@ static bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockInd
                          error("ConnectBlock(): coinbase pays too much (actual=%d vs limit=%d)",
                                block.vtx[0]->GetValueOut(AreEnforcedValuesDeployed()), blockReward),
                                REJECT_INVALID, "bad-cb-amount");
+
+    FounderPayment founderPayment = Params().GetConsensus().nFounderPayment;
+    if (!founderPayment.IsBlockPayeeValid(*block.vtx[0], pindex->nHeight, blockReward))
+        return state.DoS(0, error("ConnectBlock(): couldn't find founders fee payments"),
+                                REJECT_INVALID, "bad-cb-payee");
 
     if (!control.Wait())
         return state.DoS(100, error("%s: CheckQueue failed", __func__), REJECT_INVALID, "block-validation-failed");
@@ -4014,7 +4019,7 @@ static bool CheckBlockHeader(const CBlockHeader& block, CValidationState& state,
     return true;
 }
 
-bool CheckBlock(const CBlock& block, CValidationState& state, const Consensus::ConsensusParams& consensusParams, bool fCheckPOW, bool fCheckMerkleRoot, bool fCheckAssetDuplicate, bool fForceDuplicateCheck)
+bool CheckBlock(const CBlock& block, CValidationState& state, const Consensus::ConsensusParams& consensusParams, int nHeight, bool fCheckPOW, bool fCheckMerkleRoot, bool fCheckAssetDuplicate, bool fForceDuplicateCheck)
 {
     // These are checks that are independent of context.
 
@@ -4056,17 +4061,17 @@ bool CheckBlock(const CBlock& block, CValidationState& state, const Consensus::C
     for (unsigned int i = 1; i < block.vtx.size(); i++)
         if (block.vtx[i]->IsCoinBase())
             return state.DoS(100, false, REJECT_INVALID, "bad-cb-multiple", false, "more than one coinbase");
-
     // Check transactions
     bool fCheckBlock = CHECK_BLOCK_TRANSACTION_TRUE;
     bool fCheckDuplicates = CHECK_DUPLICATE_TRANSACTION_TRUE;
     bool fCheckMempool = CHECK_MEMPOOL_TRANSACTION_FALSE;
+    CAmount blockReward = GetBlockSubsidy(nHeight - 1, Params().GetConsensus());
     for (const auto& tx : block.vtx) {
         // We only want to check the blocks when they are added to our chain
         // We want to make sure when nodes shutdown and restart that they still
         // verify the blocks in the database correctly even if Enforce Value BIP is active
         fCheckBlock = CHECK_BLOCK_TRANSACTION_TRUE;
-        if (!CheckTransaction(*tx, state, fCheckDuplicates, fCheckMempool, fCheckBlock))
+        if (!CheckTransaction(*tx, state, nHeight - 1, blockReward, fCheckDuplicates, fCheckMempool, fCheckBlock))
             return state.Invalid(false, state.GetRejectCode(), state.GetRejectReason(),
                                  strprintf("Transaction check failed (tx hash %s) %s %s", tx->GetHash().ToString(),
                                            state.GetDebugMessage(), state.GetRejectReason()));
@@ -4527,7 +4532,7 @@ bool ProcessNewBlock(const CChainParams& chainparams, const std::shared_ptr<cons
 
         // Ensure that CheckBlock() passes before calling AcceptBlock, as
         // belt-and-suspenders.
-        bool ret = CheckBlock(*pblock, state, chainparams.GetConsensus(), true, true);
+        bool ret = CheckBlock(*pblock, state, chainparams.GetConsensus(), 0, true, true);
 
         LOCK(cs_main);
 
@@ -4567,7 +4572,7 @@ bool TestBlockValidity(CValidationState& state, const CChainParams& chainparams,
     // NOTE: CheckBlockHeader is called by CheckBlock
     if (!ContextualCheckBlockHeader(block, state, chainparams, pindexPrev, GetAdjustedTime()))
         return error("%s: Consensus::ContextualCheckBlockHeader: %s", __func__, FormatStateMessage(state));
-    if (!CheckBlock(block, state, chainparams.GetConsensus(), fCheckPOW, fCheckMerkleRoot))
+    if (!CheckBlock(block, state, chainparams.GetConsensus(), 0, fCheckPOW, fCheckMerkleRoot))
         return error("%s: Consensus::CheckBlock: %s", __func__, FormatStateMessage(state));
     if (!ContextualCheckBlock(block, state, chainparams.GetConsensus(), pindexPrev, &assetCache))
         return error("%s: Consensus::ContextualCheckBlock: %s", __func__, FormatStateMessage(state));
