@@ -1621,12 +1621,16 @@ QWidget#RPCConsole QPushButton#peerAdd {
     border: 1px solid #FFFFFF;
 }
 
-QWidget#RPCConsole QPushButton#fontSmallerButton,
-QWidget#RPCConsole QPushButton#fontBiggerButton,
-QWidget#RPCConsole QPushButton#clearButton {
-    background-color: #ffffff;
-    min-width: 28px;
-    min-height: 28px;
+QWidget#RPCConsole QToolButton#fontBiggerButton,
+QWidget#RPCConsole QToolButton#fontBiggerButton
+QWidget#RPCConsole QToolButton#clearButton {
+    background-color: #2b737f;
+    border: 0;
+    border-radius: 4px;
+    color: #FFFFFF;
+    padding-top: 1px;
+    padding-bottom: 1px;
+    font: 12pt 'Manrope';
 }
 
 QWidget#RPCConsole QTextEdit#messagesWidget {
@@ -1639,7 +1643,7 @@ QWidget#RPCConsole QLineEdit#lineEdit {
 
 QWidget#RPCConsole .QToolButton {
     margin-left: 3px;
-    margin-bottom:5px;
+    margin-bottom: 5px;
 }
 
 QWidget#RPCConsole .QGroupBox #line {
