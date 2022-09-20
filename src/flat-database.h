@@ -1,9 +1,10 @@
 // Copyright (c) 2014-2020 The Dash Core developers
+// Copyright (c) 2022 The Avian Core developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef BITCOIN_FLAT_DATABASE_H
-#define BITCOIN_FLAT_DATABASE_H
+#ifndef AVN_FLAT_DATABASE_H
+#define AVN_FLAT_DATABASE_H
 
 #include "chainparams.h"
 #include "clientversion.h"
@@ -150,12 +151,12 @@ private:
             return IncorrectFormat;
         }
 
-        LogPrintf("Loaded info from %s  %dms\n", strFilename, GetTimeMillis() - nStart);
-        LogPrintf("     %s\n", objToLoad.ToString());
+        LogPrint(BCLog::BENCH, "Loaded info from %s  %dms\n", strFilename, GetTimeMillis() - nStart);
+        LogPrint(BCLog::BENCH, "     %s\n", objToLoad.ToString());
         if(!fDryRun) {
-            LogPrintf("%s: Cleaning....\n", __func__);
+            LogPrint(BCLog::BENCH, "%s: Cleaning....\n", __func__);
             objToLoad.CheckAndRemove();
-            LogPrintf("     %s\n", objToLoad.ToString());
+            LogPrint(BCLog::BENCH, "     %s\n", objToLoad.ToString());
         }
 
         return Ok;
@@ -172,7 +173,7 @@ public:
 
     bool Load(T& objToLoad)
     {
-        LogPrintf("Reading info from %s...\n", strFilename);
+        LogPrint(BCLog::BENCH, "Reading info from %s...\n", strFilename);
         ReadResult readResult = Read(objToLoad);
         if (readResult == FileError)
             LogPrintf("Missing file %s, will try to recreate\n", strFilename);
@@ -196,7 +197,7 @@ public:
     {
         int64_t nStart = GetTimeMillis();
 
-        LogPrintf("Verifying %s format...\n", strFilename);
+        LogPrint(BCLog::BENCH, "Verifying %s format...\n", strFilename);
         T tmpObjToLoad;
         ReadResult readResult = Read(tmpObjToLoad, true);
 
@@ -225,4 +226,4 @@ public:
 };
 
 
-#endif // BITCOIN_FLAT_DATABASE_H
+#endif // AVN_FLAT_DATABASE_H
