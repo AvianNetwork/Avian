@@ -9,7 +9,7 @@
 
 using namespace std;
 
-static const string DEFAULT_FOUNDER_ADDRESS = "RDs4A4sDHp4otDHQQuFSaPDYEg2xx3hbdN";
+static const string DEFAULT_FOUNDER_ADDRESS = "rPC7kPCNPAVnUvQs4fWEvnFwJ4yfKvArXM";
 
 struct FounderRewardStructure {
     int blockHeight;
