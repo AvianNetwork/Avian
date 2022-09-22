@@ -57,7 +57,8 @@ public:
         TAB_INFO = 0,
         TAB_CONSOLE = 1,
         TAB_GRAPH = 2,
-        TAB_PEERS = 3
+        TAB_PEERS = 3,
+        TAB_REPAIR = 4
     };
 
 protected:
@@ -70,11 +71,11 @@ private Q_SLOTS:
     /** open the debug.log from the current datadir */
     void on_openDebugLogfileButton_clicked();
     /** open dialog to add new peer */
-    void on_addPeer_clicked();
+    void on_addPeerClicked();
     /** open dialog to remove peer */
-    void on_removePeer_clicked();
+    void on_removePeerClicked();
     /** open dialog to test peer */
-    void on_testPeer_clicked();
+    void on_testPeerClicked();
     /** change the time range of the network traffic graph */
     void on_sldGraphRange_valueChanged(int value);
     /** update traffic statistics */
@@ -93,6 +94,14 @@ private Q_SLOTS:
 
 public Q_SLOTS:
     void clear(bool clearHistory = true);
+
+    /** Wallet repair options */
+    void walletRescan();
+    void walletZaptxes1();
+    void walletZaptxes2();
+    void walletUpgrade();
+    void walletReindex();
+
     void fontBigger();
     void fontSmaller();
     void setFontSize(int newSize);
@@ -129,10 +138,14 @@ Q_SIGNALS:
     // For RPC command executor
     void stopExecutor();
     void cmdRequest(const QString &command);
-
+    /** Get restart command-line parameters and handle restart */
+    void handleRestart(QStringList args);
+    
 private:
     void startExecutor();
     void setTrafficGraphRange(int mins);
+    /** Build parameter list for restart */
+    void buildParameterlist(QString arg);
     /** show detailed information on ui about selected node */
     void updateNodeDetail(const CNodeCombinedStats *stats);
 

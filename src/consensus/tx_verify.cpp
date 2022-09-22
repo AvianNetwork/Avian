@@ -1,5 +1,6 @@
 // Copyright (c) 2017-2017 The Bitcoin Core developers
 // Copyright (c) 2017-2020 The Raven Core developers
+// Copyright (c) 2022 The Avian Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -166,7 +167,7 @@ int64_t GetTransactionSigOpCost(const CTransaction& tx, const CCoinsViewCache& i
     return nSigOps;
 }
 
-bool CheckTransaction(const CTransaction& tx, CValidationState &state, bool fCheckDuplicateInputs, bool fMempoolCheck, bool fBlockCheck)
+bool CheckTransaction(const CTransaction& tx, CValidationState &state, int nHeight, CAmount blockReward, bool fCheckDuplicateInputs, bool fMempoolCheck, bool fBlockCheck)
 {
     // Basic checks that don't depend on any context
     if (tx.vin.empty())
@@ -383,9 +384,17 @@ bool CheckTransaction(const CTransaction& tx, CValidationState &state, bool fChe
             for (auto vout : tx.vout) {
                 if (vout.scriptPubKey.IsAssetScript() || vout.scriptPubKey.IsNullAsset()) {
                     return state.DoS(0, error("%s: coinbase contains asset transaction", __func__),
-                                     REJECT_INVALID, "bad-txns-coinbase-contains-asset-txes");
+                        REJECT_INVALID, "bad-txns-coinbase-contains-asset-txes");
                 }
             }
+        }
+
+        FounderPayment founderPayment = Params().GetConsensus().nFounderPayment;
+        CAmount founderReward = founderPayment.getFounderPaymentAmount(nHeight, blockReward);
+        int founderStartHeight = founderPayment.getStartBlock();
+
+        if(nHeight > founderStartHeight && founderReward && !founderPayment.IsBlockPayeeValid(tx, nHeight, blockReward)) {
+            return state.DoS(100, false, REJECT_INVALID, "bad-cb-founder-payment-not-found");
         }
     }
     else

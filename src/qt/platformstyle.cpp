@@ -167,7 +167,7 @@ QIcon PlatformStyle::OrangeColorIcon(const QIcon& icon) const
 
 QIcon PlatformStyle::TextColorIcon(const QString& filename) const
 {
-    return ColorizeIcon(filename, ToolBarSelectedTextColor());
+    return ColorizeIcon(filename, TextColor());
 }
 
 
@@ -178,7 +178,7 @@ QIcon PlatformStyle::TextColorIcon(const QString& filename, const QColor& color)
 
 QIcon PlatformStyle::TextColorIcon(const QIcon& icon) const
 {
-    return ColorizeIcon(icon, ToolBarSelectedTextColor());
+    return ColorizeIcon(icon, TextColor());
 }
 
 
@@ -197,9 +197,6 @@ QColor PlatformStyle::TextColor() const
 
 QColor PlatformStyle::ToolBarSelectedTextColor() const
 {
-    if (darkModeEnabled)
-        return COLOR_TOOLBAR_SELECTED_TEXT_DARK_MODE;
-
     return COLOR_TOOLBAR_SELECTED_TEXT;
 }
 

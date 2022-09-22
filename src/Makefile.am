@@ -138,7 +138,7 @@ AVIAN_CORE_H = \
   algo/crow/hashx13.h \
   algo/crow/hashx15.h \
   algo/crow/hashx17.h \
-  algo/crow/crow.h \
+  algo/crow/minotaurx.h \
   algo/crow/yespower/yespower.c \
   algo/crow/yespower/crypto/sha256.c \
   spentindex.h \
@@ -153,6 +153,7 @@ AVIAN_CORE_H = \
   assets/snapshotrequestdb.h \
   assets/assetsnapshotdb.h \
   assets/rewards.h \
+  assets/ans.h \
   base58.h \
   bloom.h \
   blockencodings.h \
@@ -174,6 +175,7 @@ AVIAN_CORE_H = \
   core_io.h \
   core_memusage.h \
   cuckoocache.h \
+  flat-database.h \
   fs.h \
   httprpc.h \
   httpserver.h \
@@ -229,6 +231,7 @@ AVIAN_CORE_H = \
   txmempool.h \
   ui_interface.h \
   undo.h \
+  unordered_lru_cache.h \
   util.h \
   utilmoneystr.h \
   utiltime.h \
@@ -251,12 +254,10 @@ AVIAN_CORE_H = \
   zmq/zmqconfig.h\
   zmq/zmqnotificationinterface.h \
   zmq/zmqpublishnotifier.h \
-  flightplans/weblib.h \
   flightplans/avianlib.h \
   flightplans/flightplans.h \
   flightplans/json/strbuf.h \
   flightplans/json/fpconv.h \
-  flightplans/keccak.h \
   lua/lapi.h \
   lua/lauxlib.h \
   lua/lbaselib.h \
@@ -326,6 +327,7 @@ libavian_server_a_SOURCES = \
   assets/snapshotrequestdb.cpp \
   assets/assetsnapshotdb.cpp \
   assets/rewards.cpp \
+  assets/ans.cpp \
   policy/fees.cpp \
   policy/policy.cpp \
   policy/rbf.cpp \
@@ -353,13 +355,11 @@ libavian_server_a_SOURCES = \
   validation.cpp \
   validationinterface.cpp \
   versionbits.cpp \
-  flightplans/weblib.cpp \  
   flightplans/avianlib.cpp \  
   flightplans/flightplans.cpp \
   flightplans/json/strbuf.c \
   flightplans/json/fpconv.c \
   flightplans/json/lua_cjson.c \
-  flightplans/keccak.cpp \
   lua/lapi.c \
   lua/lauxlib.c \
   lua/lbaselib.c \
@@ -475,6 +475,7 @@ libavian_consensus_a_CPPFLAGS = $(AM_CPPFLAGS) $(AVIAN_INCLUDES)
 libavian_consensus_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
 libavian_consensus_a_SOURCES = \
   amount.h \
+  founder_payment.h \
   arith_uint256.cpp \
   arith_uint256.h \
   consensus/merkle.cpp \
@@ -486,6 +487,8 @@ libavian_consensus_a_SOURCES = \
   prevector.h \
   primitives/block.cpp \
   primitives/block.h \
+  primitives/powcache.cpp \
+  primitives/powcache.h \
   primitives/transaction.cpp \
   primitives/transaction.h \
   pubkey.cpp \
@@ -498,6 +501,7 @@ libavian_consensus_a_SOURCES = \
   script/script_error.cpp \
   script/script_error.h \
   serialize.h \
+  span.h \
   support/cleanse.h \
   support/cleanse.cpp \
   tinyformat.h \
@@ -515,6 +519,7 @@ libavian_common_a_CPPFLAGS = $(AM_CPPFLAGS) $(AVIAN_INCLUDES)
 libavian_common_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
 libavian_common_a_SOURCES = \
   base58.cpp \
+  founder_payment.cpp \
   chainparams.cpp \
   coins.cpp \
   compressor.cpp \

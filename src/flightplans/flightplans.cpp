@@ -11,7 +11,6 @@ Please take precautions when using this feature.
 #include "flightplans.h"
 
 #include "avianlib.h"
-#include "weblib.h"
 #include "util.h"
 
 #include <cstddef>
@@ -33,15 +32,13 @@ FlightPlanResult AvianFlightPlans::run_file(const char* file, const char* func, 
     lua_State* L = luaL_newstate();
 
     // Make standard libraries available in the Lua object
-    luaL_openlibs(L);
+    luaopen_base(L);
+    luaopen_table(L);
+    luaopen_string(L);
+    luaopen_math(L);
 
     // Register Avian lib
     register_avianlib(L);
-    
-    // Register Web3 lib (only if enabled)
-    if (gArgs.IsArgSet("-flightplans-web3")) {
-        register_weblib(L);
-    }
 
     // Load the program
     status = luaL_dofile(L, file);

@@ -128,7 +128,7 @@ bool IsTransitioningToX16rt(const CBlockIndex* pindexLast, const CBlockHeader *p
     if (pblock->nTime <= params.nX16rtTimestamp)
         return false;
         
-    int64_t dgwWindow = 0; // RVL does not have DGWPastBlocks so no need to check.
+    int64_t dgwWindow = 0; // AVN does not have DGWPastBlocks so no need to check.
 
     const CBlockIndex* pindex = pindexLast;
     
@@ -488,10 +488,14 @@ bool CheckProofOfWork(uint256 hash, unsigned int nBits, const Consensus::Consens
     return true;
 }
 
-bool CheckProofOfWork(const CBlockHeader& blockheader, const Consensus::ConsensusParams& params)
+bool CheckProofOfWork(const CBlockHeader& blockheader, const Consensus::ConsensusParams& params, bool cache)
 {
-	if (blockheader.GetBlockTime() > params.diffRetargetTake2)
-		return CheckProofOfWorkCrow(blockheader.GetHash(), blockheader.nBits, params, blockheader.GetPoWType());
-	else
-		return CheckProofOfWork(blockheader.GetHash(), blockheader.nBits, params);
+	if (blockheader.GetBlockTime() > params.diffRetargetTake2) {
+		if(cache) return CheckProofOfWorkCrow(blockheader.GetHash(), blockheader.nBits, params, blockheader.GetPoWType());
+		else if(!cache) return CheckProofOfWorkCrow(blockheader.GetHash(false), blockheader.nBits, params, blockheader.GetPoWType());
+    }
+	else {
+        if (cache) return CheckProofOfWork(blockheader.GetHash(), blockheader.nBits, params);
+        else if(!cache) return CheckProofOfWork(blockheader.GetHash(false), blockheader.nBits, params);
+    }
 }

@@ -32,7 +32,6 @@ class UnitDisplayStatusBarControl;
 class WalletFrame;
 class WalletModel;
 class HelpMessageDialog;
-class PoolPicker;
 class ModalOverlay;
 
 QT_BEGIN_NAMESPACE
@@ -124,7 +123,6 @@ private:
     QAction *changePassphraseAction;
     QAction *aboutQtAction;
     QAction *openRPCConsoleAction;
-    QAction *openPoolPicker;
     QAction *openAction;
     QAction *showHelpMessageAction;
 
@@ -135,7 +133,7 @@ private:
     QAction *messagingAction;
     QAction *getMyWordsAction;
     QAction *votingAction;
-    QAction *devAction;
+    QAction *restrictedAssetAction;
     QAction *wrapAction;
     QWidget *headerWidget;
     QLabel *labelCurrentMarket;
@@ -187,6 +185,8 @@ private:
 Q_SIGNALS:
     /** Signal raised when a URI was entered or dragged to the GUI */
     void receivedURI(const QString &uri);
+    /** Restart handling */
+    void requestedRestart(QStringList args);
 
 public Q_SLOTS:
     /** Set number of connections shown in the UI */
@@ -195,6 +195,8 @@ public Q_SLOTS:
     void setNetworkActive(bool networkActive);
     /** Set number of blocks and last block date shown in the UI */
     void setNumBlocks(int count, const QDateTime& blockDate, double nVerificationProgress, bool headers);
+    /** Get restart command-line parameters and request restart */
+    void handleRestart(QStringList args);
 
     /** Notify the user of an event from the core network or transaction handling code.
        @param[in] title     the message box / notification title
@@ -255,6 +257,7 @@ private Q_SLOTS:
     void gotoAssetsPage();
     void gotoCreateAssetsPage();
     void gotoManageAssetsPage();
+    void gotoRestrictedAssetsPage();
     void gotoWrapPage();
     /** AVN END */
 
@@ -265,8 +268,6 @@ private Q_SLOTS:
     void aboutClicked();
     /** Show debug window */
     void showDebugWindow();
-    /** Show pool picker window */
-    void showPoolPicker();
     /** Show debug window and set focus to the console */
     void showDebugWindowActivateConsole();
     /** Show help message dialog */

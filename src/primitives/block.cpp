@@ -1,6 +1,7 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
 // Copyright (c) 2009-2016 The Bitcoin Core developers
 // Copyright (c) 2017 The Raven Core developers
+// Copyright (c) 2022 The Avian Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -10,14 +11,17 @@
 
 #include "chainparams.h"
 
-#include "algo/crow/crow.h"             // Crow Algo
+#include "algo/crow/minotaurx.h"             // Minotaurx Algo
 
 #include "primitives/block.h"
+#include "primitives/powcache.h"
 
 #include "algo/hash_algos.h"
 #include "tinyformat.h"
 #include "utilstrencodings.h"
 #include "crypto/common.h"
+#include "util.h"
+#include "sync.h"
 
 #include "consensus/consensus.h"
 
@@ -29,6 +33,7 @@ static const uint32_t REGTEST_X16RT_ACTIVATIONTIME = 1629951212;
 
 static const uint32_t MAINNET_CROW_MULTI_ACTIVATIONTIME = 1638847407;
 static const uint32_t TESTNET_CROW_MULTI_ACTIVATIONTIME = 1639005225;
+static const uint32_t REGTEST_CROW_MULTI_ACTIVATIONTIME = 1629951212;
 
 BlockNetwork bNetwork = BlockNetwork();
 
@@ -47,18 +52,24 @@ void BlockNetwork::SetNetwork(const std::string& net)
     }
 }
 
-uint256 CBlockHeader::GetHash() const
+uint256 CBlockHeader::GetSHA256Hash() const
+{
+    return SerializeHash(*this);
+}
+
+uint256 CBlockHeader::ComputePoWHash() const
 {
     uint256 thash;
     unsigned int profile = 0x0;
     uint32_t nTimeToUse = MAINNET_X16RT_ACTIVATIONTIME;
     uint32_t nCrowTimeToUse = MAINNET_CROW_MULTI_ACTIVATIONTIME;
 
-    if (bNetwork.fOnTestnet){
+    if (bNetwork.fOnTestnet) {
         nTimeToUse = TESTNET_X16RT_ACTIVATIONTIME;
         nCrowTimeToUse = TESTNET_CROW_MULTI_ACTIVATIONTIME;
     } else if (bNetwork.fOnRegtest) {
         nTimeToUse = REGTEST_X16RT_ACTIVATIONTIME;
+        nCrowTimeToUse = REGTEST_CROW_MULTI_ACTIVATIONTIME;
     } else {
         nTimeToUse = MAINNET_X16RT_ACTIVATIONTIME;
         nCrowTimeToUse = MAINNET_CROW_MULTI_ACTIVATIONTIME;
@@ -75,7 +86,7 @@ uint256 CBlockHeader::GetHash() const
                 break;
             }
             case POW_TYPE_CROW: {
-                return Crow(BEGIN(nVersion), END(nNonce), true);
+                return Minotaurx(BEGIN(nVersion), END(nNonce), true);
                 break;
             }
             default: // Don't crash the client on invalid blockType, just return a bad hash
@@ -96,9 +107,34 @@ uint256 CBlockHeader::GetHash() const
     return thash;
 }
 
-// Crow algo
+uint256 CBlockHeader::GetHash(bool readCache) const
+{
+    LOCK(cs_pow);
+    CPowCache& cache(CPowCache::Instance());
+
+    uint256 headerHash = GetSHA256Hash();
+    uint256 powHash;
+    bool found = false;
+
+    if (readCache) {
+        found = cache.get(headerHash, powHash);
+    }
+
+    if (!found || cache.IsValidate()) {
+        uint256 powHash2 = ComputePoWHash();
+        if (found && powHash2 != powHash) {
+           LogPrintf("PowCache failure: headerHash: %s, from cache: %s, computed: %s, correcting\n", headerHash.ToString(), powHash.ToString(), powHash2.ToString());
+        }
+        powHash = powHash2;
+        cache.erase(headerHash); // If it exists, replace it.
+        cache.insert(headerHash, powHash2);
+    }
+    return powHash;
+}
+
+// Minotaurx algo
 uint256 CBlockHeader::CrowHashArbitrary(const char* data) {
-    return Crow(data, data + strlen(data), true);
+    return Minotaurx(data, data + strlen(data), true);
 }
 
 uint256 CBlockHeader::GetX16RHash() const
