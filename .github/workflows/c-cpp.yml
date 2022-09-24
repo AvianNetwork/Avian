@@ -54,7 +54,7 @@ jobs:
             host: x86_64-unknown-linux-gnu
             os: ubuntu-20.04
             packages: bc python3-zmq
-            run-tests: false
+            run-tests: true
             dep-opts: ""
             config-opts: "--enable-gui=qt5 --enable-zmq --enable-glibc-back-compat --enable-reduce-exports"
             goal: install
@@ -148,6 +148,12 @@ jobs:
           ./autogen.sh
           ./configure --prefix=`pwd`/depends/${{ matrix.host }} ${{ matrix.config-opts }} || ( cat config.log && false)
           make $MAKEJOBS ${{ matrix.goal }} || ( echo "Build failure. Verbose build follows." && make ${{ matrix.goal }} V=1 ; false )
+
+      - name: Run tests
+        if: ${{ matrix.run-tests }}
+        run: |
+          make check $MAKEJOBS VERBOSE=1
+          test/functional/test_runner.py
           
       - name: Strip built binaries
         run: |
