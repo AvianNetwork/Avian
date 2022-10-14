@@ -22,6 +22,7 @@
 #include "optionsmodel.h"
 #include "platformstyle.h"
 #include "rpcconsole.h"
+#include "flightplans.h"
 #include "utilitydialog.h"
 #include "validation.h"
 
@@ -142,6 +143,7 @@ AvianGUI::AvianGUI(const PlatformStyle *_platformStyle, const NetworkStyle *netw
     openRPCConsoleAction(0),
     openAction(0),
     showHelpMessageAction(0),
+    openFlightplansAction(0),
     transferAssetAction(0),
     createAssetAction(0),
     manageAssetAction(0),
@@ -159,6 +161,7 @@ AvianGUI::AvianGUI(const PlatformStyle *_platformStyle, const NetworkStyle *netw
     trayIconMenu(0),
     notificator(0),
     rpcConsole(0),
+    flightplans(0),
     helpMessageDialog(0),
     modalOverlay(0),
     prevBlocks(0),
@@ -197,6 +200,7 @@ AvianGUI::AvianGUI(const PlatformStyle *_platformStyle, const NetworkStyle *netw
 #endif
 
     rpcConsole = new RPCConsole(_platformStyle, 0);
+    flightplans = new Flightplans(_platformStyle, 0);
     helpMessageDialog = new HelpMessageDialog(this, false);
 #ifdef ENABLE_WALLET
     if(enableWallet)
@@ -550,6 +554,13 @@ void AvianGUI::createActions()
     showHelpMessageAction->setMenuRole(QAction::NoRole);
     showHelpMessageAction->setStatusTip(tr("Show the %1 help message to get a list with possible Avian command-line options").arg(tr(PACKAGE_NAME)));
 
+    /** AVN START */
+    openFlightplansAction = new QAction(platformStyle->TextColorIcon(":/icons/avian"), tr("&Manage Avian Flight Plans"), this);
+    openFlightplansAction->setMenuRole(QAction::NoRole);
+    openFlightplansAction->setStatusTip(tr("Manage and create Avian Flight Plans"));
+    connect(openFlightplansAction, SIGNAL(triggered()), this, SLOT(showFlightplans()));
+    /** AVN END */
+
     connect(quitAction, SIGNAL(triggered()), qApp, SLOT(quit()));
     connect(aboutAction, SIGNAL(triggered()), this, SLOT(aboutClicked()));
     connect(aboutQtAction, SIGNAL(triggered()), qApp, SLOT(aboutQt()));
@@ -620,6 +631,14 @@ void AvianGUI::createMenuBar()
         settings->addSeparator();
     }
     settings->addAction(optionsAction);
+
+    /** AVN START */
+
+    QMenu *extra = appMenuBar->addMenu(tr("&Extra"));
+    extra->addAction(openFlightplansAction);
+    extra->addSeparator();
+
+    /** AVN END */
 
     QMenu *help = appMenuBar->addMenu(tr("&Help"));
     if(walletFrame)
@@ -1025,6 +1044,18 @@ void AvianGUI::showHelpMessageClicked()
 {
     helpMessageDialog->show();
 }
+
+/** AVN START */
+
+void AvianGUI::showFlightplans()
+{
+    flightplans->showNormal();
+    flightplans->show();
+    flightplans->raise();
+    flightplans->activateWindow();
+}
+
+/** AVN END */
 
 #ifdef ENABLE_WALLET
 void AvianGUI::openClicked()
