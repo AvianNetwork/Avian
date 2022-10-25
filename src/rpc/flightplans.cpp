@@ -50,7 +50,7 @@ UniValue call_flightplan(const JSONRPCRequest& request)
         args.erase(args.begin());
         args.erase(args.begin());
 
-        auto flightplans = AvianFlightPlans();
+        auto flightplans = CAvianFlightPlans();
 
         // TODO: Make sure works on Windows and Linux
         fs::path path = GetDataDir(false) / "flightplans" / file.c_str();

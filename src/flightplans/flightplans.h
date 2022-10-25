@@ -18,7 +18,7 @@ public:
 };
 
 /* Avian Flightplans */
-class AvianFlightPlans
+class CAvianFlightPlans
 {
 public:
     FlightPlanResult run_file(const char* file, const char* func, std::vector<std::string> args={});
