@@ -15,16 +15,16 @@
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
    <property name="leftMargin">
-    <number>40</number>
+    <number>10</number>
    </property>
    <property name="topMargin">
-    <number>40</number>
+    <number>10</number>
    </property>
    <property name="rightMargin">
-    <number>40</number>
+    <number>10</number>
    </property>
    <property name="bottomMargin">
-    <number>40</number>
+    <number>10</number>
    </property>
    <item>
     <widget class="QFrame" name="flightplanFrame">
@@ -70,7 +70,7 @@
        </widget>
       </item>
       <item>
-       <widget class="QLabel" name="label_sub">
+       <widget class="QLabel" name="labelDatadir">
         <property name="text">
          <string>List of flightplans in: </string>
         </property>
