@@ -99,8 +99,8 @@ UniValue list_flightplans(const JSONRPCRequest& request)
 static const CRPCCommand commands[] =
     { //  category              name                      actor (function)         argNames
       //  --------------------- ------------------------  -----------------------  ----------
-        {"flightplans",         "call_flightplan",        &call_flightplan,        {"flightplan_name", "function", "args"}},
-        {"flightplans",         "list_flightplans",       &list_flightplans,       {}}
+        {"flightplans",         "callflightplan",         &call_flightplan,        {"flightplan_name", "function", "args"}},
+        {"flightplans",         "listflightplans",        &list_flightplans,       {}}
     };
 
 void RegisterFlightPlanRPCCommands(CRPCTable& t)
