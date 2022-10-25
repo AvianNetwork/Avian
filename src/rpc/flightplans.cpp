@@ -50,11 +50,9 @@ UniValue call_flightplan(const JSONRPCRequest& request)
         args.erase(args.begin());
         args.erase(args.begin());
 
-        auto flightplans = CAvianFlightPlans();
-
         fs::path path = GetDataDir(false) / "flightplans" / file.c_str();
 
-        FlightPlanResult result = flightplans.run_file(path.string().c_str(), request.params[1].get_str().c_str(), args);
+        FlightPlanResult result = CAvianFlightPlans::RunFile(path.string().c_str(), request.params[1].get_str().c_str(), args);
 
         if (fs::exists(path)) {
             if (result.is_error) {
@@ -89,10 +87,8 @@ UniValue list_flightplans(const JSONRPCRequest& request)
 
     if (gArgs.IsArgSet("-flightplans")) {
         UniValue plans(UniValue::VARR);
-        fs::path path = GetDataDir(false) / "flightplans";
-        for (auto& file : fs::directory_iterator(path)) {
-            if (file.path().extension() == ".lua")
-                plans.push_back(file.path().stem().string());
+        for (const std::string& plan : CAvianFlightPlans::GetPlans()) {
+            plans.push_back(plan);
         }
         return plans;
     } else {

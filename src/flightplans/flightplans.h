@@ -21,7 +21,8 @@ public:
 class CAvianFlightPlans
 {
 public:
-    FlightPlanResult run_file(const char* file, const char* func, std::vector<std::string> args={});
+    static FlightPlanResult RunFile(const char* file, const char* func, std::vector<std::string> args={});
+    static std::vector<std::string> GetPlans();
 };
 
 #endif

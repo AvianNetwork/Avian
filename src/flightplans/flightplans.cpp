@@ -12,15 +12,17 @@ Please take precautions when using this feature.
 
 #include "avianlib.h"
 #include "util.h"
+#include "fs.h"
 
 #include <cstddef>
 #include <cstdio>
 #include <iostream>
 #include <string>
+#include <vector>
 
 #include "lua/lua.hpp"
 
-FlightPlanResult CAvianFlightPlans::run_file(const char* file, const char* func, std::vector<std::string> args)
+FlightPlanResult CAvianFlightPlans::RunFile(const char* file, const char* func, std::vector<std::string> args)
 {
     // Warn user
     LogPrintf("Running flight plan; Avian Flight Plans are experimental and prone to bugs. Please take precautions when using this feature.\n");
@@ -95,4 +97,16 @@ FlightPlanResult CAvianFlightPlans::run_file(const char* file, const char* func,
     lua_close(L);
 
     return result;
+}
+
+std::vector<std::string> CAvianFlightPlans::GetPlans()
+{
+    std::vector<std::string> plans;
+    fs::path path = GetDataDir(false) / "flightplans";
+    for (auto& file : fs::directory_iterator(path)) {
+        if (file.path().extension() == ".lua") {
+            plans.push_back(file.path().stem().string());
+        }
+    }
+    return plans;
 }
