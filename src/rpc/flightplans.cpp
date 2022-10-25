@@ -52,7 +52,6 @@ UniValue call_flightplan(const JSONRPCRequest& request)
 
         auto flightplans = CAvianFlightPlans();
 
-        // TODO: Make sure works on Windows and Linux
         fs::path path = GetDataDir(false) / "flightplans" / file.c_str();
 
         FlightPlanResult result = flightplans.run_file(path.string().c_str(), request.params[1].get_str().c_str(), args);

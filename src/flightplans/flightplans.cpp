@@ -3,8 +3,8 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-/*
-Avian Flight Plans (smart contracts) are experimental and prone to bugs.
+/**
+Avian Flight Plans are experimental and prone to bugs.
 Please take precautions when using this feature.
 */
 
@@ -22,8 +22,8 @@ Please take precautions when using this feature.
 
 FlightPlanResult CAvianFlightPlans::run_file(const char* file, const char* func, std::vector<std::string> args)
 {
-    /* Warn user **/
-    LogPrintf("Running flight plan -- Avian Flight Plans are experimental and prone to bugs. Please take precautions when using this feature.\n");
+    // Warn user
+    LogPrintf("Running flight plan; Avian Flight Plans are experimental and prone to bugs. Please take precautions when using this feature.\n");
 
     // Result object
     FlightPlanResult result;
@@ -59,14 +59,14 @@ FlightPlanResult CAvianFlightPlans::run_file(const char* file, const char* func,
 
         if (args.size() >= 1) {
             n = args.size();
-            /* loop through each argument */
+            // Loop through each argument
             for (int i = 0; i < n; i++) {
                 /* push argument */
                 lua_pushstring(L, args[i].c_str());
             }
         }
 
-        /* call the function with n arguments, return 1 result */
+        // Call the function with n arguments, return 1 result
         status = lua_pcall(L, n, 1, 0);
 
         if (status != LUA_OK) {
@@ -77,7 +77,7 @@ FlightPlanResult CAvianFlightPlans::run_file(const char* file, const char* func,
             return result;
         }
 
-        /* get the result */
+        // Get the result
         if (lua_isstring(L, -1)) {
             result.result = (char*)lua_tostring(L, -1);
             lua_pop(L, 1);
