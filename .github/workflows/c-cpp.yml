@@ -103,11 +103,11 @@ jobs:
         run: ${{ matrix.postinstall }}
 
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: SDK cache
         if: ${{ matrix.sdk }}
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         env:
           cache-name: sdk
         with:
@@ -123,7 +123,7 @@ jobs:
           tar -C depends/SDKs -xf depends/sdk-sources/MacOSX${{ matrix.sdk }}.sdk.tar.gz
 
       - name: Dependency cache
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         env:
           cache-name: depends
         with:
@@ -135,7 +135,7 @@ jobs:
           make $MAKEJOBS -C depends HOST=${{ matrix.host }} ${{ matrix.dep-opts }}
 
       - name: CCache
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         env:
           cache-name: ccache
         with:
@@ -154,7 +154,7 @@ jobs:
           ${{ matrix.strip-cmd }} depends/${{ matrix.host }}/bin/aviand* src/qt/avian-qt* src/avian-cli* dist/Avian-Qt.app* || ( echo "Failed stripping builds. The build will have a bigger file size" )
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: avian-${{ github.sha }}-${{ matrix.name }}
           path: |
