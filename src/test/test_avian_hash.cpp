@@ -1,10 +1,11 @@
 // Copyright (c) 2009-2016 The Bitcoin Core developers
 // Copyright (c) 2017 The Raven Core developers
+// Copyright (c) 2022 The Avian Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include <arith_uint256.h>
-#include "algo/hash_algos.h"
+#include "algo/x16r/x16r.h"
 #include <stdio.h>
 #include <string.h>
 #include <utilstrencodings.h>

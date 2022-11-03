@@ -12,11 +12,11 @@
 #include "chainparams.h"
 
 #include "algo/minotaurx/minotaurx.h"             // Minotaurx Algo
+#include "algo/x16r/x16r.h"
 
 #include "primitives/block.h"
 #include "primitives/powcache.h"
 
-#include "algo/hash_algos.h"
 #include "tinyformat.h"
 #include "utilstrencodings.h"
 #include "crypto/common.h"
