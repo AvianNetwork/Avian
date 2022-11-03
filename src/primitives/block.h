@@ -30,7 +30,7 @@ const std::string POW_TYPE_NAMES[] = {
 // Dual algo: Pow type IDs
 enum POW_TYPE {
     POW_TYPE_X16RT,
-    POW_TYPE_CROW,
+    POW_TYPE_MINOTAURX,
     //
     NUM_BLOCK_TYPES
 };

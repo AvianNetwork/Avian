@@ -73,7 +73,7 @@ UniValue GetNetworkHashPS(int lookup, int height, POW_TYPE powType) {
     }
     // We have either stepped back to before crow fork, or the requested powType block
     // If we have stepped back to (or started looking up from) pre crow, but requested crow pow type, then there are no hashes
-    if (!IsCrowEnabled(pb, Params().GetConsensus()) && powType == POW_TYPE_CROW) {
+    if (!IsCrowEnabled(pb, Params().GetConsensus()) && powType == POW_TYPE_MINOTAURX) {
         return 0;
     }
     // We are either post-fork and with correct powType, or pre-fork and    int64_t minTime = pb->GetBlockTime();
@@ -88,7 +88,7 @@ UniValue GetNetworkHashPS(int lookup, int height, POW_TYPE powType) {
             assert (pb->pprev);
             pb = pb->pprev;
         }
-        if(!IsCrowEnabled(pb, Params().GetConsensus()) && powType == POW_TYPE_CROW) {
+        if(!IsCrowEnabled(pb, Params().GetConsensus()) && powType == POW_TYPE_MINOTAURX) {
             break;
         }
 
@@ -291,12 +291,12 @@ UniValue getmininginfo(const JSONRPCRequest& request)
     obj.push_back(Pair("currentblocktx",   (uint64_t)nLastBlockTx));
     obj.push_back(Pair("difficulty",       (double)GetDifficulty(powType)));
     if (IsCrowEnabled(chainActive.Tip(), Params().GetConsensus())) {
-        obj.push_back(Pair("difficulty_minotaurx", GetDifficulty(POW_TYPE_CROW)));
+        obj.push_back(Pair("difficulty_minotaurx", GetDifficulty(POW_TYPE_MINOTAURX)));
         obj.push_back(Pair("difficulty_x16rt", GetDifficulty(POW_TYPE_X16RT)));
     }
     obj.push_back(Pair("networkhashps", GetNetworkHashPS(5, -1, powType)));
     if (IsCrowEnabled(chainActive.Tip(), Params().GetConsensus())) {
-        obj.push_back(Pair("networkhashps_minotaurx", GetNetworkHashPS(5, -1, POW_TYPE_CROW)));
+        obj.push_back(Pair("networkhashps_minotaurx", GetNetworkHashPS(5, -1, POW_TYPE_MINOTAURX)));
         obj.push_back(Pair("networkhashps_x16rt", GetNetworkHashPS(5, -1, POW_TYPE_X16RT)));
     }
     obj.push_back(Pair("hashespersec",     (uint64_t)nHashesPerSec));

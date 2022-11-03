@@ -136,7 +136,7 @@ public:
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nStartTime = 1199145601; // January 1, 2008
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nTimeout = 1230767999; // December 31, 2008
 
-        // Crow Algo consensus
+        // Crow dual-algo consensus
         consensus.powForkTime = 1638847407;                 // Time of PoW hash method change (Dec 06 2021)
         consensus.lwmaAveragingWindow = 45;                 // Averaging window size for LWMA diff adjust
         consensus.diffRetargetFix = 275109;                 // Block for diff algo fix
@@ -144,7 +144,7 @@ public:
 
 	    // until "LWMA3" retarget algo, only "00000fff..." was used. these will apply once LWMA3 goes live
         consensus.powTypeLimits.emplace_back(uint256S("00000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"));   // x16rt limit
-        consensus.powTypeLimits.emplace_back(uint256S("000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"));   // Crow limit
+        consensus.powTypeLimits.emplace_back(uint256S("000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"));   // MinotaurX limit
 
         // x16rt switch
         consensus.nX16rtTimestamp = 1638847406;
@@ -305,14 +305,14 @@ public:
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nStartTime = 0;
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nTimeout = 999999999999ULL;
 
-        // Crow Algo consensus
+        // Crow dual-algo consensus
         consensus.powForkTime = 1639005225;                 // Time of PoW hash method change
         consensus.lwmaAveragingWindow = 45;                 // Averaging window size for LWMA diff adjust
         consensus.diffRetargetFix = 0;                      // Block of diff algo change
         consensus.diffRetargetTake2 = 1639269000;           // Third iteration of LWMA retarget activation timestamp
 
         consensus.powTypeLimits.emplace_back(uint256S("00000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"));   // x16rt limit
-        consensus.powTypeLimits.emplace_back(uint256S("000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"));   // Crow limit
+        consensus.powTypeLimits.emplace_back(uint256S("000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"));   // MinotaurX limit
 
         // testnet x16rt switch
         consensus.nX16rtTimestamp = 1634101200; // Oct 13, 2021 
@@ -447,14 +447,14 @@ public:
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nStartTime = 0;
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nTimeout = 999999999999ULL;
 
-        // Crow Algo consensus
+        // Crow dual-algo consensus
         consensus.powForkTime = 1629951212;        // Time of PoW hash method change
         consensus.lwmaAveragingWindow = 45;        // Averaging window size for LWMA diff adjust
         consensus.diffRetargetFix = 0;             // Block of diff algo change
         consensus.diffRetargetTake2 = 1629951212;  // Third iteration of LWMA retarget activation timestamp
 
         consensus.powTypeLimits.emplace_back(uint256S("7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"));   // x16rt limit
-        consensus.powTypeLimits.emplace_back(uint256S("7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"));   // Crow limit
+        consensus.powTypeLimits.emplace_back(uint256S("7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"));   // MinotaurX limit
 
         // regtest x16rt switch (genesis +1)
         consensus.nX16rtTimestamp = 1629951212;

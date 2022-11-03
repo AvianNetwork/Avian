@@ -85,7 +85,7 @@ uint256 CBlockHeader::ComputePoWHash() const
                 thash = HashX16R(BEGIN(nVersion), END(nNonce), hashTime);
                 break;
             }
-            case POW_TYPE_CROW: {
+            case POW_TYPE_MINOTAURX: {
                 return Minotaurx(BEGIN(nVersion), END(nNonce), true);
                 break;
             }
