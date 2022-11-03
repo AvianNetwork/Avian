@@ -613,7 +613,7 @@ UniValue getblocktemplate(const JSONRPCRequest& request)
     if (pindexPrev != chainActive.Tip() ||
         (mempool.GetTransactionsUpdated() != nTransactionsUpdatedLast && GetTime() - nStart > 5) ||
         fLastTemplateSupportsSegwit != fSupportsSegwit ||
-        lastPowType != powType) // Crow: Include powType check in cache refresh condition
+        lastPowType != powType) // Dual algo: Include powType check in cache refresh condition
     {
         // Clear pindexPrev so future calls make a new block, despite any failures from here on
         pindexPrev = nullptr;
@@ -626,8 +626,8 @@ UniValue getblocktemplate(const JSONRPCRequest& request)
 
         // Create new block
         CScript scriptDummy = CScript() << OP_TRUE;
-        pblocktemplate = BlockAssembler(Params()).CreateNewBlock(scriptDummy, fSupportsSegwit, powType);   // Crow: Include powType
-        lastPowType = powType;   // Crow: Cache pow type just requested        
+        pblocktemplate = BlockAssembler(Params()).CreateNewBlock(scriptDummy, fSupportsSegwit, powType);   // Dual algo: Include powType
+        lastPowType = powType;   // Dual algo: Cache pow type just requested        
         if (!pblocktemplate)
             throw JSONRPCError(RPC_OUT_OF_MEMORY, "Out of memory");
 

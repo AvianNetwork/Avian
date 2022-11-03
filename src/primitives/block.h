@@ -15,19 +15,19 @@
 #include "unordered_lru_cache.h"
 #include "util.h"
 
-// Crow: An impossible pow hash (can't meet any target)
+// Dual algo: An impossible pow hash (can't meet any target)
 const uint256 HIGH_HASH = uint256S("0x0fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
 
-// Crow: Default value for -powalgo argument
+// Dual algo: Default value for -powalgo argument
 const std::string DEFAULT_POW_TYPE = "x16rt";
 
-// Crow: Pow type names
+// Dual algo: Pow type names
 const std::string POW_TYPE_NAMES[] = {
     "x16rt",
     "minotaurx"
 };
 
-// Crow: Pow type IDs
+// Dual algo: Pow type IDs
 enum POW_TYPE {
     POW_TYPE_X16RT,
     POW_TYPE_CROW,
@@ -110,7 +110,7 @@ public:
     /// Compute X16R hash
     uint256 GetX16RHash() const;
 
-    // Crow: MinotaurX
+    // Dual algo: MinotaurX
     static uint256 CrowHashArbitrary(const char* data);
 
     /// Use for testing algo switch
@@ -123,12 +123,12 @@ public:
         return (int64_t)nTime;
     }
 
-    // Crow: Get pow type from version bits
+    // Dual algo: Get pow type from version bits
     POW_TYPE GetPoWType() const {
         return (POW_TYPE)((nVersion >> 16) & 0xFF);
     }
 
-    // Crow: Get pow type name
+    // Dual algo: Get pow type name
     std::string GetPoWTypeName() const {
         // if (nVersion >= 0x20000000)
         //     return POW_TYPE_NAMES[0];

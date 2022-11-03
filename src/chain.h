@@ -21,7 +21,7 @@
  */
 static const int64_t MAX_FUTURE_BLOCK_TIME = 2 * 60 * 60;
 static const int64_t MAX_FUTURE_BLOCK_TIME_DGW = MAX_FUTURE_BLOCK_TIME / 10;
-static const int64_t MAX_FUTURE_BLOCK_TIME_CROW = (90 * 5 * 60) / 20;  // Crow: (N*T)/20
+static const int64_t MAX_FUTURE_BLOCK_TIME_CROW = (90 * 5 * 60) / 20;  // Dual algo: (N*T)/20
 
 /**
  * Timestamp window used as a grace period by code that compares external

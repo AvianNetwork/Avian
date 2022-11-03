@@ -151,7 +151,7 @@ public:
     }
 };
 
-// Crow: 512-bit opaque blob
+// Dual algo: 512-bit opaque blob
 class uint512 : public base_blob<512> {
 public:
     uint512() {}
