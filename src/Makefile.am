@@ -126,21 +126,21 @@ AVIAN_CORE_H = \
   algo/sponge.cpp \
   algo/sph_sha2.c \
   algo/gost_streebog.c \
-  algo/crow/blake2.h \
-  algo/crow/blake2-impl.h \
-  algo/crow/blake2s-ref.c \
-  algo/crow/hashblake.h \
-  algo/crow/hashgroestl.h \
-  algo/crow/hashquark.h \
-  algo/crow/hashqubit.h \
-  algo/crow/hashskein.h \
-  algo/crow/hashx11.h \
-  algo/crow/hashx13.h \
-  algo/crow/hashx15.h \
-  algo/crow/hashx17.h \
-  algo/crow/minotaurx.h \
-  algo/crow/yespower/yespower.c \
-  algo/crow/yespower/crypto/sha256.c \
+  algo/minotaurx/blake2.h \
+  algo/minotaurx/blake2-impl.h \
+  algo/minotaurx/blake2s-ref.c \
+  algo/minotaurx/hashblake.h \
+  algo/minotaurx/hashgroestl.h \
+  algo/minotaurx/hashquark.h \
+  algo/minotaurx/hashqubit.h \
+  algo/minotaurx/hashskein.h \
+  algo/minotaurx/hashx11.h \
+  algo/minotaurx/hashx13.h \
+  algo/minotaurx/hashx15.h \
+  algo/minotaurx/hashx17.h \
+  algo/minotaurx/minotaurx.h \
+  algo/minotaurx/yespower/yespower.c \
+  algo/minotaurx/yespower/crypto/sha256.c \
   spentindex.h \
   timestampindex.h \
   addrman.h \

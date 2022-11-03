@@ -11,7 +11,7 @@
 
 #include "chainparams.h"
 
-#include "algo/crow/minotaurx.h"             // Minotaurx Algo
+#include "algo/minotaurx/minotaurx.h"             // Minotaurx Algo
 
 #include "primitives/block.h"
 #include "primitives/powcache.h"
