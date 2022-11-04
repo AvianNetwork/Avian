@@ -45,6 +45,11 @@ public:
 
     /** Get ANS ID as string */
     std::string to_string();
+
+    /** ANS ID encode/decode */
+    std::string EncodeHex();
+    static std::string DecodeHex(std::string hex);
+
     /** Get JSON object about this ANS ID */
     UniValue to_object();
 

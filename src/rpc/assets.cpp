@@ -582,7 +582,7 @@ UniValue issue(const JSONRPCRequest& request)
         throw JSONRPCError(RPC_INVALID_PARAMETER, std::string("Invalid parameters for issuing a qualifier asset."));
     }
 
-    CNewAsset asset(assetName, nAmount, units, reissuable ? 1 : 0, has_ipfs ? 1 : 0, DecodeAssetData(ipfs_hash), has_ans ? 1 : 0, ans_id);
+    CNewAsset asset(assetName, nAmount, units, reissuable ? 1 : 0, has_ipfs ? 1 : 0, DecodeAssetData(ipfs_hash), has_ans ? 1 : 0, DecodeANS(ans_id));
 
     CReserveKey reservekey(pwallet);
     CWalletTx transaction;
@@ -736,7 +736,7 @@ UniValue issueunique(const JSONRPCRequest& request)
         }
         else if(!ansIDS.isNull())
         {
-            asset = CNewAsset(assetName, UNIQUE_ASSET_AMOUNT, UNIQUE_ASSET_UNITS, UNIQUE_ASSETS_REISSUABLE, 0, "", 1, ansIDS[i].get_str());
+            asset = CNewAsset(assetName, UNIQUE_ASSET_AMOUNT, UNIQUE_ASSET_UNITS, UNIQUE_ASSETS_REISSUABLE, 0, "", 1, DecodeANS(ansIDS[i].get_str()));
         }
 
         assets.push_back(asset);
@@ -903,9 +903,9 @@ UniValue getassetdata(const JSONRPCRequest& request)
         if (asset.nHasANS) {
             UniValue ansInfo (UniValue::VOBJ);
 
-            CAvianNameSystem ansID(asset.strANSID);
+            CAvianNameSystem ansID(EncodeANS(asset.strANSID));
 
-            result.push_back(Pair("ans_info", ansID.to_object()));
+            result.push_back(Pair("ans_info", EncodeANS(ansID.to_object())));
         }
 
         CNullAssetTxVerifierString verifier;

@@ -217,7 +217,7 @@ void ScriptPubKeyToUniv(const CScript& scriptPubKey,
                                 assetInfo.pushKV("ipfs_hash", EncodeAssetData(asset.strIPFSHash));
                             }
                             if (asset.nHasANS > 0) {
-                                assetInfo.pushKV("ans_id", asset.strANSID);
+                                assetInfo.pushKV("ans_id", EncodeANS(asset.strANSID));
                             }
                         }
                     }
@@ -235,7 +235,7 @@ void ScriptPubKeyToUniv(const CScript& scriptPubKey,
                             assetInfo.pushKV("ipfs_hash", EncodeAssetData(asset.strIPFSHash));
                         }
                         if (!asset.strANSID.empty()) {
-                            assetInfo.pushKV("ans_id", asset.strANSID);
+                            assetInfo.pushKV("ans_id", EncodeANS(asset.strANSID));
                         }
                     }
                     break;

@@ -527,6 +527,8 @@ std::string DecodeAssetData(std::string encoded);
 std::string EncodeAssetData(std::string decoded);
 std::string DecodeIPFS(std::string encoded);
 std::string EncodeIPFS(std::string decoded);
+std::string DecodeANS(std::string encoded);
+std::string EncodeANS(std::string decoded);
 
 #ifdef ENABLE_WALLET
 

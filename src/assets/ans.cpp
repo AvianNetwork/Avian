@@ -14,8 +14,8 @@ please be safe and run proper tests.
 #include <string>
 #include <sstream>
 
-#include "univalue.h"
 #include "util.h"
+#include "univalue.h"
 #include "utilstrencodings.h"
 #include "base58.h"
 #include "script/standard.h"
@@ -51,10 +51,11 @@ static std::string HexToIPv4(std::string hexIPv4)
 }
 
 bool CAvianNameSystem::CheckIPv4(std::string rawipv4, bool isHex) {
-    if (isHex) rawipv4 = HexToIPv4(rawipv4);
+    std::string ip = rawipv4;
+    if (isHex) ip = HexToIPv4(rawipv4);
 
     boost::system::error_code error;
-    address_v4::from_string(rawipv4, error);
+    address_v4::from_string(ip, error);
 
     if (error) return false;
     else return true;
@@ -160,6 +161,61 @@ CAvianNameSystem::CAvianNameSystem(std::string ansID) :
     }
 }
 
+std::string CAvianNameSystem::EncodeHex()
+{
+    std::string strHex;
+
+    // Add type as hex
+    std::stringstream ss;
+    ss << std::hex << this->m_type;
+    strHex += ss.str();
+
+    // Encode data
+    switch(this->m_type) {
+        case ADDR: {
+            // Convert Base58 to hex
+            std::vector<unsigned char> b;
+            DecodeBase58(m_addr, b);
+            strHex += std::string(b.begin(), b.end());
+        }
+        case IPv4: {
+            strHex += IPv4ToHex(m_ipv4);
+        }
+    }
+
+    return HexStr(strHex);
+}
+
+std::string CAvianNameSystem::DecodeHex(std::string hex)
+{
+    // Check if hex
+    if(!IsHex(hex)) return ""; // Return invalid ANS ID
+
+    // Get type (add error checking?)
+    Type type = static_cast<Type>(stoi(hex.substr(0, 1)));
+
+    // Decode data
+    std::string encodedData = hex.substr(1);
+    std::string decodedData = "";
+
+    switch(type) {
+        case ADDR: {
+            // Convert hex to Base58
+            std::vector<char> charData(encodedData.begin(), encodedData.end());
+            std::vector<unsigned char> unsignedCharData;
+            for (char c : charData)
+                unsignedCharData.push_back(static_cast<unsigned char>(c));
+            decodedData = EncodeBase58(unsignedCharData);
+        }
+        case IPv4: {
+            decodedData = encodedData; // ANS already expects IPv4 as hex.
+        }
+    }
+
+    CAvianNameSystem ansID(type, decodedData);
+    return ansID.to_string();
+}
+
 std::string CAvianNameSystem::to_string() 
 {
     std::string id = "";
@@ -175,7 +231,7 @@ std::string CAvianNameSystem::to_string()
     // 3. Add data
     switch(this->m_type) {
         case ADDR: id += m_addr;
-        case IPv4: IPv4ToHex(m_ipv4);
+        case IPv4: id += IPv4ToHex(m_ipv4);
     }
     
     return id;
@@ -186,6 +242,7 @@ UniValue CAvianNameSystem::to_object()
     UniValue ansInfo(UniValue::VOBJ);
 
     ansInfo.pushKV("ans_id", this->to_string());
+    ansInfo.pushKV("raw_hex", this->EncodeHex());
     ansInfo.pushKV("type_hex", this->m_type);
 
     switch(this->m_type) {

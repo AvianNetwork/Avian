@@ -619,7 +619,7 @@ void ReissueAssetDialog::buildUpdatedData()
     QString ansID;
 
     if (asset->nHasANS && (!ui->ansBox->isChecked() || (ui->ansBox->isChecked() && ui->ansText->text().isEmpty()))) {
-        QString qstr = QString::fromStdString(asset->strANSID);
+        QString qstr = QString::fromStdString(EncodeANS(asset->strANSID));
         ansID = formatBlack.arg(tr("ANS ID"), ":", qstr) + "\n";
     } else if (ui->ansBox->isChecked() && !ui->ansBox->text().isEmpty()) {
         std::string error; // TODO: We already do type checking, should we check again here?
@@ -737,7 +737,7 @@ void ReissueAssetDialog::onAssetSelected(int index)
 
         QString assetdataANS = "";
         if (asset->nHasANS) {
-            QString qstr = QString::fromStdString(asset->strANSID);
+            QString qstr = QString::fromStdString(EncodeANS(asset->strANSID));
             assetdataANS = formatBlack.arg(tr("ANS ID"), ":", qstr) + "\n";
         }
 
@@ -808,7 +808,9 @@ bool ReissueAssetDialog::checkIPFSHash(QString hash)
         }
 
         std::string error;
-        if (!CheckEncoded(DecodeAssetData(hash.toStdString()), error)) {
+        // Do not allow ANS in IPFS
+        bool isANS = (hash.toStdString().substr(0, CAvianNameSystem::prefix.length()) == CAvianNameSystem::prefix);
+        if (!CheckEncoded(DecodeAssetData(hash.toStdString()), error) && !isANS) {
             ui->ipfsText->setStyleSheet(STYLE_INVALID);
             showMessage(tr("IPFS/Txid Hash must start with 'Qm' and be 46 characters or Txid Hash must have 64 hex characters"));
             disableReissueButton();
@@ -950,7 +952,7 @@ void ReissueAssetDialog::onReissueAssetClicked()
         formattedTypeData = CAvianNameSystem::FormatTypeData(type, ui->ansText->text().toStdString(), error);
 
         CAvianNameSystem ansID(type, formattedTypeData);
-        ansDecoded = ansID.to_string();
+        ansDecoded = ansID.EncodeHex();
 
         // Warn user
         QMessageBox::critical(this, "ANS Warning", tr("Storing data using the Avian Name System will forever stay in the blockchain. You can edit the ANS ID only if the asset is reissueable.") + QString("\n\nANS ID: ") + QString::fromStdString(ansDecoded), QMessageBox::Ok, QMessageBox::Ok);

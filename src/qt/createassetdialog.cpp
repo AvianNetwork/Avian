@@ -796,7 +796,7 @@ void CreateAssetDialog::onCreateAssetClicked()
         formattedTypeData = CAvianNameSystem::FormatTypeData(type, ui->ansText->text().toStdString(), error);
 
         CAvianNameSystem ansID(type, formattedTypeData);
-        ansDecoded = ansID.to_string();
+        ansDecoded = ansID.EncodeHex();
 
         // Warn user
         QMessageBox::critical(this, "ANS Warning", tr("Storing data using the Avian Name System will forever stay in the blockchain. You can edit the ANS ID only if the asset is reissueable.") + QString("\n\nANS ID: ") + QString::fromStdString(ansDecoded), QMessageBox::Ok, QMessageBox::Ok);
