@@ -763,7 +763,7 @@ void OverviewPage::openDataForAsset(const QModelIndex &index, bool forceANS)
         QString ansData = "";
 
         if(ans.type() == CAvianNameSystem::ADDR) ansData = "Address: " + QString::fromStdString(ans.addr());
-        if(ans.type() == CAvianNameSystem::IP) ansData = "IPv4: " + QString::fromStdString(ans.ip());
+        if(ans.type() == CAvianNameSystem::IPv4) ansData = "IPv4: " + QString::fromStdString(ans.ipv4());
 
         QMessageBox::information(this, "ANS Info", assetname + " links to:\n" + ansData);
     }

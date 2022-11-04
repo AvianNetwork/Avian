@@ -3158,7 +3158,7 @@ UniValue ansencode(const JSONRPCRequest& request)
 
     // Set type
     if (strType == "addr") type = CAvianNameSystem::ADDR;
-    else if (strType == "ip") type = CAvianNameSystem::IP;
+    else if (strType == "ip") type = CAvianNameSystem::IPv4;
     else throw JSONRPCError(RPC_INVALID_PARAMETER, std::string("Invalid type: try \"addr\" or \"ip\""));
 
     // Set strData based on type.
@@ -3208,8 +3208,8 @@ UniValue ansdecode(const JSONRPCRequest& request)
 
     if(ansID.type() == CAvianNameSystem::ADDR) {
         result.pushKV("ans_addr", ansID.addr());
-    } else if(ansID.type() == CAvianNameSystem::IP) {
-        result.pushKV("ans_ip", ansID.ip());
+    } else if(ansID.type() == CAvianNameSystem::IPv4) {
+        result.pushKV("ans_ip", ansID.ipv4());
     }
 
     return result;
