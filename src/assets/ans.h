@@ -3,20 +3,24 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef AVIAN_ANS_H
-#define AVIAN_ANS_H
+#ifndef AVIAN_NAME_SYSTEM_H
+#define AVIAN_NAME_SYSTEM_H
 
 #include <string>
 #include <array>
 
 #include "univalue.h"
 
-/* Class for ANS (Avian Name System) ID */
+/** Avian Name System */
 class CAvianNameSystemID {
 public:  
+
+    /** Static prefix for ANS IDs */
     static const std::string prefix;
+    /** Static domain */
     static const std::string domain;
 
+    /** ANS types */
     enum Type {
         ADDR = 0x0,
         IP = 0x1
@@ -25,20 +29,28 @@ public:
     CAvianNameSystemID(Type type, std::string rawData);
     CAvianNameSystemID(std::string ansID);
 
+    /** Get ANS ID as string */
     std::string to_string();
+    /** Get JSON object about this ANS ID */
     UniValue to_object();
 
+    /** ANS return types */
     Type type() { return m_type; };
     std::string addr() { return m_addr; };
     std::string ip() { return m_ip; };
 
+    /** Check if valid IPv4 address */
     static bool CheckIP(std::string rawip, bool isHex);
 
+    /** Check if valid ANS ID */
     static bool IsValidID(std::string ansID);
 
+    /** Check ANS raw data based on type */
     static bool CheckTypeData(Type type, std::string typeData);
+    /** Convert raw data into ANS ID type data */
     static std::string FormatTypeData(Type type, std::string typeData, std::string& error);
 
+    /** Convert ANS type into string with description */
     static std::pair<std::string, std::string> enum_to_string(Type type) {
         switch(type) {
             case ADDR:
@@ -51,14 +63,16 @@ public:
     }
 
 private:
+    /** ANS types as private */
     Type m_type;
     std::string m_addr;
     std::string m_ip;
 };
 
+/** Public array of ANS types  */
 constexpr std::array<CAvianNameSystemID::Type, 2> ANSTypes { 
     CAvianNameSystemID::ADDR, 
     CAvianNameSystemID::IP
 };
 
-#endif
+#endif // AVIAN_NAME_SYSTEM_H

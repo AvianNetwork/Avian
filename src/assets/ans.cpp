@@ -3,13 +3,16 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
+/**
+Avian Name System functions are consensus critical, 
+please be safe and run proper tests.
+*/
+
 #include "ans.h"
 
 #include <iostream>
 #include <string>
 #include <sstream>
-
-#include "string.h"
 
 #include "univalue.h"
 #include "util.h"
@@ -21,10 +24,10 @@
 
 using namespace boost::asio::ip;
 
-/* Static prefix */
+/** Static prefix from ANS IDs */
 const std::string CAvianNameSystemID::prefix = "ANS";
 
-/* Staic domain */
+/** Static domain */
 const std::string CAvianNameSystemID::domain = ".AVN";
 
 static std::string IPToHex(std::string strIP)
