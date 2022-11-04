@@ -113,15 +113,12 @@ bool CAvianNameSystem::IsValidID(std::string ansID)
     bool hasPrefix = (ansID.substr(0, CAvianNameSystem::prefix.length()) == CAvianNameSystem::prefix) && (ansID.size() <= 64);
     if (!hasPrefix) return false;
 
-    // Must be valid hex char
+    // Must be valid hex number
     std::string hexStr = ansID.substr(prefix.length(), 1);
     if (!IsHexNumber(hexStr)) return false;
 
-    // Hex value must be less than 0xf
-    int hexInt = stoi(hexStr, 0, 16);
-    if (hexInt > 0xf) return false;
-
     // Check type
+    int hexInt = stoi(hexStr, 0, 16);
     Type type = static_cast<Type>(hexInt);
     std::string rawData = ansID.substr(prefix.length() + 1);
 
