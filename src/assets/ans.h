@@ -12,7 +12,7 @@
 #include "univalue.h"
 
 /** Avian Name System */
-class CAvianNameSystemID {
+class CAvianNameSystem {
 public:  
 
     /** Static prefix for ANS IDs */
@@ -26,8 +26,8 @@ public:
         IP = 0x1
     };
 
-    CAvianNameSystemID(Type type, std::string rawData);
-    CAvianNameSystemID(std::string ansID);
+    CAvianNameSystem(Type type, std::string rawData);
+    CAvianNameSystem(std::string ansID);
 
     /** Get ANS ID as string */
     std::string to_string();
@@ -70,9 +70,9 @@ private:
 };
 
 /** Public array of ANS types  */
-constexpr std::array<CAvianNameSystemID::Type, 2> ANSTypes { 
-    CAvianNameSystemID::ADDR, 
-    CAvianNameSystemID::IP
+constexpr std::array<CAvianNameSystem::Type, 2> ANSTypes { 
+    CAvianNameSystem::ADDR, 
+    CAvianNameSystem::IP
 };
 
 #endif // AVIAN_NAME_SYSTEM_H

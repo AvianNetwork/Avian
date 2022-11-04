@@ -903,7 +903,7 @@ UniValue getassetdata(const JSONRPCRequest& request)
         if (asset.nHasANS) {
             UniValue ansInfo (UniValue::VOBJ);
 
-            CAvianNameSystemID ansID(asset.strANSID);
+            CAvianNameSystem ansID(asset.strANSID);
 
             result.push_back(Pair("ans_info", ansID.to_object()));
         }
@@ -953,7 +953,7 @@ UniValue getansdata(const JSONRPCRequest& request)
             return NullUniValue;
 
         if (asset.nHasANS) {
-            CAvianNameSystemID ansID(asset.strANSID);
+            CAvianNameSystem ansID(asset.strANSID);
             result = ansID.to_object();
         } else {
             return NullUniValue;
@@ -3154,25 +3154,25 @@ UniValue ansencode(const JSONRPCRequest& request)
     std::string strType = request.params[0].get_str();
     std::string strData = request.params[1].get_str();
 
-    CAvianNameSystemID::Type type;
+    CAvianNameSystem::Type type;
 
     // Set type
-    if (strType == "addr") type = CAvianNameSystemID::ADDR;
-    else if (strType == "ip") type = CAvianNameSystemID::IP;
+    if (strType == "addr") type = CAvianNameSystem::ADDR;
+    else if (strType == "ip") type = CAvianNameSystem::IP;
     else throw JSONRPCError(RPC_INVALID_PARAMETER, std::string("Invalid type: try \"addr\" or \"ip\""));
 
     // Set strData based on type.
     std::string error;
     std::string formattedTypeData;
 
-    formattedTypeData = CAvianNameSystemID::FormatTypeData(type, strData, error);
+    formattedTypeData = CAvianNameSystem::FormatTypeData(type, strData, error);
 
     if(error != "") throw JSONRPCError(RPC_INVALID_PARAMETER, std::string("ANS error: ") + error);
 
     // Check strData (sanity check, typeData already checked in FormatTypeData)
-    if (!CAvianNameSystemID::CheckTypeData(type, formattedTypeData)) throw JSONRPCError(RPC_INVALID_PARAMETER, std::string("Invalid ANS data: ") + strData);
+    if (!CAvianNameSystem::CheckTypeData(type, formattedTypeData)) throw JSONRPCError(RPC_INVALID_PARAMETER, std::string("Invalid ANS data: ") + strData);
 
-    CAvianNameSystemID ansID(type, formattedTypeData);
+    CAvianNameSystem ansID(type, formattedTypeData);
 
     return ansID.to_string();
 }
@@ -3197,18 +3197,18 @@ UniValue ansdecode(const JSONRPCRequest& request)
     std::string strID = request.params[0].get_str();
 
     // Check if ID is valid before trying to decode
-    if (!CAvianNameSystemID::IsValidID(strID)) throw JSONRPCError(RPC_INVALID_PARAMETER, std::string("Invalid ANS ID: ") + strID);
+    if (!CAvianNameSystem::IsValidID(strID)) throw JSONRPCError(RPC_INVALID_PARAMETER, std::string("Invalid ANS ID: ") + strID);
 
-    CAvianNameSystemID ansID(strID);
+    CAvianNameSystem ansID(strID);
 
     UniValue result (UniValue::VOBJ);
 
     result.pushKV("ans_id", ansID.to_string());
     result.pushKV("type_hex", ansID.type());
 
-    if(ansID.type() == CAvianNameSystemID::ADDR) {
+    if(ansID.type() == CAvianNameSystem::ADDR) {
         result.pushKV("ans_addr", ansID.addr());
-    } else if(ansID.type() == CAvianNameSystemID::IP) {
+    } else if(ansID.type() == CAvianNameSystem::IP) {
         result.pushKV("ans_ip", ansID.ip());
     }
 

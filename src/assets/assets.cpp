@@ -3845,7 +3845,7 @@ bool GetMyAssetBalance(const std::string& name, CAmount& balance, const int& con
 std::string DecodeAssetData(std::string encoded)
 {
     // ANS
-    if (CAvianNameSystemID::IsValidID(encoded)) {
+    if (CAvianNameSystem::IsValidID(encoded)) {
         return encoded;
     }
 
@@ -3869,7 +3869,7 @@ std::string DecodeAssetData(std::string encoded)
 std::string EncodeAssetData(std::string decoded)
 {
     // ANS
-    if (CAvianNameSystemID::IsValidID(decoded)) {
+    if (CAvianNameSystem::IsValidID(decoded)) {
         return decoded;
     }
 
@@ -4465,7 +4465,7 @@ bool CheckEncoded(const std::string& hash, std::string& strError) {
     std::string encodedStr = EncodeAssetData(hash);
 
     // ANS
-    if (IsAvianNameSystemDeployed() && CAvianNameSystemID::IsValidID(encodedStr)) {
+    if (IsAvianNameSystemDeployed() && CAvianNameSystem::IsValidID(encodedStr)) {
         return true;
     }
 
@@ -5482,9 +5482,9 @@ bool ContextualCheckNewAsset(CAssetsCache* assetCache, const CNewAsset& asset, s
 
     // Check asset name for ANS
     if (IsAssetNameARoot(asset.strName) && asset.nHasANS) {
-        bool shortLength = asset.strName.length() <= CAvianNameSystemID::domain.length();
-        if (shortLength || asset.strName.substr(asset.strName.length() - CAvianNameSystemID::domain.length()) != CAvianNameSystemID::domain) {
-            strError = std::string(_("Invalid parameter: asset name needs to end in '")) + CAvianNameSystemID::domain + std::string(_("' since ANS data is attached."));
+        bool shortLength = asset.strName.length() <= CAvianNameSystem::domain.length();
+        if (shortLength || asset.strName.substr(asset.strName.length() - CAvianNameSystem::domain.length()) != CAvianNameSystem::domain) {
+            strError = std::string(_("Invalid parameter: asset name needs to end in '")) + CAvianNameSystem::domain + std::string(_("' since ANS data is attached."));
             return false;
         }
     }
@@ -5605,9 +5605,9 @@ bool ContextualCheckReissueAsset(CAssetsCache* assetCache, const CReissueAsset& 
 
     // Check asset name for ANS
     if (IsAssetNameARoot(reissue_asset.strName) && reissue_asset.strANSID != "") {
-        bool shortLength = reissue_asset.strName.length() <= CAvianNameSystemID::domain.length();
-        if (shortLength || reissue_asset.strName.substr(reissue_asset.strName.length() - CAvianNameSystemID::domain.length()) != CAvianNameSystemID::domain) {
-            strError = std::string(_("Invalid parameter: asset name needs to end in '")) + CAvianNameSystemID::domain + std::string(_("' since ANS data is attached."));
+        bool shortLength = reissue_asset.strName.length() <= CAvianNameSystem::domain.length();
+        if (shortLength || reissue_asset.strName.substr(reissue_asset.strName.length() - CAvianNameSystem::domain.length()) != CAvianNameSystem::domain) {
+            strError = std::string(_("Invalid parameter: asset name needs to end in '")) + CAvianNameSystem::domain + std::string(_("' since ANS data is attached."));
             return false;
         }
     }
@@ -5711,9 +5711,9 @@ bool ContextualCheckReissueAsset(CAssetsCache* assetCache, const CReissueAsset& 
 
     // Check asset name for ANS
     if (IsAssetNameARoot(reissue_asset.strName) && reissue_asset.strANSID != "") {
-        bool shortLength = reissue_asset.strName.length() <= CAvianNameSystemID::domain.length();
-        if (shortLength || reissue_asset.strName.substr(reissue_asset.strName.length() - CAvianNameSystemID::domain.length()) != CAvianNameSystemID::domain) {
-            strError = std::string(_("Invalid parameter: asset name needs to end in '")) + CAvianNameSystemID::domain + std::string(_("' since ANS data is attached."));
+        bool shortLength = reissue_asset.strName.length() <= CAvianNameSystem::domain.length();
+        if (shortLength || reissue_asset.strName.substr(reissue_asset.strName.length() - CAvianNameSystem::domain.length()) != CAvianNameSystem::domain) {
+            strError = std::string(_("Invalid parameter: asset name needs to end in '")) + CAvianNameSystem::domain + std::string(_("' since ANS data is attached."));
             return false;
         }
     }

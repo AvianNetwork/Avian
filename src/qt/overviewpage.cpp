@@ -759,11 +759,11 @@ void OverviewPage::openDataForAsset(const QModelIndex &index, bool forceANS)
     }
     // Show ANS data if attached to asset
     else if (ansid.count() > 0) {
-        CAvianNameSystemID ans(ansid.toStdString());
+        CAvianNameSystem ans(ansid.toStdString());
         QString ansData = "";
 
-        if(ans.type() == CAvianNameSystemID::ADDR) ansData = "Address: " + QString::fromStdString(ans.addr());
-        if(ans.type() == CAvianNameSystemID::IP) ansData = "IPv4: " + QString::fromStdString(ans.ip());
+        if(ans.type() == CAvianNameSystem::ADDR) ansData = "Address: " + QString::fromStdString(ans.addr());
+        if(ans.type() == CAvianNameSystem::IP) ansData = "IPv4: " + QString::fromStdString(ans.ip());
 
         QMessageBox::information(this, "ANS Info", assetname + " links to:\n" + ansData);
     }

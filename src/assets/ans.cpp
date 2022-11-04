@@ -25,10 +25,10 @@ please be safe and run proper tests.
 using namespace boost::asio::ip;
 
 /** Static prefix from ANS IDs */
-const std::string CAvianNameSystemID::prefix = "ANS";
+const std::string CAvianNameSystem::prefix = "ANS";
 
 /** Static domain */
-const std::string CAvianNameSystemID::domain = ".AVN";
+const std::string CAvianNameSystem::domain = ".AVN";
 
 static std::string IPToHex(std::string strIP)
 {
@@ -50,7 +50,7 @@ static std::string HexToIP(std::string hexIP)
     return ip.to_string();
 }
 
-bool CAvianNameSystemID::CheckIP(std::string rawip, bool isHex) {
+bool CAvianNameSystem::CheckIP(std::string rawip, bool isHex) {
     std::string ip = rawip;
     if (isHex) ip = HexToIP(rawip.c_str());
 
@@ -62,7 +62,7 @@ bool CAvianNameSystemID::CheckIP(std::string rawip, bool isHex) {
 }
 
 // TODO: Add error result?
-bool CAvianNameSystemID::CheckTypeData(Type type, std::string typeData) {
+bool CAvianNameSystem::CheckTypeData(Type type, std::string typeData) {
     if (type == Type::ADDR) {
         CTxDestination destination = DecodeDestination(typeData);
         if (!IsValidDestination(destination)) return false;
@@ -75,7 +75,7 @@ bool CAvianNameSystemID::CheckTypeData(Type type, std::string typeData) {
     return true;
 }
 
-std::string CAvianNameSystemID::FormatTypeData(Type type, std::string typeData, std::string& error)
+std::string CAvianNameSystem::FormatTypeData(Type type, std::string typeData, std::string& error)
 {
     std::string returnStr = typeData;
 
@@ -99,12 +99,12 @@ std::string CAvianNameSystemID::FormatTypeData(Type type, std::string typeData, 
     return returnStr;
 }
 
-bool CAvianNameSystemID::IsValidID(std::string ansID) {
+bool CAvianNameSystem::IsValidID(std::string ansID) {
     // Check for min length
     if(ansID.length() <= prefix.size() + 1) return false;
 
     // Check for prefix
-    bool hasPrefix = (ansID.substr(0, CAvianNameSystemID::prefix.length()) == CAvianNameSystemID::prefix) && (ansID.size() <= 64);
+    bool hasPrefix = (ansID.substr(0, CAvianNameSystem::prefix.length()) == CAvianNameSystem::prefix) && (ansID.size() <= 64);
     if (!hasPrefix) return false;
 
     // Must be valid hex char
@@ -124,7 +124,7 @@ bool CAvianNameSystemID::IsValidID(std::string ansID) {
     return true;
 }
 
-CAvianNameSystemID::CAvianNameSystemID(Type type, std::string rawData) :
+CAvianNameSystem::CAvianNameSystem(Type type, std::string rawData) :
     m_addr(""),
     m_ip("")
 {
@@ -142,7 +142,7 @@ CAvianNameSystemID::CAvianNameSystemID(Type type, std::string rawData) :
     }
 }
 
-CAvianNameSystemID::CAvianNameSystemID(std::string ansID) :
+CAvianNameSystem::CAvianNameSystem(std::string ansID) :
     m_addr(""),
     m_ip("")
 {
@@ -163,7 +163,7 @@ CAvianNameSystemID::CAvianNameSystemID(std::string ansID) :
     }
 }
 
-std::string CAvianNameSystemID::to_string() {
+std::string CAvianNameSystem::to_string() {
     std::string id = "";
 
     // 1. Add prefix
@@ -184,16 +184,16 @@ std::string CAvianNameSystemID::to_string() {
     return id;
 }
 
-UniValue CAvianNameSystemID::to_object()
+UniValue CAvianNameSystem::to_object()
 {
     UniValue ansInfo(UniValue::VOBJ);
 
     ansInfo.pushKV("ans_id", this->to_string());
     ansInfo.pushKV("type_hex", this->type());
 
-    if (this->type() == CAvianNameSystemID::ADDR) {
+    if (this->type() == CAvianNameSystem::ADDR) {
         ansInfo.pushKV("ans_addr", this->addr());
-    } else if (this->type() == CAvianNameSystemID::IP) {
+    } else if (this->type() == CAvianNameSystem::IP) {
         ansInfo.pushKV("ans_ip", this->ip());
     }
 
