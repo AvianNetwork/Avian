@@ -22,9 +22,23 @@ public:
 
     /** ANS types */
     enum Type {
+        // Avian address
         ADDR = 0x0,
+        // Raw IP (127.0.0.1)
         IP = 0x1
     };
+
+    /** Convert ANS type into string with description */
+    static std::pair<std::string, std::string> enum_to_string(Type type) {
+        switch(type) {
+            case ADDR:
+                return std::make_pair("Avian address", "Enter an Avian address");
+            case IP:
+                return std::make_pair("IP [DNS A record]", "Enter IP address");
+            default:
+                return std::make_pair("Invalid", "Invalid");
+        }
+    }
 
     CAvianNameSystem(Type type, std::string rawData);
     CAvianNameSystem(std::string ansID);
@@ -50,22 +64,12 @@ public:
     /** Convert raw data into ANS ID type data */
     static std::string FormatTypeData(Type type, std::string typeData, std::string& error);
 
-    /** Convert ANS type into string with description */
-    static std::pair<std::string, std::string> enum_to_string(Type type) {
-        switch(type) {
-            case ADDR:
-                return std::make_pair("Avian address", "Enter an Avian address");
-            case IP:
-                return std::make_pair("IP [DNS A record]", "Enter IP address");
-            default:
-                return std::make_pair("Invalid", "Invalid");
-        }
-    }
-
 private:
-    /** ANS types as private */
+    /** ANS type */
     Type m_type;
+    /** Avian address */
     std::string m_addr;
+    /** IPv4 string address */
     std::string m_ip;
 };
 

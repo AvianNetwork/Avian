@@ -52,7 +52,7 @@ static std::string HexToIP(std::string hexIP)
 
 bool CAvianNameSystem::CheckIP(std::string rawip, bool isHex) {
     std::string ip = rawip;
-    if (isHex) ip = HexToIP(rawip.c_str());
+    if (isHex) ip = HexToIP(rawip);
 
     boost::system::error_code error;
     address_v4::from_string(ip, error);
@@ -62,15 +62,15 @@ bool CAvianNameSystem::CheckIP(std::string rawip, bool isHex) {
 }
 
 // TODO: Add error result?
-bool CAvianNameSystem::CheckTypeData(Type type, std::string typeData) {
-    if (type == Type::ADDR) {
+bool CAvianNameSystem::CheckTypeData(Type type, std::string typeData) 
+{
+    switch (type) {
+    case ADDR: {
         CTxDestination destination = DecodeDestination(typeData);
         if (!IsValidDestination(destination)) return false;
-    } else if (type == Type::IP) {
-        if (!CheckIP(typeData, true)) return false;
-    } else {
-        // Unknown type
-        return false;
+    }
+    case IP: if (!CheckIP(typeData, true)) return false;
+    default: /** Unknown type */ return false;
     }
     return true;
 }
@@ -80,26 +80,32 @@ std::string CAvianNameSystem::FormatTypeData(Type type, std::string typeData, st
     std::string returnStr = typeData;
 
     // Check and set type data
-    if (type == ADDR) {
-        CTxDestination destination = DecodeDestination(typeData);
-        if (!IsValidDestination(destination)) {
-            error = (typeData != "") 
-            ? std::string("Invalid Avian address: ") + typeData 
-            : std::string("Empty Avian address.");
+    switch (type) {
+        case ADDR: {
+            CTxDestination destination = DecodeDestination(typeData);
+            if (!IsValidDestination(destination)) {
+                error = (typeData != "") 
+                ? std::string("Invalid Avian address: ") + typeData 
+                : std::string("Empty Avian address.");
+            }
+            break;
         }
-    } else if (type == IP) {
-        if (!CheckIP(typeData, false)) {
-            error = (typeData != "") 
-            ? std::string("Invalid IPv4 address: ") + typeData 
-            : std::string("Empty IPv4 addresss.");
+        case IP: {
+            if (!CheckIP(typeData, false)) {
+                error = (typeData != "") 
+                ? std::string("Invalid IPv4 address: ") + typeData 
+                : std::string("Empty IPv4 addresss.");
+            }
+            returnStr = IPToHex(typeData);
+            break;
         }
-        returnStr = IPToHex(typeData);
     }
 
     return returnStr;
 }
 
-bool CAvianNameSystem::IsValidID(std::string ansID) {
+bool CAvianNameSystem::IsValidID(std::string ansID) 
+{
     // Check for min length
     if(ansID.length() <= prefix.size() + 1) return false;
 
@@ -132,13 +138,9 @@ CAvianNameSystem::CAvianNameSystem(Type type, std::string rawData) :
 
     if (!CheckTypeData(this->m_type, rawData)) return;
 
-    if (this->m_type == Type::ADDR) {
-        // Avian address
-        this->m_addr = rawData;
-    }
-    else if (this->m_type == Type::IP) {
-        // Raw IP (127.0.0.1)
-        this->m_ip = HexToIP(rawData.c_str());
+    switch(this->m_type) {
+        case ADDR: this->m_addr = rawData;
+        case IP: this->m_ip = HexToIP(rawData.c_str());
     }
 }
 
@@ -156,14 +158,14 @@ CAvianNameSystem::CAvianNameSystem(std::string ansID) :
     // Set info based on data
     std::string data = ansID.substr(prefix.length() + 1); // prefix + type
 
-    if (this->m_type == Type::ADDR) {
-        this->m_addr = data;
-    } else if(this->m_type == Type::IP) {
-        this->m_ip = HexToIP(data.c_str());
+    switch(this->m_type) {
+        case ADDR: this->m_addr = data;
+        case IP: this->m_ip = HexToIP(data);
     }
 }
 
-std::string CAvianNameSystem::to_string() {
+std::string CAvianNameSystem::to_string() 
+{
     std::string id = "";
 
     // 1. Add prefix
@@ -175,12 +177,11 @@ std::string CAvianNameSystem::to_string() {
     id += ss.str();
 
     // 3. Add data
-    if (this->m_type == Type::ADDR) {
-       id += m_addr;
-    } else if (this->m_type == Type::IP) {
-        id += IPToHex(m_ip);
+    switch(this->m_type) {
+        case ADDR: id += m_addr;
+        case IP: IPToHex(m_ip);
     }
-
+    
     return id;
 }
 
@@ -189,12 +190,11 @@ UniValue CAvianNameSystem::to_object()
     UniValue ansInfo(UniValue::VOBJ);
 
     ansInfo.pushKV("ans_id", this->to_string());
-    ansInfo.pushKV("type_hex", this->type());
+    ansInfo.pushKV("type_hex", this->m_type);
 
-    if (this->type() == CAvianNameSystem::ADDR) {
-        ansInfo.pushKV("ans_addr", this->addr());
-    } else if (this->type() == CAvianNameSystem::IP) {
-        ansInfo.pushKV("ans_ip", this->ip());
+    switch(this->m_type) {
+        case ADDR: ansInfo.pushKV("ans_addr", this->m_addr);
+        case IP: ansInfo.pushKV("ans_ip", this->m_ip);
     }
 
     return ansInfo;
