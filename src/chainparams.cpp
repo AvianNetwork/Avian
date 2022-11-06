@@ -366,7 +366,7 @@ public:
         vector<FounderRewardStructure> rewardStructures = {
             {INT_MAX, 5} // 5% founder/dev fee forever
         };
-        consensus.nFounderPayment = FounderPayment(rewardStructures, 150, "n1BurnXXXXXXXXXXXXXXXXXXXXXXU1qejP"); // Block 150 (burn coins)
+        consensus.nFounderPayment = FounderPayment(rewardStructures, 10, "2MvpouPdDEujBZg5eZnLNv5bCn78EE2bi65"); // Block 10 (testnet P2SH)
 
         fDefaultConsistencyChecks = false;
         fRequireStandard = false;
@@ -554,7 +554,7 @@ public:
         vector<FounderRewardStructure> rewardStructures = {
             {INT_MAX, 5} // 5% founder/dev fee forever
         };
-        consensus.nFounderPayment = FounderPayment(rewardStructures, 1, "n1BurnXXXXXXXXXXXXXXXXXXXXXXU1qejP"); // Block 1 (burn coins)
+        consensus.nFounderPayment = FounderPayment(rewardStructures, 1, "2MwTWhsKXQTpMPEGsWZCdYy7UZRECPPapM1"); // Block 1 (burn coins)
 
         vFixedSeeds.clear(); //!< Regtest mode doesn't have any fixed seeds.
         vSeeds.clear();      //!< Regtest mode doesn't have any DNS seeds.
