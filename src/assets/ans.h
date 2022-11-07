@@ -11,6 +11,12 @@
 
 #include "univalue.h"
 
+/** Struct to store ANS IP data */
+struct ANS_IP {
+    std::string string{""};
+    std::string hex{""}; 
+};
+
 /** Avian Name System */
 class CAvianNameSystem {
 public:  
@@ -56,7 +62,7 @@ public:
     /** ANS return types */
     Type type() { return m_type; };
     std::string addr() { return m_addr; };
-    std::string ipv4() { return m_ipv4; };
+    std::string ipv4() { return m_ipv4.string; };
 
     /** Check if valid IPv4 address */
     static bool CheckIPv4(std::string rawip, bool isHex);
@@ -74,8 +80,8 @@ private:
     Type m_type;
     /** Avian address */
     std::string m_addr;
-    /** IPv4 string address */
-    std::string m_ipv4;
+    /** IPv4 string+hex */
+    ANS_IP m_ipv4;
 };
 
 /** Public array of ANS types  */

@@ -905,7 +905,7 @@ UniValue getassetdata(const JSONRPCRequest& request)
 
             CAvianNameSystem ansID(EncodeANS(asset.strANSID));
 
-            result.push_back(Pair("ans_info", EncodeANS(ansID.to_object())));
+            result.push_back(Pair("ans_info", ansID.to_object()));
         }
 
         CNullAssetTxVerifierString verifier;
@@ -953,7 +953,7 @@ UniValue getansdata(const JSONRPCRequest& request)
             return NullUniValue;
 
         if (asset.nHasANS) {
-            CAvianNameSystem ansID(asset.strANSID);
+            CAvianNameSystem ansID(EncodeANS(asset.strANSID));
             result = ansID.to_object();
         } else {
             return NullUniValue;

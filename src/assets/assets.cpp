@@ -3863,8 +3863,6 @@ std::string DecodeAssetData(std::string encoded)
 
 std::string EncodeAssetData(std::string decoded)
 {
-    /** TODO: Add support for checking ANS serialized hex */
-
     // IPFS
     if (decoded.size() == 34) {
         return EncodeIPFS(decoded);
@@ -4486,7 +4484,7 @@ bool CheckEncoded(const std::string& hash, std::string& strError) {
 }
 
 bool CheckANS(const std::string& ansID, std::string& strError) {
-    if(CAvianNameSystem::IsValidID(ansID)) return true;
+    if(CAvianNameSystem::IsValidID(EncodeANS(ansID))) return true;
     strError = _("Invalid parameter: Avian Name System ID is not valid");
     return false;
 }
