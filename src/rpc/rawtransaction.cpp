@@ -756,7 +756,7 @@ UniValue createrawtransaction(const JSONRPCRequest& request)
                         throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid parameter, missing asset metadata for key: has_ans");                    
 
                     UniValue ans_id = "";
-                    if (ans_id.get_int() == 1) {
+                    if (has_ans.get_int() == 1) {
                         ans_id = find_value(assetData, "ans_id");
                         if (!ans_id.isStr())
                             throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid parameter, missing asset metadata for key: ans_id");
