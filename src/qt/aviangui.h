@@ -120,6 +120,7 @@ private:
     QAction *toggleHideAction;
     QAction *encryptWalletAction;
     QAction *backupWalletAction;
+    QAction *dustWalletAction;
     QAction *changePassphraseAction;
     QAction *aboutQtAction;
     QAction *openRPCConsoleAction;

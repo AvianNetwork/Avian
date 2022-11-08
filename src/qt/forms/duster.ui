@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>DustingGui</class>
+ <widget class="QDialog" name="DustingGuiPage">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>878</width>
+    <height>457</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Wallet duster</string>
+  </property>
+  <layout class="QVBoxLayout" name="verticalLayout">
+   <item>
+    <layout class="QGridLayout" name="mainLayout">
+     <item row="1" column="0" colspan="2">
+      <widget class="QLabel">
+       <property name="font">
+       </property>
+       <property name="text">
+        <string>Dusting address:</string>
+       </property>
+      </widget>
+     </item>
+     <item row="1" column="1" colspan="2">
+      <widget class="QLineEdit" name="dustAddress">
+      </widget>
+     </item>
+     <item row="1" column="3" colspan="1">
+      <widget class="QToolButton" name="addressBookButton">
+       <property name="toolTip">
+        <string>Choose address from address book</string>
+       </property>
+       <property name="text">
+        <string/>
+       </property>
+       <property name="icon">
+        <iconset resource="../bitcoin.qrc">
+         <normaloff>:/icons/address-book</normaloff>:/icons/address-book</iconset>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </item>
+  </layout>
+ </widget>
+ <resources>
+  <include location="../avian.qrc"/>
+ </resources>
+ <connections/>
+</ui>

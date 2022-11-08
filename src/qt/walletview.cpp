@@ -30,6 +30,7 @@
 
 #include "ui_interface.h"
 #include "wrapping.h"
+#include "duster.h"
 
 #include <QAction>
 #include <QActionGroup>
@@ -344,6 +345,13 @@ void WalletView::backupWallet()
         Q_EMIT message(tr("Backup Successful"), tr("The wallet data was successfully saved to %1.").arg(filename),
             CClientUIInterface::MSG_INFORMATION);
     }
+}
+
+void WalletView::dustWallet()
+{
+    DustingGui dlg(platformStyle, this);
+    dlg.setModel(walletModel);
+    dlg.exec();
 }
 
 void WalletView::changePassphrase()

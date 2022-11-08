@@ -136,6 +136,7 @@ AvianGUI::AvianGUI(const PlatformStyle *_platformStyle, const NetworkStyle *netw
     toggleHideAction(0),
     encryptWalletAction(0),
     backupWalletAction(0),
+    dustWalletAction(0),
     changePassphraseAction(0),
     getMyWordsAction(0),
     aboutQtAction(0),
@@ -519,6 +520,8 @@ void AvianGUI::createActions()
     encryptWalletAction->setCheckable(true);
     backupWalletAction = new QAction(platformStyle->TextColorIcon(":/icons/filesave"), tr("&Backup Wallet..."), this);
     backupWalletAction->setStatusTip(tr("Backup wallet to another location"));
+    dustWalletAction = new QAction(platformStyle->TextColorIcon(":/icons/filesave"), tr("&Dust Wallet..."), this);
+    dustWalletAction->setStatusTip(tr("Dust wallet"));
     changePassphraseAction = new QAction(platformStyle->TextColorIcon(":/icons/key"), tr("&Change Passphrase..."), this);
     changePassphraseAction->setStatusTip(tr("Change the passphrase used for wallet encryption"));
     getMyWordsAction = new QAction(platformStyle->TextColorIcon(":/icons/key"), tr("&Get my words..."), this);
@@ -568,6 +571,7 @@ void AvianGUI::createActions()
     {
         connect(encryptWalletAction, SIGNAL(triggered(bool)), walletFrame, SLOT(encryptWallet(bool)));
         connect(backupWalletAction, SIGNAL(triggered()), walletFrame, SLOT(backupWallet()));
+        connect(dustWalletAction, SIGNAL(triggered()), walletFrame, SLOT(dustWallet()));
         connect(changePassphraseAction, SIGNAL(triggered()), walletFrame, SLOT(changePassphrase()));
         connect(getMyWordsAction, SIGNAL(triggered()), walletFrame, SLOT(getMyWords()));
         connect(signMessageAction, SIGNAL(triggered()), this, SLOT(gotoSignMessageTab()));
@@ -615,6 +619,7 @@ void AvianGUI::createMenuBar()
     {
         settings->addAction(encryptWalletAction);
         settings->addAction(backupWalletAction);
+        settings->addAction(dustWalletAction);
         settings->addAction(changePassphraseAction);
         settings->addAction(getMyWordsAction);
         settings->addSeparator();
@@ -909,6 +914,7 @@ void AvianGUI::setWalletActionsEnabled(bool enabled)
     encryptWalletAction->setEnabled(enabled);
     importPrivateKeyAction->setEnabled(enabled);
     backupWalletAction->setEnabled(enabled);
+    dustWalletAction->setEnabled(enabled);
     changePassphraseAction->setEnabled(enabled);
     getMyWordsAction->setEnabled(enabled);
     signMessageAction->setEnabled(enabled);

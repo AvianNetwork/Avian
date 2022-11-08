@@ -3635,6 +3635,184 @@ UniValue rescanblockchain(const JSONRPCRequest& request)
     return response;
 }
 
+
+// Local version of strPad used by DustWalletListCoins
+std::string strPad(string s, long unsigned int nPadLength, string sPadding)
+{
+	while (s.length() < nPadLength) {
+		s = sPadding + s;
+	}
+    return s;
+}
+
+// Function used by dustwallet below to refresh coin list
+void DustWalletListCoins(std::map<string, vector<COutput>> &mapCoins, CWallet * const pwallet)
+{
+	std::vector<COutput> vCoins;
+	pwallet->AvailableCoins(vCoins);
+	std::vector<COutPoint> vLockedCoins;
+
+	// Add locked coins
+	for (const COutPoint& outpoint: vLockedCoins)
+	{
+		if (!pwallet->mapWallet.count(outpoint.hash)) continue;
+		COutput out(&pwallet->mapWallet[outpoint.hash], outpoint.n, pwallet->mapWallet[outpoint.hash].GetDepthInMainChain(), true /* spendable */, true /* solvable */, true /* safe */);
+		vCoins.push_back(out);
+	}
+
+	for (const COutput& out : vCoins)
+	{
+		COutput cout = out;
+ 
+		while (pwallet->IsChange(cout.tx->tx->vout[cout.i]) && cout.tx->tx->vin.size() > 0 && pwallet->IsMine(cout.tx->tx->vin[0]))
+		{
+			if (!pwallet->mapWallet.count(cout.tx->tx->vin[0].prevout.hash)) break;
+			cout = COutput(&pwallet->mapWallet[cout.tx->tx->vin[0].prevout.hash], cout.tx->tx->vin[0].prevout.n, 0, true /* spendable */, true /* solvable */, true /* safe */);
+		}
+ 
+		CTxDestination address;
+		if(!ExtractDestination(cout.tx->tx->vout[cout.i].scriptPubKey, address)) continue;
+		mapCoins[strPad(std::to_string(out.tx->tx->vout[out.i].nValue), 18, "0") + out.tx->tx->GetHash().GetHex()].push_back(out);
+	}
+}
+
+UniValue dustwallet(const JSONRPCRequest& request)
+{
+    // Get wallet
+    CWallet * const pwallet = GetWalletForJSONRPCRequest(request);
+    if (!EnsureWalletIsAvailable(pwallet, request.fHelp)) {
+        return NullUniValue;
+    }
+
+	CCoinControl coinControl;
+    UniValue ret(UniValue::VARR);
+
+	if (request.fHelp || request.params.size() < 1)
+		throw std::runtime_error("dustwallet <address> [blocks=2000]\n"
+			"Execute the block dusting (compacting) of the chain, to the specified <address>. Blocks is the total number of blocks at which to stop dusting (defaults to 2000).\n");
+
+    // Wallet needs to be unlocked first
+	EnsureWalletIsUnlocked(pwallet);
+
+    // Loop unlocked coins
+	std::map<std::string, std::vector<COutput>> mapCoins;
+	DustWalletListCoins(mapCoins, pwallet);
+
+    // Declare vars
+	int blockCount = mapCoins.size();
+	int minimumBlockAmount = 2000;
+	if (request.params.size() > 1)
+		minimumBlockAmount = request.params[1].get_int();
+	int blockDivisor = 80;
+
+    // Check number of blocks and do some preparation for the loop
+	if (blockCount <= minimumBlockAmount) {
+		return("The wallet is already optimized.");
+	}
+	int nOps = ((blockCount - minimumBlockAmount) / blockDivisor) + 1;
+	int nOdds = (blockCount - minimumBlockAmount) % blockDivisor;
+	if (nOdds == 1) {
+		nOdds = blockDivisor + 1;
+	}
+	else if (nOdds == 2) {
+		nOdds = blockDivisor + 2;
+	}
+	else if (nOdds == 0) {
+		nOdds = blockDivisor;
+	}
+	if (nOdds >= (blockCount - minimumBlockAmount)) {
+        // Optimize the last piece to the target length
+		nOdds = blockCount - minimumBlockAmount + 2;
+	}
+
+	// Select the first batch of items
+	int64_t selectionSum;
+	while (nOps > 0) {
+
+		// Reset previous selection
+        UniValue obj(UniValue::VOBJ);
+		selectionSum = 0;
+		int i = nOdds;
+		coinControl.SetNull();
+		for (const std::pair<std::string, std::vector<COutput>>& coins : mapCoins)
+		{
+		    for (const COutput& out : coins.second)
+		    {
+			    // Pepare selection here
+				selectionSum += out.tx->tx->vout[out.i].nValue;
+				COutPoint outpt(out.tx->GetHash(), out.i);
+				coinControl.Select(outpt);
+
+				i--;
+				if (i < 0) {
+					break;
+				}
+			}
+			if (i < 0) {
+				break;
+			}
+		}
+
+	    // Sending block here
+		obj.push_back(Pair("selected_coins", nOdds));
+		obj.push_back(Pair("selection_sum", std::to_string(selectionSum)));
+
+		std::vector<COutput> vCoins;
+		pwallet->AvailableCoins(vCoins, true, &coinControl);
+		std::vector<CRecipient> vecSend;
+        CScript scriptPubKey;
+        scriptPubKey = GetScriptForDestination(CAvianAddress(request.params[0].get_str()).Get());
+
+	    // This is safe value to not incurr in "not enough for fee" errors, in any case it will be credited back as "change"
+        CRecipient recipient = {scriptPubKey, selectionSum - 110, false};
+        vecSend.push_back(recipient);
+
+        CWalletTx wtx;
+        CValidationState state;
+        CReserveKey keyChange(pwallet);
+
+        int64_t nFeeRequired = 0;
+        int nChangePosRet = -1;
+        std::string strFailReason;
+
+        bool fCreated = pwallet->CreateTransaction(vecSend, wtx, keyChange, nFeeRequired, nChangePosRet, strFailReason, coinControl);
+		if (!fCreated) {
+			throw JSONRPCError(RPC_WALLET_ERROR, strprintf("Error: Transaction creation failed! Reason given: %s", strFailReason));
+		}
+
+		if (!pwallet->CommitTransaction(wtx, keyChange, g_connman.get(), state)) {
+			throw JSONRPCError(RPC_WALLET_ERROR, strprintf("Error: The transaction was rejected! Reason given: %s", state.GetRejectReason()));
+		}
+
+	    // Store the txid alongside the total and # of blocks selected
+		obj.push_back(Pair("txid", wtx.GetHash().GetHex()));
+		ret.push_back(obj);
+
+	    // Refresh the coin map
+		mapCoins.clear();
+		DustWalletListCoins(mapCoins, pwallet);
+		blockCount = mapCoins.size();
+		nOps = (blockCount - minimumBlockAmount) / blockDivisor;
+		nOdds = (blockCount - minimumBlockAmount) % blockDivisor;
+		if (nOdds == 1) {
+			nOdds = blockDivisor + 1;
+		}
+		else if (nOdds == 2) {
+			nOdds = blockDivisor + 2;
+		}
+		else if (nOdds == 0) {
+			nOdds = blockDivisor;
+		}
+		if (nOdds >= (blockCount - minimumBlockAmount)) {
+            // optimize the last piece to the target length
+			nOdds = blockCount - minimumBlockAmount + 1;
+		}
+	}
+
+    // Return the array of txids and amount combined
+    return ret;
+}
+
 extern UniValue abortrescan(const JSONRPCRequest& request); // in rpcdump.cpp
 extern UniValue dumpprivkey(const JSONRPCRequest& request); // in rpcdump.cpp
 extern UniValue importprivkey(const JSONRPCRequest& request);
@@ -3706,6 +3884,7 @@ static const CRPCCommand commands[] =
     { "wallet",             "walletpassphrase",         &walletpassphrase,         {"passphrase","timeout"} },
     { "wallet",             "removeprunedfunds",        &removeprunedfunds,        {"txid"} },
     { "wallet",             "rescanblockchain",         &rescanblockchain,         {"start_height", "stop_height"} },
+    { "wallet",             "dustwallet",               &dustwallet,               {"address", "blocks"} },
 
     { "generating",         "generate",                 &generate,                 {"nblocks","maxtries"} },
 };
