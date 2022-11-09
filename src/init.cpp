@@ -1412,7 +1412,7 @@ bool AppInitMain(boost::thread_group& threadGroup, CScheduler& scheduler)
 
     CFlatDB<CPowCache> flatdb7(strDBName, "powCache");
     if(!flatdb7.Load(CPowCache::Instance())) {
-        return InitError(_("Failed to load POW cache from") + "\n" + (pathDB / strDBName).string());
+        return InitError(_("Failed to load POW cache from") + "\n" + (pathDB / strDBName).string() + "\n\n" + "Delete this file and it will be recreated.");
     }
 
     // ********************************************************* Step 7: network initialization
