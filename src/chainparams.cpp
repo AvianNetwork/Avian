@@ -124,7 +124,7 @@ public:
         consensus.powLimit = uint256S("00000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
         consensus.nPowTargetTimespan = 2016 * 30; // 1.4 days
         consensus.nPowTargetSpacing = 1 * 30;
-		    consensus.fPowAllowMinDifficultyBlocks = false;
+        consensus.fPowAllowMinDifficultyBlocks = false;
         consensus.fPowNoRetargeting = false;
         consensus.nRuleChangeActivationThreshold = 1814; // Approx 90% of 2016
         consensus.nMinerConfirmationWindow = 2016; // nPowTargetTimespan / nPowTargetSpacing
@@ -147,7 +147,7 @@ public:
         consensus.diffRetargetFix = 275109;                 // Block for diff algo fix
         consensus.diffRetargetTake2 = 1639269000;           // Third iteration of diff retargetter fix
 
-	      // until "LWMA3" retarget algo, only "00000fff..." was used. these will apply once LWMA3 goes live
+        // until "LWMA3" retarget algo, only "00000fff..." was used. these will apply once LWMA3 goes live
         consensus.powTypeLimits.emplace_back(uint256S("00000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"));   // x16rt limit
         consensus.powTypeLimits.emplace_back(uint256S("000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"));   // MinotaurX limit
 
