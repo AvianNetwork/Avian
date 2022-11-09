@@ -541,7 +541,7 @@ public:
 
         genesis = CreateGenesisBlock(1629951211, 1, 0x207fffff, 2, 2500 * COIN);
 
-        consensus.hashGenesisBlock = genesis.GetHash();
+        consensus.hashGenesisBlock = genesis.GetX16RHash();
         assert(consensus.hashGenesisBlock == uint256S("0x653634d03d27ed84e8aba5dd47903906ad7be4876a1d3677be0db2891dcf787f"));
         assert(genesis.hashMerkleRoot == uint256S("63d9b6b6b549a2d96eb5ac4eb2ab80761e6d7bffa9ae1a647191e08d6416184d"));
 
@@ -635,12 +635,9 @@ std::unique_ptr<CChainParams> CreateChainParams(const std::string& chain)
     throw std::runtime_error(strprintf("%s: Unknown chain %s.", __func__, chain));
 }
 
-void SelectParams(const std::string& network, bool fForceBlockNetwork)
+void SelectParams(const std::string& network)
 {
     SelectBaseParams(network);
-    if (fForceBlockNetwork) {
-        bNetwork.SetNetwork(network);
-    }
     globalChainParams = CreateChainParams(network);
 }
 
