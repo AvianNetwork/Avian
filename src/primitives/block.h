@@ -1,6 +1,7 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
 // Copyright (c) 2009-2016 The Bitcoin Core developers
 // Copyright (c) 2017 The Raven Core developers
+// Copyright (c) 2022 The Avian Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -42,18 +43,6 @@ enum POW_TYPE {
  * in the block is a special one that creates a new coin owned by the creator
  * of the block.
  */
-
-class BlockNetwork
-{
-public:
-    BlockNetwork();
-    bool fOnRegtest;
-    bool fOnTestnet;
-    void SetNetwork(const std::string& network);
-};
-
-extern BlockNetwork bNetwork;
-
 
 class CBlockHeader
 {
@@ -112,11 +101,6 @@ public:
 
     // Dual algo: MinotaurX
     static uint256 CrowHashArbitrary(const char* data);
-
-    /// Use for testing algo switch
-    uint256 TestTiger() const;
-    uint256 TestSha512() const;
-    uint256 TestGost512() const;
 
     int64_t GetBlockTime() const
     {
