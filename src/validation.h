@@ -142,7 +142,7 @@ static const int64_t BLOCK_DOWNLOAD_TIMEOUT_BASE = 1000000;
 /** Additional block download timeout per parallel downloading peer (i.e. 5 min) */
 static const int64_t BLOCK_DOWNLOAD_TIMEOUT_PER_PEER = 500000;
 
-// Crow: Check if Crow is activated at given point
+// Dual algo: Check if Crow is activated at given point
 bool IsCrowEnabled(const CBlockIndex* pindexPrev, const Consensus::ConsensusParams& params);
 
 static const int64_t DEFAULT_MAX_TIP_AGE = 24 * 60 * 60;

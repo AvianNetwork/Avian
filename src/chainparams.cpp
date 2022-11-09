@@ -124,7 +124,7 @@ public:
         consensus.powLimit = uint256S("00000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
         consensus.nPowTargetTimespan = 2016 * 30; // 1.4 days
         consensus.nPowTargetSpacing = 1 * 30;
-		consensus.fPowAllowMinDifficultyBlocks = false;
+		    consensus.fPowAllowMinDifficultyBlocks = false;
         consensus.fPowNoRetargeting = false;
         consensus.nRuleChangeActivationThreshold = 1814; // Approx 90% of 2016
         consensus.nMinerConfirmationWindow = 2016; // nPowTargetTimespan / nPowTargetSpacing
@@ -141,15 +141,15 @@ public:
         consensus.vUpgrades[Consensus::UPGRADE_AVIAN_FLIGHT_PLANS].nTimestamp = 999999999999ULL; // TODO
         consensus.vUpgrades[Consensus::UPGRADE_AVIAN_NAME_SYSTEM].nTimestamp = 999999999999ULL; // TODO
 
-        // Crow Algo consensus
+        // Crow dual-algo consensus
         consensus.powForkTime = 1638847407;                 // Time of PoW hash method change (Dec 06 2021)
         consensus.lwmaAveragingWindow = 45;                 // Averaging window size for LWMA diff adjust
         consensus.diffRetargetFix = 275109;                 // Block for diff algo fix
         consensus.diffRetargetTake2 = 1639269000;           // Third iteration of diff retargetter fix
 
-	    // until "LWMA3" retarget algo, only "00000fff..." was used. these will apply once LWMA3 goes live
+	      // until "LWMA3" retarget algo, only "00000fff..." was used. these will apply once LWMA3 goes live
         consensus.powTypeLimits.emplace_back(uint256S("00000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"));   // x16rt limit
-        consensus.powTypeLimits.emplace_back(uint256S("000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"));   // Crow limit
+        consensus.powTypeLimits.emplace_back(uint256S("000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"));   // MinotaurX limit
 
         // The best chain should have at least this much work.
         consensus.nMinimumChainWork = uint256S("0x00000000000000000000000000000000000000000000000029178e309cb56715"); // Block 1072359
@@ -296,14 +296,14 @@ public:
         consensus.vUpgrades[Consensus::UPGRADE_AVIAN_FLIGHT_PLANS].nTimestamp = 1645104453; // Feb 17, 2022
         consensus.vUpgrades[Consensus::UPGRADE_AVIAN_NAME_SYSTEM].nTimestamp = 1645104453; // Feb 17, 2022
 
-        // Crow Algo consensus
+        // Crow dual-algo consensus
         consensus.powForkTime = 1639005225;                 // Time of PoW hash method change
         consensus.lwmaAveragingWindow = 45;                 // Averaging window size for LWMA diff adjust
         consensus.diffRetargetFix = 0;                      // Block of diff algo change
         consensus.diffRetargetTake2 = 1639269000;           // Third iteration of LWMA retarget activation timestamp
 
         consensus.powTypeLimits.emplace_back(uint256S("00000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"));   // x16rt limit
-        consensus.powTypeLimits.emplace_back(uint256S("000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"));   // Crow limit
+        consensus.powTypeLimits.emplace_back(uint256S("000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"));   // MinotaurX limit
 
         // The best chain should have at least this much work.
         consensus.nMinimumChainWork = uint256S("0x0000000000000000000000000000000000000000000000000000000000000002");
@@ -433,14 +433,14 @@ public:
         consensus.vUpgrades[Consensus::UPGRADE_AVIAN_FLIGHT_PLANS].nTimestamp = 1629951212; // (genesis +1)
         consensus.vUpgrades[Consensus::UPGRADE_AVIAN_NAME_SYSTEM].nTimestamp = 1629951212; // (genesis +1)
 
-        // Crow Algo consensus
+        // Crow dual-algo consensus
         consensus.powForkTime = 1629951212;        // Time of PoW hash method change
         consensus.lwmaAveragingWindow = 45;        // Averaging window size for LWMA diff adjust
         consensus.diffRetargetFix = 0;             // Block of diff algo change
         consensus.diffRetargetTake2 = 1629951212;  // Third iteration of LWMA retarget activation timestamp
 
         consensus.powTypeLimits.emplace_back(uint256S("7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"));   // x16rt limit
-        consensus.powTypeLimits.emplace_back(uint256S("7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"));   // Crow limit
+        consensus.powTypeLimits.emplace_back(uint256S("7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"));   // MinotaurX limit
 
         // The best chain should have at least this much work.
         consensus.nMinimumChainWork = uint256S("0x00");

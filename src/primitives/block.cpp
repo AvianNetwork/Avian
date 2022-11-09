@@ -9,12 +9,12 @@
 
 #include <cstdint>
 
-#include "algo/crow/minotaurx.h" // Minotaurx Algo
+#include "algo/minotaurx/minotaurx.h" // Minotaurx Algo
+#include "algo/x16r/x16r.h"
 
 #include "primitives/block.h"
 #include "primitives/powcache.h"
 
-#include "algo/hash_algos.h"
 #include "versionbits.h"
 #include "tinyformat.h"
 #include "utilstrencodings.h"
@@ -49,7 +49,7 @@ uint256 CBlockHeader::ComputePoWHash() const
                 thash = HashX16R(BEGIN(nVersion), END(nNonce), hashTime);
                 break;
             }
-            case POW_TYPE_CROW: {
+            case POW_TYPE_MINOTAURX: {
                 return Minotaurx(BEGIN(nVersion), END(nNonce), true);
                 break;
             }

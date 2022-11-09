@@ -124,7 +124,7 @@ void BlockAssembler::resetBlock()
     nFees = 0;
 }
 
-// Crow: Accept POW_TYPE arg
+// Dual algo: Accept POW_TYPE arg
 std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& scriptPubKeyIn, bool fMineWitnessTx, const POW_TYPE powType)
 {
     int64_t nTimeStart = GetTimeMicros();
@@ -149,11 +149,11 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
 
     pblock->nVersion = ComputeBlockVersion(pindexPrev, chainparams.GetConsensus());
 
-    // Crow: Refuse to attempt to create a non-x16r block before activation
+    // Dual algo: Refuse to attempt to create a non-x16r block before activation
     if (!IsCrowEnabled(pindexPrev, chainparams.GetConsensus()) && powType != 0)
         throw std::runtime_error("Error: Won't attempt to create a non-x16r block before Crow activation");
 
-    // Crow: If Crow Algo is enabled, encode desired pow type.
+    // Dual algo: If Crow Algo is enabled, encode desired pow type.
     if (IsCrowEnabled(pindexPrev, chainparams.GetConsensus())) {
         if (powType >= NUM_BLOCK_TYPES)
             throw std::runtime_error("Error: Unrecognised pow type requested");

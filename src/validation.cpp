@@ -2333,7 +2333,7 @@ int32_t ComputeBlockVersion(const CBlockIndex* pindexPrev, const Consensus::Cons
     LOCK(cs_main);
     int32_t nVersion = VERSIONBITS_TOP_BITS;
 
-    // Crow: Set bit 29 to 0
+    // Dual algo: Set bit 29 to 0
     if (pindexPrev != nullptr) {
         if (IsCrowEnabled(pindexPrev, params))
             nVersion = 0;
@@ -2374,7 +2374,7 @@ public:
 
     bool Condition(const CBlockIndex* pindex, const Consensus::ConsensusParams& params) const override
     {
-        // Crow: Versionbits always active since powforktime and high bits repurposed at minotaurx UASF activation;
+        // Dual algo: Versionbits always active since powforktime and high bits repurposed at minotaurx UASF activation;
         // So, don't use VERSIONBITS_TOP_MASK any time past powforktime
         if (pindex->nTime > params.powForkTime)
             return ((pindex->nVersion >> bit) & 1) != 0 &&
@@ -2422,7 +2422,7 @@ static unsigned int GetBlockScriptFlags(const CBlockIndex* pindex, const Consens
     return flags;
 }
 
-// Crow: Check if Crow Algo is activated at given point
+// Dual algo: Check if Crow Algo is activated at given point
 bool IsCrowEnabled(const CBlockIndex* pindexPrev, const Consensus::ConsensusParams& params)
 {
     // return (VersionBitsState(pindexPrev, params, Consensus::DEPLOYMENT_CROW, versionbitscache) == THRESHOLD_ACTIVE);
@@ -3173,7 +3173,7 @@ void static UpdateTip(CBlockIndex *pindexNew, const CChainParams& chainParams) {
         for (int i = 0; i < 100 && pindex != nullptr; i++)
         {
             int32_t nExpectedVersion = ComputeBlockVersion(pindex->pprev, chainParams.GetConsensus());
-            // Crow: Mask out blocktype before checking for possible unknown upgrade
+            // Dual algo: Mask out blocktype before checking for possible unknown upgrade
             if (IsCrowEnabled(pindex, chainParams.GetConsensus())) {
                 if (pindex->nVersion & 0xFF00FFFF != nExpectedVersion)
                     ++nUpgraded;
@@ -4189,7 +4189,7 @@ static bool ContextualCheckBlockHeader(const CBlockHeader& block, CValidationSta
 
     // Check proof of work
     const Consensus::ConsensusParams& consensusParams = params.GetConsensus();
-     // Crow: Handle pow type
+     // Dual algo: Handle pow type
         if (IsCrowEnabled(pindexPrev, consensusParams)) {
             POW_TYPE powType = block.GetPoWType();
 
@@ -4243,7 +4243,7 @@ static bool ContextualCheckBlockHeader(const CBlockHeader& block, CValidationSta
     //         return state.Invalid(false, REJECT_OBSOLETE, strprintf("bad-version(0x%08x)", block.nVersion),
     //                              strprintf("rejected nVersion=0x%08x block", block.nVersion));
 
-    // Crow: Handle nVersion differently after activation
+    // Dual algo: Handle nVersion differently after activation
     if (IsCrowEnabled(pindexPrev,consensusParams)) {
         // TODO: Fix version bit checking 
         // // Top 8 bits must be zero
