@@ -8,6 +8,7 @@
 #include "chainparams.h"
 #include "consensus/merkle.h"
 
+#include "consensus/params.h"
 #include "tinyformat.h"
 #include "util.h"
 #include "utilstrencodings.h"
@@ -123,13 +124,22 @@ public:
         consensus.powLimit = uint256S("00000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
         consensus.nPowTargetTimespan = 2016 * 30; // 1.4 days
         consensus.nPowTargetSpacing = 1 * 30;
-		consensus.fPowAllowMinDifficultyBlocks = false;
+		    consensus.fPowAllowMinDifficultyBlocks = false;
         consensus.fPowNoRetargeting = false;
         consensus.nRuleChangeActivationThreshold = 1814; // Approx 90% of 2016
         consensus.nMinerConfirmationWindow = 2016; // nPowTargetTimespan / nPowTargetSpacing
+
+        // BIP9 deployments
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].bit = 28;
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nStartTime = 1199145601; // January 1, 2008
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nTimeout = 1230767999; // December 31, 2008
+
+        // Avian network upgrades (hardforks)
+        consensus.vUpgrades[Consensus::UPGRADE_X16RT_SWITCH].nTimestamp = 1638847406;
+        consensus.vUpgrades[Consensus::UPGRADE_CROW_DUAL_ALGO].nTimestamp = 1638847407;
+        consensus.vUpgrades[Consensus::UPGRADE_AVIAN_ASSETS].nTimestamp = 1666202400;
+        consensus.vUpgrades[Consensus::UPGRADE_AVIAN_FLIGHT_PLANS].nTimestamp = 999999999999ULL; // TODO
+        consensus.vUpgrades[Consensus::UPGRADE_AVIAN_NAME_SYSTEM].nTimestamp = 999999999999ULL; // TODO
 
         // Crow dual-algo consensus
         consensus.powForkTime = 1638847407;                 // Time of PoW hash method change (Dec 06 2021)
@@ -137,37 +147,14 @@ public:
         consensus.diffRetargetFix = 275109;                 // Block for diff algo fix
         consensus.diffRetargetTake2 = 1639269000;           // Third iteration of diff retargetter fix
 
-	    // until "LWMA3" retarget algo, only "00000fff..." was used. these will apply once LWMA3 goes live
+	      // until "LWMA3" retarget algo, only "00000fff..." was used. these will apply once LWMA3 goes live
         consensus.powTypeLimits.emplace_back(uint256S("00000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"));   // x16rt limit
         consensus.powTypeLimits.emplace_back(uint256S("000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"));   // MinotaurX limit
-
-        // x16rt switch
-        consensus.nX16rtTimestamp = 1638847406;
-
-        // Avian Assets, Messaging, Restricted
-        consensus.nAssetActivationTime = 1666202400; // TODO
-        consensus.nMessagingActivationTime = 1666202400; // TODO
-        consensus.nRestrictedActivationTime = 1666202400; // TODO
-
-        // Avian Flight Plans
-        consensus.nFlightPlansActivationTime = 999999999999ULL; // TODO
-
-        // Avian Name System (ANS)
-        consensus.nAvianNameSystemTime = 999999999999ULL; // TODO
 
         // The best chain should have at least this much work.
         consensus.nMinimumChainWork = uint256S("0x00000000000000000000000000000000000000000000000029178e309cb56715"); // Block 1072359
         // By default assume that the signatures in ancestors of this block are valid.
         consensus.defaultAssumeValid = uint256S("0x00000000005ab90c287e481b1f2911228d26723ac07bcadd65031158ad733316"); // Block 1072359
-
-        // The best chain should have at least this much work.
-
-        //TODO: This needs to be changed when we re-start the chain
-        //consensus.nMinimumChainWork = uint256S("0x000000000000000000000000000000000000000000000000000000000c000c00");
-
-        //TODO - Set this to genesis block
-        // By default assume that the signatures in ancestors of this block are valid.
-        //consensus.defaultAssumeValid = uint256S("0x0000000000000000003b9ce759c2a087d52abc4266f8f4ebd6d768b89defa50a"); //477890
 
         /**
          * The message start string is designed to be unlikely to occur in normal data.
@@ -296,9 +283,18 @@ public:
         consensus.fPowNoRetargeting = false;
         consensus.nRuleChangeActivationThreshold = 1310; // Approx 65% for testchains
         consensus.nMinerConfirmationWindow = 2016; // nPowTargetTimespan / nPowTargetSpacing
+
+        // BIP9 deployments
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].bit = 28;
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nStartTime = 0;
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nTimeout = 999999999999ULL;
+
+        // Avian network upgrades (hardforks)
+        consensus.vUpgrades[Consensus::UPGRADE_X16RT_SWITCH].nTimestamp = 1634101200; // Oct 13, 2021
+        consensus.vUpgrades[Consensus::UPGRADE_CROW_DUAL_ALGO].nTimestamp = 1639005225; 
+        consensus.vUpgrades[Consensus::UPGRADE_AVIAN_ASSETS].nTimestamp = 1645104453; // Feb 17, 2022
+        consensus.vUpgrades[Consensus::UPGRADE_AVIAN_FLIGHT_PLANS].nTimestamp = 1645104453; // Feb 17, 2022
+        consensus.vUpgrades[Consensus::UPGRADE_AVIAN_NAME_SYSTEM].nTimestamp = 1645104453; // Feb 17, 2022
 
         // Crow dual-algo consensus
         consensus.powForkTime = 1639005225;                 // Time of PoW hash method change
@@ -309,26 +305,11 @@ public:
         consensus.powTypeLimits.emplace_back(uint256S("00000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"));   // x16rt limit
         consensus.powTypeLimits.emplace_back(uint256S("000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"));   // MinotaurX limit
 
-        // testnet x16rt switch
-        consensus.nX16rtTimestamp = 1634101200; // Oct 13, 2021 
-
-        // Avian Assets, Messaging, Restricted
-        consensus.nAssetActivationTime = 1645104453; // Feb 17, 2022
-        consensus.nMessagingActivationTime = 1645104453; // Feb 17, 2022
-        consensus.nRestrictedActivationTime = 1645104453; // Feb 17, 2022
-
-        // Avian Flight Plans
-        consensus.nFlightPlansActivationTime = 1645104453; // Feb 17, 2022
-
-        // Avian Name System (ANS)
-        consensus.nAvianNameSystemTime = 1645104453; // Feb 17, 2022
-
         // The best chain should have at least this much work.
         consensus.nMinimumChainWork = uint256S("0x0000000000000000000000000000000000000000000000000000000000000002");
 
         // By default assume that the signatures in ancestors of this block are valid.
         consensus.defaultAssumeValid = uint256S("0x00016603365e3252687eeb7a309d9d6b903b81239d9bce670286a7a9d26131b9");
-
 
         pchMessageStart[0] = 0x52; // R
         pchMessageStart[1] = 0x56; // V
@@ -438,9 +419,19 @@ public:
         consensus.fPowNoRetargeting = true;
         consensus.nRuleChangeActivationThreshold = 108; // 75% for testchains
         consensus.nMinerConfirmationWindow = 144; // Faster than normal for regtest (144 instead of 2016)
+
+
+        // BIP9 deployments
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].bit = 28;
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nStartTime = 0;
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nTimeout = 999999999999ULL;
+
+        // Avian network upgrades (hardforks)
+        consensus.vUpgrades[Consensus::UPGRADE_X16RT_SWITCH].nTimestamp = 1629951212; // (genesis +1)
+        consensus.vUpgrades[Consensus::UPGRADE_CROW_DUAL_ALGO].nTimestamp = 1629951212; // (genesis +1)
+        consensus.vUpgrades[Consensus::UPGRADE_AVIAN_ASSETS].nTimestamp = 1629951212; // (genesis +1)
+        consensus.vUpgrades[Consensus::UPGRADE_AVIAN_FLIGHT_PLANS].nTimestamp = 1629951212; // (genesis +1)
+        consensus.vUpgrades[Consensus::UPGRADE_AVIAN_NAME_SYSTEM].nTimestamp = 1629951212; // (genesis +1)
 
         // Crow dual-algo consensus
         consensus.powForkTime = 1629951212;        // Time of PoW hash method change
@@ -450,20 +441,6 @@ public:
 
         consensus.powTypeLimits.emplace_back(uint256S("7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"));   // x16rt limit
         consensus.powTypeLimits.emplace_back(uint256S("7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"));   // MinotaurX limit
-
-        // regtest x16rt switch (genesis +1)
-        consensus.nX16rtTimestamp = 1629951212;
-
-        // Avian Assets, Messaging, Restricted
-        consensus.nAssetActivationTime = 1629951212; // (genesis +1)
-        consensus.nMessagingActivationTime = 1629951212; // (genesis +1)
-        consensus.nRestrictedActivationTime = 1629951212; // (genesis +1)
-
-        // Avian Flight Plans
-        consensus.nFlightPlansActivationTime = 1629951212; // (genesis +1)
-
-        // Avian Name System (ANS)
-        consensus.nAvianNameSystemTime = 1629951212; // (genesis +1)
 
         // The best chain should have at least this much work.
         consensus.nMinimumChainWork = uint256S("0x00");

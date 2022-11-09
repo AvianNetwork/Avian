@@ -36,8 +36,8 @@ uint256 CBlockHeader::ComputePoWHash() const
     uint256 thash;
     unsigned int profile = 0x0;
 
-    uint32_t nX16rtTimestamp = Params().GetConsensus().nX16rtTimestamp;
-    uint32_t nCrowTimestamp = Params().GetConsensus().powForkTime;
+    uint32_t nX16rtTimestamp = Params().GetConsensus().vUpgrades[Consensus::UPGRADE_X16RT_SWITCH].nTimestamp;
+    uint32_t nCrowTimestamp = Params().GetConsensus().vUpgrades[Consensus::UPGRADE_CROW_DUAL_ALGO].nTimestamp;
 
     if (nTime > nX16rtTimestamp) {
         if(nTime > nCrowTimestamp) {
