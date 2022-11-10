@@ -1,12 +1,12 @@
 # Avian - Community Ideas
 
-“Every new mechanism frees the human mind for more creative adventures and accomplishments” - Life After Google by George Gilder  
+**NOTE:** These ideas are originally from the Ravencoin community.
 
-We’re all in this together. There are new capabilities included in the latest Phoenix version (3.2+) of Avian that open up new business opportunities.  Join in and build something.  This is not an exhaustive list, but just a starting point to fire the imagination.  
-
+We’re all in this together. There are new capabilities included in the latest version (4.1+) of Avian that open up new business opportunities.  Join in and build something.  This is not an exhaustive list, but just a starting point to fire the imagination.  
 
 ### Anyone with a computer
 * Run a node - open firewall
+* Node rewards?
 
 
 ### Developer
@@ -18,7 +18,7 @@ We’re all in this together. There are new capabilities included in the latest 
     * Improved messaging/memo RPC calls
     * 24 word - master key (not seed) - direct to/from master xprv and pub
     * Local Filter (whitelist/blacklist) for assets
-    * Improve seed nodes (ipv4/ipv6)
+    * (Done by Avian) Improve seed nodes (ipv4/ipv6)
 * Tools
     * Issuance back-end - web based
     * Local IPFS Pinner by asset (or asset filter)
@@ -52,7 +52,7 @@ We’re all in this together. There are new capabilities included in the latest 
     * Memo/Message explorer
 
 
-### Avian.com
+### avn.network
 * Build website specifically for businesses / consultants
 
 
