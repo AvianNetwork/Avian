@@ -21,8 +21,11 @@ static const int GETHEADERS_VERSION = 31800;
 //! assetdata network request is allowed for this version
 static const int ASSETDATA_VERSION = 70017;
 
-//! x16rt + crow algo
+//! x16rt + minotaurx algo
 static const int CROW_VERSION = 70031;
+
+//! asset activation
+static const int ASSETS_VERSION = 70033;
 
 //! disconnect from peers older than this proto version
 static const int MIN_PEER_PROTO_VERSION = CROW_VERSION;
