@@ -32,6 +32,7 @@
 #include "utilmoneystr.h"
 #include "utilstrencodings.h"
 #include "validationinterface.h"
+#include "version.h"
 
 #if defined(NDEBUG)
 # error "Avian cannot be compiled without assertions."
@@ -1617,12 +1618,22 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
             }
         }
 
+        // Disconnect from peers older than this proto version
         if (IsCrowEnabled(chainActive.Tip(), Params().GetConsensus()) && nVersion < CROW_VERSION)
         {
-            // disconnect from peers older than this proto version
             LogPrintf("peer=%d using obsolete version; missing crow algo; %i; disconnecting\n", pfrom->GetId(), nVersion);
             connman->PushMessage(pfrom, CNetMsgMaker(INIT_PROTO_VERSION).Make(NetMsgType::REJECT, strCommand, REJECT_OBSOLETE,
                                strprintf("Version must be %d or greater", CROW_VERSION)));
+            pfrom->fDisconnect = true;
+            return false;
+        }
+
+        // Disconnect peers not advertising support for assets 
+        if (nVersion < ASSETS_VERSION)
+        {
+            LogPrintf("peer=%d using obsolete version; not advertising support for assets; %i; disconnecting\n", pfrom->GetId(), nVersion);
+            connman->PushMessage(pfrom, CNetMsgMaker(INIT_PROTO_VERSION).Make(NetMsgType::REJECT, strCommand, REJECT_OBSOLETE,
+                               strprintf("Version must be %d or greater", ASSETS_VERSION)));
             pfrom->fDisconnect = true;
             return false;
         }
