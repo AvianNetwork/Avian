@@ -450,10 +450,10 @@ OverviewPage::OverviewPage(const PlatformStyle *platformStyle, QWidget *parent) 
             QJsonObject obj = doc.object();
 
             // Get avian-network object
-            QJsonObject avian_data = obj.value("avian-network").toObject();
+            QJsonObject market_data = obj.value("market_data").toObject();
 
             // Get current_price object
-            QJsonObject current_price = avian_data.value("usd").toObject();
+            QJsonObject current_price = market_data.value("current_price").toObject();
 
             // Access price
             double num = current_price.value(currency).toDouble();

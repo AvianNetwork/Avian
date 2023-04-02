@@ -780,27 +780,26 @@ void AvianGUI::createToolBars()
         // Network request code for the header widget
         QObject::connect(networkManager, &QNetworkAccessManager::finished,
                          this, [=](QNetworkReply *reply) {
-                    if (reply->error()) {
-                        labelCurrentPrice->setText("");
-                        qDebug() << reply->errorString();
-                        return;
-                    }
-                    // Get the data from the network request
-                    QString answer = reply->readAll();
-
-                    // Convert into JSON document
-                    QJsonDocument doc(QJsonDocument::fromJson(answer.toUtf8()));
-
-                    // Get JSON object
-                    QJsonObject obj = doc.object();
-                    QJsonObject priceUSD = obj.value("avian-network").toObject();
-
-                    // Access last price
-                    double num = priceUSD.value("usd").toString().toDouble();
-
-                    labelCurrentPrice->setText(QString("%1").arg(QString().setNum(num, 'f', 8)));
-			        labelCurrentPrice->setToolTip(tr("Brought to you by exbitron.com"));
+                if (reply->error()) {
+                    labelCurrentPrice->setText("");
+                    qDebug() << reply->errorString();
+                    return;
                 }
+                // Get the data from the network request
+                QString answer = reply->readAll();
+
+                // Convert into JSON document
+                QJsonDocument doc(QJsonDocument::fromJson(answer.toUtf8()));
+                QJsonObject obj = doc.object();
+
+                // Get avian-network object
+                QJsonObject avianNetwork = obj.value("avian-network").toObject();
+
+                // Get current price
+                double num = avianNetwork.value("usd").toDouble();
+                labelCurrentPrice->setText(QString("%1").arg(QString().setNum(num, 'f', 8)));
+                labelCurrentPrice->setToolTip(tr("Brought to you by coingecko.com"));
+            }
         );
 
         // Create the timer
