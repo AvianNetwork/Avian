@@ -179,7 +179,7 @@ protected:
 
     bool Condition(const CBlockIndex* pindex, const Consensus::ConsensusParams& params) const override
     {
-        // Crow: Versionbits always active since powforktime and high bits repurposed at crow UASF activation;
+        // Dual algo: Versionbits always active since powforktime and high bits repurposed at crow UASF activation;
         // So, don't use VERSIONBITS_TOP_MASK any time past powforktime
         if (pindex->nTime > params.powForkTime)
             return (pindex->nVersion & Mask(params)) != 0;

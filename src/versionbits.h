@@ -18,7 +18,7 @@ static const int32_t VERSIONBITS_TOP_BITS_ASSETS = 0x30000000UL;
 /** What bitmask determines whether versionbits is in use */
 static const int32_t VERSIONBITS_TOP_MASK = 0xE0000000UL;
 /** Total bits available for versionbits */
-static const int32_t VERSIONBITS_NUM_BITS = 16; // Crow: Only consider bottom 16 bits for UASF voting
+static const int32_t VERSIONBITS_NUM_BITS = 16; // Dual algo: Only consider bottom 16 bits for UASF voting
 enum ThresholdState {
     THRESHOLD_DEFINED,
     THRESHOLD_STARTED,

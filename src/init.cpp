@@ -431,13 +431,9 @@ std::string HelpMessage(HelpMessageMode mode)
     const auto testnetChainParams = CreateChainParams(CBaseChainParams::TESTNET);
 
     // We want to make sure to set the correct values after we get the help values
-    if (bNetwork.fOnRegtest) {
-        CreateChainParams(CBaseChainParams::REGTEST);
-    } else if (bNetwork.fOnTestnet) {
-        CreateChainParams(CBaseChainParams::TESTNET);
-    } else {
-        CreateChainParams(CBaseChainParams::MAIN);
-    }
+    CreateChainParams(CBaseChainParams::REGTEST);
+    CreateChainParams(CBaseChainParams::TESTNET);
+    CreateChainParams(CBaseChainParams::MAIN);
 
     const bool showDebug = gArgs.GetBoolArg("-help-debug", false);
 
@@ -638,7 +634,7 @@ std::string HelpMessage(HelpMessageMode mode)
         strUsage += HelpMessageOpt("-rpcworkqueue=<n>", strprintf("Set the depth of the work queue to service RPC calls (default: %d)", DEFAULT_HTTP_WORKQUEUE));
         strUsage += HelpMessageOpt("-rpcservertimeout=<n>", strprintf("Timeout during HTTP requests (default: %d)", DEFAULT_HTTP_SERVER_TIMEOUT));
     }
-    // Crow: Allow switching of default pow algo via conf / command line, for miners that can't easily adjust their getblocktemplate calls
+    // Dual algo: Allow switching of default pow algo via conf / command line, for miners that can't easily adjust their getblocktemplate calls
     strUsage += HelpMessageOpt("-powalgo=x16rt|minotaurx", strprintf(_("Default pow mining algorithm. Miners who can't easily adjust their getblocktemplate calls should use this argument to set their preferred mining algorithm. (default: %s)"), DEFAULT_POW_TYPE));
     // Flightplan: Show how to enable flightplans
     strUsage += HelpMessageOpt("-flightplans", strprintf(_("Enable Avian Flightplans for use via JSON-RPC")));
@@ -1416,7 +1412,7 @@ bool AppInitMain(boost::thread_group& threadGroup, CScheduler& scheduler)
 
     CFlatDB<CPowCache> flatdb7(strDBName, "powCache");
     if(!flatdb7.Load(CPowCache::Instance())) {
-        return InitError(_("Failed to load POW cache from") + "\n" + (pathDB / strDBName).string());
+        return InitError(_("Failed to load POW cache from") + "\n" + (pathDB / strDBName).string() + "\n\n" + "Delete this file and it will be recreated.");
     }
 
     // ********************************************************* Step 7: network initialization

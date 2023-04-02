@@ -221,7 +221,7 @@ UniValue blockToDeltasJSON(const CBlock& block, const CBlockIndex* blockindex)
     result.push_back(Pair("bits", strprintf("%08x", block.nBits)));
     result.push_back(Pair("difficulty", GetDifficulty(blockindex)));
     if (IsCrowEnabled(blockindex, Params().GetConsensus())) {
-        result.push_back(Pair("difficulty_minotaurx", GetDifficulty(POW_TYPE_CROW)));
+        result.push_back(Pair("difficulty_minotaurx", GetDifficulty(POW_TYPE_MINOTAURX)));
         result.push_back(Pair("difficulty_x16rt", GetDifficulty(POW_TYPE_X16RT)));
     }
     result.push_back(Pair("chainwork", blockindex->nChainWork.GetHex()));
@@ -271,7 +271,7 @@ UniValue blockToJSON(const CBlock& block, const CBlockIndex* blockindex, bool tx
     result.push_back(Pair("bits", strprintf("%08x", block.nBits)));
     result.push_back(Pair("difficulty", GetDifficulty(blockindex)));
     if (IsCrowEnabled(blockindex, Params().GetConsensus())) {
-        result.push_back(Pair("difficulty_minotaurx", GetDifficulty(POW_TYPE_CROW)));
+        result.push_back(Pair("difficulty_minotaurx", GetDifficulty(POW_TYPE_MINOTAURX)));
         result.push_back(Pair("difficulty_x16rt", GetDifficulty(POW_TYPE_X16RT)));
     }
     result.push_back(Pair("chainwork", blockindex->nChainWork.GetHex()));
@@ -1440,7 +1440,7 @@ UniValue getblockchaininfo(const JSONRPCRequest& request)
     obj.push_back(Pair("bestblockhash",         chainActive.Tip()->GetBlockHash().GetHex()));
     obj.push_back(Pair("difficulty",            (double)GetDifficulty(chainActive.Tip())));
     if (IsCrowEnabled(chainActive.Tip(), Params().GetConsensus())){
-        obj.push_back(Pair("difficulty_minotaurx", GetDifficulty(POW_TYPE_CROW)));
+        obj.push_back(Pair("difficulty_minotaurx", GetDifficulty(POW_TYPE_MINOTAURX)));
         obj.push_back(Pair("difficulty_x16rt", GetDifficulty(POW_TYPE_X16RT)));
         obj.push_back(Pair("difficulty_algorithm", "LWMA-3"));
     } else {

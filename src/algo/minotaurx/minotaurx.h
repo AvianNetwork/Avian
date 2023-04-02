@@ -8,7 +8,7 @@
 
 #include <uint256.h>
 
-#include "algo/hash_algos.h"
+#include "algo/x16r/x16r.h"
 
 #include "yespower/yespower.h"
 
