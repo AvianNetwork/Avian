@@ -780,27 +780,26 @@ void AvianGUI::createToolBars()
         // Network request code for the header widget
         QObject::connect(networkManager, &QNetworkAccessManager::finished,
                          this, [=](QNetworkReply *reply) {
-                    if (reply->error()) {
-                        labelCurrentPrice->setText("");
-                        qDebug() << reply->errorString();
-                        return;
-                    }
-                    // Get the data from the network request
-                    QString answer = reply->readAll();
-
-                    // Convert into JSON document
-                    QJsonDocument doc(QJsonDocument::fromJson(answer.toUtf8()));
-
-                    // Get JSON object
-                    QJsonObject obj = doc.object();
-                    QJsonObject ticker = obj.value("ticker").toObject();
-
-                    // Access last price
-                    double num = ticker.value("last").toString().toDouble();
-
-                    labelCurrentPrice->setText(QString("%1").arg(QString().setNum(num, 'f', 8)));
-			        labelCurrentPrice->setToolTip(tr("Brought to you by exbitron.com"));
+                if (reply->error()) {
+                    labelCurrentPrice->setText("");
+                    qDebug() << reply->errorString();
+                    return;
                 }
+                // Get the data from the network request
+                QString answer = reply->readAll();
+
+                // Convert into JSON document
+                QJsonDocument doc(QJsonDocument::fromJson(answer.toUtf8()));
+                QJsonObject obj = doc.object();
+
+                // Get avian-network object
+                QJsonObject avianNetwork = obj.value("avian-network").toObject();
+
+                // Get current price
+                double num = avianNetwork.value("usd").toDouble();
+                labelCurrentPrice->setText(QString("%1").arg(QString().setNum(num, 'f', 8)));
+                labelCurrentPrice->setToolTip(tr("Brought to you by coingecko.com"));
+            }
         );
 
         // Create the timer
@@ -1729,7 +1728,7 @@ void UnitDisplayStatusBarControl::onMenuSelection(QAction* action)
 void AvianGUI::getPriceInfo()
 {
     QString url;
-    url = "https://www.exbitron.com/api/v2/peatio/public/markets/avnusdt/tickers";
+    url = "https://api.coingecko.com/api/v3/simple/price?ids=avian-network&vs_currencies=usd";
 
     request->setUrl(QUrl(url));
     networkManager->get(*request);
