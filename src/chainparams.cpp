@@ -210,9 +210,10 @@ public:
 
         // Founder reward
         vector<FounderRewardStructure> rewardStructures = {
-            {INT_MAX, 5} // 5% founder/dev fee forever
+            {"rPC7kPCNPAVnUvQs4fWEvnFwJ4yfKvArXM",1121001,1641000, 5}, // 5% legacy founder/dev fee until block 1641000
+            {"rKkJVJKgSPfS7oYmLZWoAHLyRzmFMuxiSU",1641000,INT_MAX, 5}  // 5% founder/dev fee forever
         };
-        consensus.nFounderPayment = FounderPayment(rewardStructures, 1121000); // Block 1121000
+        consensus.nFounderPayment = FounderPayment(rewardStructures); 
 
         fDefaultConsistencyChecks = false;
         fRequireStandard = true;
@@ -364,9 +365,11 @@ public:
 
         // Founder reward
         vector<FounderRewardStructure> rewardStructures = {
-            {INT_MAX, 5} // 5% founder/dev fee forever
+            {"n1BurnXXXXXXXXXXXXXXXXXXXXXXU1qejP",11,30, 5}, // 5% legacy founder/dev fee until block 50
+            {"2MvpouPdDEujBZg5eZnLNv5bCn78EE2bi65",30,100, 5}, // 5% legacy founder/dev fee until block 50
+            {"2MzJPqGahWsi42LAw2fxz5gjssMhMinTpWG",100,INT_MAX, 5} // 5% founder/dev fee forever
         };
-        consensus.nFounderPayment = FounderPayment(rewardStructures, 150, "n1BurnXXXXXXXXXXXXXXXXXXXXXXU1qejP"); // Block 150 (burn coins)
+        consensus.nFounderPayment = FounderPayment(rewardStructures); 
 
         fDefaultConsistencyChecks = false;
         fRequireStandard = false;
@@ -552,9 +555,9 @@ public:
 
         // Founder reward
         vector<FounderRewardStructure> rewardStructures = {
-            {INT_MAX, 5} // 5% founder/dev fee forever
+            {"2MzJPqGahWsi42LAw2fxz5gjssMhMinTpWG",1,INT_MAX, 5} // 5% founder/dev fee forever
         };
-        consensus.nFounderPayment = FounderPayment(rewardStructures, 1, "n1BurnXXXXXXXXXXXXXXXXXXXXXXU1qejP"); // Block 1 (burn coins)
+        consensus.nFounderPayment = FounderPayment(rewardStructures);
 
         vFixedSeeds.clear(); //!< Regtest mode doesn't have any fixed seeds.
         vSeeds.clear();      //!< Regtest mode doesn't have any DNS seeds.

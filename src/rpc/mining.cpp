@@ -447,6 +447,13 @@ UniValue getblocktemplate(const JSONRPCRequest& request)
             "  \"curtime\" : ttt,                  (numeric) current timestamp in seconds since epoch (Jan 1 1970 GMT)\n"
             "  \"bits\" : \"xxxxxxxx\",              (string) compressed target of next block\n"
             "  \"height\" : n                      (numeric) The height of the next block\n"
+            "  \"height\" : n,                     (numeric) The height of the next block\n"
+            "  \"founder\" : {                  (array) required founder payee that must be included in the next block\n"
+            "     \"payee\" : \"xxxx\",          (string) payee address\n"
+            "     \"script\" : \"xxxx\",         (string) payee scriptPubKey\n"
+            "     \"amount\": n                (numeric) required amount to pay\n"
+            "  },\n"
+            "  \"founder_payments_started\" : true|false (boolean) true, if founder payments started\n"
             "}\n"
 
             "\nExamples:\n"
@@ -697,19 +704,6 @@ UniValue getblocktemplate(const JSONRPCRequest& request)
     UniValue result(UniValue::VOBJ);
     result.push_back(Pair("capabilities", aCaps));
 
-    UniValue founderObj(UniValue::VOBJ);
-    FounderPayment founderPayment = Params().GetConsensus().nFounderPayment;
-    if(pblock->txoutFounder!= CTxOut()) {
-    	CTxDestination address;
-    	ExtractDestination(pblock->txoutFounder.scriptPubKey, address);
-    	CAvianAddress address2(address);
-    	founderObj.push_back(Pair("payee", address2.ToString().c_str()));
-    	founderObj.push_back(Pair("script", HexStr(pblock->txoutFounder.scriptPubKey.begin(), pblock->txoutFounder.scriptPubKey.end())));
-    	founderObj.push_back(Pair("amount", pblock->txoutFounder.nValue));
-    }
-    result.push_back(Pair("founder", founderObj));
-    result.push_back(Pair("founder_payments_started", pindexPrev->nHeight + 1 > founderPayment.getStartBlock()));
-
     UniValue aRules(UniValue::VARR);
     UniValue vbavailable(UniValue::VOBJ);
     for (int j = 0; j < (int)Consensus::MAX_VERSION_BITS_DEPLOYMENTS; ++j) {
@@ -768,7 +762,7 @@ UniValue getblocktemplate(const JSONRPCRequest& request)
     result.push_back(Pair("previousblockhash", pblock->hashPrevBlock.GetHex()));
     result.push_back(Pair("transactions", transactions));
     result.push_back(Pair("coinbaseaux", aux));
-    result.push_back(Pair("coinbasevalue", (int64_t)pblock->vtx[0]->vout[0].nValue));
+    result.push_back(Pair("coinbasevalue", (int64_t)pblock->vtx[0]->GetValueOut()));
     result.push_back(Pair("longpollid", chainActive.Tip()->GetBlockHash().GetHex() + i64tostr(nTransactionsUpdatedLast)));
     result.push_back(Pair("target", hashTarget.GetHex()));
     result.push_back(Pair("mintime", (int64_t)pindexPrev->GetMedianTimePast()+1));
@@ -790,6 +784,19 @@ UniValue getblocktemplate(const JSONRPCRequest& request)
     result.push_back(Pair("curtime", pblock->GetBlockTime()));
     result.push_back(Pair("bits", strprintf("%08x", pblock->nBits)));
     result.push_back(Pair("height", (int64_t)(pindexPrev->nHeight+1)));
+    
+    UniValue founderObj(UniValue::VOBJ);
+    FounderPayment founderPayment = Params().GetConsensus().nFounderPayment;
+    if(pblock->txoutFounder!= CTxOut()) {
+    	CTxDestination address;
+    	ExtractDestination(pblock->txoutFounder.scriptPubKey, address);
+    	CAvianAddress address2(address);
+    	founderObj.push_back(Pair("payee", address2.ToString().c_str()));
+    	founderObj.push_back(Pair("script", HexStr(pblock->txoutFounder.scriptPubKey.begin(), pblock->txoutFounder.scriptPubKey.end())));
+    	founderObj.push_back(Pair("amount", pblock->txoutFounder.nValue));
+    }
+    result.push_back(Pair("founder", founderObj));
+    result.push_back(Pair("founder_payments_started", founderPayment.IsFounderPaymentsStarted(pindexPrev->nHeight + 1)));
 
     if (!pblocktemplate->vchCoinbaseCommitment.empty() && fSupportsSegwit) {
         result.push_back(Pair("default_witness_commitment", HexStr(pblocktemplate->vchCoinbaseCommitment.begin(), pblocktemplate->vchCoinbaseCommitment.end())));
