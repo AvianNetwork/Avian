@@ -793,10 +793,10 @@ void AvianGUI::createToolBars()
 
                     // Get JSON object
                     QJsonObject obj = doc.object();
-                    QJsonObject ticker = obj.value("ticker").toObject();
+                    QJsonObject priceUSD = obj.value("avian-network").toObject();
 
                     // Access last price
-                    double num = ticker.value("last").toString().toDouble();
+                    double num = priceUSD.value("usd").toString().toDouble();
 
                     labelCurrentPrice->setText(QString("%1").arg(QString().setNum(num, 'f', 8)));
 			        labelCurrentPrice->setToolTip(tr("Brought to you by exbitron.com"));
@@ -1729,7 +1729,7 @@ void UnitDisplayStatusBarControl::onMenuSelection(QAction* action)
 void AvianGUI::getPriceInfo()
 {
     QString url;
-    url = "https://www.exbitron.com/api/v2/peatio/public/markets/avnusdt/tickers";
+    url = "https://api.coingecko.com/api/v3/simple/price?ids=avian-network&vs_currencies=usd";
 
     request->setUrl(QUrl(url));
     networkManager->get(*request);
