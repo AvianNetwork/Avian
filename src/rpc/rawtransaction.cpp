@@ -756,7 +756,7 @@ UniValue createrawtransaction(const JSONRPCRequest& request)
                         throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid parameter, missing asset metadata for key: has_ans");                    
 
                     UniValue ans_id = "";
-                    if (ans_id.get_int() == 1) {
+                    if (has_ans.get_int() == 1) {
                         ans_id = find_value(assetData, "ans_id");
                         if (!ans_id.isStr())
                             throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid parameter, missing asset metadata for key: ans_id");
@@ -1098,6 +1098,10 @@ UniValue createrawtransaction(const JSONRPCRequest& request)
                     if (!has_ipfs.isNum())
                         throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid parameter, missing asset metadata for key: has_ipfs");
 
+                    const UniValue& has_ans = find_value(assetData, "has_ans");
+                    if (!has_ans.isNum())
+                        throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid parameter, missing asset metadata for key: has_ans");
+
                     bool fHasOwnerChange = false;
                     const UniValue& owner_change_address = find_value(assetData, "owner_change_address");
                     if (!owner_change_address.isNull()) {
@@ -1117,6 +1121,13 @@ UniValue createrawtransaction(const JSONRPCRequest& request)
                             throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid parameter, missing asset metadata for key: has_ipfs");
                     }
 
+                    UniValue ans_id = "";
+                    if (has_ans.get_int() == 1) {
+                        ans_id = find_value(assetData, "ans_id");
+                        if (!ans_id.isStr())
+                            throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid parameter, missing asset metadata for key: has_ans");
+                    }
+
                     std::string strAssetName = asset_name.get_str();
 
                     if (!IsAssetNameAnRestricted(strAssetName))
@@ -1134,7 +1145,7 @@ UniValue createrawtransaction(const JSONRPCRequest& request)
 
 
                     // Create a new asset
-                    CNewAsset asset(strAssetName, nAmount, units.get_int(), reissuable.get_int(), has_ipfs.get_int(), DecodeAssetData(ipfs_hash.get_str()));
+                    CNewAsset asset(strAssetName, nAmount, units.get_int(), reissuable.get_int(), has_ipfs.get_int(), DecodeAssetData(ipfs_hash.get_str()), has_ans.get_int(), ans_id.get_str());
 
                     // Verify the new asset data
                     if (!ContextualCheckNewAsset(currentActiveAssetCache, asset, strError)) {
@@ -1221,6 +1232,14 @@ UniValue createrawtransaction(const JSONRPCRequest& request)
                             throw JSONRPCError(RPC_INVALID_PARAMETER,
                                                "Invalid parameter, missing reissue metadata for key: ipfs_hash");
                         reissueObj.strIPFSHash = DecodeAssetData(ipfs_hash.get_str());
+                    }
+
+                    const UniValue &ans_id = find_value(reissueData, "ans_id");
+                    if (!ans_id.isNull()) {
+                        if (!ans_id.isStr())
+                            throw JSONRPCError(RPC_INVALID_PARAMETER,
+                                               "Invalid parameter, missing reissue metadata for key: ans_id");
+                        reissueObj.strANSID = ans_id.get_str();
                     }
 
                     bool fHasOwnerChange = false;

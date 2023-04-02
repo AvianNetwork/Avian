@@ -139,7 +139,7 @@ arith_uint256 GetBlockProof(const CBlockIndex& block, POW_TYPE powType)
     if (IsCrowEnabled(&block, Params().GetConsensus()) && block.GetBlockHeader().GetPoWType() != powType)
         return 0;
     //  if you ask for minotaurx hashes before it's enabled, there aren't any!
-    if (!IsCrowEnabled(&block, Params().GetConsensus()) && powType == POW_TYPE_CROW) 
+    if (!IsCrowEnabled(&block, Params().GetConsensus()) && powType == POW_TYPE_MINOTAURX) 
         return 0;
  
     // We need to compute 2**256 / (bnTarget+1), but we can't represent 2**256

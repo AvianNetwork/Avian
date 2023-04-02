@@ -14,6 +14,7 @@
 #include "checkqueue.h"
 #include "consensus/consensus.h"
 #include "consensus/merkle.h"
+#include "consensus/params.h"
 #include "consensus/tx_verify.h"
 #include "consensus/validation.h"
 #include "cuckoocache.h"
@@ -2332,7 +2333,7 @@ int32_t ComputeBlockVersion(const CBlockIndex* pindexPrev, const Consensus::Cons
     LOCK(cs_main);
     int32_t nVersion = VERSIONBITS_TOP_BITS;
 
-    // Crow: Set bit 29 to 0
+    // Dual algo: Set bit 29 to 0
     if (pindexPrev != nullptr) {
         if (IsCrowEnabled(pindexPrev, params))
             nVersion = 0;
@@ -2373,7 +2374,7 @@ public:
 
     bool Condition(const CBlockIndex* pindex, const Consensus::ConsensusParams& params) const override
     {
-        // Crow: Versionbits always active since powforktime and high bits repurposed at minotaurx UASF activation;
+        // Dual algo: Versionbits always active since powforktime and high bits repurposed at minotaurx UASF activation;
         // So, don't use VERSIONBITS_TOP_MASK any time past powforktime
         if (pindex->nTime > params.powForkTime)
             return ((pindex->nVersion >> bit) & 1) != 0 &&
@@ -2421,7 +2422,7 @@ static unsigned int GetBlockScriptFlags(const CBlockIndex* pindex, const Consens
     return flags;
 }
 
-// Crow: Check if Crow Algo is activated at given point
+// Dual algo: Check if Crow Algo is activated at given point
 bool IsCrowEnabled(const CBlockIndex* pindexPrev, const Consensus::ConsensusParams& params)
 {
     // return (VersionBitsState(pindexPrev, params, Consensus::DEPLOYMENT_CROW, versionbitscache) == THRESHOLD_ACTIVE);
@@ -3170,7 +3171,7 @@ void static UpdateTip(CBlockIndex *pindexNew, const CChainParams& chainParams) {
         for (int i = 0; i < 100 && pindex != nullptr; i++)
         {
             int32_t nExpectedVersion = ComputeBlockVersion(pindex->pprev, chainParams.GetConsensus());
-            // Crow: Mask out blocktype before checking for possible unknown upgrade
+            // Dual algo: Mask out blocktype before checking for possible unknown upgrade
             if (IsCrowEnabled(pindex, chainParams.GetConsensus())) {
                 if (pindex->nVersion & 0xFF00FFFF != nExpectedVersion)
                     ++nUpgraded;
@@ -3179,6 +3180,12 @@ void static UpdateTip(CBlockIndex *pindexNew, const CChainParams& chainParams) {
         }
         if (nUpgraded > 0)
             warningMessages.push_back(strprintf(_("%d of last 100 blocks have unexpected version"), nUpgraded));
+        if (nUpgraded > 100/2)
+        {
+            std::string strWarning = _("Warning: Unknown block versions being mined! It's possible unknown rules are in effect");
+            // notify GetWarnings(), called by Qt and the JSON-RPC code to warn the user:
+            DoWarning(strWarning);
+        }
     }
     LogPrintf("%s: new best=%s height=%d version=0x%08x log2_work=%.8g tx=%lu date='%s' progress=%f cache=%.1fMiB(%utxo)", __func__,
       chainActive.Tip()->GetBlockHash().ToString(), chainActive.Height(), chainActive.Tip()->nVersion,
@@ -4180,7 +4187,7 @@ static bool ContextualCheckBlockHeader(const CBlockHeader& block, CValidationSta
 
     // Check proof of work
     const Consensus::ConsensusParams& consensusParams = params.GetConsensus();
-     // Crow: Handle pow type
+     // Dual algo: Handle pow type
         if (IsCrowEnabled(pindexPrev, consensusParams)) {
             POW_TYPE powType = block.GetPoWType();
 
@@ -4234,7 +4241,7 @@ static bool ContextualCheckBlockHeader(const CBlockHeader& block, CValidationSta
     //         return state.Invalid(false, REJECT_OBSOLETE, strprintf("bad-version(0x%08x)", block.nVersion),
     //                              strprintf("rejected nVersion=0x%08x block", block.nVersion));
 
-    // Crow: Handle nVersion differently after activation
+    // Dual algo: Handle nVersion differently after activation
     if (IsCrowEnabled(pindexPrev,consensusParams)) {
         // TODO: Fix version bit checking 
         // // Top 8 bits must be zero
@@ -5877,7 +5884,7 @@ bool AreAssetsDeployed()
     // if (thresholdState == THRESHOLD_ACTIVE)
     //     fAssetsIsActive = true;
 
-    if ((chainActive.Tip() != nullptr) && chainActive.Tip()->nTime > Params().GetConsensus().nAssetActivationTime)
+    if ((chainActive.Tip() != nullptr) && chainActive.Tip()->nTime > Params().GetConsensus().vUpgrades[Consensus::UPGRADE_AVIAN_ASSETS].nTimestamp)
         fAssetsIsActive = true;
 
     return fAssetsIsActive;
@@ -5888,7 +5895,7 @@ bool AreFlightPlansDeployed()
     if (fFlightPlansIsActive)
         return true;
 
-    if ((chainActive.Tip() != nullptr) && chainActive.Tip()->nTime > Params().GetConsensus().nFlightPlansActivationTime)
+    if ((chainActive.Tip() != nullptr) && chainActive.Tip()->nTime > Params().GetConsensus().vUpgrades[Consensus::UPGRADE_AVIAN_FLIGHT_PLANS].nTimestamp)
         fFlightPlansIsActive = true;
 
     return fFlightPlansIsActive;
@@ -5898,7 +5905,7 @@ bool AreMessagesDeployed() {
     if (fMessaging)
         return true;
 
-    if ((chainActive.Tip() != nullptr) && chainActive.Tip()->nTime > Params().GetConsensus().nMessagingActivationTime)
+    if ((chainActive.Tip() != nullptr) && chainActive.Tip()->nTime > Params().GetConsensus().vUpgrades[Consensus::UPGRADE_AVIAN_ASSETS].nTimestamp)
         fMessaging = true;
 
     return fMessaging;
@@ -5908,7 +5915,7 @@ bool AreRestrictedAssetsDeployed() {
     if (fRestricted)
         return true;
 
-    if ((chainActive.Tip() != nullptr) && chainActive.Tip()->nTime > Params().GetConsensus().nRestrictedActivationTime)
+    if ((chainActive.Tip() != nullptr) && chainActive.Tip()->nTime > Params().GetConsensus().vUpgrades[Consensus::UPGRADE_AVIAN_ASSETS].nTimestamp)
         fRestricted = true;
 
     return fRestricted;
@@ -5919,7 +5926,7 @@ bool IsAvianNameSystemDeployed()
     if (fAvianNameSystemIsActive)
         return true;
 
-    if ((chainActive.Tip() != nullptr) && chainActive.Tip()->nTime > Params().GetConsensus().nAvianNameSystemTime)
+    if ((chainActive.Tip() != nullptr) && chainActive.Tip()->nTime > Params().GetConsensus().vUpgrades[Consensus::UPGRADE_AVIAN_NAME_SYSTEM].nTimestamp)
         fAvianNameSystemIsActive = true;
 
     return fAvianNameSystemIsActive;

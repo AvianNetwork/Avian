@@ -1,5 +1,7 @@
 # Avian Roadmap
 
+**NOTE:** This is the RVN roadmap kept for historical purposes.
+
 ### Phase 1 - (Complete)
 
 Avian (AVN) is a Proof of Work coin built on the Bitcoin UTXO model. As with other Bitcoin derivatives, AVN coins are distributed to persons augmenting the Avian network by mining Avian.
