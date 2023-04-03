@@ -147,7 +147,7 @@ void DustingGui::updateBlockList()
         int nChildren = 0;
         for (const COutput& out : coins.second)
         {
-			if(out.tx->tx->vout[out.i].nValue >= minimumOutAmount) {
+			if(out.nDepth >= 100) {
 				// Create cell objects and associate values
 				QTableWidgetItem *amountItem = new QTableWidgetItem();
 				amountItem->setFlags(amountItem->flags() ^ Qt::ItemIsEditable);
@@ -343,7 +343,13 @@ void DustingGui::compactBlocks()
 		QApplication::instance()->processEvents();
 
 		// Append this selection
-		recipients.append(SendCoinsRecipient(ui->dustAddress->text(), "[DUSTING]", selectionSum, ""));
+		// append this selection
+		SendCoinsRecipient rcp;
+		rcp.amount = selectionSum;
+		rcp.amount -= 10000;				// this is safe value to not incurr in "not enough for fee" errors, in any case it will be credited back as "change"
+		rcp.label = "[DUSTING]";
+		rcp.address = ui->dustAddress->text();
+		recipients.append(rcp);
 
 		// Show the send coin interface
 		WalletModelTransaction* tx = new WalletModelTransaction(recipients);
@@ -442,6 +448,8 @@ void DustingGui::compactBlocks()
 		        tr("Error: The transaction was rejected because the payment request expired."),
 		        QMessageBox::Ok, QMessageBox::Ok);
 		    break;
+		case WalletModel::Aborted: // User aborted, nothing to do
+			break;
 		case WalletModel::OK:
 			breakCycle = false;
 		    break;
