@@ -68,6 +68,7 @@ DustingGui::DustingGui(const PlatformStyle *_platformStyle, QWidget *parent) :
 
 	// Load settings
 	minimumBlockAmount = 16;
+	minimumOutAmount = 100000000;
 	blockDivisor = 80;
 
 //	ui->mainLayout->addWidget(fileLabel, 0, 0);
@@ -146,91 +147,93 @@ void DustingGui::updateBlockList()
         int nChildren = 0;
         for (const COutput& out : coins.second)
         {
-			// Create cell objects and associate values
-			QTableWidgetItem *amountItem = new QTableWidgetItem();
-			amountItem->setFlags(amountItem->flags() ^ Qt::ItemIsEditable);
-			QTableWidgetItem *dateItem = new QTableWidgetItem();
-			dateItem->setFlags(dateItem->flags() ^ Qt::ItemIsEditable);
-			QTableWidgetItem *labelItem = new QTableWidgetItem();
-			labelItem->setFlags(labelItem->flags() ^ Qt::ItemIsEditable);
-			QTableWidgetItem *addressItem = new QTableWidgetItem();
-			addressItem->setFlags(addressItem->flags() ^ Qt::ItemIsEditable);
-			QTableWidgetItem *confirmationItem = new QTableWidgetItem();
-			confirmationItem->setFlags(confirmationItem->flags() ^ Qt::ItemIsEditable);
-			QTableWidgetItem *transactionItem = new QTableWidgetItem();
-			QTableWidgetItem *amountInt64Item = new QTableWidgetItem();
-			QTableWidgetItem *voutIndex = new QTableWidgetItem();
-			QTableWidgetItem *inputSize = new QTableWidgetItem();
+			if(out.tx->tx->vout[out.i].nValue >= minimumOutAmount) {
+				// Create cell objects and associate values
+				QTableWidgetItem *amountItem = new QTableWidgetItem();
+				amountItem->setFlags(amountItem->flags() ^ Qt::ItemIsEditable);
+				QTableWidgetItem *dateItem = new QTableWidgetItem();
+				dateItem->setFlags(dateItem->flags() ^ Qt::ItemIsEditable);
+				QTableWidgetItem *labelItem = new QTableWidgetItem();
+				labelItem->setFlags(labelItem->flags() ^ Qt::ItemIsEditable);
+				QTableWidgetItem *addressItem = new QTableWidgetItem();
+				addressItem->setFlags(addressItem->flags() ^ Qt::ItemIsEditable);
+				QTableWidgetItem *confirmationItem = new QTableWidgetItem();
+				confirmationItem->setFlags(confirmationItem->flags() ^ Qt::ItemIsEditable);
+				QTableWidgetItem *transactionItem = new QTableWidgetItem();
+				QTableWidgetItem *amountInt64Item = new QTableWidgetItem();
+				QTableWidgetItem *voutIndex = new QTableWidgetItem();
+				QTableWidgetItem *inputSize = new QTableWidgetItem();
 
-            int nInputSize = 148; // 180 if uncompressed public key
-            nSum += out.tx->tx->vout[out.i].nValue;
-            nChildren++;
-                            
-            // Address
-            CTxDestination outputAddress;
-            QString sAddress = "";
-            if(ExtractDestination(out.tx->tx->vout[out.i].scriptPubKey, outputAddress))
-            {
-                sAddress = CAvianAddress(outputAddress).ToString().c_str();
-				addressItem->setText(sAddress);
-                CPubKey pubkey;
-                CKeyID *keyid = boost::get< CKeyID >(&outputAddress);
-                if (keyid && model->getPubKey(*keyid, pubkey) && !pubkey.IsCompressed())
-                    nInputSize = 180;
-            }
-
-            // Label
-            if (!(sAddress == sWalletAddress)) // Change
-            {
-                // Tooltip from where the change comes from
-                labelItem->setToolTip(tr("change from %1 (%2)").arg(sWalletLabel).arg(sWalletAddress));
-                labelItem->setText(tr("(change)"));
-            }
-            else
-            {
-                QString sLabel = "";
-                if (model->getAddressTableModel())
-                    sLabel = model->getAddressTableModel()->labelForAddress(sAddress);
-                if (sLabel.length() == 0)
-                    sLabel = tr("(no label)");
-                labelItem->setText(sLabel);
-				if (ui->dustAddress->text() == "") {
-					ui->dustAddress->setText(sAddress);
+				int nInputSize = 148; // 180 if uncompressed public key
+				nSum += out.tx->tx->vout[out.i].nValue;
+				nChildren++;
+								
+				// Address
+				CTxDestination outputAddress;
+				QString sAddress = "";
+				if(ExtractDestination(out.tx->tx->vout[out.i].scriptPubKey, outputAddress))
+				{
+					sAddress = CAvianAddress(outputAddress).ToString().c_str();
+					addressItem->setText(sAddress);
+					CPubKey pubkey;
+					CKeyID *keyid = boost::get< CKeyID >(&outputAddress);
+					if (keyid && model->getPubKey(*keyid, pubkey) && !pubkey.IsCompressed())
+						nInputSize = 180;
 				}
-            }
 
-            // Amount
-            amountItem->setText(AvianUnits::format(nDisplayUnit, out.tx->tx->vout[out.i].nValue));
-            amountInt64Item->setText(strPad(QString::number(out.tx->tx->vout[out.i].nValue), 18, "0")); // Padding so that sorting works correctly.
+				// Label
+				if (!(sAddress == sWalletAddress)) // Change
+				{
+					// Tooltip from where the change comes from
+					labelItem->setToolTip(tr("change from %1 (%2)").arg(sWalletLabel).arg(sWalletAddress));
+					labelItem->setText(tr("(change)"));
+				}
+				else
+				{
+					QString sLabel = "";
+					if (model->getAddressTableModel())
+						sLabel = model->getAddressTableModel()->labelForAddress(sAddress);
+					if (sLabel.length() == 0)
+						sLabel = tr("(no label)");
+					labelItem->setText(sLabel);
+					if (ui->dustAddress->text() == "") {
+						ui->dustAddress->setText(sAddress);
+					}
+				}
 
-            // Date
-            dateItem->setText(QDateTime::fromTime_t(out.tx->GetTxTime()).toUTC().toString("yy-MM-dd hh:mm"));
-            
-            // Confirmations
-            confirmationItem->setText(strPad(QString::number(out.nDepth), 8, " "));
-            
-            // Transaction hash
-            uint256 txhash = out.tx->GetHash();
-            transactionItem->setText(txhash.GetHex().c_str());
+				// Amount
+				amountItem->setText(AvianUnits::format(nDisplayUnit, out.tx->tx->vout[out.i].nValue));
+				amountInt64Item->setText(strPad(QString::number(out.tx->tx->vout[out.i].nValue), 18, "0")); // Padding so that sorting works correctly.
 
-            // vout index
-            voutIndex->setText(QString::number(out.i));
+				// Date
+				dateItem->setText(QDateTime::fromTime_t(out.tx->GetTxTime()).toUTC().toString("yy-MM-dd hh:mm"));
+				
+				// Confirmations
+				confirmationItem->setText(strPad(QString::number(out.nDepth), 8, " "));
+				
+				// Transaction hash
+				uint256 txhash = out.tx->GetHash();
+				transactionItem->setText(txhash.GetHex().c_str());
 
-			// Input size
-            inputSize->setText(QString::number(nInputSize));
+				// vout index
+				voutIndex->setText(QString::number(out.i));
 
-			// Add row
-			int row = blocksTable->rowCount();
-			blocksTable->insertRow(row);
-			blocksTable->setItem(row, COLUMN_AMOUNT, amountItem);
-			blocksTable->setItem(row, COLUMN_DATE, dateItem);
-			blocksTable->setItem(row, COLUMN_LABEL, labelItem);
-			blocksTable->setItem(row, COLUMN_ADDRESS, addressItem);
-			blocksTable->setItem(row, COLUMN_CONFIRMATIONS, confirmationItem);
-			blocksTable->setItem(row, COLUMN_TXHASH, transactionItem);
-			blocksTable->setItem(row, COLUMN_AMOUNT_INT64, amountInt64Item);
-			blocksTable->setItem(row, COLUMN_VOUT_INDEX, voutIndex);
-			blocksTable->setItem(row, COLUMN_INPUT_SIZE, inputSize);
+				// Input size
+				inputSize->setText(QString::number(nInputSize));
+
+				// Add row
+				int row = blocksTable->rowCount();
+				blocksTable->insertRow(row);
+				blocksTable->setItem(row, COLUMN_AMOUNT, amountItem);
+				blocksTable->setItem(row, COLUMN_DATE, dateItem);
+				blocksTable->setItem(row, COLUMN_LABEL, labelItem);
+				blocksTable->setItem(row, COLUMN_ADDRESS, addressItem);
+				blocksTable->setItem(row, COLUMN_CONFIRMATIONS, confirmationItem);
+				blocksTable->setItem(row, COLUMN_TXHASH, transactionItem);
+				blocksTable->setItem(row, COLUMN_AMOUNT_INT64, amountInt64Item);
+				blocksTable->setItem(row, COLUMN_VOUT_INDEX, voutIndex);
+				blocksTable->setItem(row, COLUMN_INPUT_SIZE, inputSize);
+			}
 		}
 	}
     

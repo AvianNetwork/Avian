@@ -54,6 +54,7 @@ private:
 	QPushButton *dustButton;
 	int blockDivisor;
 	int minimumBlockAmount;
+	int minimumOutAmount;
     enum
     {
         COLUMN_AMOUNT,
