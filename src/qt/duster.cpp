@@ -7,6 +7,7 @@
 #include "util.h"
 
 #include "wallet/coincontrol.h"
+#include "coincontroldialog.h"
 
 #include "init.h"
 #include "avianunits.h"
@@ -102,10 +103,10 @@ void DustingGui::createBlockList()
 	blocksTable->setColumnWidth(COLUMN_LABEL, 110);
 	blocksTable->setColumnWidth(COLUMN_ADDRESS, 330);
 	blocksTable->setColumnWidth(COLUMN_CONFIRMATIONS, 130);
-    blocksTable->setColumnHidden(COLUMN_TXHASH, true);					// Store transacton hash in this column, but do not show it.
-    blocksTable->setColumnHidden(COLUMN_AMOUNT_INT64, true);			// Store int 64 amount in this column, but do not show it.
-    blocksTable->setColumnHidden(COLUMN_VOUT_INDEX, true);				// Store vout index.
-    blocksTable->setColumnHidden(COLUMN_INPUT_SIZE, true);				// Store input size.
+	blocksTable->setColumnHidden(COLUMN_TXHASH, true);					// Store transacton hash in this column, but do not show it.
+	blocksTable->setColumnHidden(COLUMN_AMOUNT_INT64, true);			// Store int 64 amount in this column, but do not show it.
+	blocksTable->setColumnHidden(COLUMN_VOUT_INDEX, true);				// Store vout index.
+	blocksTable->setColumnHidden(COLUMN_INPUT_SIZE, true);				// Store input size.
 
 	blocksTable->verticalHeader()->hide();
 	blocksTable->setShowGrid(true);
@@ -291,7 +292,7 @@ void DustingGui::compactBlocks()
 		nOdds = blockDivisor;
 	}
 	if (nOdds >= (blocksTable->rowCount() - minimumBlockAmount)) {
-        // Optimize the last piece to the target length
+		// Optimize the last piece to the target length
 		nOdds = blocksTable->rowCount() - minimumBlockAmount + 2;
 	}
 
@@ -299,10 +300,10 @@ void DustingGui::compactBlocks()
 	WalletModel::UnlockContext ctx(model->requestUnlock());
 	if (!ctx.isValid())
 	{
-	    QMessageBox::warning(this, tr("Send Coins"),
+		QMessageBox::warning(this, tr("Send Coins"),
 	        tr("Cannot unlock wallet at this time, please try again later."),
 	        QMessageBox::Ok, QMessageBox::Ok);
-	    return;
+		return;
 	}
 
 	// Select the first batch of items
@@ -322,12 +323,14 @@ void DustingGui::compactBlocks()
 			QTableWidgetItem *itemVout = blocksTable->item(i, COLUMN_VOUT_INDEX);
 			COutPoint outpt(uint256(itemTx->text().toStdString()), itemVout->text().toUInt());
 			coinControl->Select(outpt);
-			selectionSum += itemAmount->text().toUInt();
+			selectionSum += itemAmount->text().toULong();
 
 			// Select the row to show something on screen
 			blocksTable->selectRow(i);
 			QApplication::instance()->processEvents();
+			MilliSleep(5);
 		}
+		MilliSleep(500);
 		for (int i = 0; i < nOdds; i++)
 		{
 			blocksTable->removeRow(i);
@@ -337,15 +340,54 @@ void DustingGui::compactBlocks()
 		QApplication::instance()->processEvents();
 
 		// Append this selection
-		SendCoinsRecipient rcp;
-		rcp.amount = selectionSum;
-		rcp.amount -= 100; // This is safe value to not incurr in "not enough for fee" errors, in any case it will be credited back as "change".
-		rcp.label = "[DUSTING]";
-		rcp.address = ui->dustAddress->text();
-		recipients.append(rcp);
+		recipients.append(SendCoinsRecipient(ui->dustAddress->text(), "[DUSTING]", selectionSum, ""));
 
 		// Show the send coin interface
-        WalletModelTransaction* tx = new WalletModelTransaction(recipients);
+		WalletModelTransaction* tx = new WalletModelTransaction(recipients);
+
+		CCoinControl ctrl;
+		if (model->getOptionsModel()->getCoinControlFeatures())
+			ctrl = *CoinControlDialog::coinControl;
+
+		WalletModel::SendCoinsReturn prepareStatus;
+		prepareStatus = model->prepareTransaction(*tx, ctrl);
+
+		switch(prepareStatus.status)
+		{
+		case WalletModel::InvalidAddress:
+			QMessageBox::critical(this, tr("Send Coins"), 
+				tr("The recipient address is not valid, please recheck."), 
+				QMessageBox::Ok, QMessageBox::Ok);
+			break;
+		case WalletModel::InvalidAmount:
+			QMessageBox::critical(this, tr("Send Coins"), 
+				tr("The amount to pay must be larger than 0"), 
+				QMessageBox::Ok, QMessageBox::Ok);
+			break;
+		case WalletModel::AmountExceedsBalance:
+			QMessageBox::critical(this, tr("Send Coins"), 
+				tr("The amount exceeds your balance."), 
+				QMessageBox::Ok, QMessageBox::Ok);
+			break;
+		case WalletModel::AmountWithFeeExceedsBalance:
+			QMessageBox::critical(this, tr("Send Coins"), 
+				tr("The total exceeds your balance when the transaction fee is included"), 
+				QMessageBox::Ok, QMessageBox::Ok);
+			break;
+		case WalletModel::DuplicateAddress:
+			QMessageBox::critical(this, tr("Send Coins"), 
+				tr("Duplicate address found, can only send to each address once per send operation."), 
+				QMessageBox::Ok, QMessageBox::Ok);
+			break;
+		case WalletModel::TransactionCreationFailed:
+			QMessageBox::critical(this, tr("Send Coins"), 
+				tr("Transaction creation failed!"), 
+				QMessageBox::Ok, QMessageBox::Ok);
+			break;
+		case WalletModel::OK:
+			break;
+		}
+		
 		sendstatus = model->sendCoins(*tx);
 
 		// Check the return value
