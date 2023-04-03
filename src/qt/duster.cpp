@@ -448,8 +448,6 @@ void DustingGui::compactBlocks()
 		        tr("Error: The transaction was rejected because the payment request expired."),
 		        QMessageBox::Ok, QMessageBox::Ok);
 		    break;
-		case WalletModel::Aborted: // User aborted, nothing to do
-			break;
 		case WalletModel::OK:
 			breakCycle = false;
 		    break;
