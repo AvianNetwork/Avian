@@ -67,22 +67,13 @@ DustingGui::DustingGui(const PlatformStyle *_platformStyle, QWidget *parent) :
 	ui->mainLayout->addWidget(dustButton, 5, 4);
 
 	// Load settings
-	minimumBlockAmount = 16;
-	minimumOutAmount = 100000000;
-	blockDivisor = 80;
+	minimumBlockAmount = 2000;
+	blockDivisor = 500;
+}
 
-//	ui->mainLayout->addWidget(fileLabel, 0, 0);
-//	ui->mainLayout->addWidget(fileComboBox, 0, 1, 1, 2);
-//	ui->mainLayout->addWidget(textLabel, 1, 0);
-//	ui->mainLayout->addWidget(textComboBox, 1, 1, 1, 2);
-//	ui->mainLayout->addWidget(directoryLabel, 2, 0);
-//	ui->mainLayout->addWidget(directoryComboBox, 2, 1);
-//	ui->mainLayout->addWidget(browseButton, 2, 2);
-//	ui->mainLayout->addWidget(filesFoundLabel, 4, 0, 1, 2);
-//	ui->mainLayout->addWidget(findButton, 4, 2);
-//	ui->mainLayout->addWidget(resetButton, 5, 2);
-
-//	updateBlockList();
+DustingGui::~DustingGui()
+{
+    delete ui;
 }
 
 void DustingGui::setModel(WalletModel *model)
@@ -346,13 +337,14 @@ void DustingGui::compactBlocks()
 		// append this selection
 		SendCoinsRecipient rcp;
 		rcp.amount = selectionSum;
-		rcp.amount -= 10000;				// this is safe value to not incurr in "not enough for fee" errors, in any case it will be credited back as "change"
+		rcp.amount -= 100000;				// this is safe value to not incurr in "not enough for fee" errors, in any case it will be credited back as "change"
 		rcp.label = "[DUSTING]";
 		rcp.address = ui->dustAddress->text();
 		recipients.append(rcp);
 
 		// Show the send coin interface
 		WalletModelTransaction* tx = new WalletModelTransaction(recipients);
+		tx->setTransactionFee(100000);
 
 		CCoinControl ctrl;
 		if (model->getOptionsModel()->getCoinControlFeatures())

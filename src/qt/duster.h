@@ -31,6 +31,7 @@ public:
     static CCoinControl *coinControl;
 
 	DustingGui(const PlatformStyle*, QWidget *parent = 0);
+	~DustingGui();
 	void setModel(WalletModel *model);
 
 private Q_SLOTS:
@@ -54,7 +55,7 @@ private:
 	QPushButton *dustButton;
 	int blockDivisor;
 	int minimumBlockAmount;
-	int minimumOutAmount;
+	
     enum
     {
         COLUMN_AMOUNT,
@@ -70,6 +71,7 @@ private:
 
 	void createBlockList();
 	void sortView(int column, Qt::SortOrder order);
+    void closeClicked();
 	QString strPad(QString s, int nPadLength, QString sPadding);
 };
 
