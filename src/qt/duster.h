@@ -53,9 +53,13 @@ private:
 	QLabel *infoLabel;
 	QPushButton *refreshButton;
 	QPushButton *dustButton;
-	int blockDivisor;
-	int minimumBlockAmount;
-	
+	bool userClosed;
+	int maxNumTX;
+	int defaultFee;
+	int minimumBlocks;
+	int64_t minAmtInput;
+	int64_t maxAmtInput;
+
     enum
     {
         COLUMN_AMOUNT,
@@ -71,7 +75,6 @@ private:
 
 	void createBlockList();
 	void sortView(int column, Qt::SortOrder order);
-    void closeClicked();
 	QString strPad(QString s, int nPadLength, QString sPadding);
 };
 

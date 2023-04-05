@@ -67,12 +67,17 @@ DustingGui::DustingGui(const PlatformStyle *_platformStyle, QWidget *parent) :
 	ui->mainLayout->addWidget(dustButton, 5, 4);
 
 	// Load settings
-	minimumBlockAmount = 2000;
-	blockDivisor = 500;
+	userClosed = false;
+	maxNumTX = 500;
+	defaultFee = 100000;
+	minimumBlocks = 20;
+	maxAmtInput = 1000000;
+	maxAmtInput = 2500000000;
 }
 
 DustingGui::~DustingGui()
 {
+	userClosed = true;
     delete ui;
 }
 
@@ -138,7 +143,7 @@ void DustingGui::updateBlockList()
         int nChildren = 0;
         for (const COutput& out : coins.second)
         {
-			if(out.nDepth >= 100) {
+			if(out.nDepth >= 100 && out.tx->tx->vout[out.i].nValue < maxAmtInput && out.tx->tx->vout[out.i].nValue >= minAmtInput) {
 				// Create cell objects and associate values
 				QTableWidgetItem *amountItem = new QTableWidgetItem();
 				amountItem->setFlags(amountItem->flags() ^ Qt::ItemIsEditable);
@@ -233,7 +238,7 @@ void DustingGui::updateBlockList()
     blocksTable->setEnabled(true);
 
 	// Add count
-	if (blocksTable->rowCount() <= minimumBlockAmount) {
+	if (blocksTable->rowCount() <= minimumBlocks) {
 		infoLabel->setText(tr("The wallet is clean."));
 	}
 	else {
@@ -257,7 +262,7 @@ void DustingGui::on_addressBookButton_clicked()
 void DustingGui::compactBlocks()
 {
 	// Check number of blocks
-	if (blocksTable->rowCount() <= minimumBlockAmount)
+	if (blocksTable->rowCount() <= minimumBlocks)
 	{
 		QMessageBox::information(this, tr("Wallet Dusting"), tr("The wallet is already optimized."), QMessageBox::Ok, QMessageBox::Ok);
 		return;
@@ -274,21 +279,7 @@ void DustingGui::compactBlocks()
 
 	// Refresh the selection after having put it offline
 	updateBlockList();
-	int nOps = ((blocksTable->rowCount() - minimumBlockAmount) / blockDivisor) + 1;
-	int nOdds = (blocksTable->rowCount() - minimumBlockAmount) % blockDivisor;
-	if (nOdds == 1) {
-		nOdds = blockDivisor + 1;
-	}
-	else if (nOdds == 2) {
-		nOdds = blockDivisor + 2;
-	}
-	else if (nOdds == 0) {
-		nOdds = blockDivisor;
-	}
-	if (nOdds >= (blocksTable->rowCount() - minimumBlockAmount)) {
-		// Optimize the last piece to the target length
-		nOdds = blocksTable->rowCount() - minimumBlockAmount + 2;
-	}
+	int nOps = (blocksTable->rowCount() / maxNumTX) + 1;
 
 	// Unlock the wallet for dusting only once
 	WalletModel::UnlockContext ctx(model->requestUnlock());
@@ -309,7 +300,11 @@ void DustingGui::compactBlocks()
 		coinControl->SetNull();
 		recipients.clear();
 		selectionSum = 0;
-		for (int i = 0; i < nOdds; i++)
+		int blockCounter = maxNumTX;
+		if(blocksTable->rowCount() < maxNumTX) {
+			blockCounter = blocksTable->rowCount();
+		}
+		for (int i = 0; i < blockCounter; i++)
 		{
 			// Prepare this selection
 			QTableWidgetItem *itemAmount = blocksTable->item(i, COLUMN_AMOUNT_INT64);
@@ -325,7 +320,7 @@ void DustingGui::compactBlocks()
 			MilliSleep(5);
 		}
 		MilliSleep(500);
-		for (int i = 0; i < nOdds; i++)
+		for (int i = 0; i < blockCounter; i++)
 		{
 			blocksTable->removeRow(i);
 			QApplication::instance()->processEvents();
@@ -446,27 +441,12 @@ void DustingGui::compactBlocks()
 		}
 
 		// Something went wrong, just quit.
-		if (breakCycle) {
+		if (breakCycle || userClosed) {
 			updateBlockList();
 			return;
 		}
 
-		// Refresh the list and recalculate values to always include the change that is left over as first item.
-		updateBlockList();
-		nOps = (blocksTable->rowCount() - minimumBlockAmount) / blockDivisor;
-		nOdds = (blocksTable->rowCount() - minimumBlockAmount) % blockDivisor;
-		if (nOdds == 1) {
-			nOdds = blockDivisor + 1;
-		}
-		else if (nOdds == 2) {
-			nOdds = blockDivisor + 2;
-		}
-		else if (nOdds == 0) {
-			nOdds = blockDivisor;
-		}
-		if (nOdds >= (blocksTable->rowCount() - minimumBlockAmount)) {
-			nOdds = blocksTable->rowCount() - minimumBlockAmount + 1;		// optimize the last piece to the target length
-		}
+		int nOps = (blocksTable->rowCount() / maxNumTX) + 1;
 	}
 }
 
