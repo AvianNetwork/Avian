@@ -28,7 +28,6 @@ class DustingGui : public QDialog
 	Q_OBJECT
 
 public:
-    static CCoinControl *coinControl;
 
 	DustingGui(const PlatformStyle*, QWidget *parent = 0);
 	~DustingGui();
@@ -56,9 +55,9 @@ private:
 	bool userClosed;
 	int maxNumTX;
 	int minimumBlocks;
-	CAmount defaultFee;
-	CAmount minAmtInput;
-	CAmount maxAmtInput;
+	int64_t defaultFee;
+	int64_t minAmtInput;
+	int64_t maxAmtInput;
 
     enum
     {
