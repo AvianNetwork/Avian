@@ -55,10 +55,10 @@ private:
 	QPushButton *dustButton;
 	bool userClosed;
 	int maxNumTX;
-	int defaultFee;
 	int minimumBlocks;
-	int64_t minAmtInput;
-	int64_t maxAmtInput;
+	CAmount defaultFee;
+	CAmount minAmtInput;
+	CAmount maxAmtInput;
 
     enum
     {

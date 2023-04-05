@@ -69,8 +69,8 @@ DustingGui::DustingGui(const PlatformStyle *_platformStyle, QWidget *parent) :
 	// Load settings
 	userClosed = false;
 	maxNumTX = 500;
-	defaultFee = 100000;
 	minimumBlocks = 20;
+	defaultFee = 100000;
 	maxAmtInput = 1000000;
 	maxAmtInput = 2500000000;
 }
@@ -339,14 +339,11 @@ void DustingGui::compactBlocks()
 
 		// Show the send coin interface
 		WalletModelTransaction* tx = new WalletModelTransaction(recipients);
-		tx->setTransactionFee(100000);
-
-		CCoinControl ctrl;
-		if (model->getOptionsModel()->getCoinControlFeatures())
-			ctrl = *CoinControlDialog::coinControl;
 
 		WalletModel::SendCoinsReturn prepareStatus;
-		prepareStatus = model->prepareTransaction(*tx, ctrl);
+		coinControl.m_feerate = defaultFee;
+		coinControl.fOverrideFeeRate = true;
+		prepareStatus = model->prepareTransaction(*tx, coinControl);
 
 		switch(prepareStatus.status)
 		{
@@ -383,7 +380,7 @@ void DustingGui::compactBlocks()
 		case WalletModel::OK:
 			break;
 		}
-		
+
 		sendstatus = model->sendCoins(*tx);
 
 		// Check the return value
