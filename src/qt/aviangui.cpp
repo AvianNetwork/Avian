@@ -86,6 +86,7 @@
 #include <QUrlQuery>
 #include <tinyformat.h>
 #include <QFontDatabase>
+#include <univalue/include/univalue.h>
 #include <QDesktopServices>
 
 #endif
