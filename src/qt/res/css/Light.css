@@ -1511,6 +1511,7 @@ QWidget .QFrame#frame {
 
 QLabel#labelCurrentMarket,
 QLabel#labelCurrentPrice,
+QLabel#labelVersionUpdate,
 QLabel#labelBtcAVN {
     font: 16pt 'Manrope';
 }

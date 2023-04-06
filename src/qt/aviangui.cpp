@@ -728,15 +728,6 @@ void AvianGUI::createToolBars()
         headerWidget->setStyleSheet(widgetBackgroundSytleSheet);
         headerWidget->setFixedHeight(75);
 
-        labelVersionUpdate->setText("<a href=\"https://github.com/AvianNetwork/Avian/releases\">New Wallet Version Available</a>");
-        labelVersionUpdate->setTextFormat(Qt::RichText);
-        labelVersionUpdate->setTextInteractionFlags(Qt::TextBrowserInteraction);
-        labelVersionUpdate->setOpenExternalLinks(true);
-        labelVersionUpdate->setContentsMargins(15,0,0,0);
-        labelVersionUpdate->setObjectName("labelVersionUpdate");
-        labelVersionUpdate->setAlignment(Qt::AlignVCenter);
-        labelVersionUpdate->hide();
-
         // Set the pricing information
         QHBoxLayout* priceLayout = new QHBoxLayout(headerWidget);
         priceLayout->setContentsMargins(QMargins());
@@ -760,6 +751,16 @@ void AvianGUI::createToolBars()
         labelBtcAVN->setFixedHeight(75);
         labelBtcAVN->setAlignment(Qt::AlignVCenter);
         labelBtcAVN->setObjectName("labelBtcAVN");
+
+        labelVersionUpdate->setText("<a href=\"https://github.com/AvianNetwork/Avian/releases\">New Wallet Version Available</a>");
+        labelVersionUpdate->setTextFormat(Qt::RichText);
+        labelVersionUpdate->setTextInteractionFlags(Qt::TextBrowserInteraction);
+        labelVersionUpdate->setOpenExternalLinks(true);
+        labelVersionUpdate->setContentsMargins(15,0,0,0);
+        labelVersionUpdate->setFixedHeight(75);
+        labelVersionUpdate->setObjectName("labelVersionUpdate");
+        labelVersionUpdate->setAlignment(Qt::AlignVCenter);
+        labelVersionUpdate->hide();
 
         // Style progress text
         progressBarLabel->setContentsMargins(15,0,0,0);
@@ -862,8 +863,8 @@ void AvianGUI::createToolBars()
 
                            // List the found values
                            QStringList list = rx.capturedTexts();
-                           static const int CLIENT_VERSION_MAJOR_INDEX = 4;
-                           static const int CLIENT_VERSION_MINOR_INDEX = 0;
+                           static const int CLIENT_VERSION_MAJOR_INDEX = 1;
+                           static const int CLIENT_VERSION_MINOR_INDEX = 2;
                            static const int CLIENT_VERSION_REVISION_INDEX = 3;
                            bool fNewSoftwareFound = false;
                            bool fStopSearch = false;
