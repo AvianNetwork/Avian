@@ -166,6 +166,7 @@ AvianGUI::AvianGUI(const PlatformStyle *_platformStyle, const NetworkStyle *netw
     modalOverlay(0),
     prevBlocks(0),
     spinnerFrame(0),
+    labelVersionUpdate(0),
     platformStyle(_platformStyle)
 
 {
@@ -726,6 +727,16 @@ void AvianGUI::createToolBars()
         headerWidget->setContentsMargins(0,0,0,50);
         headerWidget->setStyleSheet(widgetBackgroundSytleSheet);
         headerWidget->setFixedHeight(75);
+
+        labelVersionUpdate->setText("<a href=\"https://github.com/AvianNetwork/Avian/releases\">New Wallet Version Available</a>");
+        labelVersionUpdate->setTextFormat(Qt::RichText);
+        labelVersionUpdate->setTextInteractionFlags(Qt::TextBrowserInteraction);
+        labelVersionUpdate->setOpenExternalLinks(true);
+        labelVersionUpdate->setContentsMargins(0,0,15,0);
+        labelVersionUpdate->setAlignment(Qt::AlignVCenter);
+        labelVersionUpdate->setStyleSheet(STRING_LABEL_COLOR);
+        labelVersionUpdate->setFont(currentMarketFont);
+        labelVersionUpdate->hide();
 
         // Set the pricing information
         QHBoxLayout* priceLayout = new QHBoxLayout(headerWidget);
