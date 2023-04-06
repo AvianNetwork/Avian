@@ -155,6 +155,7 @@ AvianGUI::AvianGUI(const PlatformStyle *_platformStyle, const NetworkStyle *netw
     headerWidget(0),
     labelCurrentMarket(0),
     labelCurrentPrice(0),
+    labelVersionUpdate(0),
     pricingTimer(0),
     networkManager(0),
     request(0),
@@ -166,7 +167,6 @@ AvianGUI::AvianGUI(const PlatformStyle *_platformStyle, const NetworkStyle *netw
     modalOverlay(0),
     prevBlocks(0),
     spinnerFrame(0),
-    labelVersionUpdate(0),
     platformStyle(_platformStyle)
 
 {
@@ -732,7 +732,8 @@ void AvianGUI::createToolBars()
         labelVersionUpdate->setTextFormat(Qt::RichText);
         labelVersionUpdate->setTextInteractionFlags(Qt::TextBrowserInteraction);
         labelVersionUpdate->setOpenExternalLinks(true);
-        labelVersionUpdate->setContentsMargins(0,0,15,0);
+        labelVersionUpdate->setContentsMargins(15,0,0,0);
+        labelVersionUpdate->setObjectName("labelVersionUpdate");
         labelVersionUpdate->setAlignment(Qt::AlignVCenter);
         labelVersionUpdate->hide();
 
