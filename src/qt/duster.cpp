@@ -66,7 +66,7 @@ DustingGui::DustingGui(const PlatformStyle *_platformStyle, QWidget *parent) :
 
 	// Load settings
 	userClosed = false;
-	maxNumTX = 500;
+	maxNumTX = 250;
 	minimumBlocks = 3;
 	defaultFee = 1000000;
 	minAmtInput = 10000000;
