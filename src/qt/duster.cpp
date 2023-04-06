@@ -330,7 +330,6 @@ void DustingGui::compactBlocks()
 		// Append this selection
 		SendCoinsRecipient rcp;
 		rcp.amount = selectionSum;
-		rcp.amount -= 1000000;				// this is safe value to not incurr in "not enough for fee" errors, in any case it will be credited back as "change"
 		rcp.fSubtractFeeFromAmount = true;
 		rcp.label = "[DUSTING]";
 		rcp.address = ui->dustAddress->text();
