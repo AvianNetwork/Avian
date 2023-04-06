@@ -105,6 +105,8 @@ const std::string AvianGUI::DEFAULT_UIPLATFORM =
  * collisions in the future with additional wallets */
 const QString AvianGUI::DEFAULT_WALLET = "~Default";
 
+static bool ThreadSafeMessageBox(AvianGUI *gui, const std::string& message, const std::string& caption, unsigned int style);
+
 AvianGUI::AvianGUI(const PlatformStyle *_platformStyle, const NetworkStyle *networkStyle, QWidget *parent) :
     QMainWindow(parent),
     enableWallet(false),
@@ -812,6 +814,7 @@ void AvianGUI::createToolBars()
         pricingTimer->start(600000);
         getPriceInfo();
         /** AVN END */
+        
         // Get the latest Av release and let the user know if they are using the latest version
         // Network request code for the header widget
         QObject::connect(networkVersionManager, &QNetworkAccessManager::finished,
@@ -886,12 +889,12 @@ void AvianGUI::createToolBars()
 
                                // Only display the message on startup to the user around 1/2 of the time
                                if (GetRandInt(2) == 1) {
-                                   bool fRet = uiInterface.ThreadSafeQuestion(
-                                           strprintf("\nCurrently running: %s\nLatest version: %s", FormatFullVersion(),
-                                                     latestVersion) + "\n\nWould you like to visit the releases page?",
-                                           "",
-                                           "New Wallet Version Found",
-                                           CClientUIInterface::MSG_VERSION | CClientUIInterface::BTN_NO);
+                                    bool fRet = uiInterface.ThreadSafeQuestion(
+                                        strprintf("\nCurrently running: %s\nLatest version: %s", FormatFullVersion(),
+                                                    latestVersion) + "\n\nWould you like to visit the releases page?",
+                                        "",
+                                        "New Wallet Version Found",
+                                        CClientUIInterface::MSG_VERSION | CClientUIInterface::BTN_NO);
                                    if (fRet) {
                                        QString link = "https://github.com/AvianNetwork/Avian/releases";
                                        QDesktopServices::openUrl(QUrl(link));
