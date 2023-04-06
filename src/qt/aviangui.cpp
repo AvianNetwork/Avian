@@ -769,6 +769,7 @@ void AvianGUI::createToolBars()
         priceLayout->addWidget(labelCurrentMarket, 0, Qt::AlignVCenter | Qt::AlignLeft);
         priceLayout->addWidget(labelCurrentPrice, 0,  Qt::AlignVCenter | Qt::AlignLeft);
         priceLayout->addWidget(labelBtcAVN, 0 , Qt::AlignVCenter | Qt::AlignLeft);
+        priceLayout->addWidget(labelVersionUpdate, 0 , Qt::AlignVCenter | Qt::AlignRight);
         priceLayout->addItem(middleSpacer);
         priceLayout->addWidget(progressBarLabel, 0,  Qt::AlignVCenter | Qt::AlignRight);        
         priceLayout->addWidget(labelBlocksIcon, 0,  Qt::AlignVCenter | Qt::AlignRight);
