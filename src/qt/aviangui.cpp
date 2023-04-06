@@ -734,8 +734,6 @@ void AvianGUI::createToolBars()
         labelVersionUpdate->setOpenExternalLinks(true);
         labelVersionUpdate->setContentsMargins(0,0,15,0);
         labelVersionUpdate->setAlignment(Qt::AlignVCenter);
-        labelVersionUpdate->setStyleSheet(STRING_LABEL_COLOR);
-        labelVersionUpdate->setFont(currentMarketFont);
         labelVersionUpdate->hide();
 
         // Set the pricing information
