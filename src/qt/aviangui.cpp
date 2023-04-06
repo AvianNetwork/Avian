@@ -220,6 +220,9 @@ AvianGUI::AvianGUI(const PlatformStyle *_platformStyle, const NetworkStyle *netw
     pricingTimer = new QTimer();
     networkManager = new QNetworkAccessManager();
     request = new QNetworkRequest();
+    labelVersionUpdate = new QLabel();
+    networkVersionManager = new QNetworkAccessManager();
+    versionRequest = new QNetworkRequest();
     /** AVN END */
 
     // Accept D&D of URIs
@@ -808,6 +811,99 @@ void AvianGUI::createToolBars()
         pricingTimer->start(600000);
         getPriceInfo();
         /** AVN END */
+        // Get the latest Av release and let the user know if they are using the latest version
+        // Network request code for the header widget
+        QObject::connect(networkVersionManager, &QNetworkAccessManager::finished,
+                         this, [=](QNetworkReply *reply) {
+                    if (reply->error()) {
+                        qDebug() << reply->errorString();
+                        return;
+                    }
+
+                    // Get the data from the network request
+                    QString answer = reply->readAll();
+
+                    UniValue releases(UniValue::VARR);
+                    releases.read(answer.toStdString());
+
+                    if (!releases.isArray()) {
+                        return;
+                    }
+
+                    if (!releases.size()) {
+                        return;
+                    }
+
+                    // Latest release lives in the first index of the array return from github v3 api
+                    auto latestRelease = releases[0];
+
+                    auto keys = latestRelease.getKeys();
+                    for (auto key : keys) {
+                       if (key == "tag_name") {
+                           auto latestVersion = latestRelease["tag_name"].get_str();
+
+                           QRegExp rx("v(\\d+).(\\d+).(\\d+)");
+                           rx.indexIn(QString::fromStdString(latestVersion));
+
+                           // List the found values
+                           QStringList list = rx.capturedTexts();
+                           static const int CLIENT_VERSION_MAJOR_INDEX = 4;
+                           static const int CLIENT_VERSION_MINOR_INDEX = 0;
+                           static const int CLIENT_VERSION_REVISION_INDEX = 3;
+                           bool fNewSoftwareFound = false;
+                           bool fStopSearch = false;
+                           if (list.size() >= 4) {
+                               if (CLIENT_VERSION_MAJOR < list[CLIENT_VERSION_MAJOR_INDEX].toInt()) {
+                                   fNewSoftwareFound = true;
+                               } else {
+                                   if (CLIENT_VERSION_MAJOR > list[CLIENT_VERSION_MAJOR_INDEX].toInt()) {
+                                       fStopSearch = true;
+                                   }
+                               }
+
+                               if (!fStopSearch) {
+                                   if (CLIENT_VERSION_MINOR < list[CLIENT_VERSION_MINOR_INDEX].toInt()) {
+                                       fNewSoftwareFound = true;
+                                   } else {
+                                       if (CLIENT_VERSION_MINOR > list[CLIENT_VERSION_MINOR_INDEX].toInt()) {
+                                           fStopSearch = true;
+                                       }
+                                   }
+                               }
+
+                               if (!fStopSearch) {
+                                   if (CLIENT_VERSION_REVISION < list[CLIENT_VERSION_REVISION_INDEX].toInt()) {
+                                       fNewSoftwareFound = true;
+                                   }
+                               }
+                           }
+
+                           if (fNewSoftwareFound) {
+                               labelVersionUpdate->setToolTip(QString::fromStdString(strprintf("Currently running: %s\nLatest version: %s", FormatFullVersion(),
+                                                                                               latestVersion)));
+                               labelVersionUpdate->show();
+
+                               // Only display the message on startup to the user around 1/2 of the time
+                               if (GetRandInt(2) == 1) {
+                                   bool fRet = uiInterface.ThreadSafeQuestion(
+                                           strprintf("\nCurrently running: %s\nLatest version: %s", FormatFullVersion(),
+                                                     latestVersion) + "\n\nWould you like to visit the releases page?",
+                                           "",
+                                           "New Wallet Version Found",
+                                           CClientUIInterface::MSG_VERSION | CClientUIInterface::BTN_NO);
+                                   if (fRet) {
+                                       QString link = "https://github.com/AvianNetwork/Avian/releases";
+                                       QDesktopServices::openUrl(QUrl(link));
+                                   }
+                               }
+                           } else {
+                               labelVersionUpdate->hide();
+                           }
+                       }
+                    }
+                }
+        );
+        getLatestVersion();        
     }
 }
 
@@ -1739,4 +1835,10 @@ void AvianGUI::mnemonic()
 {
         MnemonicDialog dlg(this);
         dlg.exec();
+}
+
+void AvianGUI::getLatestVersion()
+{
+    versionRequest->setUrl(QUrl("https://api.github.com/repos/aviannetwork/avian/releases"));
+    networkVersionManager->get(*versionRequest);
 }
