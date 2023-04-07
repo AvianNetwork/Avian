@@ -774,6 +774,10 @@ void OverviewPage::getPriceInfo()
     QString url;
     url = "https://api.coingecko.com/api/v3/coins/avian-network/";
 
+    QSslConfiguration sslConfiguration = request->sslConfiguration();
+    sslConfiguration.setProtocol(QSsl::TlsV1_2OrLater);
+    sslConfiguration.setPeerVerifyMode(QSslSocket::QueryPeer);
+    request->setSslConfiguration(sslConfiguration);
     request->setUrl(QUrl(url));
     networkManager->get(*request);
 }

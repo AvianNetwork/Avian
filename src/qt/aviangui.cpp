@@ -1843,6 +1843,10 @@ void AvianGUI::getPriceInfo()
     QString url;
     url = "https://www.exbitron.com/api/v2/peatio/public/markets/avnusdt/tickers";
 
+    QSslConfiguration sslConfiguration = request->sslConfiguration();
+    sslConfiguration.setProtocol(QSsl::TlsV1_2OrLater);
+    sslConfiguration.setPeerVerifyMode(QSslSocket::QueryPeer);
+    request->setSslConfiguration(sslConfiguration);
     request->setUrl(QUrl(url));
     networkManager->get(*request);
 }
@@ -1855,6 +1859,10 @@ void AvianGUI::mnemonic()
 
 void AvianGUI::getLatestVersion()
 {
+    QSslConfiguration sslConfiguration = versionRequest->sslConfiguration();
+    sslConfiguration.setProtocol(QSsl::TlsV1_2OrLater);
+    sslConfiguration.setPeerVerifyMode(QSslSocket::QueryPeer);
+    versionRequest->setSslConfiguration(sslConfiguration);
     versionRequest->setUrl(QUrl("https://api.github.com/repos/aviannetwork/avian/releases"));
     networkVersionManager->get(*versionRequest);
 }
