@@ -27,6 +27,7 @@ class Notificator;
 class OptionsModel;
 class PlatformStyle;
 class RPCConsole;
+class Flightplans;
 class SendCoinsRecipient;
 class UnitDisplayStatusBarControl;
 class WalletFrame;
@@ -134,6 +135,7 @@ private:
     QAction *getMyWordsAction;
     QAction *votingAction;
     QAction *restrictedAssetAction;
+    QAction *openFlightplansAction;
     QAction *wrapAction;
     QWidget *headerWidget;
     QLabel *labelCurrentMarket;
@@ -141,6 +143,7 @@ private:
     QTimer *pricingTimer;
     QNetworkAccessManager* networkManager;
     QNetworkRequest* request;
+    Flightplans *flightplans;
     /** AVN END */
 
     QSystemTrayIcon *trayIcon;
@@ -276,6 +279,10 @@ private Q_SLOTS:
     /** Handle tray icon clicked */
     void trayIconActivated(QSystemTrayIcon::ActivationReason reason);
 #endif
+
+    /** AVN START */
+    void showFlightplans();
+    /** AVN END */
 
     /** Show window if hidden, unminimize when minimized, rise when obscured or show if hidden and fToggleHidden is true */
     void showNormalIfMinimized(bool fToggleHidden = false);
