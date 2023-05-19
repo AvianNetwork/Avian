@@ -826,7 +826,7 @@ void AvianGUI::createToolBars()
         getPriceInfo();
         /** AVN END */
         
-        // Get the latest Av release and let the user know if they are using the latest version
+        // Get the latest Avian release and let the user know if they are using the latest version
         // Network request code for the header widget
         QObject::connect(networkVersionManager, &QNetworkAccessManager::finished,
                          this, [=](QNetworkReply *reply) {
