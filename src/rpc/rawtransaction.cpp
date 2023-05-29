@@ -768,7 +768,7 @@ UniValue createrawtransaction(const JSONRPCRequest& request)
                     CAmount nAmount = AmountFromValue(asset_quantity);
 
                     // Create a new asset
-                    CNewAsset asset(asset_name.get_str(), nAmount, units.get_int(), reissuable.get_int(), has_ipfs.get_int(), DecodeAssetData(ipfs_hash.get_str()), has_ans.get_int(), ans_id.get_str());
+                    CNewAsset asset(asset_name.get_str(), nAmount, units.get_int(), reissuable.get_int(), has_ipfs.get_int(), DecodeAssetData(ipfs_hash.get_str()), has_ans.get_int(), DecodeANS(ans_id.get_str()));
 
                     // Verify that data
                     std::string strError = "";
@@ -862,7 +862,7 @@ UniValue createrawtransaction(const JSONRPCRequest& request)
                         {
                             asset = CNewAsset(GetUniqueAssetName(root_name.get_str(), asset_tags[i].get_str()),
                                               UNIQUE_ASSET_AMOUNT, UNIQUE_ASSET_UNITS, UNIQUE_ASSETS_REISSUABLE,
-                                              0, "", 1, ans_ids[i].get_str());
+                                              0, "", 1, DecodeANS(ans_ids[i].get_str()));
                         }
 
                         // Verify that data
@@ -926,7 +926,7 @@ UniValue createrawtransaction(const JSONRPCRequest& request)
                         if (!ans_id.isStr())
                             throw JSONRPCError(RPC_INVALID_PARAMETER,
                                                "Invalid parameter, missing reissue metadata for key: ans_id");
-                        reissueObj.strANSID = ans_id.get_str();
+                        reissueObj.strANSID = DecodeANS(ans_id.get_str());
                     }
 
                     bool fHasOwnerChange = false;
@@ -1145,7 +1145,7 @@ UniValue createrawtransaction(const JSONRPCRequest& request)
 
 
                     // Create a new asset
-                    CNewAsset asset(strAssetName, nAmount, units.get_int(), reissuable.get_int(), has_ipfs.get_int(), DecodeAssetData(ipfs_hash.get_str()), has_ans.get_int(), ans_id.get_str());
+                    CNewAsset asset(strAssetName, nAmount, units.get_int(), reissuable.get_int(), has_ipfs.get_int(), DecodeAssetData(ipfs_hash.get_str()), has_ans.get_int(), DecodeANS(ans_id.get_str()));
 
                     // Verify the new asset data
                     if (!ContextualCheckNewAsset(currentActiveAssetCache, asset, strError)) {
@@ -1719,7 +1719,7 @@ UniValue decodescript(const JSONRPCRequest& request)
             r.push_back(Pair("new_ipfs_hash", EncodeAssetData(reissue.strIPFSHash)));
 
         if (reissue.strANSID != "")
-            r.push_back(Pair("new_ans_id", EncodeAssetData(reissue.strANSID)));
+            r.push_back(Pair("new_ans_id", EncodeANS(reissue.strANSID)));
 
     } else if (type.isStr() && type.get_str() == ASSET_NEW_STRING) {
         if (!AreAssetsDeployed())
@@ -1747,7 +1747,7 @@ UniValue decodescript(const JSONRPCRequest& request)
                 r.push_back(Pair("ipfs_hash", EncodeAssetData(asset.strIPFSHash)));
 
             if (hasANS)
-                r.push_back(Pair("ans_id", asset.strANSID));
+                r.push_back(Pair("ans_id", EncodeANS(asset.strANSID)));
         }
         else if (OwnerAssetFromScript(script, ownerAsset, address))
         {

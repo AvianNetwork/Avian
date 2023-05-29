@@ -654,12 +654,12 @@ void CheckIPFSTxidMessage(const std::string &message, int64_t expireTime)
     size_t msglen = message.length();
 
     // Start ANS checks
-    bool fHasANS = (msglen >= CAvianNameSystemID::prefix.size() + 1) && (message.substr(0, CAvianNameSystemID::prefix.length()) == CAvianNameSystemID::prefix) && (msglen <= 64);
+    bool fHasANS = (msglen >= CAvianNameSystem::prefix.size() + 1) && (message.substr(0, CAvianNameSystem::prefix.length()) == CAvianNameSystem::prefix) && (msglen <= 64);
     if (fHasANS && !IsAvianNameSystemDeployed()) {
         throw JSONRPCError(RPC_INVALID_PARAMS, std::string("ANS IDs not allowed when they are not deployed."));
     }
 
-    if (fHasANS && !CAvianNameSystemID::IsValidID(message)) {
+    if (fHasANS && !CAvianNameSystem::IsValidID(message)) {
         throw JSONRPCError(RPC_INVALID_PARAMS, std::string("Invalid ANS ID"));
     }
     // End ANS checks

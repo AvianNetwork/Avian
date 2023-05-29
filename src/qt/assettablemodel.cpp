@@ -87,7 +87,7 @@ public:
                             continue;
                         }
                     }
-                    cachedBalances.append(AssetRecord(bal->first, bal->second, units, fIsAdministrator, EncodeAssetData(ipfsHash), ansID));
+                    cachedBalances.append(AssetRecord(bal->first, bal->second, units, fIsAdministrator, EncodeAssetData(ipfsHash), EncodeANS(ansID)));
                 }
             }
         }

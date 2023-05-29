@@ -3,62 +3,91 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef AVIAN_ANS_H
-#define AVIAN_ANS_H
+#ifndef AVIAN_NAME_SYSTEM_H
+#define AVIAN_NAME_SYSTEM_H
 
 #include <string>
 #include <array>
 
 #include "univalue.h"
 
-/* Class for ANS (Avian Name System) ID */
-class CAvianNameSystemID {
+/** Struct to store ANS IP data */
+struct ANS_IP {
+    std::string string{""};
+    std::string hex{""}; 
+};
+
+/** Avian Name System */
+class CAvianNameSystem {
 public:  
+
+    /** Static prefix for ANS IDs */
     static const std::string prefix;
+    /** Static domain */
     static const std::string domain;
 
+    /** ANS types */
     enum Type {
+        // Avian address
         ADDR = 0x0,
-        IP = 0x1
+        // Raw IPv4 (127.0.0.1)
+        IPv4 = 0x1
     };
 
-    CAvianNameSystemID(Type type, std::string rawData);
-    CAvianNameSystemID(std::string ansID);
-
-    std::string to_string();
-    UniValue to_object();
-
-    Type type() { return m_type; };
-    std::string addr() { return m_addr; };
-    std::string ip() { return m_ip; };
-
-    static bool CheckIP(std::string rawip, bool isHex);
-
-    static bool IsValidID(std::string ansID);
-
-    static bool CheckTypeData(Type type, std::string typeData);
-    static std::string FormatTypeData(Type type, std::string typeData, std::string& error);
-
+    /** Convert ANS type into string with description */
     static std::pair<std::string, std::string> enum_to_string(Type type) {
         switch(type) {
             case ADDR:
                 return std::make_pair("Avian address", "Enter an Avian address");
-            case IP:
-                return std::make_pair("IP [DNS A record]", "Enter IP address");
+            case IPv4:
+                return std::make_pair("IPv4 [DNS A record]", "Enter IPv4 address");
             default:
                 return std::make_pair("Invalid", "Invalid");
         }
     }
 
+    CAvianNameSystem(Type type, std::string rawData);
+    CAvianNameSystem(std::string ansID);
+
+    /** Get ANS ID as string */
+    std::string to_string();
+
+    /** ANS ID encode/decode */
+    std::string EncodeHex();
+    static std::string DecodeHex(std::string hex);
+
+    /** Get JSON object about this ANS ID */
+    UniValue to_object();
+
+    /** ANS return types */
+    Type type() { return m_type; };
+    std::string addr() { return m_addr; };
+    std::string ipv4() { return m_ipv4.string; };
+
+    /** Check if valid IPv4 address */
+    static bool CheckIPv4(std::string rawip, bool isHex);
+
+    /** Check if valid ANS ID */
+    static bool IsValidID(std::string ansID);
+
+    /** Check ANS raw data based on type */
+    static bool CheckTypeData(Type type, std::string typeData);
+    /** Convert raw data into ANS ID type data */
+    static std::string FormatTypeData(Type type, std::string typeData, std::string& error);
+
 private:
+    /** ANS type */
     Type m_type;
+    /** Avian address */
     std::string m_addr;
-    std::string m_ip;
+    /** IPv4 string+hex */
+    ANS_IP m_ipv4;
 };
 
-constexpr std::array<CAvianNameSystemID::Type, 2> ANSTypes { 
-    CAvianNameSystemID::ADDR, 
-    CAvianNameSystemID::IP
+/** Public array of ANS types  */
+constexpr std::array<CAvianNameSystem::Type, 2> ANSTypes { 
+    CAvianNameSystem::ADDR, 
+    CAvianNameSystem::IPv4
 };
 
-#endif
+#endif // AVIAN_NAME_SYSTEM_H
