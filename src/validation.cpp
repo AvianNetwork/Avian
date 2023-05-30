@@ -2812,9 +2812,7 @@ static bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockInd
 
     FounderPayment founderPayment = Params().GetConsensus().nFounderPayment;
     CAmount founderReward = founderPayment.getFounderPaymentAmount(pindex->nHeight, blockReward);
-    int founderStartHeight = founderPayment.getStartBlock();
-
-    if (pindex->nHeight > founderStartHeight && founderReward && !founderPayment.IsBlockPayeeValid(*block.vtx[0], pindex->nHeight, blockReward))
+    if (founderPayment.IsFounderPaymentsStarted(pindex->nHeight) && founderReward && !founderPayment.IsBlockPayeeValid(*block.vtx[0], pindex->nHeight, blockReward))
         return state.DoS(0, error("ConnectBlock(): couldn't find founders fee payments"),
                                 REJECT_INVALID, "bad-cb-payee");
 

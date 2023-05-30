@@ -202,7 +202,10 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
 
     // Fill founder payment
     FounderPayment founderPayment = chainparams.GetConsensus().nFounderPayment;
-    founderPayment.FillFounderPayment(coinbaseTx, nHeight, blockReward, pblock->txoutFounder);
+    CAmount nSubsidy = GetBlockSubsidy(nHeight, chainparams.GetConsensus());    
+    if(founderPayment.IsFounderPaymentsStarted(nHeight)) {
+        founderPayment.FillFounderPayment(coinbaseTx, nHeight, nSubsidy, pblock->txoutFounder);
+    }
 
     pblock->vtx[0] = MakeTransactionRef(std::move(coinbaseTx));
     pblocktemplate->vchCoinbaseCommitment = GenerateCoinbaseCommitment(*pblock, pindexPrev, chainparams.GetConsensus());
