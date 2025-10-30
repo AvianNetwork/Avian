@@ -14,7 +14,7 @@ on:
   workflow_dispatch:
 
 env:
-  SCRIPTS: ${{ GITHUB.WORKSPACE }}/.github/scripts
+  SCRIPTS: ${{ github.workspace }}/scripts
 
 jobs:
   check-jobs:
