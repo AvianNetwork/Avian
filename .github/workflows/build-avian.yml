@@ -53,6 +53,10 @@ jobs:
         run: chmod +x ${SCRIPTS}/*.sh
 
       - if: ${{ needs.check-jobs.outputs.should_skip != 'true' }}
+        name: Configure passwordless sudo
+        run: echo "$USER ALL=(ALL) NOPASSWD:ALL" | sudo tee /etc/sudoers.d/$USER
+
+      - if: ${{ needs.check-jobs.outputs.should_skip != 'true' }}
         name: Install Build Tools
         run: ${SCRIPTS}/00-install-deps.sh ${{ MATRIX.OS }}
 

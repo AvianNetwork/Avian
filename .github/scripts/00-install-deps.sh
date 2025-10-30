@@ -12,10 +12,10 @@ echo "----------------------------------------"
 echo "Installing Build Packages for ${OS}"
 echo "----------------------------------------"
 
-apt-get update
+sudo apt-get update
 
 if [[ ${OS} == "windows" ]]; then
-    apt-get install -y \
+    sudo apt-get install -y \
     automake \
     autotools-dev \
     bsdmainutils \
@@ -39,7 +39,7 @@ if [[ ${OS} == "windows" ]]; then
 
 
 elif [[ ${OS} == "osx" ]]; then
-    apt -y install \
+    sudo apt -y install \
     autoconf \
     automake \
     awscli \
@@ -71,7 +71,7 @@ elif [[ ${OS} == "osx" ]]; then
     pip3 install ds-store
     
 elif [[ ${OS} == "linux" || ${OS} == "linux-disable-wallet" || ${OS} == "aarch64" || ${OS} == "aarch64-disable-wallet" ]]; then
-    apt -y install \
+    sudo apt -y install \
     apt-file \
     autoconf \
     automake \
@@ -100,7 +100,7 @@ elif [[ ${OS} == "linux" || ${OS} == "linux-disable-wallet" || ${OS} == "aarch64
 
 
 elif [[ ${OS} == "arm32v7" || ${OS} == "arm32v7-disable-wallet" ]]; then
-    apt -y install \
+    sudo apt -y install \
     autoconf \
     automake \
     binutils-arm-linux-gnueabihf \
@@ -119,5 +119,5 @@ else
     echo "you must pass the OS to build for"
     exit 1
 fi
-    update-alternatives --install /usr/bin/python python /usr/bin/python2 1
-    update-alternatives --install /usr/bin/python python /usr/bin/python3 2
+    sudo update-alternatives --install /usr/bin/python python /usr/bin/python2 1
+    sudo update-alternatives --install /usr/bin/python python /usr/bin/python3 2
