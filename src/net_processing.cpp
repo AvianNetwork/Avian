@@ -25,6 +25,8 @@
 #include "random.h"
 #include "reverse_iterator.h"
 #include "scheduler.h"
+
+#include <random>
 #include "tinyformat.h"
 #include "txmempool.h"
 #include "ui_interface.h"
@@ -42,7 +44,7 @@ std::atomic<int64_t> nTimeBestReceived(0); // Used only to inform the wallet of 
 struct IteratorComparator
 {
     template<typename I>
-    bool operator()(const I& a, const I& b)
+    bool operator()(const I& a, const I& b) const
     {
         return &(*a) < &(*b);
     }
@@ -1835,7 +1837,7 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
 
         // Randomize entries before processing, to prevent an attacker to
         // determine which entries will make it through the rate limit
-        random_shuffle(vAddr.begin(), vAddr.end(), GetRandInt);
+        std::shuffle(vAddr.begin(), vAddr.end(), std::mt19937(GetRandInt(INT_MAX)));
 
         for (CAddress& addr : vAddr)
         {

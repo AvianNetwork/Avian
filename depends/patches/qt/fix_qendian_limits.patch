@@ -1,0 +1,11 @@
+Add limits include to qendian.h for GCC 11+ compatibility on Ubuntu 22.04+ toolchains.
+
+diff --git a/qtbase/src/corelib/global/qendian.h b/qtbase/src/corelib/global/qendian.h
+--- a/qtbase/src/corelib/global/qendian.h
++++ b/qtbase/src/corelib/global/qendian.h
+@@ -44,6 +44,7 @@
+ #include <QtCore/qfloat16.h>
+ #include <QtCore/qglobal.h>
++#include <limits>
+ 
+ // include stdlib.h and hope that it defines __GLIBC__ for glibc-based systems

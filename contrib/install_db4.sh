@@ -22,8 +22,14 @@ expand_path() {
 
 BDB_PREFIX="$(expand_path ${1})/db4"; shift;
 BDB_VERSION='db-4.8.30.NC'
-BDB_HASH='12edc0df75bf9abd7f82f821795bcee50f42cb2e5f76a6a281b85732798364ef'
-BDB_URL="https://download.oracle.com/berkeley-db/${BDB_VERSION}.tar.gz"
+BDB_HASH='e0491a07cdb21fb9aa82773bbbedaeb7639cbd0e7f96147ab46141e0045db72a'
+
+# Try multiple mirrors for Berkeley DB (verified working mirrors)
+BDB_URL_1="https://archive.debian.org/debian/pool/main/d/db4.8/db4.8_4.8.30.orig.tar.gz"
+BDB_URL_2="https://download.oracle.com/berkeley-db/db-4.8.30.tar.gz"
+BDB_URL_3="https://distfiles.macports.org/db48/db-4.8.30.tar.gz"
+BDB_URL_4="https://ftp.osuosl.org/pub/blfs/conglomeration/db/db-4.8.30.tar.gz"
+BDB_URL_5="https://fossies.org/linux/misc/db-4.8.30.tar.gz"
 
 check_exists() {
   command -v "$1" >/dev/null
@@ -46,26 +52,81 @@ sha256_check() {
 }
 
 http_get() {
-  # Args: <url> <filename> <sha256_hash>
+  # Args: <filename> <sha256_hash>
   #
   # It's acceptable that we don't require SSL here because we manually verify
   # content hashes below.
   #
-  if [ -f "${2}" ]; then
-    echo "File ${2} already exists; not downloading again"
-  elif check_exists curl; then
-    curl --insecure --retry 5 "${1}" -o "${2}"
-  else
-    wget --no-check-certificate "${1}" -O "${2}"
+  if [ -f "${1}" ]; then
+    echo "File ${1} already exists; not downloading again"
+    return 0
   fi
 
-  sha256_check "${3}" "${2}"
+  success=0
+  for i in 1 2 3 4 5; do
+    eval "url=\$BDB_URL_$i"
+    echo "Trying to download from: $url"
+    if check_exists curl; then
+      if curl --insecure --retry 3 --connect-timeout 30 "${url}" -o "${1}"; then
+        if sha256_check "${2}" "${1}"; then
+          echo "Successfully downloaded and verified ${1}"
+          success=1
+          break
+        else
+          echo "Checksum verification failed for ${url}"
+          rm -f "${1}"
+        fi
+      else
+        echo "Download failed from ${url}"
+      fi
+    else
+      if wget --no-check-certificate --timeout=30 "${url}" -O "${1}"; then
+        if sha256_check "${2}" "${1}"; then
+          echo "Successfully downloaded and verified ${1}"
+          success=1
+          break
+        else
+          echo "Checksum verification failed for ${url}"
+          rm -f "${1}"
+        fi
+      else
+        echo "Download failed from ${url}"
+      fi
+    fi
+  done
+
+  if [ $success -eq 0 ]; then
+    echo "ERROR: Failed to download ${1} from any mirror"
+    exit 1
+  fi
 }
 
 mkdir -p "${BDB_PREFIX}"
-http_get "${BDB_URL}" "${BDB_VERSION}.tar.gz" "${BDB_HASH}"
-tar -xzvf ${BDB_VERSION}.tar.gz -C "$BDB_PREFIX"
-cd "${BDB_PREFIX}/${BDB_VERSION}/"
+http_get "${BDB_VERSION}.tar.gz" "${BDB_HASH}"
+
+# Extract the tar file
+echo "Extracting ${BDB_VERSION}.tar.gz..."
+if ! tar -xzvf ${BDB_VERSION}.tar.gz -C "$BDB_PREFIX"; then
+    echo "Error: Failed to extract ${BDB_VERSION}.tar.gz"
+    exit 1
+fi
+
+# Check if the extracted directory exists and cd into it
+if [ -d "${BDB_PREFIX}/${BDB_VERSION}" ]; then
+    echo "Found directory: ${BDB_PREFIX}/${BDB_VERSION}"
+    cd "${BDB_PREFIX}/${BDB_VERSION}/"
+elif [ -d "${BDB_PREFIX}/db-4.8.30" ]; then
+    echo "Found directory: ${BDB_PREFIX}/db-4.8.30"
+    cd "${BDB_PREFIX}/db-4.8.30/"
+else
+    echo "Error: Could not find extracted Berkeley DB directory"
+    echo "Expected: ${BDB_PREFIX}/${BDB_VERSION} or ${BDB_PREFIX}/db-4.8.30"
+    echo "Contents of ${BDB_PREFIX}:"
+    ls -la "${BDB_PREFIX}"
+    echo "Contents of current directory:"
+    ls -la
+    exit 1
+fi
 
 # Apply a patch necessary when building with clang and c++11 (see https://community.oracle.com/thread/3952592)
 patch --ignore-whitespace -p1 << 'EOF'
@@ -221,24 +282,128 @@ EOF
 # The packaged config.guess and config.sub are ancient (2009) and can cause build issues.
 # Replace them with modern versions.
 # See https://github.com/bitcoin/bitcoin/issues/16064
-CONFIG_GUESS_URL='https://git.savannah.gnu.org/gitweb/?p=config.git;a=blob_plain;f=config.guess;hb=55eaf3e779455c4e5cc9f82efb5278be8f8f900b'
-CONFIG_GUESS_HASH='2d1ff7bca773d2ec3c6217118129220fa72d8adda67c7d2bf79994b3129232c1'
-CONFIG_SUB_URL='https://git.savannah.gnu.org/gitweb/?p=config.git;a=blob_plain;f=config.sub;hb=55eaf3e779455c4e5cc9f82efb5278be8f8f900b'
-CONFIG_SUB_HASH='3a4befde9bcdf0fdb2763fc1bfa74e8696df94e1ad7aac8042d133c8ff1d2e32'
+
+# Updated URLs for config.guess and config.sub
+CONFIG_GUESS_URL_1="https://ftp.gnu.org/gnu/config/config.guess"
+CONFIG_GUESS_URL_2="https://raw.githubusercontent.com/gcc-mirror/gcc/master/config.guess"
+CONFIG_GUESS_URL_3="https://github.com/gcc-mirror/gcc/raw/master/config.guess"
+
+CONFIG_SUB_URL_1="https://ftp.gnu.org/gnu/config/config.sub"
+CONFIG_SUB_URL_2="https://raw.githubusercontent.com/gcc-mirror/gcc/master/config.sub"
+CONFIG_SUB_URL_3="https://github.com/gcc-mirror/gcc/raw/master/config.sub"
 
 rm -f "dist/config.guess"
 rm -f "dist/config.sub"
 
-http_get "${CONFIG_GUESS_URL}" dist/config.guess "${CONFIG_GUESS_HASH}"
-http_get "${CONFIG_SUB_URL}" dist/config.sub "${CONFIG_SUB_HASH}"
+# Download config.guess
+echo "Downloading config.guess..."
+for i in 1 2 3; do
+  eval "url=\$CONFIG_GUESS_URL_$i"
+  echo "Trying: $url"
+  if check_exists curl; then
+    if curl --insecure --retry 3 --connect-timeout 30 "${url}" -o dist/config.guess; then
+      # Check if file is valid (not an HTML error page)
+      if [ -f "dist/config.guess" ] && [ $(wc -c < "dist/config.guess") -gt 1000 ] && ! grep -q "<html>" "dist/config.guess"; then
+        echo "Successfully downloaded config.guess"
+        break
+      else
+        echo "Downloaded file appears to be invalid, trying next URL..."
+        rm -f dist/config.guess
+      fi
+    fi
+  else
+    if wget --no-check-certificate --timeout=30 "${url}" -O dist/config.guess; then
+      # Check if file is valid (not an HTML error page)
+      if [ -f "dist/config.guess" ] && [ $(wc -c < "dist/config.guess") -gt 1000 ] && ! grep -q "<html>" "dist/config.guess"; then
+        echo "Successfully downloaded config.guess"
+        break
+      else
+        echo "Downloaded file appears to be invalid, trying next URL..."
+        rm -f dist/config.guess
+      fi
+    fi
+  fi
+done
+
+# Download config.sub
+echo "Downloading config.sub..."
+for i in 1 2 3; do
+  eval "url=\$CONFIG_SUB_URL_$i"
+  echo "Trying: $url"
+  if check_exists curl; then
+    if curl --insecure --retry 3 --connect-timeout 30 "${url}" -o dist/config.sub; then
+      # Check if file is valid (not an HTML error page)
+      if [ -f "dist/config.sub" ] && [ $(wc -c < "dist/config.sub") -gt 1000 ] && ! grep -q "<html>" "dist/config.sub"; then
+        echo "Successfully downloaded config.sub"
+        break
+      else
+        echo "Downloaded file appears to be invalid, trying next URL..."
+        rm -f dist/config.sub
+      fi
+    fi
+  else
+    if wget --no-check-certificate --timeout=30 "${url}" -O dist/config.sub; then
+      # Check if file is valid (not an HTML error page)
+      if [ -f "dist/config.sub" ] && [ $(wc -c < "dist/config.sub") -gt 1000 ] && ! grep -q "<html>" "dist/config.sub"; then
+        echo "Successfully downloaded config.sub"
+        break
+      else
+        echo "Downloaded file appears to be invalid, trying next URL..."
+        rm -f dist/config.sub
+      fi
+    fi
+  fi
+done
+
+# Make sure we have the files and they're valid
+if [ ! -f "dist/config.guess" ] || [ ! -f "dist/config.sub" ]; then
+  echo "ERROR: Failed to download config.guess or config.sub"
+  exit 1
+fi
+
+# Final validation
+if [ $(wc -c < "dist/config.guess") -lt 1000 ] || grep -q "<html>" "dist/config.guess"; then
+  echo "ERROR: config.guess appears to be invalid"
+  exit 1
+fi
+
+if [ $(wc -c < "dist/config.sub") -lt 1000 ] || grep -q "<html>" "dist/config.sub"; then
+  echo "ERROR: config.sub appears to be invalid"
+  exit 1
+fi
 
 cd build_unix/
 
-"${BDB_PREFIX}/${BDB_VERSION}/dist/configure" \
-  --enable-cxx --disable-shared --disable-replication --with-pic --prefix="${BDB_PREFIX}" \
-  "${@}"
+# Determine the correct path to the configure script
+if [ -f "${BDB_PREFIX}/${BDB_VERSION}/dist/configure" ]; then
+    CONFIGURE_PATH="${BDB_PREFIX}/${BDB_VERSION}/dist/configure"
+elif [ -f "${BDB_PREFIX}/db-4.8.30/dist/configure" ]; then
+    CONFIGURE_PATH="${BDB_PREFIX}/db-4.8.30/dist/configure"
+else
+    echo "Error: Could not find configure script"
+    echo "Looking for: ${BDB_PREFIX}/${BDB_VERSION}/dist/configure or ${BDB_PREFIX}/db-4.8.30/dist/configure"
+    exit 1
+fi
 
-make install
+echo "Configuring Berkeley DB..."
+if ! "${CONFIGURE_PATH}" \
+  --enable-cxx --disable-shared --disable-replication --with-pic --prefix="${BDB_PREFIX}" \
+  "${@}"; then
+    echo "Error: Configure failed"
+    exit 1
+fi
+
+echo "Building Berkeley DB..."
+if ! make; then
+    echo "Error: Make failed"
+    exit 1
+fi
+
+echo "Installing Berkeley DB..."
+if ! make install; then
+    echo "Error: Make install failed"
+    exit 1
+fi
 
 echo
 echo "db4 build complete."
