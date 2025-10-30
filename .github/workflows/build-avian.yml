@@ -10,18 +10,8 @@ on:
     branches:
       - master
       - develop
-      - release*
-#    paths-ignore:
-#      - 'binaries/**'
-#      - 'community/**'
-#      - 'contrib/**'
-#      - 'doc/**'
-#      - 'roadmap/**'
-#      - 'share/**'
-#      - 'static-builds/**'
-#      - 'whitepaper/**'
-#      - '*.md'
-workflow_dispatch:
+      - 'release*'
+  workflow_dispatch:
 
 env:
   SCRIPTS: ${{ GITHUB.WORKSPACE }}/.github/scripts
@@ -40,18 +30,10 @@ jobs:
           # All of these options are optional, so you can remove them if you are happy with the defaults
           concurrent_skipping: 'never'
           skip_after_successful_duplicate: 'true'
-          paths_ignore: '[
-                          "binaries/**",
-                          "community/**",
-                          "contrib/**",
-                          "doc/**",
-                          "roadmap/**",
-                          "share/**",
-                          "static-builds/**",
-                          "whitepaper/**",
-                          "**/*.md"
-                          ]'
-          do_not_skip: '["workflow_dispatch", "schedule"]'
+          paths_ignore: >-
+            ["binaries/**","community/**","contrib/**","doc/**","roadmap/**",
+             "share/**","static-builds/**","whitepaper/**","**/*.md"]
+          do_not_skip: '["workflow_dispatch","schedule"]'          
 
   build:
     needs: check-jobs
