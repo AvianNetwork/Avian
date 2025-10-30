@@ -5,7 +5,7 @@ on:
     branches:
       - master
       - develop
-      - v4.2
+      - V4.2
   pull_request:
     branches:
       - master
@@ -21,6 +21,7 @@ on:
 #      - 'static-builds/**'
 #      - 'whitepaper/**'
 #      - '*.md'
+workflow_dispatch:
 
 env:
   SCRIPTS: ${{ GITHUB.WORKSPACE }}/.github/scripts
