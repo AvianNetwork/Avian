@@ -135,6 +135,9 @@ AC_DEFUN([AVIAN_QT_CONFIGURE],[
       if test -d "$qt_plugin_path/accessible"; then
         QT_LIBS="$QT_LIBS -L$qt_plugin_path/accessible"
       fi
+      if test -d "$qt_plugin_path/printsupport"; then
+        QT_LIBS="$QT_LIBS -L$qt_plugin_path/printsupport"
+      fi
       if test -d "$qt_plugin_path/platforms/android"; then
         QT_LIBS="$QT_LIBS -L$qt_plugin_path/platforms/android -lqtfreetype -lEGL"
       fi
@@ -150,6 +153,7 @@ AC_DEFUN([AVIAN_QT_CONFIGURE],[
       dnl https://bugreports.qt.io/browse/QTBUG-27097.
       AX_CHECK_LINK_FLAG([-lwtsapi32], [QT_LIBS="$QT_LIBS -lwtsapi32"], [AC_MSG_ERROR([could not link against -lwtsapi32])])
       _AVIAN_QT_CHECK_STATIC_PLUGIN([QWindowsIntegrationPlugin], [-lqwindows])
+      _AVIAN_QT_CHECK_STATIC_PLUGIN([QWindowsPrinterSupportPlugin], [-lwindowsprintersupport])
       AC_DEFINE(QT_QPA_PLATFORM_WINDOWS, 1, [Define this symbol if the qt platform is windows])
     elif test "x$TARGET_OS" = xlinux; then
       dnl workaround for https://bugreports.qt.io/browse/QTBUG-74874
@@ -163,6 +167,7 @@ AC_DEFUN([AVIAN_QT_CONFIGURE],[
       AX_CHECK_LINK_FLAG([[-framework QuartzCore]],[QT_LIBS="$QT_LIBS -framework QuartzCore"],[AC_MSG_ERROR(could not link against QuartzCore framework)])
       _AVIAN_QT_CHECK_STATIC_PLUGIN([QCocoaIntegrationPlugin], [-lqcocoa])
       _AVIAN_QT_CHECK_STATIC_PLUGIN([QMacStylePlugin], [-lqmacstyle])
+      _AVIAN_QT_CHECK_STATIC_PLUGIN([QCocoaPrinterSupportPlugin], [-lcocoaprintersupport])
       AC_DEFINE(QT_QPA_PLATFORM_COCOA, 1, [Define this symbol if the qt platform is cocoa])
     elif test "x$TARGET_OS" = xandroid; then
       QT_LIBS="-Wl,--export-dynamic,--undefined=JNI_OnLoad -lqtforandroid -ljnigraphics -landroid -lqtfreetype -lQt5EglSupport $QT_LIBS"

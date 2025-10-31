@@ -19,24 +19,6 @@
 #include "script/standard.h"
 #include "util.h"
 
-#ifdef WIN32
-#ifdef _WIN32_WINNT
-#undef _WIN32_WINNT
-#endif
-#define _WIN32_WINNT 0x0501
-#ifdef _WIN32_IE
-#undef _WIN32_IE
-#endif
-#define _WIN32_IE 0x0501
-#define WIN32_LEAN_AND_MEAN 1
-#ifndef NOMINMAX
-#define NOMINMAX
-#endif
-#include "shellapi.h"
-#include "shlobj.h"
-#include "shlwapi.h"
-#endif
-
 #include <boost/scoped_array.hpp>
 
 #include <QAbstractItemView>
@@ -719,6 +701,24 @@ TableViewLastColumnResizingFixer::TableViewLastColumnResizingFixer(QTableView* t
 }
 
 #ifdef WIN32
+// Windows headers for startup shortcut functionality
+// Included here (not at top) to avoid std::byte conflicts with C++17
+#ifdef _WIN32_WINNT
+#undef _WIN32_WINNT
+#endif
+#define _WIN32_WINNT 0x0501
+#ifdef _WIN32_IE
+#undef _WIN32_IE
+#endif
+#define _WIN32_IE 0x0501
+#define WIN32_LEAN_AND_MEAN 1
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#include <windows.h>
+#include <shlobj.h>
+#include <shlwapi.h>
+
 fs::path static StartupShortcutPath()
 {
     std::string chain = ChainNameFromCommandLine();
