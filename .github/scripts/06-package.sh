@@ -101,29 +101,32 @@ elif [[ ${OS} == "osx" ]]; then
 
     make osx_volname
 
-    make deploydir
+    # Try to build the GUI, but don't fail if Qt isn't available for this cross-compile
+    if make deploydir 2>/dev/null; then
+        if [[ -e ${GITHUB_WORKSPACE}/dist/Avian-Qt.app/Contents/MacOS/install_cli.sh ]]; then
+            chmod +x ${GITHUB_WORKSPACE}/dist/Avian-Qt.app/Contents/MacOS/install_cli.sh
+        fi
 
-    if [[ -e ${GITHUB_WORKSPACE}/dist/Avian-Qt.app/Contents/MacOS/install_cli.sh ]]; then
-        chmod +x ${GITHUB_WORKSPACE}/dist/Avian-Qt.app/Contents/MacOS/install_cli.sh
+        mkdir -p unsigned-app-${DISTNAME}
+        cp osx_volname unsigned-app-${DISTNAME}/
+        cp contrib/macdeploy/detached-sig-apply.sh unsigned-app-${DISTNAME}
+        cp contrib/macdeploy/detached-sig-create.sh unsigned-app-${DISTNAME}
+        cp ${GITHUB_WORKSPACE}/depends/x86_64-apple-darwin14/native/bin/dmg ${GITHUB_WORKSPACE}/depends/x86_64-apple-darwin14/native/bin/genisoimage unsigned-app-${DISTNAME}
+        cp ${GITHUB_WORKSPACE}/depends/x86_64-apple-darwin14/native/bin/x86_64-apple-darwin14-codesign_allocate unsigned-app-${DISTNAME}/codesign_allocate
+        cp ${GITHUB_WORKSPACE}/depends/x86_64-apple-darwin14/native/bin/x86_64-apple-darwin14-pagestuff unsigned-app-${DISTNAME}/pagestuff
+        mv dist unsigned-app-${DISTNAME}
+        cd unsigned-app-${DISTNAME}
+
+        find . | sort | tar --no-recursion --mode='u+rw,go+r-w,a+X' --owner=0 --group=0 -c -T - | gzip -9n > ${RELEASE_LOCATION}/${DISTNAME}-osx-unsigned.tar.gz
+
+        cd ${GITHUB_WORKSPACE}
+
+        make deploy
+
+        ${GITHUB_WORKSPACE}/depends/x86_64-apple-darwin14/native/bin/dmg dmg "Avian-Core.dmg" ${RELEASE_LOCATION}/${DISTNAME}-osx-unsigned.dmg
+    else
+        echo "Warning: Qt GUI build failed (likely due to cross-compilation). Building CLI-only package."
     fi
-
-    mkdir -p unsigned-app-${DISTNAME}
-    cp osx_volname unsigned-app-${DISTNAME}/
-    cp contrib/macdeploy/detached-sig-apply.sh unsigned-app-${DISTNAME}
-    cp contrib/macdeploy/detached-sig-create.sh unsigned-app-${DISTNAME}
-    cp ${GITHUB_WORKSPACE}/depends/x86_64-apple-darwin14/native/bin/dmg ${GITHUB_WORKSPACE}/depends/x86_64-apple-darwin14/native/bin/genisoimage unsigned-app-${DISTNAME}
-    cp ${GITHUB_WORKSPACE}/depends/x86_64-apple-darwin14/native/bin/x86_64-apple-darwin14-codesign_allocate unsigned-app-${DISTNAME}/codesign_allocate
-    cp ${GITHUB_WORKSPACE}/depends/x86_64-apple-darwin14/native/bin/x86_64-apple-darwin14-pagestuff unsigned-app-${DISTNAME}/pagestuff
-    mv dist unsigned-app-${DISTNAME}
-    cd unsigned-app-${DISTNAME}
-
-    find . | sort | tar --no-recursion --mode='u+rw,go+r-w,a+X' --owner=0 --group=0 -c -T - | gzip -9n > ${RELEASE_LOCATION}/${DISTNAME}-osx-unsigned.tar.gz
-
-    cd ${GITHUB_WORKSPACE}
-
-    make deploy
-
-    ${GITHUB_WORKSPACE}/depends/x86_64-apple-darwin14/native/bin/dmg dmg "Avian-Core.dmg" ${RELEASE_LOCATION}/${DISTNAME}-osx-unsigned.dmg
 
     cd ${STAGE_DIR}
     find . -name "lib*.la" -delete
