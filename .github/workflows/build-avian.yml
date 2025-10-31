@@ -41,6 +41,7 @@ jobs:
     strategy:
       matrix:
         OS: ["windows", "linux", "aarch64", "arm32v7", "osx"]
+      fail-fast: false
       #  OS: [ 'windows', 'linux', 'linux-disable-wallet', 'arm32v7', 'arm32v7-disable-wallet', 'aarch64', 'aarch64-disable-wallet' ]
 
     steps:
