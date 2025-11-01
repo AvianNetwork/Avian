@@ -103,7 +103,6 @@ $(package)_config_opts += QMAKE_CFLAGS="-Wno-deprecated-copy"
 $(package)_config_opts += QMAKE_CXXFLAGS+="-Wno-deprecated-copy"
 
 $(package)_config_opts_darwin = -no-dbus
-$(package)_config_opts_darwin += -no-opengl
 $(package)_config_opts_darwin += -no-feature-corewlan
 $(package)_config_opts_darwin += -device-option QMAKE_MACOSX_DEPLOYMENT_TARGET=$(OSX_MIN_VERSION)
 
@@ -116,6 +115,7 @@ $(package)_config_opts_darwin += -device-option CROSS_COMPILE="$(host)-"
 $(package)_config_opts_darwin += -device-option MAC_MIN_VERSION=$(OSX_MIN_VERSION)
 $(package)_config_opts_darwin += -device-option MAC_TARGET=$(host)
 $(package)_config_opts_darwin += -device-option XCODE_VERSION=$(XCODE_VERSION)
+$(package)_config_opts_darwin += -no-dbus
 endif
 
 # for macOS on Apple Silicon (ARM) see https://bugreports.qt.io/browse/QTBUG-85279
@@ -273,6 +273,7 @@ define $(package)_config_cmds
   ./configure $($(package)_config_opts) && \
   cd .. && \
   $(MAKE) -C qtbase sub-src-clean && \
+  qtbase/bin/qmake -o qtbase/src/plugins/platforms/Makefile qtbase/src/plugins/platforms/platforms.pro && \
   qtbase/bin/qmake -o qttranslations/Makefile qttranslations/qttranslations.pro && \
   qtbase/bin/qmake -o qttranslations/translations/Makefile qttranslations/translations/translations.pro && \
   qtbase/bin/qmake -o qttools/src/linguist/lrelease/Makefile qttools/src/linguist/lrelease/lrelease.pro && \
@@ -281,6 +282,7 @@ endef
 
 define $(package)_build_cmds
   $(MAKE) -C qtbase/src $(addprefix sub-,$($(package)_qt_libs)) && \
+  $(MAKE) -C qtbase/src/plugins/platforms && \
   $(MAKE) -C qttools/src/linguist/lrelease && \
   $(MAKE) -C qttools/src/linguist/lupdate && \
   $(MAKE) -C qttranslations
@@ -288,6 +290,8 @@ endef
 
 define $(package)_stage_cmds
   $(MAKE) -C qtbase/src INSTALL_ROOT=$($(package)_staging_dir) $(addsuffix -install_subtargets,$(addprefix sub-,$($(package)_qt_libs))) && \
+  mkdir -p $($(package)_staging_prefix_dir)/plugins/platforms && \
+  cp qtbase/src/plugins/platforms/*/*.a $($(package)_staging_prefix_dir)/plugins/platforms/ 2>/dev/null || true && \
   $(MAKE) -C qttools/src/linguist/lrelease INSTALL_ROOT=$($(package)_staging_dir) install_target && \
   $(MAKE) -C qttools/src/linguist/lupdate INSTALL_ROOT=$($(package)_staging_dir) install_target && \
   $(MAKE) -C qttranslations INSTALL_ROOT=$($(package)_staging_dir) install_subtargets

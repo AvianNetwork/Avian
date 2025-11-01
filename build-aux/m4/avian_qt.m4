@@ -173,9 +173,10 @@ AC_DEFUN([AVIAN_QT_CONFIGURE],[
       AX_CHECK_LINK_FLAG([[-framework IOSurface]],[QT_LIBS="$QT_LIBS -framework IOSurface"],[AC_MSG_ERROR(could not link against IOSurface framework)])
       AX_CHECK_LINK_FLAG([[-framework Metal]],[QT_LIBS="$QT_LIBS -framework Metal"],[AC_MSG_ERROR(could not link against Metal framework)])
       AX_CHECK_LINK_FLAG([[-framework QuartzCore]],[QT_LIBS="$QT_LIBS -framework QuartzCore"],[AC_MSG_ERROR(could not link against QuartzCore framework)])
+      AX_CHECK_LINK_FLAG([[-lcups]],[QT_LIBS="$QT_LIBS -lcups"],[AC_MSG_ERROR(could not link against CUPS library)])
       _AVIAN_QT_CHECK_STATIC_PLUGIN([QCocoaIntegrationPlugin], [-lqcocoa])
-      _AVIAN_QT_CHECK_STATIC_PLUGIN([QMacStylePlugin], [-lqmacstyle])
       _AVIAN_QT_CHECK_STATIC_PLUGIN([QCocoaPrinterSupportPlugin], [-lcocoaprintersupport])
+      _AVIAN_QT_CHECK_STATIC_PLUGIN([QMacStylePlugin], [-lqmacstyle])
       AC_DEFINE(QT_QPA_PLATFORM_COCOA, 1, [Define this symbol if the qt platform is cocoa])
     elif test "x$TARGET_OS" = xandroid; then
       QT_LIBS="-Wl,--export-dynamic,--undefined=JNI_OnLoad -lqtforandroid -ljnigraphics -landroid -lqtfreetype -lQt5EglSupport $QT_LIBS"
