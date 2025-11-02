@@ -87,6 +87,7 @@
 #include <QFontDatabase>
 #include <QUrlQuery>
 #include <tinyformat.h>
+#include <univalue/include/univalue.h>
 
 #endif
 
@@ -100,66 +101,68 @@ const std::string AvianGUI::DEFAULT_UIPLATFORM =
 #endif
     ;
 
+static bool ThreadSafeMessageBox(AvianGUI* gui, const std::string& message, const std::string& caption, unsigned int style);
+
 /** Display name for default wallet name. Uses tilde to avoid name
  * collisions in the future with additional wallets */
 const QString AvianGUI::DEFAULT_WALLET = "~Default";
 
 AvianGUI::AvianGUI(const PlatformStyle* _platformStyle, const NetworkStyle* networkStyle, QWidget* parent) : QMainWindow(parent),
                                                                                                              enableWallet(false),
-                                                                                                             clientModel(0),
-                                                                                                             walletFrame(0),
-                                                                                                             unitDisplayControl(0),
-                                                                                                             labelWalletEncryptionIcon(0),
-                                                                                                             labelWalletHDStatusIcon(0),
-                                                                                                             connectionsControl(0),
-                                                                                                             labelBlocksIcon(0),
-                                                                                                             progressBarLabel(0),
-                                                                                                             progressBar(0),
-                                                                                                             progressDialog(0),
-                                                                                                             appMenuBar(0),
-                                                                                                             frameBlocks(0),
-                                                                                                             overviewAction(0),
-                                                                                                             historyAction(0),
-                                                                                                             quitAction(0),
-                                                                                                             sendCoinsAction(0),
-                                                                                                             sendCoinsMenuAction(0),
-                                                                                                             usedSendingAddressesAction(0),
-                                                                                                             usedReceivingAddressesAction(0),
-                                                                                                             importPrivateKeyAction(0),
-                                                                                                             signMessageAction(0),
-                                                                                                             verifyMessageAction(0),
-                                                                                                             aboutAction(0),
-                                                                                                             receiveCoinsAction(0),
-                                                                                                             receiveCoinsMenuAction(0),
-                                                                                                             optionsAction(0),
-                                                                                                             toggleHideAction(0),
-                                                                                                             encryptWalletAction(0),
-                                                                                                             backupWalletAction(0),
-                                                                                                             changePassphraseAction(0),
-                                                                                                             getMyWordsAction(0),
-                                                                                                             aboutQtAction(0),
-                                                                                                             openRPCConsoleAction(0),
-                                                                                                             openAction(0),
-                                                                                                             showHelpMessageAction(0),
-                                                                                                             transferAssetAction(0),
-                                                                                                             createAssetAction(0),
-                                                                                                             manageAssetAction(0),
-                                                                                                             messagingAction(0),
-                                                                                                             votingAction(0),
-                                                                                                             restrictedAssetAction(0),
-                                                                                                             wrapAction(0),
-                                                                                                             headerWidget(0),
-                                                                                                             labelCurrentMarket(0),
-                                                                                                             labelCurrentPrice(0),
-                                                                                                             pricingTimer(0),
-                                                                                                             networkManager(0),
-                                                                                                             request(0),
-                                                                                                             trayIcon(0),
-                                                                                                             trayIconMenu(0),
-                                                                                                             notificator(0),
-                                                                                                             rpcConsole(0),
-                                                                                                             helpMessageDialog(0),
-                                                                                                             modalOverlay(0),
+                                                                                                             clientModel(nullptr),
+                                                                                                             walletFrame(nullptr),
+                                                                                                             unitDisplayControl(nullptr),
+                                                                                                             labelWalletEncryptionIcon(nullptr),
+                                                                                                             labelWalletHDStatusIcon(nullptr),
+                                                                                                             connectionsControl(nullptr),
+                                                                                                             labelBlocksIcon(nullptr),
+                                                                                                             progressBarLabel(nullptr),
+                                                                                                             progressBar(nullptr),
+                                                                                                             progressDialog(nullptr),
+                                                                                                             appMenuBar(nullptr),
+                                                                                                             frameBlocks(nullptr),
+                                                                                                             overviewAction(nullptr),
+                                                                                                             historyAction(nullptr),
+                                                                                                             quitAction(nullptr),
+                                                                                                             sendCoinsAction(nullptr),
+                                                                                                             sendCoinsMenuAction(nullptr),
+                                                                                                             usedSendingAddressesAction(nullptr),
+                                                                                                             usedReceivingAddressesAction(nullptr),
+                                                                                                             importPrivateKeyAction(nullptr),
+                                                                                                             signMessageAction(nullptr),
+                                                                                                             verifyMessageAction(nullptr),
+                                                                                                             aboutAction(nullptr),
+                                                                                                             receiveCoinsAction(nullptr),
+                                                                                                             receiveCoinsMenuAction(nullptr),
+                                                                                                             optionsAction(nullptr),
+                                                                                                             toggleHideAction(nullptr),
+                                                                                                             encryptWalletAction(nullptr),
+                                                                                                             backupWalletAction(nullptr),
+                                                                                                             changePassphraseAction(nullptr),
+                                                                                                             getMyWordsAction(nullptr),
+                                                                                                             aboutQtAction(nullptr),
+                                                                                                             openRPCConsoleAction(nullptr),
+                                                                                                             openAction(nullptr),
+                                                                                                             showHelpMessageAction(nullptr),
+                                                                                                             transferAssetAction(nullptr),
+                                                                                                             createAssetAction(nullptr),
+                                                                                                             manageAssetAction(nullptr),
+                                                                                                             messagingAction(nullptr),
+                                                                                                             votingAction(nullptr),
+                                                                                                             restrictedAssetAction(nullptr),
+                                                                                                             wrapAction(nullptr),
+                                                                                                             headerWidget(nullptr),
+                                                                                                             labelCurrentMarket(nullptr),
+                                                                                                             labelCurrentPrice(nullptr),
+                                                                                                             labelVersionUpdate(nullptr),
+                                                                                                             pricingTimer(nullptr),
+                                                                                                             networkManager(nullptr),
+                                                                                                             trayIcon(nullptr),
+                                                                                                             trayIconMenu(nullptr),
+                                                                                                             notificator(nullptr),
+                                                                                                             rpcConsole(nullptr),
+                                                                                                             helpMessageDialog(nullptr),
+                                                                                                             modalOverlay(nullptr),
                                                                                                              prevBlocks(0),
                                                                                                              spinnerFrame(0),
                                                                                                              platformStyle(_platformStyle)
@@ -216,7 +219,8 @@ AvianGUI::AvianGUI(const PlatformStyle* _platformStyle, const NetworkStyle* netw
     headerWidget = new QWidget();
     pricingTimer = new QTimer();
     networkManager = new QNetworkAccessManager();
-    request = new QNetworkRequest();
+    labelVersionUpdate = new QLabel();
+    networkVersionManager = new QNetworkAccessManager();
     /** AVN END */
 
     // Accept D&D of URIs
@@ -735,6 +739,16 @@ void AvianGUI::createToolBars()
         labelBtcAVN->setAlignment(Qt::AlignVCenter);
         labelBtcAVN->setObjectName("labelBtcAVN");
 
+        labelVersionUpdate->setText("<a href=\"https://github.com/AvianNetwork/Avian/releases\">New Wallet Version Available</a>");
+        labelVersionUpdate->setTextFormat(Qt::RichText);
+        labelVersionUpdate->setTextInteractionFlags(Qt::TextBrowserInteraction);
+        labelVersionUpdate->setOpenExternalLinks(true);
+        labelVersionUpdate->setContentsMargins(15, 0, 0, 0);
+        labelVersionUpdate->setFixedHeight(75);
+        labelVersionUpdate->setObjectName("labelVersionUpdate");
+        labelVersionUpdate->setAlignment(Qt::AlignVCenter);
+        labelVersionUpdate->hide();
+
         // Style progress text
         progressBarLabel->setContentsMargins(15, 0, 0, 0);
         progressBarLabel->setFixedHeight(75);
@@ -744,6 +758,7 @@ void AvianGUI::createToolBars()
         priceLayout->addWidget(labelCurrentMarket, 0, Qt::AlignVCenter | Qt::AlignLeft);
         priceLayout->addWidget(labelCurrentPrice, 0, Qt::AlignVCenter | Qt::AlignLeft);
         priceLayout->addWidget(labelBtcAVN, 0, Qt::AlignVCenter | Qt::AlignLeft);
+        priceLayout->addWidget(labelVersionUpdate, 0, Qt::AlignVCenter | Qt::AlignRight);
         priceLayout->addItem(middleSpacer);
         priceLayout->addWidget(progressBarLabel, 0, Qt::AlignVCenter | Qt::AlignRight);
         priceLayout->addWidget(labelBlocksIcon, 0, Qt::AlignVCenter | Qt::AlignRight);
@@ -783,7 +798,7 @@ void AvianGUI::createToolBars()
 
                 // Get JSON object
                 QJsonObject obj = doc.object();
-                QJsonObject avian = obj.value("avian").toObject();
+                QJsonObject avian = obj.value("avian-network").toObject();
 
                 // Access USD price
                 double num = avian.value("usd").toDouble();
@@ -797,6 +812,100 @@ void AvianGUI::createToolBars()
         pricingTimer->start(600000);
         getPriceInfo();
         /** AVN END */
+
+        // Get the latest Avian release and let the user know if they are using the latest version
+        // Network request code for the header widget
+        QObject::connect(networkVersionManager, &QNetworkAccessManager::finished,
+            this, [=](QNetworkReply* reply) {
+                if (reply->error()) {
+                    qDebug() << reply->errorString();
+                    return;
+                }
+
+                // Get the data from the network request
+                QString answer = reply->readAll();
+
+                UniValue releases(UniValue::VARR);
+                releases.read(answer.toStdString());
+
+                if (!releases.isArray()) {
+                    return;
+                }
+
+                if (!releases.size()) {
+                    return;
+                }
+
+                // Latest release lives in the first index of the array return from github v3 api
+                auto latestRelease = releases[0];
+
+                auto keys = latestRelease.getKeys();
+                for (auto key : keys) {
+                    if (key == "tag_name") {
+                        auto latestVersion = latestRelease["tag_name"].get_str();
+
+                        QRegExp rx("v(\\d+).(\\d+).(\\d+)");
+                        rx.indexIn(QString::fromStdString(latestVersion));
+
+                        // List the found values
+                        QStringList list = rx.capturedTexts();
+                        static const int CLIENT_VERSION_MAJOR_INDEX = 1;
+                        static const int CLIENT_VERSION_MINOR_INDEX = 2;
+                        static const int CLIENT_VERSION_REVISION_INDEX = 3;
+                        bool fNewSoftwareFound = false;
+                        bool fStopSearch = false;
+                        if (list.size() >= 4) {
+                            if (CLIENT_VERSION_MAJOR < list[CLIENT_VERSION_MAJOR_INDEX].toInt()) {
+                                fNewSoftwareFound = true;
+                            } else {
+                                if (CLIENT_VERSION_MAJOR > list[CLIENT_VERSION_MAJOR_INDEX].toInt()) {
+                                    fStopSearch = true;
+                                }
+                            }
+
+                            if (!fStopSearch) {
+                                if (CLIENT_VERSION_MINOR < list[CLIENT_VERSION_MINOR_INDEX].toInt()) {
+                                    fNewSoftwareFound = true;
+                                } else {
+                                    if (CLIENT_VERSION_MINOR > list[CLIENT_VERSION_MINOR_INDEX].toInt()) {
+                                        fStopSearch = true;
+                                    }
+                                }
+                            }
+
+                            if (!fStopSearch) {
+                                if (CLIENT_VERSION_REVISION < list[CLIENT_VERSION_REVISION_INDEX].toInt()) {
+                                    fNewSoftwareFound = true;
+                                }
+                            }
+                        }
+
+                        if (fNewSoftwareFound) {
+                            labelVersionUpdate->setToolTip(QString::fromStdString(strprintf("Currently running: %s\nLatest version: %s", FormatFullVersion(),
+                                latestVersion)));
+                            labelVersionUpdate->show();
+
+                            // Only display the message on startup to the user around 1/2 of the time
+                            if (GetRandInt(2) == 1) {
+                                bool fRet = uiInterface.ThreadSafeQuestion(
+                                    strprintf("\nCurrently running: %s\nLatest version: %s", FormatFullVersion(),
+                                        latestVersion) +
+                                        "\n\nWould you like to visit the releases page?",
+                                    "",
+                                    "New Wallet Version Found",
+                                    CClientUIInterface::MSG_VERSION | CClientUIInterface::BTN_NO);
+                                if (fRet) {
+                                    QString link = "https://github.com/AvianNetwork/Avian/releases";
+                                    QDesktopServices::openUrl(QUrl(link));
+                                }
+                            }
+                        } else {
+                            labelVersionUpdate->hide();
+                        }
+                    }
+                }
+            });
+        getLatestVersion();
     }
 }
 
@@ -1685,15 +1794,30 @@ void UnitDisplayStatusBarControl::onMenuSelection(QAction* action)
 
 void AvianGUI::getPriceInfo()
 {
-    QString url;
-    url = "https://api.coingecko.com/api/v3/simple/price?ids=avian-network&vs_currencies=usd";
+    QString url = "https://api.coingecko.com/api/v3/simple/price?ids=avian-network&vs_currencies=usd";
 
-    request->setUrl(QUrl(url));
-    networkManager->get(*request);
+    QNetworkRequest request;
+    QSslConfiguration sslConfiguration;
+    sslConfiguration.setProtocol(QSsl::TlsV1_2OrLater);
+    sslConfiguration.setPeerVerifyMode(QSslSocket::QueryPeer);
+    request.setSslConfiguration(sslConfiguration);
+    request.setUrl(QUrl(url));
+    networkManager->get(request);
 }
 
 void AvianGUI::mnemonic()
 {
     MnemonicDialog dlg(this);
     dlg.exec();
+}
+
+void AvianGUI::getLatestVersion()
+{
+    QNetworkRequest request;
+    QSslConfiguration sslConfiguration;
+    sslConfiguration.setProtocol(QSsl::TlsV1_2OrLater);
+    sslConfiguration.setPeerVerifyMode(QSslSocket::QueryPeer);
+    request.setSslConfiguration(sslConfiguration);
+    request.setUrl(QUrl("https://api.github.com/repos/aviannetwork/avian/releases"));
+    networkVersionManager->get(request);
 }
