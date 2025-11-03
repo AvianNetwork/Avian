@@ -11,7 +11,6 @@
 #include "core_io.h"
 #include "init.h"
 #include "keystore.h"
-#include "validation.h"
 #include "merkleblock.h"
 #include "net.h"
 #include "policy/policy.h"
@@ -26,16 +25,17 @@
 #include "txmempool.h"
 #include "uint256.h"
 #include "utilstrencodings.h"
+#include "validation.h"
 #ifdef ENABLE_WALLET
 #include "wallet/rpcwallet.h"
 #include "wallet/wallet.h"
 #endif
 
-#include <stdint.h>
 #include "assets/assets.h"
+#include <stdint.h>
 
-#include <univalue.h>
 #include <tinyformat.h>
+#include <univalue.h>
 
 void TxToJSON(const CTransaction& tx, const uint256 hashBlock, UniValue& entry, bool expanded = false)
 {
@@ -156,32 +156,30 @@ UniValue getrawtransaction(const JSONRPCRequest& request)
             "  ],\n"
             "  \"vout\" : [              (array of json objects)\n"
             "     {\n"
-            "       \"value\" : x.xxx,            (numeric) The value in " + CURRENCY_UNIT + "\n"
-            "       \"n\" : n,                    (numeric) index\n"
-            "       \"scriptPubKey\" : {          (json object)\n"
-            "         \"asm\" : \"asm\",          (string) the asm\n"
-            "         \"hex\" : \"hex\",          (string) the hex\n"
-            "         \"reqSigs\" : n,            (numeric) The required sigs\n"
-            "         \"type\" : \"pubkeyhash\",  (string) The type, eg 'pubkeyhash'\n"
-            "         \"addresses\" : [           (json array of string)\n"
-            "           \"address\"        (string) avian address\n"
-            "           ,...\n"
-            "         ]\n"
-            "       }\n"
-            "     }\n"
-            "     ,...\n"
-            "  ],\n"
-            "  \"blockhash\" : \"hash\",   (string) the block hash\n"
-            "  \"confirmations\" : n,      (numeric) The confirmations\n"
-            "  \"time\" : ttt,             (numeric) The transaction time in seconds since epoch (Jan 1 1970 GMT)\n"
-            "  \"blocktime\" : ttt         (numeric) The block time in seconds since epoch (Jan 1 1970 GMT)\n"
-            "}\n"
+            "       \"value\" : x.xxx,            (numeric) The value in " +
+            CURRENCY_UNIT + "\n"
+                            "       \"n\" : n,                    (numeric) index\n"
+                            "       \"scriptPubKey\" : {          (json object)\n"
+                            "         \"asm\" : \"asm\",          (string) the asm\n"
+                            "         \"hex\" : \"hex\",          (string) the hex\n"
+                            "         \"reqSigs\" : n,            (numeric) The required sigs\n"
+                            "         \"type\" : \"pubkeyhash\",  (string) The type, eg 'pubkeyhash'\n"
+                            "         \"addresses\" : [           (json array of string)\n"
+                            "           \"address\"        (string) avian address\n"
+                            "           ,...\n"
+                            "         ]\n"
+                            "       }\n"
+                            "     }\n"
+                            "     ,...\n"
+                            "  ],\n"
+                            "  \"blockhash\" : \"hash\",   (string) the block hash\n"
+                            "  \"confirmations\" : n,      (numeric) The confirmations\n"
+                            "  \"time\" : ttt,             (numeric) The transaction time in seconds since epoch (Jan 1 1970 GMT)\n"
+                            "  \"blocktime\" : ttt         (numeric) The block time in seconds since epoch (Jan 1 1970 GMT)\n"
+                            "}\n"
 
-            "\nExamples:\n"
-            + HelpExampleCli("getrawtransaction", "\"mytxid\"")
-            + HelpExampleCli("getrawtransaction", "\"mytxid\" true")
-            + HelpExampleRpc("getrawtransaction", "\"mytxid\", true")
-        );
+                            "\nExamples:\n" +
+            HelpExampleCli("getrawtransaction", "\"mytxid\"") + HelpExampleCli("getrawtransaction", "\"mytxid\" true") + HelpExampleRpc("getrawtransaction", "\"mytxid\", true"));
 
     LOCK(cs_main);
 
@@ -194,13 +192,11 @@ UniValue getrawtransaction(const JSONRPCRequest& request)
             if (request.params[1].get_int() != 0) {
                 fVerbose = true;
             }
-        }
-        else if(request.params[1].isBool()) {
-            if(request.params[1].isTrue()) {
+        } else if (request.params[1].isBool()) {
+            if (request.params[1].isTrue()) {
                 fVerbose = true;
             }
-        }
-        else {
+        } else {
             throw JSONRPCError(RPC_TYPE_ERROR, "Invalid type provided. Verbose parameter must be a boolean.");
         }
     }
@@ -209,9 +205,8 @@ UniValue getrawtransaction(const JSONRPCRequest& request)
 
     uint256 hashBlock;
     if (!GetTransaction(hash, tx, Params().GetConsensus(), hashBlock, true))
-        throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, std::string(fTxIndex ? "No such mempool or blockchain transaction"
-            : "No such mempool transaction. Use -txindex to enable blockchain transaction queries") +
-            ". Use gettransaction for wallet transactions.");
+        throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, std::string(fTxIndex ? "No such mempool or blockchain transaction" : "No such mempool transaction. Use -txindex to enable blockchain transaction queries") +
+                                                           ". Use gettransaction for wallet transactions.");
 
     if (!fVerbose)
         return EncodeHexTx(*tx, RPCSerializationFlags());
@@ -240,8 +235,7 @@ UniValue gettxoutproof(const JSONRPCRequest& request)
             "    ]\n"
             "2. \"blockhash\"   (string, optional) If specified, looks for txid in the block with this hash\n"
             "\nResult:\n"
-            "\"data\"           (string) A string that is a serialized, hex-encoded data for the proof.\n"
-        );
+            "\"data\"           (string) A string that is a serialized, hex-encoded data for the proof.\n");
 
     std::set<uint256> setTxids;
     uint256 oneTxid;
@@ -249,12 +243,12 @@ UniValue gettxoutproof(const JSONRPCRequest& request)
     for (unsigned int idx = 0; idx < txids.size(); idx++) {
         const UniValue& txid = txids[idx];
         if (txid.get_str().length() != 64 || !IsHex(txid.get_str()))
-            throw JSONRPCError(RPC_INVALID_PARAMETER, std::string("Invalid txid ")+txid.get_str());
+            throw JSONRPCError(RPC_INVALID_PARAMETER, std::string("Invalid txid ") + txid.get_str());
         uint256 hash(uint256S(txid.get_str()));
         if (setTxids.count(hash))
-            throw JSONRPCError(RPC_INVALID_PARAMETER, std::string("Invalid parameter, duplicated txid: ")+txid.get_str());
-       setTxids.insert(hash);
-       oneTxid = hash;
+            throw JSONRPCError(RPC_INVALID_PARAMETER, std::string("Invalid parameter, duplicated txid: ") + txid.get_str());
+        setTxids.insert(hash);
+        oneTxid = hash;
     }
 
     LOCK(cs_main);
@@ -262,8 +256,7 @@ UniValue gettxoutproof(const JSONRPCRequest& request)
     CBlockIndex* pblockindex = nullptr;
 
     uint256 hashBlock;
-    if (!request.params[1].isNull())
-    {
+    if (!request.params[1].isNull()) {
         hashBlock = uint256S(request.params[1].get_str());
         if (!mapBlockIndex.count(hashBlock))
             throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Block not found");
@@ -279,8 +272,7 @@ UniValue gettxoutproof(const JSONRPCRequest& request)
         }
     }
 
-    if (pblockindex == nullptr)
-    {
+    if (pblockindex == nullptr) {
         CTransactionRef tx;
         if (!GetTransaction(oneTxid, tx, Params().GetConsensus(), hashBlock, false) || hashBlock.IsNull())
             throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Transaction not yet in block");
@@ -290,7 +282,7 @@ UniValue gettxoutproof(const JSONRPCRequest& request)
     }
 
     CBlock block;
-    if(!ReadBlockFromDisk(block, pblockindex, Params().GetConsensus()))
+    if (!ReadBlockFromDisk(block, pblockindex, Params().GetConsensus()))
         throw JSONRPCError(RPC_INTERNAL_ERROR, "Can't read block from disk");
 
     unsigned int ntxFound = 0;
@@ -317,13 +309,11 @@ UniValue verifytxoutproof(const JSONRPCRequest& request)
             "\nArguments:\n"
             "1. \"proof\"    (string, required) The hex-encoded proof generated by gettxoutproof\n"
             "\nResult:\n"
-            "[\"txid\"]      (array, strings) The txid(s) which the proof commits to, or empty array if the proof is invalid\n"
-        );
+            "[\"txid\"]      (array, strings) The txid(s) which the proof commits to, or empty array if the proof is invalid\n");
 
     CDataStream ssMB(ParseHexV(request.params[0], "proof"), SER_NETWORK, PROTOCOL_VERSION | SERIALIZE_TRANSACTION_NO_WITNESS);
     CMerkleBlock merkleBlock;
     ssMB >> merkleBlock;
-
 
 
     UniValue res(UniValue::VARR);
@@ -361,251 +351,252 @@ UniValue createrawtransaction(const JSONRPCRequest& request)
             "    Operation          Amount + Burn Address\n"
             "    transfer                 0\n"
             "    transferwithmessage      0\n"
-            "    issue                  " + i64tostr(GetBurnAmount(AssetType::ROOT) / COIN) + " to " + GetBurnAddress(AssetType::ROOT) + "\n"
-            "    issue (subasset)       " + i64tostr(GetBurnAmount(AssetType::SUB) / COIN) + " to " + GetBurnAddress(AssetType::SUB) + "\n"
-            "    issue_unique             " + i64tostr(GetBurnAmount(AssetType::UNIQUE) / COIN) + " to " + GetBurnAddress(AssetType::UNIQUE) + "\n"
-            "    reissue                " + i64tostr(GetBurnAmount(AssetType::REISSUE) / COIN) + " to " + GetBurnAddress(AssetType::REISSUE) + "\n"
-            "    issue_restricted      " + i64tostr(GetBurnAmount(AssetType::RESTRICTED) / COIN) + " to " + GetBurnAddress(AssetType::RESTRICTED) + "\n"
-            "    reissue_restricted     " + i64tostr(GetBurnAmount(AssetType::REISSUE) / COIN) + " to " + GetBurnAddress(AssetType::REISSUE) + "\n"
-            "    issue_qualifier       " + i64tostr(GetBurnAmount(AssetType::QUALIFIER) / COIN) + " to " + GetBurnAddress(AssetType::QUALIFIER) + "\n"
-            "    issue_qualifier (sub)  " + i64tostr(GetBurnAmount(AssetType::SUB_QUALIFIER) / COIN) + " to " + GetBurnAddress(AssetType::SUB_QUALIFIER) + "\n"
-            "    tag_addresses          " + "0.1 to " + GetBurnAddress(AssetType::NULL_ADD_QUALIFIER) + " (per address)\n"
-            "    untag_addresses        " + "0.1 to " + GetBurnAddress(AssetType::NULL_ADD_QUALIFIER) + " (per address)\n"
-            "    freeze_addresses         0\n"
-            "    unfreeze_addresses       0\n"
-            "    freeze_asset             0\n"
-            "    unfreeze_asset           0\n"
+            "    issue                  " +
+            i64tostr(GetBurnAmount(AssetType::ROOT) / COIN) + " to " + GetBurnAddress(AssetType::ROOT) + "\n"
+                                                                                                         "    issue (subasset)       " +
+            i64tostr(GetBurnAmount(AssetType::SUB) / COIN) + " to " + GetBurnAddress(AssetType::SUB) + "\n"
+                                                                                                       "    issue_unique             " +
+            i64tostr(GetBurnAmount(AssetType::UNIQUE) / COIN) + " to " + GetBurnAddress(AssetType::UNIQUE) + "\n"
+                                                                                                             "    reissue                " +
+            i64tostr(GetBurnAmount(AssetType::REISSUE) / COIN) + " to " + GetBurnAddress(AssetType::REISSUE) + "\n"
+                                                                                                               "    issue_restricted      " +
+            i64tostr(GetBurnAmount(AssetType::RESTRICTED) / COIN) + " to " + GetBurnAddress(AssetType::RESTRICTED) + "\n"
+                                                                                                                     "    reissue_restricted     " +
+            i64tostr(GetBurnAmount(AssetType::REISSUE) / COIN) + " to " + GetBurnAddress(AssetType::REISSUE) + "\n"
+                                                                                                               "    issue_qualifier       " +
+            i64tostr(GetBurnAmount(AssetType::QUALIFIER) / COIN) + " to " + GetBurnAddress(AssetType::QUALIFIER) + "\n"
+                                                                                                                   "    issue_qualifier (sub)  " +
+            i64tostr(GetBurnAmount(AssetType::SUB_QUALIFIER) / COIN) + " to " + GetBurnAddress(AssetType::SUB_QUALIFIER) + "\n"
+                                                                                                                           "    tag_addresses          " +
+            "0.1 to " + GetBurnAddress(AssetType::NULL_ADD_QUALIFIER) + " (per address)\n"
+                                                                        "    untag_addresses        " +
+            "0.1 to " + GetBurnAddress(AssetType::NULL_ADD_QUALIFIER) + " (per address)\n"
+                                                                        "    freeze_addresses         0\n"
+                                                                        "    unfreeze_addresses       0\n"
+                                                                        "    freeze_asset             0\n"
+                                                                        "    unfreeze_asset           0\n"
 
-            "\nAssets For Authorization:\n"
-            "  These operations require a specific asset input for authorization:\n"
-            "    Root Owner Token:\n"
-            "      reissue\n"
-            "      issue_unique\n"
-            "      issue_restricted\n"
-            "      reissue_restricted\n"
-            "      freeze_addresses\n"
-            "      unfreeze_addresses\n"
-            "      freeze_asset\n"
-            "      unfreeze_asset\n"
-            "    Root Qualifier Token:\n"
-            "      issue_qualifier (when issuing subqualifier)\n"
-            "    Qualifier Token:\n"
-            "      tag_addresses\n"
-            "      untag_addresses\n"
+                                                                        "\nAssets For Authorization:\n"
+                                                                        "  These operations require a specific asset input for authorization:\n"
+                                                                        "    Root Owner Token:\n"
+                                                                        "      reissue\n"
+                                                                        "      issue_unique\n"
+                                                                        "      issue_restricted\n"
+                                                                        "      reissue_restricted\n"
+                                                                        "      freeze_addresses\n"
+                                                                        "      unfreeze_addresses\n"
+                                                                        "      freeze_asset\n"
+                                                                        "      unfreeze_asset\n"
+                                                                        "    Root Qualifier Token:\n"
+                                                                        "      issue_qualifier (when issuing subqualifier)\n"
+                                                                        "    Qualifier Token:\n"
+                                                                        "      tag_addresses\n"
+                                                                        "      untag_addresses\n"
 
-            "\nOutput Ordering:\n"
-            "  Asset operations require the following:\n"
-            "    1) All coin outputs come first (including the burn output).\n"
-            "    2) The owner token change output comes next (if required).\n"
-            "    3) An issue, reissue, or any number of transfers comes last\n"
-            "       (different types can't be mixed in a single transaction).\n"
+                                                                        "\nOutput Ordering:\n"
+                                                                        "  Asset operations require the following:\n"
+                                                                        "    1) All coin outputs come first (including the burn output).\n"
+                                                                        "    2) The owner token change output comes next (if required).\n"
+                                                                        "    3) An issue, reissue, or any number of transfers comes last\n"
+                                                                        "       (different types can't be mixed in a single transaction).\n"
 
-            "\nArguments:\n"
-            "1. \"inputs\"                                (array, required) A json array of json objects\n"
-            "     [\n"
-            "       {\n"
-            "         \"txid\":\"id\",                      (string, required) The transaction id\n"
-            "         \"vout\":n,                         (number, required) The output number\n"
-            "         \"sequence\":n                      (number, optional) The sequence number\n"
-            "       } \n"
-            "       ,...\n"
-            "     ]\n"
-            "2. \"outputs\"                               (object, required) a json object with outputs\n"
-            "     {\n"
-            "       \"address\":                          (string, required) The destination avian address.\n"
-            "                                               Each output must have a different address.\n"
-            "         x.xxx                             (number or string, required) The AVN amount\n"
-            "           or\n"
-            "         {                                 (object) A json object of assets to send\n"
-            "           \"transfer\":\n"
-            "             {\n"
-            "               \"asset-name\":               (string, required) asset name\n"
-            "               asset-quantity              (number, required) the number of raw units to transfer\n"
-            "               ,...\n"
-            "             }\n"
-            "         }\n"
-            "           or\n"
-            "         {                                 (object) A json object of describing the transfer and message contents to send\n"
-            "           \"transferwithmessage\":\n"
-            "             {\n"
-            "               \"asset-name\":              (string, required) asset name\n"
-            "               asset-quantity,            (number, required) the number of raw units to transfer\n"
-            "               \"message\":\"hash\",          (string, required) ipfs hash or a txid hash\n"
-            "               \"expire_time\": n           (number, required) utc time in seconds to expire the message\n"
-            "             }\n"
-            "         }\n"
-            "           or\n"
-            "         {                                 (object) A json object describing new assets to issue\n"
-            "           \"issue\":\n"
-            "             {\n"
-            "               \"asset_name\":\"asset-name\",  (string, required) new asset name\n"
-            "               \"asset_quantity\":n,         (number, required) the number of raw units to issue\n"
-            "               \"units\":[1-8],              (number, required) display units, between 1 (integral) to 8 (max precision)\n"
-            "               \"reissuable\":[0-1],         (number, required) 1=reissuable asset\n"
-            "               \"has_ipfs\":[0-1],           (number, required) 1=passing ipfs_hash\n"
-            "               \"ipfs_hash\":\"hash\"          (string, optional) an ipfs hash for discovering asset metadata\n"
-            "               \"has_ans\":[0-1],           (number, required) 1=passing ans_id\n"
-            "               \"ans_id\":\"id\"          (string, optional) an ANS ID to attach Avian Name System data\n"
-            // TODO if we decide to remove the consensus check from issue 675 https://github.com/AvianNetwork/Avian/issues/675
-   //TODO"               \"custom_owner_address\": \"addr\" (string, optional) owner token will get sent to this address if set\n"
-            "             }\n"
-            "         }\n"
-            "           or\n"
-            "         {                                 (object) A json object describing new unique assets to issue\n"
-            "           \"issue_unique\":\n"
-            "             {\n"
-            "               \"root_name\":\"root-name\",         (string, required) name of the asset the unique asset(s) \n"
-            "                                                      are being issued under\n"
-            "               \"asset_tags\":[\"asset_tag\", ...], (array, required) the unique tag for each asset which is to be issued\n"
-            "               \"ipfs_hashes\":[\"hash\", ...],     (array, optional) ipfs hashes corresponding to each supplied tag \n"
-            "               \"ans_ids\":[\"hash\", ...],     (array, optional) ANS IDs corresponding to each supplied tag \n"
-            "                                                      (should be same size as \"asset_tags\")\n"
-            "             }\n"
-            "         }\n"
-            "           or\n"
-            "         {                                 (object) A json object describing follow-on asset issue.\n"
-            "           \"reissue\":\n"
-            "             {\n"
-            "               \"asset_name\":\"asset-name\", (string, required) name of asset to be reissued\n"
-            "               \"asset_quantity\":n,          (number, required) the number of raw units to issue\n"
-            "               \"reissuable\":[0-1],          (number, optional) default is 1, 1=reissuable asset\n"
-            "               \"ipfs_hash\":\"hash\",        (string, optional) An ipfs hash for discovering asset metadata, \n"
-            "                                                Overrides the current ipfs hash if given\n"
-            "               \"has_ans\":[0-1],           (number, required) 1=passing ans_id\n"
-            "               \"ans_id\":\"id\"          (string, optional) an ANS ID to attach Avian Name System data\n"
-            "               \"owner_change_address\"       (string, optional) the address where the owner token will be sent to. \n"
-            "                                                If not given, it will be sent to the output address\n"
-            "             }\n"
-            "         }\n"
-            "           or\n"
-            "         {                                 (object) A json object describing how restricted asset to issue\n"
-            "           \"issue_restricted\":\n"
-            "             {\n"
-            "               \"asset_name\":\"asset-name\",(string, required) new asset name\n"
-            "               \"asset_quantity\":n,         (number, required) the number of raw units to issue\n"
-            "               \"verifier_string\":\"text\", (string, required) the verifier string to be used for a restricted \n"
-            "                                               asset transfer verification\n"
-            "               \"units\":[0-8],              (number, required) display units, between 0 (integral) and 8 (max precision)\n"
-            "               \"reissuable\":[0-1],         (number, required) 1=reissuable asset\n"
-            "               \"has_ipfs\":[0-1],           (number, required) 1=passing ipfs_hash\n"
-            "               \"ipfs_hash\":\"hash\",       (string, optional) an ipfs hash for discovering asset metadata\n"
-            "               \"has_ans\":[0-1],           (number, required) 1=passing ans_id\n"
-            "               \"ans_id\":\"id\"          (string, optional) an ANS ID to attach Avian Name System data\n"
-            "               \"owner_change_address\"      (string, optional) the address where the owner token will be sent to. \n"
-            "                                               If not given, it will be sent to the output address\n"
-            "             }\n"
-            "         }\n"
-            "           or\n"
-            "         {                                 (object) A json object describing follow-on asset issue.\n"
-            "           \"reissue_restricted\":\n"
-            "             {\n"
-            "               \"asset_name\":\"asset-name\", (string, required) name of asset to be reissued\n"
-            "               \"asset_quantity\":n,          (number, required) the number of raw units to issue\n"
-            "               \"reissuable\":[0-1],          (number, optional) default is 1, 1=reissuable asset\n"
-            "               \"verifier_string\":\"text\",  (string, optional) the verifier string to be used for a restricted asset \n"
-            "                                                transfer verification\n"
-            "               \"ipfs_hash\":\"hash\",        (string, optional) An ipfs hash for discovering asset metadata, \n"
-            "                                                Overrides the current ipfs hash if given\n"
-            "               \"has_ans\":[0-1],           (number, required) 1=passing ans_id\n"
-            "               \"ans_id\":\"id\"          (string, optional) an ANS ID to attach Avian Name System data\n"
-            "               \"owner_change_address\"       (string, optional) the address where the owner token will be sent to. \n"
-            "                                                If not given, it will be sent to the output address\n"
-            "             }\n"
-            "         }\n"
-            "           or\n"
-            "         {                                 (object) A json object describing a new qualifier to issue.\n"
-            "           \"issue_qualifier\":\n"
-            "             {\n"
-            "               \"asset_name\":\"asset_name\", (string, required) a qualifier name (starts with '#')\n"
-            "               \"asset_quantity\":n,          (numeric, optional, default=1) the number of units to be issued (1 to 10)\n"
-            "               \"has_ipfs\":[0-1],            (boolean, optional, default=false), whether ifps hash is going \n"
-            "                                                to be added to the asset\n"
-            "               \"ipfs_hash\":\"hash\",        (string, optional but required if has_ipfs = 1), an ipfs hash or a \n"
-            "                                                txid hash once messaging is activated\n"
-            "               \"has_ans\":[0-1],           (number, required) 1=passing ans_id\n"
-            "               \"ans_id\":\"id\"          (string, optional) an ANS ID to attach Avian Name System data\n"
-            "               \"root_change_address\"        (string, optional) Only applies when issuing subqualifiers.\n"
-            "                                                The address where the root qualifier will be sent.\n"
-            "                                                If not specified, it will be sent to the output address.\n"
-            "               \"change_quantity\":\"qty\"    (numeric, optional) the asset change amount (defaults to 1)\n"
-            "             }\n"
-            "         }\n"
-            "           or\n"
-            "         {                                 (object) A json object describing addresses to be tagged.\n"
-            "                                             The address in the key will used as the asset change address.\n"
-            "           \"tag_addresses\":\n"
-            "             {\n"
-            "               \"qualifier\":\"qualifier\",          (string, required) a qualifier name (starts with '#')\n"
-            "               \"addresses\":[\"addr\", ...],        (array, required) the addresses to be tagged (up to 10)\n"
-            "               \"change_quantity\":\"qty\",          (numeric, optional) the asset change amount (defaults to 1)\n"
-            "             }\n"
-            "         }\n"
-            "           or\n"
-            "         {                                 (object) A json object describing addresses to be untagged.\n"
-            "                                             The address in the key will be used as the asset change address.\n"
-            "           \"untag_addresses\":\n"
-            "             {\n"
-            "               \"qualifier\":\"qualifier\",          (string, required) a qualifier name (starts with '#')\n"
-            "               \"addresses\":[\"addr\", ...],        (array, required) the addresses to be untagged (up to 10)\n"
-            "               \"change_quantity\":\"qty\",          (numeric, optional) the asset change amount (defaults to 1)\n"
-            "             }\n"
-            "         }\n"
-            "           or\n"
-            "         {                                 (object) A json object describing addresses to be frozen.\n"
-            "                                             The address in the key will used as the owner change address.\n"
-            "           \"freeze_addresses\":\n"
-            "             {\n"
-            "               \"asset_name\":\"asset_name\",        (string, required) a restricted asset name (starts with '$')\n"
-            "               \"addresses\":[\"addr\", ...],        (array, required) the addresses to be frozen (up to 10)\n"
-            "             }\n"
-            "         }\n"
-            "           or\n"
-            "         {                                 (object) A json object describing addresses to be frozen.\n"
-            "                                             The address in the key will be used as the owner change address.\n"
-            "           \"unfreeze_addresses\":\n"
-            "             {\n"
-            "               \"asset_name\":\"asset_name\",        (string, required) a restricted asset name (starts with '$')\n"
-            "               \"addresses\":[\"addr\", ...],        (array, required) the addresses to be untagged (up to 10)\n"
-            "             }\n"
-            "         }\n"
-            "           or\n"
-            "         {                                 (object) A json object describing an asset to be frozen.\n"
-            "                                             The address in the key will used as the owner change address.\n"
-            "           \"freeze_asset\":\n"
-            "             {\n"
-            "               \"asset_name\":\"asset_name\",        (string, required) a restricted asset name (starts with '$')\n"
-            "             }\n"
-            "         }\n"
-            "           or\n"
-            "         {                                 (object) A json object describing an asset to be frozen.\n"
-            "                                             The address in the key will be used as the owner change address.\n"
-            "           \"unfreeze_asset\":\n"
-            "             {\n"
-            "               \"asset_name\":\"asset_name\",        (string, required) a restricted asset name (starts with '$')\n"
-            "             }\n"
-            "         }\n"
-            "           or\n"
-            "       \"data\": \"hex\"                       (string, required) The key is \"data\", the value is hex encoded data\n"
-            "       ,...\n"
-            "     }\n"
-            "3. locktime                  (numeric, optional, default=0) Raw locktime. Non-0 value also locktime-activates inputs\n"
-//            "4. replaceable               (boolean, optional, default=false) Marks this transaction as BIP125 replaceable.\n"
-//            "                                        Allows this transaction to be replaced by a transaction with higher fees.\n"
-//            "                                        If provided, it is an error if explicit sequence numbers are incompatible.\n"
-            "\nResult:\n"
-            "\"transaction\"              (string) hex string of the transaction\n"
+                                                                        "\nArguments:\n"
+                                                                        "1. \"inputs\"                                (array, required) A json array of json objects\n"
+                                                                        "     [\n"
+                                                                        "       {\n"
+                                                                        "         \"txid\":\"id\",                      (string, required) The transaction id\n"
+                                                                        "         \"vout\":n,                         (number, required) The output number\n"
+                                                                        "         \"sequence\":n                      (number, optional) The sequence number\n"
+                                                                        "       } \n"
+                                                                        "       ,...\n"
+                                                                        "     ]\n"
+                                                                        "2. \"outputs\"                               (object, required) a json object with outputs\n"
+                                                                        "     {\n"
+                                                                        "       \"address\":                          (string, required) The destination avian address.\n"
+                                                                        "                                               Each output must have a different address.\n"
+                                                                        "         x.xxx                             (number or string, required) The AVN amount\n"
+                                                                        "           or\n"
+                                                                        "         {                                 (object) A json object of assets to send\n"
+                                                                        "           \"transfer\":\n"
+                                                                        "             {\n"
+                                                                        "               \"asset-name\":               (string, required) asset name\n"
+                                                                        "               asset-quantity              (number, required) the number of raw units to transfer\n"
+                                                                        "               ,...\n"
+                                                                        "             }\n"
+                                                                        "         }\n"
+                                                                        "           or\n"
+                                                                        "         {                                 (object) A json object of describing the transfer and message contents to send\n"
+                                                                        "           \"transferwithmessage\":\n"
+                                                                        "             {\n"
+                                                                        "               \"asset-name\":              (string, required) asset name\n"
+                                                                        "               asset-quantity,            (number, required) the number of raw units to transfer\n"
+                                                                        "               \"message\":\"hash\",          (string, required) ipfs hash or a txid hash\n"
+                                                                        "               \"expire_time\": n           (number, required) utc time in seconds to expire the message\n"
+                                                                        "             }\n"
+                                                                        "         }\n"
+                                                                        "           or\n"
+                                                                        "         {                                 (object) A json object describing new assets to issue\n"
+                                                                        "           \"issue\":\n"
+                                                                        "             {\n"
+                                                                        "               \"asset_name\":\"asset-name\",  (string, required) new asset name\n"
+                                                                        "               \"asset_quantity\":n,         (number, required) the number of raw units to issue\n"
+                                                                        "               \"units\":[1-8],              (number, required) display units, between 1 (integral) to 8 (max precision)\n"
+                                                                        "               \"reissuable\":[0-1],         (number, required) 1=reissuable asset\n"
+                                                                        "               \"has_ipfs\":[0-1],           (number, required) 1=passing ipfs_hash\n"
+                                                                        "               \"ipfs_hash\":\"hash\"          (string, optional) an ipfs hash for discovering asset metadata\n"
+                                                                        "               \"has_ans\":[0-1],           (number, required) 1=passing ans_id\n"
+                                                                        "               \"ans_id\":\"id\"          (string, optional) an ANS ID to attach Avian Name System data\n"
+                                                                        // TODO if we decide to remove the consensus check from issue 675 https://github.com/AvianNetwork/Avian/issues/675
+                                                                        // TODO"               \"custom_owner_address\": \"addr\" (string, optional) owner token will get sent to this address if set\n"
+                                                                        "             }\n"
+                                                                        "         }\n"
+                                                                        "           or\n"
+                                                                        "         {                                 (object) A json object describing new unique assets to issue\n"
+                                                                        "           \"issue_unique\":\n"
+                                                                        "             {\n"
+                                                                        "               \"root_name\":\"root-name\",         (string, required) name of the asset the unique asset(s) \n"
+                                                                        "                                                      are being issued under\n"
+                                                                        "               \"asset_tags\":[\"asset_tag\", ...], (array, required) the unique tag for each asset which is to be issued\n"
+                                                                        "               \"ipfs_hashes\":[\"hash\", ...],     (array, optional) ipfs hashes corresponding to each supplied tag \n"
+                                                                        "               \"ans_ids\":[\"hash\", ...],     (array, optional) ANS IDs corresponding to each supplied tag \n"
+                                                                        "                                                      (should be same size as \"asset_tags\")\n"
+                                                                        "             }\n"
+                                                                        "         }\n"
+                                                                        "           or\n"
+                                                                        "         {                                 (object) A json object describing follow-on asset issue.\n"
+                                                                        "           \"reissue\":\n"
+                                                                        "             {\n"
+                                                                        "               \"asset_name\":\"asset-name\", (string, required) name of asset to be reissued\n"
+                                                                        "               \"asset_quantity\":n,          (number, required) the number of raw units to issue\n"
+                                                                        "               \"reissuable\":[0-1],          (number, optional) default is 1, 1=reissuable asset\n"
+                                                                        "               \"ipfs_hash\":\"hash\",        (string, optional) An ipfs hash for discovering asset metadata, \n"
+                                                                        "                                                Overrides the current ipfs hash if given\n"
+                                                                        "               \"has_ans\":[0-1],           (number, required) 1=passing ans_id\n"
+                                                                        "               \"ans_id\":\"id\"          (string, optional) an ANS ID to attach Avian Name System data\n"
+                                                                        "               \"owner_change_address\"       (string, optional) the address where the owner token will be sent to. \n"
+                                                                        "                                                If not given, it will be sent to the output address\n"
+                                                                        "             }\n"
+                                                                        "         }\n"
+                                                                        "           or\n"
+                                                                        "         {                                 (object) A json object describing how restricted asset to issue\n"
+                                                                        "           \"issue_restricted\":\n"
+                                                                        "             {\n"
+                                                                        "               \"asset_name\":\"asset-name\",(string, required) new asset name\n"
+                                                                        "               \"asset_quantity\":n,         (number, required) the number of raw units to issue\n"
+                                                                        "               \"verifier_string\":\"text\", (string, required) the verifier string to be used for a restricted \n"
+                                                                        "                                               asset transfer verification\n"
+                                                                        "               \"units\":[0-8],              (number, required) display units, between 0 (integral) and 8 (max precision)\n"
+                                                                        "               \"reissuable\":[0-1],         (number, required) 1=reissuable asset\n"
+                                                                        "               \"has_ipfs\":[0-1],           (number, required) 1=passing ipfs_hash\n"
+                                                                        "               \"ipfs_hash\":\"hash\",       (string, optional) an ipfs hash for discovering asset metadata\n"
+                                                                        "               \"has_ans\":[0-1],           (number, required) 1=passing ans_id\n"
+                                                                        "               \"ans_id\":\"id\"          (string, optional) an ANS ID to attach Avian Name System data\n"
+                                                                        "               \"owner_change_address\"      (string, optional) the address where the owner token will be sent to. \n"
+                                                                        "                                               If not given, it will be sent to the output address\n"
+                                                                        "             }\n"
+                                                                        "         }\n"
+                                                                        "           or\n"
+                                                                        "         {                                 (object) A json object describing follow-on asset issue.\n"
+                                                                        "           \"reissue_restricted\":\n"
+                                                                        "             {\n"
+                                                                        "               \"asset_name\":\"asset-name\", (string, required) name of asset to be reissued\n"
+                                                                        "               \"asset_quantity\":n,          (number, required) the number of raw units to issue\n"
+                                                                        "               \"reissuable\":[0-1],          (number, optional) default is 1, 1=reissuable asset\n"
+                                                                        "               \"verifier_string\":\"text\",  (string, optional) the verifier string to be used for a restricted asset \n"
+                                                                        "                                                transfer verification\n"
+                                                                        "               \"ipfs_hash\":\"hash\",        (string, optional) An ipfs hash for discovering asset metadata, \n"
+                                                                        "                                                Overrides the current ipfs hash if given\n"
+                                                                        "               \"has_ans\":[0-1],           (number, required) 1=passing ans_id\n"
+                                                                        "               \"ans_id\":\"id\"          (string, optional) an ANS ID to attach Avian Name System data\n"
+                                                                        "               \"owner_change_address\"       (string, optional) the address where the owner token will be sent to. \n"
+                                                                        "                                                If not given, it will be sent to the output address\n"
+                                                                        "             }\n"
+                                                                        "         }\n"
+                                                                        "           or\n"
+                                                                        "         {                                 (object) A json object describing a new qualifier to issue.\n"
+                                                                        "           \"issue_qualifier\":\n"
+                                                                        "             {\n"
+                                                                        "               \"asset_name\":\"asset_name\", (string, required) a qualifier name (starts with '#')\n"
+                                                                        "               \"asset_quantity\":n,          (numeric, optional, default=1) the number of units to be issued (1 to 10)\n"
+                                                                        "               \"has_ipfs\":[0-1],            (boolean, optional, default=false), whether ifps hash is going \n"
+                                                                        "                                                to be added to the asset\n"
+                                                                        "               \"ipfs_hash\":\"hash\",        (string, optional but required if has_ipfs = 1), an ipfs hash or a \n"
+                                                                        "                                                txid hash once messaging is activated\n"
+                                                                        "               \"has_ans\":[0-1],           (number, required) 1=passing ans_id\n"
+                                                                        "               \"ans_id\":\"id\"          (string, optional) an ANS ID to attach Avian Name System data\n"
+                                                                        "               \"root_change_address\"        (string, optional) Only applies when issuing subqualifiers.\n"
+                                                                        "                                                The address where the root qualifier will be sent.\n"
+                                                                        "                                                If not specified, it will be sent to the output address.\n"
+                                                                        "               \"change_quantity\":\"qty\"    (numeric, optional) the asset change amount (defaults to 1)\n"
+                                                                        "             }\n"
+                                                                        "         }\n"
+                                                                        "           or\n"
+                                                                        "         {                                 (object) A json object describing addresses to be tagged.\n"
+                                                                        "                                             The address in the key will used as the asset change address.\n"
+                                                                        "           \"tag_addresses\":\n"
+                                                                        "             {\n"
+                                                                        "               \"qualifier\":\"qualifier\",          (string, required) a qualifier name (starts with '#')\n"
+                                                                        "               \"addresses\":[\"addr\", ...],        (array, required) the addresses to be tagged (up to 10)\n"
+                                                                        "               \"change_quantity\":\"qty\",          (numeric, optional) the asset change amount (defaults to 1)\n"
+                                                                        "             }\n"
+                                                                        "         }\n"
+                                                                        "           or\n"
+                                                                        "         {                                 (object) A json object describing addresses to be untagged.\n"
+                                                                        "                                             The address in the key will be used as the asset change address.\n"
+                                                                        "           \"untag_addresses\":\n"
+                                                                        "             {\n"
+                                                                        "               \"qualifier\":\"qualifier\",          (string, required) a qualifier name (starts with '#')\n"
+                                                                        "               \"addresses\":[\"addr\", ...],        (array, required) the addresses to be untagged (up to 10)\n"
+                                                                        "               \"change_quantity\":\"qty\",          (numeric, optional) the asset change amount (defaults to 1)\n"
+                                                                        "             }\n"
+                                                                        "         }\n"
+                                                                        "           or\n"
+                                                                        "         {                                 (object) A json object describing addresses to be frozen.\n"
+                                                                        "                                             The address in the key will used as the owner change address.\n"
+                                                                        "           \"freeze_addresses\":\n"
+                                                                        "             {\n"
+                                                                        "               \"asset_name\":\"asset_name\",        (string, required) a restricted asset name (starts with '$')\n"
+                                                                        "               \"addresses\":[\"addr\", ...],        (array, required) the addresses to be frozen (up to 10)\n"
+                                                                        "             }\n"
+                                                                        "         }\n"
+                                                                        "           or\n"
+                                                                        "         {                                 (object) A json object describing addresses to be frozen.\n"
+                                                                        "                                             The address in the key will be used as the owner change address.\n"
+                                                                        "           \"unfreeze_addresses\":\n"
+                                                                        "             {\n"
+                                                                        "               \"asset_name\":\"asset_name\",        (string, required) a restricted asset name (starts with '$')\n"
+                                                                        "               \"addresses\":[\"addr\", ...],        (array, required) the addresses to be untagged (up to 10)\n"
+                                                                        "             }\n"
+                                                                        "         }\n"
+                                                                        "           or\n"
+                                                                        "         {                                 (object) A json object describing an asset to be frozen.\n"
+                                                                        "                                             The address in the key will used as the owner change address.\n"
+                                                                        "           \"freeze_asset\":\n"
+                                                                        "             {\n"
+                                                                        "               \"asset_name\":\"asset_name\",        (string, required) a restricted asset name (starts with '$')\n"
+                                                                        "             }\n"
+                                                                        "         }\n"
+                                                                        "           or\n"
+                                                                        "         {                                 (object) A json object describing an asset to be frozen.\n"
+                                                                        "                                             The address in the key will be used as the owner change address.\n"
+                                                                        "           \"unfreeze_asset\":\n"
+                                                                        "             {\n"
+                                                                        "               \"asset_name\":\"asset_name\",        (string, required) a restricted asset name (starts with '$')\n"
+                                                                        "             }\n"
+                                                                        "         }\n"
+                                                                        "           or\n"
+                                                                        "       \"data\": \"hex\"                       (string, required) The key is \"data\", the value is hex encoded data\n"
+                                                                        "       ,...\n"
+                                                                        "     }\n"
+                                                                        "3. locktime                  (numeric, optional, default=0) Raw locktime. Non-0 value also locktime-activates inputs\n"
+                                                                        //            "4. replaceable               (boolean, optional, default=false) Marks this transaction as BIP125 replaceable.\n"
+                                                                        //            "                                        Allows this transaction to be replaced by a transaction with higher fees.\n"
+                                                                        //            "                                        If provided, it is an error if explicit sequence numbers are incompatible.\n"
+                                                                        "\nResult:\n"
+                                                                        "\"transaction\"              (string) hex string of the transaction\n"
 
-            "\nExamples:\n"
-            + HelpExampleCli("createrawtransaction", "\"[{\\\"txid\\\":\\\"mycoin\\\",\\\"vout\\\":0}]\" \"{\\\"address\\\":0.01}\"")
-            + HelpExampleCli("createrawtransaction", "\"[{\\\"txid\\\":\\\"mycoin\\\",\\\"vout\\\":0}]\" \"{\\\"data\\\":\\\"00010203\\\"}\"")
-            + HelpExampleCli("createrawtransaction", "\"[{\\\"txid\\\":\\\"mycoin\\\",\\\"vout\\\":0}]\" \"{\\\"RXissueAssetXXXXXXXXXXXXXXXXXhhZGt\\\":500,\\\"change_address\\\":change_amount,\\\"issuer_address\\\":{\\\"issue\\\":{\\\"asset_name\\\":\\\"MYASSET\\\",\\\"asset_quantity\\\":1000000,\\\"units\\\":1,\\\"reissuable\\\":0,\\\"has_ipfs\\\":1,\\\"ipfs_hash\\\":\\\"43f81c6f2c0593bde5a85e09ae662816eca80797\\\"}}}\"")
-            + HelpExampleCli("createrawtransaction", "\"[{\\\"txid\\\":\\\"mycoin\\\",\\\"vout\\\":0}]\" \"{\\\"RXissueRestrictedXXXXXXXXXXXXzJZ1q\\\":1500,\\\"change_address\\\":change_amount,\\\"issuer_address\\\":{\\\"issue_restricted\\\":{\\\"asset_name\\\":\\\"$MYASSET\\\",\\\"asset_quantity\\\":1000000,\\\"verifier_string\\\":\\\"#TAG & !KYC\\\",\\\"units\\\":1,\\\"reissuable\\\":0,\\\"has_ipfs\\\":1,\\\"ipfs_hash\\\":\\\"43f81c6f2c0593bde5a85e09ae662816eca80797\\\"}}}\"")
-            + HelpExampleCli("createrawtransaction", "\"[{\\\"txid\\\":\\\"mycoin\\\",\\\"vout\\\":0}]\" \"{\\\"RXissueUniqueAssetXXXXXXXXXXWEAe58\\\":20,\\\"change_address\\\":change_amount,\\\"issuer_address\\\":{\\\"issue_unique\\\":{\\\"root_name\\\":\\\"MYASSET\\\",\\\"asset_tags\\\":[\\\"ALPHA\\\",\\\"BETA\\\"],\\\"ipfs_hashes\\\":[\\\"43f81c6f2c0593bde5a85e09ae662816eca80797\\\",\\\"43f81c6f2c0593bde5a85e09ae662816eca80797\\\"]}}}\"")
-            + HelpExampleCli("createrawtransaction", "\"[{\\\"txid\\\":\\\"mycoin\\\",\\\"vout\\\":0},{\\\"txid\\\":\\\"myasset\\\",\\\"vout\\\":0}]\" \"{\\\"address\\\":{\\\"transfer\\\":{\\\"MYASSET\\\":50}}}\"")
-            + HelpExampleCli("createrawtransaction", "\"[{\\\"txid\\\":\\\"mycoin\\\",\\\"vout\\\":0},{\\\"txid\\\":\\\"myasset\\\",\\\"vout\\\":0}]\" \"{\\\"address\\\":{\\\"transferwithmessage\\\":{\\\"MYASSET\\\":50,\\\"message\\\":\\\"hash\\\",\\\"expire_time\\\": utc_time}}}\"")
-            + HelpExampleCli("createrawtransaction", "\"[{\\\"txid\\\":\\\"mycoin\\\",\\\"vout\\\":0},{\\\"txid\\\":\\\"myownership\\\",\\\"vout\\\":0}]\" \"{\\\"issuer_address\\\":{\\\"reissue\\\":{\\\"asset_name\\\":\\\"MYASSET\\\",\\\"asset_quantity\\\":2000000}}}\"")
-            + HelpExampleRpc("createrawtransaction", "\"[{\\\"txid\\\":\\\"mycoin\\\",\\\"vout\\\":0}]\", \"{\\\"data\\\":\\\"00010203\\\"}\"")
-        );
+                                                                        "\nExamples:\n" +
+            HelpExampleCli("createrawtransaction", "\"[{\\\"txid\\\":\\\"mycoin\\\",\\\"vout\\\":0}]\" \"{\\\"address\\\":0.01}\"") + HelpExampleCli("createrawtransaction", "\"[{\\\"txid\\\":\\\"mycoin\\\",\\\"vout\\\":0}]\" \"{\\\"data\\\":\\\"00010203\\\"}\"") + HelpExampleCli("createrawtransaction", "\"[{\\\"txid\\\":\\\"mycoin\\\",\\\"vout\\\":0}]\" \"{\\\"RXissueAssetXXXXXXXXXXXXXXXXXhhZGt\\\":500,\\\"change_address\\\":change_amount,\\\"issuer_address\\\":{\\\"issue\\\":{\\\"asset_name\\\":\\\"MYASSET\\\",\\\"asset_quantity\\\":1000000,\\\"units\\\":1,\\\"reissuable\\\":0,\\\"has_ipfs\\\":1,\\\"ipfs_hash\\\":\\\"43f81c6f2c0593bde5a85e09ae662816eca80797\\\"}}}\"") + HelpExampleCli("createrawtransaction", "\"[{\\\"txid\\\":\\\"mycoin\\\",\\\"vout\\\":0}]\" \"{\\\"RXissueRestrictedXXXXXXXXXXXXzJZ1q\\\":1500,\\\"change_address\\\":change_amount,\\\"issuer_address\\\":{\\\"issue_restricted\\\":{\\\"asset_name\\\":\\\"$MYASSET\\\",\\\"asset_quantity\\\":1000000,\\\"verifier_string\\\":\\\"#TAG & !KYC\\\",\\\"units\\\":1,\\\"reissuable\\\":0,\\\"has_ipfs\\\":1,\\\"ipfs_hash\\\":\\\"43f81c6f2c0593bde5a85e09ae662816eca80797\\\"}}}\"") + HelpExampleCli("createrawtransaction", "\"[{\\\"txid\\\":\\\"mycoin\\\",\\\"vout\\\":0}]\" \"{\\\"RXissueUniqueAssetXXXXXXXXXXWEAe58\\\":20,\\\"change_address\\\":change_amount,\\\"issuer_address\\\":{\\\"issue_unique\\\":{\\\"root_name\\\":\\\"MYASSET\\\",\\\"asset_tags\\\":[\\\"ALPHA\\\",\\\"BETA\\\"],\\\"ipfs_hashes\\\":[\\\"43f81c6f2c0593bde5a85e09ae662816eca80797\\\",\\\"43f81c6f2c0593bde5a85e09ae662816eca80797\\\"]}}}\"") + HelpExampleCli("createrawtransaction", "\"[{\\\"txid\\\":\\\"mycoin\\\",\\\"vout\\\":0},{\\\"txid\\\":\\\"myasset\\\",\\\"vout\\\":0}]\" \"{\\\"address\\\":{\\\"transfer\\\":{\\\"MYASSET\\\":50}}}\"") + HelpExampleCli("createrawtransaction", "\"[{\\\"txid\\\":\\\"mycoin\\\",\\\"vout\\\":0},{\\\"txid\\\":\\\"myasset\\\",\\\"vout\\\":0}]\" \"{\\\"address\\\":{\\\"transferwithmessage\\\":{\\\"MYASSET\\\":50,\\\"message\\\":\\\"hash\\\",\\\"expire_time\\\": utc_time}}}\"") + HelpExampleCli("createrawtransaction", "\"[{\\\"txid\\\":\\\"mycoin\\\",\\\"vout\\\":0},{\\\"txid\\\":\\\"myownership\\\",\\\"vout\\\":0}]\" \"{\\\"issuer_address\\\":{\\\"reissue\\\":{\\\"asset_name\\\":\\\"MYASSET\\\",\\\"asset_quantity\\\":2000000}}}\"") + HelpExampleRpc("createrawtransaction", "\"[{\\\"txid\\\":\\\"mycoin\\\",\\\"vout\\\":0}]\", \"{\\\"data\\\":\\\"00010203\\\"}\""));
 
     RPCTypeCheck(request.params, {UniValue::VARR, UniValue::VOBJ, UniValue::VNUM}, true);
     if (request.params[0].isNull() || request.params[1].isNull())
@@ -623,7 +614,7 @@ UniValue createrawtransaction(const JSONRPCRequest& request)
         rawTx.nLockTime = nLockTime;
     }
 
-//    bool rbfOptIn = request.params[3].isTrue();
+    //    bool rbfOptIn = request.params[3].isTrue();
 
     for (unsigned int idx = 0; idx < inputs.size(); idx++) {
         const UniValue& input = inputs[idx];
@@ -639,13 +630,13 @@ UniValue createrawtransaction(const JSONRPCRequest& request)
             throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid parameter, vout must be positive");
 
         uint32_t nSequence;
-//        if (rbfOptIn) {
-//            nSequence = MAX_BIP125_RBF_SEQUENCE;
-//        } else if (rawTx.nLockTime) {
-//            nSequence = std::numeric_limits<uint32_t>::max() - 1;
-//        } else {
-//            nSequence = std::numeric_limits<uint32_t>::max();
-//        }
+        //        if (rbfOptIn) {
+        //            nSequence = MAX_BIP125_RBF_SEQUENCE;
+        //        } else if (rawTx.nLockTime) {
+        //            nSequence = std::numeric_limits<uint32_t>::max() - 1;
+        //        } else {
+        //            nSequence = std::numeric_limits<uint32_t>::max();
+        //        }
 
         if (rawTx.nLockTime) {
             nSequence = std::numeric_limits<uint32_t>::max() - 1;
@@ -674,9 +665,8 @@ UniValue createrawtransaction(const JSONRPCRequest& request)
     std::set<CTxDestination> destinations;
     std::vector<std::string> addrList = sendTo.getKeys();
     for (const std::string& name_ : addrList) {
-
         if (name_ == "data") {
-            std::vector<unsigned char> data = ParseHexV(sendTo[name_].getValStr(),"Data");
+            std::vector<unsigned char> data = ParseHexV(sendTo[name_].getValStr(), "Data");
 
             CTxOut out(0, CScript() << OP_RETURN << data);
             rawTx.vout.push_back(out);
@@ -704,8 +694,7 @@ UniValue createrawtransaction(const JSONRPCRequest& request)
                 auto asset_ = sendTo[name_].get_obj();
                 auto assetKey_ = asset_.getKeys()[0];
 
-                if (assetKey_ == "issue")
-                {
+                if (assetKey_ == "issue") {
                     if (asset_[0].type() != UniValue::VOBJ)
                         throw JSONRPCError(RPC_INVALID_PARAMETER, std::string("Invalid parameter, the format must follow { \"issue\": {\"key\": value}, ...}"));
 
@@ -732,16 +721,16 @@ UniValue createrawtransaction(const JSONRPCRequest& request)
                     const UniValue& has_ipfs = find_value(assetData, "has_ipfs");
                     if (!has_ipfs.isNum())
                         throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid parameter, missing asset metadata for key: has_ipfs");
-// TODO, if we decide to remove the consensus check https://github.com/AvianNetwork/Avian/issues/675, remove or add the code (requires consensus change)
-//                    const UniValue& custom_owner_address = find_value(assetData, "custom_owner_address");
-//                    if (!custom_owner_address.isNull()) {
-//                        CTxDestination dest = DecodeDestination(custom_owner_address.get_str());
-//                        if (!IsValidDestination(dest)) {
-//                            throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid parameter, invalid destination: custom_owner_address");
-//                        }
-//
-//                        ownerPubKey = GetScriptForDestination(dest);
-//                    }
+                    // TODO, if we decide to remove the consensus check https://github.com/AvianNetwork/Avian/issues/675, remove or add the code (requires consensus change)
+                    //                    const UniValue& custom_owner_address = find_value(assetData, "custom_owner_address");
+                    //                    if (!custom_owner_address.isNull()) {
+                    //                        CTxDestination dest = DecodeDestination(custom_owner_address.get_str());
+                    //                        if (!IsValidDestination(dest)) {
+                    //                            throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid parameter, invalid destination: custom_owner_address");
+                    //                        }
+                    //
+                    //                        ownerPubKey = GetScriptForDestination(dest);
+                    //                    }
 
 
                     UniValue ipfs_hash = "";
@@ -753,10 +742,10 @@ UniValue createrawtransaction(const JSONRPCRequest& request)
 
                     const UniValue& has_ans = find_value(assetData, "has_ans");
                     if (!has_ans.isNum())
-                        throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid parameter, missing asset metadata for key: has_ans");                    
+                        throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid parameter, missing asset metadata for key: has_ans");
 
                     UniValue ans_id = "";
-                    if (ans_id.get_int() == 1) {
+                    if (has_ans.get_int() == 1) {
                         ans_id = find_value(assetData, "ans_id");
                         if (!ans_id.isStr())
                             throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid parameter, missing asset metadata for key: ans_id");
@@ -796,9 +785,7 @@ UniValue createrawtransaction(const JSONRPCRequest& request)
                     CTxOut out(0, scriptPubKey);
                     rawTx.vout.push_back(out);
 
-                }
-                else if (assetKey_ == "issue_unique")
-                {
+                } else if (assetKey_ == "issue_unique") {
                     if (asset_[0].type() != UniValue::VOBJ)
                         throw JSONRPCError(RPC_INVALID_PARAMETER, std::string("Invalid parameter, the format must follow { \"issue_unique\": {\"root_name\": value}, ...}"));
 
@@ -819,7 +806,7 @@ UniValue createrawtransaction(const JSONRPCRequest& request)
                         if (!ipfs_hashes.isArray() || ipfs_hashes.size() != asset_tags.size()) {
                             if (!ipfs_hashes.isNum())
                                 throw JSONRPCError(RPC_INVALID_PARAMETER,
-                                                   "Invalid parameter, missing asset metadata for key: units");
+                                    "Invalid parameter, missing asset metadata for key: units");
                         }
                     }
 
@@ -828,7 +815,7 @@ UniValue createrawtransaction(const JSONRPCRequest& request)
                         if (!ans_ids.isArray() || ans_ids.size() != asset_tags.size()) {
                             if (!ans_ids.isNum())
                                 throw JSONRPCError(RPC_INVALID_PARAMETER,
-                                                   "Invalid parameter, missing asset metadata for key: ans_ids");
+                                    "Invalid parameter, missing asset metadata for key: ans_ids");
                         }
                     }
 
@@ -843,26 +830,20 @@ UniValue createrawtransaction(const JSONRPCRequest& request)
 
                     // Create the assets
                     for (int i = 0; i < (int)asset_tags.size(); i++) {
-
                         // Create a new asset
                         CNewAsset asset;
 
-                        if (ipfs_hashes.isNull() || ans_ids.isNull())
-                        {
+                        if (ipfs_hashes.isNull() || ans_ids.isNull()) {
                             asset = CNewAsset(GetUniqueAssetName(root_name.get_str(), asset_tags[i].get_str()),
-                                              UNIQUE_ASSET_AMOUNT,  UNIQUE_ASSET_UNITS, UNIQUE_ASSETS_REISSUABLE, 0, "");
-                        }
-                        else if(!ipfs_hashes.isNull())
-                        {
+                                UNIQUE_ASSET_AMOUNT, UNIQUE_ASSET_UNITS, UNIQUE_ASSETS_REISSUABLE, 0, "");
+                        } else if (!ipfs_hashes.isNull()) {
                             asset = CNewAsset(GetUniqueAssetName(root_name.get_str(), asset_tags[i].get_str()),
-                                              UNIQUE_ASSET_AMOUNT, UNIQUE_ASSET_UNITS, UNIQUE_ASSETS_REISSUABLE,
-                                              1, DecodeAssetData(ipfs_hashes[i].get_str()));
-                        }
-                        else if(!ans_ids.isNull())
-                        {
+                                UNIQUE_ASSET_AMOUNT, UNIQUE_ASSET_UNITS, UNIQUE_ASSETS_REISSUABLE,
+                                1, DecodeAssetData(ipfs_hashes[i].get_str()));
+                        } else if (!ans_ids.isNull()) {
                             asset = CNewAsset(GetUniqueAssetName(root_name.get_str(), asset_tags[i].get_str()),
-                                              UNIQUE_ASSET_AMOUNT, UNIQUE_ASSET_UNITS, UNIQUE_ASSETS_REISSUABLE,
-                                              0, "", 1, ans_ids[i].get_str());
+                                UNIQUE_ASSET_AMOUNT, UNIQUE_ASSET_UNITS, UNIQUE_ASSETS_REISSUABLE,
+                                0, "", 1, ans_ids[i].get_str());
                         }
 
                         // Verify that data
@@ -877,11 +858,8 @@ UniValue createrawtransaction(const JSONRPCRequest& request)
                         // Push the scriptPubKey into the vouts.
                         CTxOut out(0, scriptPubKey);
                         rawTx.vout.push_back(out);
-
                     }
-                }
-                else if (assetKey_ == "reissue")
-                {
+                } else if (assetKey_ == "reissue") {
                     if (asset_[0].type() != UniValue::VOBJ)
                         throw JSONRPCError(RPC_INVALID_PARAMETER, std::string("Invalid parameter, the format must follow { \"reissue\": {\"key\": value}, ...}"));
 
@@ -903,12 +881,12 @@ UniValue createrawtransaction(const JSONRPCRequest& request)
                     if (!reissuable.isNull()) {
                         if (!reissuable.isNum())
                             throw JSONRPCError(RPC_INVALID_PARAMETER,
-                                               "Invalid parameter, missing reissue metadata for key: reissuable");
+                                "Invalid parameter, missing reissue metadata for key: reissuable");
 
                         int nReissuable = reissuable.get_int();
                         if (nReissuable > 1 || nReissuable < 0)
                             throw JSONRPCError(RPC_INVALID_PARAMETER,
-                                               "Invalid parameter, reissuable data must be a 0 or 1");
+                                "Invalid parameter, reissuable data must be a 0 or 1");
 
                         reissueObj.nReissuable = int8_t(nReissuable);
                     }
@@ -917,7 +895,7 @@ UniValue createrawtransaction(const JSONRPCRequest& request)
                     if (!ipfs_hash.isNull()) {
                         if (!ipfs_hash.isStr())
                             throw JSONRPCError(RPC_INVALID_PARAMETER,
-                                               "Invalid parameter, missing reissue metadata for key: ipfs_hash");
+                                "Invalid parameter, missing reissue metadata for key: ipfs_hash");
                         reissueObj.strIPFSHash = DecodeAssetData(ipfs_hash.get_str());
                     }
 
@@ -925,7 +903,7 @@ UniValue createrawtransaction(const JSONRPCRequest& request)
                     if (!ans_id.isNull()) {
                         if (!ans_id.isStr())
                             throw JSONRPCError(RPC_INVALID_PARAMETER,
-                                               "Invalid parameter, missing reissue metadata for key: ans_id");
+                                "Invalid parameter, missing reissue metadata for key: ans_id");
                         reissueObj.strANSID = ans_id.get_str();
                     }
 
@@ -934,7 +912,7 @@ UniValue createrawtransaction(const JSONRPCRequest& request)
                     if (!owner_change_address.isNull()) {
                         if (!owner_change_address.isStr())
                             throw JSONRPCError(RPC_INVALID_PARAMETER,
-                                               "Invalid parameter, owner_change_address must be a string");
+                                "Invalid parameter, owner_change_address must be a string");
                         fHasOwnerChange = true;
                     }
 
@@ -1015,7 +993,7 @@ UniValue createrawtransaction(const JSONRPCRequest& request)
                 } else if (assetKey_ == "transferwithmessage") {
                     if (asset_[0].type() != UniValue::VOBJ)
                         throw JSONRPCError(RPC_INVALID_PARAMETER, std::string(
-                                "Invalid parameter, the format must follow { \"transferwithmessage\": {\"asset_name\": amount, \"message\": messagehash, \"expire_time\": utc_time} }"));
+                                                                      "Invalid parameter, the format must follow { \"transferwithmessage\": {\"asset_name\": amount, \"message\": messagehash, \"expire_time\": utc_time} }"));
 
                     UniValue transferData = asset_.getValues()[0].get_obj();
 
@@ -1023,34 +1001,34 @@ UniValue createrawtransaction(const JSONRPCRequest& request)
 
                     if (keys.size() == 0)
                         throw JSONRPCError(RPC_INVALID_PARAMETER, std::string(
-                                "Invalid parameter, the format must follow { \"transferwithmessage\": {\"asset_name\": amount, \"message\": messagehash, \"expire_time\": utc_time} }"));
+                                                                      "Invalid parameter, the format must follow { \"transferwithmessage\": {\"asset_name\": amount, \"message\": messagehash, \"expire_time\": utc_time} }"));
 
                     UniValue asset_quantity;
                     std::string asset_name = keys[0];
 
                     if (!IsAssetNameValid(asset_name)) {
                         throw JSONRPCError(RPC_INVALID_PARAMETER,
-                                           "Invalid parameter, missing valid asset name to transferwithmessage");
+                            "Invalid parameter, missing valid asset name to transferwithmessage");
 
-                        const UniValue &asset_quantity = find_value(transferData, asset_name);
+                        const UniValue& asset_quantity = find_value(transferData, asset_name);
                         if (!asset_quantity.isNum())
                             throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid parameter, missing or invalid quantity");
 
-                        const UniValue &message = find_value(transferData, "message");
+                        const UniValue& message = find_value(transferData, "message");
                         if (!message.isStr())
                             throw JSONRPCError(RPC_INVALID_PARAMETER,
-                                               "Invalid parameter, missing reissue data for key: message");
+                                "Invalid parameter, missing reissue data for key: message");
 
-                        const UniValue &expire_time = find_value(transferData, "expire_time");
+                        const UniValue& expire_time = find_value(transferData, "expire_time");
                         if (!expire_time.isNum())
                             throw JSONRPCError(RPC_INVALID_PARAMETER,
-                                               "Invalid parameter, missing reissue data for key: expire_time");
+                                "Invalid parameter, missing reissue data for key: expire_time");
 
                         CAmount nAmount = AmountFromValue(asset_quantity);
 
                         // Create a new transfer
                         CAssetTransfer transfer(asset_name, nAmount, DecodeAssetData(message.get_str()),
-                                                expire_time.get_int64());
+                            expire_time.get_int64());
 
                         // Verify
                         std::string strError = "";
@@ -1098,12 +1076,16 @@ UniValue createrawtransaction(const JSONRPCRequest& request)
                     if (!has_ipfs.isNum())
                         throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid parameter, missing asset metadata for key: has_ipfs");
 
+                    const UniValue& has_ans = find_value(assetData, "has_ans");
+                    if (!has_ans.isNum())
+                        throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid parameter, missing asset metadata for key: has_ans");
+
                     bool fHasOwnerChange = false;
                     const UniValue& owner_change_address = find_value(assetData, "owner_change_address");
                     if (!owner_change_address.isNull()) {
                         if (!owner_change_address.isStr())
                             throw JSONRPCError(RPC_INVALID_PARAMETER,
-                                               "Invalid parameter, owner_change_address must be a string");
+                                "Invalid parameter, owner_change_address must be a string");
                         fHasOwnerChange = true;
                     }
 
@@ -1115,6 +1097,13 @@ UniValue createrawtransaction(const JSONRPCRequest& request)
                         ipfs_hash = find_value(assetData, "ipfs_hash");
                         if (!ipfs_hash.isStr())
                             throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid parameter, missing asset metadata for key: has_ipfs");
+                    }
+
+                    UniValue ans_id = "";
+                    if (has_ans.get_int() == 1) {
+                        ans_id = find_value(assetData, "ans_id");
+                        if (!ans_id.isStr())
+                            throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid parameter, missing asset metadata for key: has_ans");
                     }
 
                     std::string strAssetName = asset_name.get_str();
@@ -1134,7 +1123,7 @@ UniValue createrawtransaction(const JSONRPCRequest& request)
 
 
                     // Create a new asset
-                    CNewAsset asset(strAssetName, nAmount, units.get_int(), reissuable.get_int(), has_ipfs.get_int(), DecodeAssetData(ipfs_hash.get_str()));
+                    CNewAsset asset(strAssetName, nAmount, units.get_int(), reissuable.get_int(), has_ipfs.get_int(), DecodeAssetData(ipfs_hash.get_str()), has_ans.get_int(), ans_id.get_str());
 
                     // Verify the new asset data
                     if (!ContextualCheckNewAsset(currentActiveAssetCache, asset, strError)) {
@@ -1173,7 +1162,7 @@ UniValue createrawtransaction(const JSONRPCRequest& request)
                 } else if (assetKey_ == "reissue_restricted") {
                     if (asset_[0].type() != UniValue::VOBJ)
                         throw JSONRPCError(RPC_INVALID_PARAMETER, std::string(
-                                "Invalid parameter, the format must follow { \"reissue_restricted\": {\"key\": value}, ...}"));
+                                                                      "Invalid parameter, the format must follow { \"reissue_restricted\": {\"key\": value}, ...}"));
 
                     // Get the asset data object from the json
                     auto reissueData = asset_.getValues()[0].get_obj();
@@ -1181,66 +1170,74 @@ UniValue createrawtransaction(const JSONRPCRequest& request)
                     CReissueAsset reissueObj;
 
                     /**-------Process the reissue data-------**/
-                    const UniValue &asset_name = find_value(reissueData, "asset_name");
+                    const UniValue& asset_name = find_value(reissueData, "asset_name");
                     if (!asset_name.isStr())
                         throw JSONRPCError(RPC_INVALID_PARAMETER,
-                                           "Invalid parameter, missing reissue data for key: asset_name");
+                            "Invalid parameter, missing reissue data for key: asset_name");
 
-                    const UniValue &asset_quantity = find_value(reissueData, "asset_quantity");
+                    const UniValue& asset_quantity = find_value(reissueData, "asset_quantity");
                     if (!asset_quantity.isNum())
                         throw JSONRPCError(RPC_INVALID_PARAMETER,
-                                           "Invalid parameter, missing reissue data for key: asset_quantity");
+                            "Invalid parameter, missing reissue data for key: asset_quantity");
 
-                    const UniValue &reissuable = find_value(reissueData, "reissuable");
+                    const UniValue& reissuable = find_value(reissueData, "reissuable");
                     if (!reissuable.isNull()) {
                         if (!reissuable.isNum())
                             throw JSONRPCError(RPC_INVALID_PARAMETER,
-                                               "Invalid parameter, missing reissue metadata for key: reissuable");
+                                "Invalid parameter, missing reissue metadata for key: reissuable");
 
                         int nReissuable = reissuable.get_int();
                         if (nReissuable > 1 || nReissuable < 0)
                             throw JSONRPCError(RPC_INVALID_PARAMETER,
-                                               "Invalid parameter, reissuable data must be a 0 or 1");
+                                "Invalid parameter, reissuable data must be a 0 or 1");
 
                         reissueObj.nReissuable = int8_t(nReissuable);
                     }
 
                     bool fHasVerifier = false;
-                    const UniValue &verifier = find_value(reissueData, "verifier_string");
+                    const UniValue& verifier = find_value(reissueData, "verifier_string");
                     if (!verifier.isNull()) {
                         if (!verifier.isStr()) {
                             throw JSONRPCError(RPC_INVALID_PARAMETER,
-                                               "Invalid parameter, verifier_string must be a string");
+                                "Invalid parameter, verifier_string must be a string");
                         }
                         fHasVerifier = true;
                     }
 
-                    const UniValue &ipfs_hash = find_value(reissueData, "ipfs_hash");
+                    const UniValue& ipfs_hash = find_value(reissueData, "ipfs_hash");
                     if (!ipfs_hash.isNull()) {
                         if (!ipfs_hash.isStr())
                             throw JSONRPCError(RPC_INVALID_PARAMETER,
-                                               "Invalid parameter, missing reissue metadata for key: ipfs_hash");
+                                "Invalid parameter, missing reissue metadata for key: ipfs_hash");
                         reissueObj.strIPFSHash = DecodeAssetData(ipfs_hash.get_str());
                     }
 
+                    const UniValue& ans_id = find_value(reissueData, "ans_id");
+                    if (!ans_id.isNull()) {
+                        if (!ans_id.isStr())
+                            throw JSONRPCError(RPC_INVALID_PARAMETER,
+                                "Invalid parameter, missing reissue metadata for key: ans_id");
+                        reissueObj.strANSID = ans_id.get_str();
+                    }
+
                     bool fHasOwnerChange = false;
-                    const UniValue &owner_change_address = find_value(reissueData, "owner_change_address");
+                    const UniValue& owner_change_address = find_value(reissueData, "owner_change_address");
                     if (!owner_change_address.isNull()) {
                         if (!owner_change_address.isStr())
                             throw JSONRPCError(RPC_INVALID_PARAMETER,
-                                               "Invalid parameter, owner_change_address must be a string");
+                                "Invalid parameter, owner_change_address must be a string");
                         fHasOwnerChange = true;
                     }
 
                     if (fHasOwnerChange && !IsValidDestinationString(owner_change_address.get_str()))
                         throw JSONRPCError(RPC_INVALID_PARAMETER,
-                                           "Invalid parameter, owner_change_address is not a valid Avian address");
+                            "Invalid parameter, owner_change_address is not a valid Avian address");
 
                     std::string strAssetName = asset_name.get_str();
 
                     if (!IsAssetNameAnRestricted(strAssetName))
                         throw JSONRPCError(RPC_INVALID_PARAMETER,
-                                           "Invalid parameter, asset_name must be a restricted asset name. e.g $ASSET_NAME");
+                            "Invalid parameter, asset_name must be a restricted asset name. e.g $ASSET_NAME");
 
                     std::string strippedVerifierString;
                     if (fHasVerifier) {
@@ -1250,10 +1247,10 @@ UniValue createrawtransaction(const JSONRPCRequest& request)
                         // Check the restricted asset destination address, and make sure it validates with the verifier string
                         std::string strError = "";
                         if (!ContextualCheckVerifierString(currentActiveAssetCache, strippedVerifierString,
-                                                           EncodeDestination(destination), strError))
+                                EncodeDestination(destination), strError))
                             throw JSONRPCError(RPC_INVALID_PARAMETER, std::string(
-                                    "Invalid parmeter, verifier string is not. Please check the syntax. Error Msg - " +
-                                    strError));
+                                                                          "Invalid parmeter, verifier string is not. Please check the syntax. Error Msg - " +
+                                                                          strError));
                     }
 
                     // Add the received data into the reissue object
@@ -1269,7 +1266,7 @@ UniValue createrawtransaction(const JSONRPCRequest& request)
                     CScript owner_asset_transfer_script;
                     if (fHasOwnerChange)
                         owner_asset_transfer_script = GetScriptForDestination(
-                                DecodeDestination(owner_change_address.get_str()));
+                            DecodeDestination(owner_change_address.get_str()));
                     else
                         owner_asset_transfer_script = GetScriptForDestination(destination);
 
@@ -1340,7 +1337,7 @@ UniValue createrawtransaction(const JSONRPCRequest& request)
                             throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid parameter, root_change_address only allowed when issuing a subqualifier.");
                         if (!root_change_address.isStr())
                             throw JSONRPCError(RPC_INVALID_PARAMETER,
-                                               "Invalid parameter, root_change_address must be a string");
+                                "Invalid parameter, root_change_address must be a string");
                         fHasRootChange = true;
                     }
 
@@ -1380,7 +1377,7 @@ UniValue createrawtransaction(const JSONRPCRequest& request)
                     if (isSubQualifier) {
                         if (fHasRootChange)
                             root_asset_transfer_script = GetScriptForDestination(
-                                    DecodeDestination(root_change_address.get_str()));
+                                DecodeDestination(root_change_address.get_str()));
                         else
                             root_asset_transfer_script = GetScriptForDestination(destination);
 
@@ -1519,9 +1516,9 @@ UniValue createrawtransaction(const JSONRPCRequest& request)
         }
     }
 
-//    if (!request.params[3].isNull() && rbfOptIn != SignalsOptInRBF(rawTx)) {
-//        throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid parameter combination: Sequence number(s) contradict replaceable option");
-//    }
+    //    if (!request.params[3].isNull() && rbfOptIn != SignalsOptInRBF(rawTx)) {
+    //        throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid parameter combination: Sequence number(s) contradict replaceable option");
+    //    }
 
     return EncodeHexTx(rawTx);
 }
@@ -1559,32 +1556,31 @@ UniValue decoderawtransaction(const JSONRPCRequest& request)
             "  ],\n"
             "  \"vout\" : [             (array of json objects)\n"
             "     {\n"
-            "       \"value\" : x.xxx,            (numeric) The value in " + CURRENCY_UNIT + "\n"
-            "       \"n\" : n,                    (numeric) index\n"
-            "       \"scriptPubKey\" : {          (json object)\n"
-            "         \"asm\" : \"asm\",          (string) the asm\n"
-            "         \"hex\" : \"hex\",          (string) the hex\n"
-            "         \"reqSigs\" : n,            (numeric) The required sigs\n"
-            "         \"type\" : \"pubkeyhash\",  (string) The type, eg 'pubkeyhash'\n"
-            "         \"asset\" : {               (json object) optional\n"
-            "           \"name\" : \"name\",      (string) the asset name\n"
-            "           \"amount\" : n,           (numeric) the amount of asset that was sent\n"
-            "           \"message\" : \"message\", (string optional) the message if one was sent\n"
-            "           \"expire_time\" : n,      (numeric optional) the message epoch expiration time if one was set\n"
-            "         \"addresses\" : [           (json array of string)\n"
-            "           \"12tvKAXCxZjSmdNbao16dKXC8tRWfcF5oc\"   (string) avian address\n"
-            "           ,...\n"
-            "         ]\n"
-            "       }\n"
-            "     }\n"
-            "     ,...\n"
-            "  ],\n"
-            "}\n"
+            "       \"value\" : x.xxx,            (numeric) The value in " +
+            CURRENCY_UNIT + "\n"
+                            "       \"n\" : n,                    (numeric) index\n"
+                            "       \"scriptPubKey\" : {          (json object)\n"
+                            "         \"asm\" : \"asm\",          (string) the asm\n"
+                            "         \"hex\" : \"hex\",          (string) the hex\n"
+                            "         \"reqSigs\" : n,            (numeric) The required sigs\n"
+                            "         \"type\" : \"pubkeyhash\",  (string) The type, eg 'pubkeyhash'\n"
+                            "         \"asset\" : {               (json object) optional\n"
+                            "           \"name\" : \"name\",      (string) the asset name\n"
+                            "           \"amount\" : n,           (numeric) the amount of asset that was sent\n"
+                            "           \"message\" : \"message\", (string optional) the message if one was sent\n"
+                            "           \"expire_time\" : n,      (numeric optional) the message epoch expiration time if one was set\n"
+                            "         \"addresses\" : [           (json array of string)\n"
+                            "           \"12tvKAXCxZjSmdNbao16dKXC8tRWfcF5oc\"   (string) avian address\n"
+                            "           ,...\n"
+                            "         ]\n"
+                            "       }\n"
+                            "     }\n"
+                            "     ,...\n"
+                            "  ],\n"
+                            "}\n"
 
-            "\nExamples:\n"
-            + HelpExampleCli("decoderawtransaction", "\"hexstring\"")
-            + HelpExampleRpc("decoderawtransaction", "\"hexstring\"")
-        );
+                            "\nExamples:\n" +
+            HelpExampleCli("decoderawtransaction", "\"hexstring\"") + HelpExampleRpc("decoderawtransaction", "\"hexstring\""));
 
     LOCK(cs_main);
     RPCTypeCheck(request.params, {UniValue::VSTR});
@@ -1636,16 +1632,14 @@ UniValue decodescript(const JSONRPCRequest& request)
             "  \"ans_id\": \"hash\",      (string) The ANS ID for the new asset. (Only appears in type (new_asset))\n"
             "  \"new_ans_id\":\"hash\",    (string) If new ANS ID (Only appears in type. (reissue_asset))\n"
             "}\n"
-            "\nExamples:\n"
-            + HelpExampleCli("decodescript", "\"hexstring\"")
-            + HelpExampleRpc("decodescript", "\"hexstring\"")
-        );
+            "\nExamples:\n" +
+            HelpExampleCli("decodescript", "\"hexstring\"") + HelpExampleRpc("decodescript", "\"hexstring\""));
 
     RPCTypeCheck(request.params, {UniValue::VSTR});
 
     UniValue r(UniValue::VOBJ);
     CScript script;
-    if (request.params[0].get_str().size() > 0){
+    if (request.params[0].get_str().size() > 0) {
         std::vector<unsigned char> scriptData(ParseHexV(request.params[0], "argument"));
         script = CScript(scriptData.begin(), scriptData.end());
     } else {
@@ -1710,7 +1704,7 @@ UniValue decodescript(const JSONRPCRequest& request)
         std::string ownerAsset;
         std::string address;
 
-        if(AssetFromScript(script, asset, address)) {
+        if (AssetFromScript(script, asset, address)) {
             r.push_back(Pair("asset_name", asset.strName));
             r.push_back(Pair("amount", ValueFromAmount(asset.nAmount)));
             r.push_back(Pair("units", asset.units));
@@ -1729,19 +1723,14 @@ UniValue decodescript(const JSONRPCRequest& request)
 
             if (hasANS)
                 r.push_back(Pair("ans_id", asset.strANSID));
-        }
-        else if (OwnerAssetFromScript(script, ownerAsset, address))
-        {
+        } else if (OwnerAssetFromScript(script, ownerAsset, address)) {
             r.push_back(Pair("asset_name", ownerAsset));
             r.push_back(Pair("amount", ValueFromAmount(OWNER_ASSET_AMOUNT)));
             r.push_back(Pair("units", OWNER_UNITS));
-        }
-        else
-        {
+        } else {
             throw JSONRPCError(RPC_DESERIALIZATION_ERROR, "Failed to deserialize the new asset script");
         }
     } else {
-
     }
     /** AVN END */
 
@@ -1767,7 +1756,6 @@ static void TxInErrorToJSON(const CTxIn& txin, UniValue& vErrorsRet, const std::
 
 UniValue combinerawtransaction(const JSONRPCRequest& request)
 {
-
     if (request.fHelp || request.params.size() != 1)
         throw std::runtime_error(
             "combinerawtransaction [\"hexstring\",...]\n"
@@ -1785,9 +1773,8 @@ UniValue combinerawtransaction(const JSONRPCRequest& request)
             "\nResult:\n"
             "\"hex\"            (string) The hex-encoded raw transaction with signature(s)\n"
 
-            "\nExamples:\n"
-            + HelpExampleCli("combinerawtransaction", "[\"myhex1\", \"myhex2\", \"myhex3\"]")
-        );
+            "\nExamples:\n" +
+            HelpExampleCli("combinerawtransaction", "[\"myhex1\", \"myhex2\", \"myhex3\"]"));
 
 
     UniValue txs = request.params[0].get_array();
@@ -1813,7 +1800,7 @@ UniValue combinerawtransaction(const JSONRPCRequest& request)
     {
         LOCK(cs_main);
         LOCK(mempool.cs);
-        CCoinsViewCache &viewChain = *pcoinsTip;
+        CCoinsViewCache& viewChain = *pcoinsTip;
         CCoinsViewMemPool viewMempool(&viewChain, mempool);
         view.SetBackend(viewMempool); // temporarily switch cache backend to db+mempool view
 
@@ -1855,7 +1842,7 @@ UniValue combinerawtransaction(const JSONRPCRequest& request)
 UniValue signrawtransaction(const JSONRPCRequest& request)
 {
 #ifdef ENABLE_WALLET
-    CWallet * const pwallet = GetWalletForJSONRPCRequest(request);
+    CWallet* const pwallet = GetWalletForJSONRPCRequest(request);
 #endif
 
     if (request.fHelp || request.params.size() < 1 || request.params.size() > 4)
@@ -1870,52 +1857,50 @@ UniValue signrawtransaction(const JSONRPCRequest& request)
             + HelpRequiringPassphrase(pwallet) + "\n"
 #endif
 
-            "\nArguments:\n"
-            "1. \"hexstring\"     (string, required) The transaction hex string\n"
-            "2. \"prevtxs\"       (string, optional) An json array of previous dependent transaction outputs\n"
-            "     [               (json array of json objects, or 'null' if none provided)\n"
-            "       {\n"
-            "         \"txid\":\"id\",             (string, required) The transaction id\n"
-            "         \"vout\":n,                  (numeric, required) The output number\n"
-            "         \"scriptPubKey\": \"hex\",   (string, required) script key\n"
-            "         \"redeemScript\": \"hex\",   (string, required for P2SH or P2WSH) redeem script\n"
-            "         \"amount\": value            (numeric, required) The amount spent\n"
-            "       }\n"
-            "       ,...\n"
-            "    ]\n"
-            "3. \"privkeys\"     (string, optional) A json array of base58-encoded private keys for signing\n"
-            "    [                  (json array of strings, or 'null' if none provided)\n"
-            "      \"privatekey\"   (string) private key in base58-encoding\n"
-            "      ,...\n"
-            "    ]\n"
-            "4. \"sighashtype\"     (string, optional, default=ALL) The signature hash type. Must be one of\n"
-            "       \"ALL\"\n"
-            "       \"NONE\"\n"
-            "       \"SINGLE\"\n"
-            "       \"ALL|ANYONECANPAY\"\n"
-            "       \"NONE|ANYONECANPAY\"\n"
-            "       \"SINGLE|ANYONECANPAY\"\n"
+                                                 "\nArguments:\n"
+                                                 "1. \"hexstring\"     (string, required) The transaction hex string\n"
+                                                 "2. \"prevtxs\"       (string, optional) An json array of previous dependent transaction outputs\n"
+                                                 "     [               (json array of json objects, or 'null' if none provided)\n"
+                                                 "       {\n"
+                                                 "         \"txid\":\"id\",             (string, required) The transaction id\n"
+                                                 "         \"vout\":n,                  (numeric, required) The output number\n"
+                                                 "         \"scriptPubKey\": \"hex\",   (string, required) script key\n"
+                                                 "         \"redeemScript\": \"hex\",   (string, required for P2SH or P2WSH) redeem script\n"
+                                                 "         \"amount\": value            (numeric, required) The amount spent\n"
+                                                 "       }\n"
+                                                 "       ,...\n"
+                                                 "    ]\n"
+                                                 "3. \"privkeys\"     (string, optional) A json array of base58-encoded private keys for signing\n"
+                                                 "    [                  (json array of strings, or 'null' if none provided)\n"
+                                                 "      \"privatekey\"   (string) private key in base58-encoding\n"
+                                                 "      ,...\n"
+                                                 "    ]\n"
+                                                 "4. \"sighashtype\"     (string, optional, default=ALL) The signature hash type. Must be one of\n"
+                                                 "       \"ALL\"\n"
+                                                 "       \"NONE\"\n"
+                                                 "       \"SINGLE\"\n"
+                                                 "       \"ALL|ANYONECANPAY\"\n"
+                                                 "       \"NONE|ANYONECANPAY\"\n"
+                                                 "       \"SINGLE|ANYONECANPAY\"\n"
 
-            "\nResult:\n"
-            "{\n"
-            "  \"hex\" : \"value\",           (string) The hex-encoded raw transaction with signature(s)\n"
-            "  \"complete\" : true|false,   (boolean) If the transaction has a complete set of signatures\n"
-            "  \"errors\" : [                 (json array of objects) Script verification errors (if there are any)\n"
-            "    {\n"
-            "      \"txid\" : \"hash\",           (string) The hash of the referenced, previous transaction\n"
-            "      \"vout\" : n,                (numeric) The index of the output to spent and used as input\n"
-            "      \"scriptSig\" : \"hex\",       (string) The hex-encoded signature script\n"
-            "      \"sequence\" : n,            (numeric) Script sequence number\n"
-            "      \"error\" : \"text\"           (string) Verification or signing error related to the input\n"
-            "    }\n"
-            "    ,...\n"
-            "  ]\n"
-            "}\n"
+                                                 "\nResult:\n"
+                                                 "{\n"
+                                                 "  \"hex\" : \"value\",           (string) The hex-encoded raw transaction with signature(s)\n"
+                                                 "  \"complete\" : true|false,   (boolean) If the transaction has a complete set of signatures\n"
+                                                 "  \"errors\" : [                 (json array of objects) Script verification errors (if there are any)\n"
+                                                 "    {\n"
+                                                 "      \"txid\" : \"hash\",           (string) The hash of the referenced, previous transaction\n"
+                                                 "      \"vout\" : n,                (numeric) The index of the output to spent and used as input\n"
+                                                 "      \"scriptSig\" : \"hex\",       (string) The hex-encoded signature script\n"
+                                                 "      \"sequence\" : n,            (numeric) Script sequence number\n"
+                                                 "      \"error\" : \"text\"           (string) Verification or signing error related to the input\n"
+                                                 "    }\n"
+                                                 "    ,...\n"
+                                                 "  ]\n"
+                                                 "}\n"
 
-            "\nExamples:\n"
-            + HelpExampleCli("signrawtransaction", "\"myhex\"")
-            + HelpExampleRpc("signrawtransaction", "\"myhex\"")
-        );
+                                                 "\nExamples:\n" +
+            HelpExampleCli("signrawtransaction", "\"myhex\"") + HelpExampleRpc("signrawtransaction", "\"myhex\""));
 
     ObserveSafeMode();
 #ifdef ENABLE_WALLET
@@ -1934,7 +1919,7 @@ UniValue signrawtransaction(const JSONRPCRequest& request)
     CCoinsViewCache view(&viewDummy);
     {
         LOCK(mempool.cs);
-        CCoinsViewCache &viewChain = *pcoinsTip;
+        CCoinsViewCache& viewChain = *pcoinsTip;
         CCoinsViewMemPool viewMempool(&viewChain, mempool);
         view.SetBackend(viewMempool); // temporarily switch cache backend to db+mempool view
 
@@ -1999,8 +1984,8 @@ UniValue signrawtransaction(const JSONRPCRequest& request)
                 const Coin& coin = view.AccessCoin(out);
                 if (!coin.IsSpent() && coin.out.scriptPubKey != scriptPubKey) {
                     std::string err("Previous output scriptPubKey mismatch:\n");
-                    err = err + ScriptToAsmStr(coin.out.scriptPubKey) + "\nvs:\n"+
-                        ScriptToAsmStr(scriptPubKey);
+                    err = err + ScriptToAsmStr(coin.out.scriptPubKey) + "\nvs:\n" +
+                          ScriptToAsmStr(scriptPubKey);
                     throw JSONRPCError(RPC_DESERIALIZATION_ERROR, err);
                 }
                 Coin newcoin;
@@ -2042,21 +2027,21 @@ UniValue signrawtransaction(const JSONRPCRequest& request)
     int nHashType = SIGHASH_ALL;
     if (IsForkIDUAHFenabledForCurrentBlock()) {
         nHashType |= SIGHASH_FORKID;
-    }    
+    }
     if (!request.params[3].isNull()) {
         static std::map<std::string, int> mapSigHashValues = {
             {std::string("ALL"), int(SIGHASH_ALL)},
             {std::string("ALL|FORKID"), int(SIGHASH_ALL | SIGHASH_FORKID)},
-            {std::string("ALL|ANYONECANPAY"), int(SIGHASH_ALL|SIGHASH_ANYONECANPAY)},
-            {std::string("ALL|FORKID|ANYONECANPAY"), int(SIGHASH_ALL|SIGHASH_FORKID|SIGHASH_ANYONECANPAY)},
+            {std::string("ALL|ANYONECANPAY"), int(SIGHASH_ALL | SIGHASH_ANYONECANPAY)},
+            {std::string("ALL|FORKID|ANYONECANPAY"), int(SIGHASH_ALL | SIGHASH_FORKID | SIGHASH_ANYONECANPAY)},
             {std::string("NONE"), int(SIGHASH_NONE)},
-            {std::string("NONE|FORKID"), int(SIGHASH_NONE|SIGHASH_FORKID)},
-            {std::string("NONE|ANYONECANPAY"), int(SIGHASH_NONE|SIGHASH_ANYONECANPAY)},
-            {std::string("NONE|FORKID|ANYONECANPAY"), int(SIGHASH_NONE|SIGHASH_FORKID|SIGHASH_ANYONECANPAY)},
+            {std::string("NONE|FORKID"), int(SIGHASH_NONE | SIGHASH_FORKID)},
+            {std::string("NONE|ANYONECANPAY"), int(SIGHASH_NONE | SIGHASH_ANYONECANPAY)},
+            {std::string("NONE|FORKID|ANYONECANPAY"), int(SIGHASH_NONE | SIGHASH_FORKID | SIGHASH_ANYONECANPAY)},
             {std::string("SINGLE"), int(SIGHASH_SINGLE)},
-            {std::string("SINGLE|FORKID"), int(SIGHASH_SINGLE|SIGHASH_FORKID)},
-            {std::string("SINGLE|ANYONECANPAY"), int(SIGHASH_SINGLE|SIGHASH_ANYONECANPAY)},
-            {std::string("SINGLE|FORKID|ANYONECANPAY"), int(SIGHASH_SINGLE|SIGHASH_FORKID|SIGHASH_ANYONECANPAY)},
+            {std::string("SINGLE|FORKID"), int(SIGHASH_SINGLE | SIGHASH_FORKID)},
+            {std::string("SINGLE|ANYONECANPAY"), int(SIGHASH_SINGLE | SIGHASH_ANYONECANPAY)},
+            {std::string("SINGLE|FORKID|ANYONECANPAY"), int(SIGHASH_SINGLE | SIGHASH_FORKID | SIGHASH_ANYONECANPAY)},
         };
         std::string strHashType = request.params[3].get_str();
         if (mapSigHashValues.count(strHashType))
@@ -2132,15 +2117,11 @@ UniValue sendrawtransaction(const JSONRPCRequest& request)
             "\nResult:\n"
             "\"hex\"             (string) The transaction hash in hex\n"
             "\nExamples:\n"
-            "\nCreate a transaction\n"
-            + HelpExampleCli("createrawtransaction", "\"[{\\\"txid\\\" : \\\"mytxid\\\",\\\"vout\\\":0}]\" \"{\\\"myaddress\\\":0.01}\"") +
-            "Sign the transaction, and get back the hex\n"
-            + HelpExampleCli("signrawtransaction", "\"myhex\"") +
-            "\nSend the transaction (signed hex)\n"
-            + HelpExampleCli("sendrawtransaction", "\"signedhex\"") +
-            "\nAs a json rpc call\n"
-            + HelpExampleRpc("sendrawtransaction", "\"signedhex\"")
-        );
+            "\nCreate a transaction\n" +
+            HelpExampleCli("createrawtransaction", "\"[{\\\"txid\\\" : \\\"mytxid\\\",\\\"vout\\\":0}]\" \"{\\\"myaddress\\\":0.01}\"") +
+            "Sign the transaction, and get back the hex\n" + HelpExampleCli("signrawtransaction", "\"myhex\"") +
+            "\nSend the transaction (signed hex)\n" + HelpExampleCli("sendrawtransaction", "\"signedhex\"") +
+            "\nAs a json rpc call\n" + HelpExampleRpc("sendrawtransaction", "\"signedhex\""));
 
     ObserveSafeMode();
     LOCK(cs_main);
@@ -2157,7 +2138,7 @@ UniValue sendrawtransaction(const JSONRPCRequest& request)
     if (!request.params[1].isNull() && request.params[1].get_bool())
         nMaxRawTxFee = 0;
 
-    CCoinsViewCache &view = *pcoinsTip;
+    CCoinsViewCache& view = *pcoinsTip;
     bool fHaveChain = false;
     for (size_t o = 0; !fHaveChain && o < tx->vout.size(); o++) {
         const Coin& existingCoin = view.AccessCoin(COutPoint(hashTx, o));
@@ -2169,7 +2150,7 @@ UniValue sendrawtransaction(const JSONRPCRequest& request)
         CValidationState state;
         bool fMissingInputs;
         if (!AcceptToMemoryPool(mempool, state, std::move(tx), &fMissingInputs,
-                                nullptr /* plTxnReplaced */, false /* bypass_limits */, nMaxRawTxFee)) {
+                nullptr /* plTxnReplaced */, false /* bypass_limits */, nMaxRawTxFee)) {
             if (state.IsInvalid()) {
                 throw JSONRPCError(RPC_TRANSACTION_REJECTED, strprintf("%i: %s", state.GetRejectCode(), state.GetRejectReason()));
             } else {
@@ -2182,12 +2163,11 @@ UniValue sendrawtransaction(const JSONRPCRequest& request)
     } else if (fHaveChain) {
         throw JSONRPCError(RPC_TRANSACTION_ALREADY_IN_CHAIN, "transaction already in block chain");
     }
-    if(!g_connman)
+    if (!g_connman)
         throw JSONRPCError(RPC_CLIENT_P2P_DISABLED, "Error: Peer-to-peer functionality missing or disabled");
 
     CInv inv(MSG_TX, hashTx);
-    g_connman->ForEachNode([&inv](CNode* pnode)
-    {
+    g_connman->ForEachNode([&inv](CNode* pnode) {
         pnode->PushInventory(inv);
     });
     return hashTx.GetHex();
@@ -2197,7 +2177,7 @@ UniValue testmempoolaccept(const JSONRPCRequest& request)
 {
     if (request.fHelp || request.params.size() < 1 || request.params.size() > 2) {
         throw std::runtime_error(
-                // clang-format off
+            // clang-format off
                 "testmempoolaccept [\"rawtxs\"] ( allowhighfees )\n"
                 "\nReturns if raw transaction (serialized, hex-encoded) would be accepted by mempool.\n"
                 "\nThis checks if the transaction violates the consensus or policy rules.\n"
@@ -2224,7 +2204,7 @@ UniValue testmempoolaccept(const JSONRPCRequest& request)
                 + HelpExampleCli("testmempoolaccept", "\"signedhex\"") +
                 "\nAs a json rpc call\n"
                 + HelpExampleRpc("testmempoolaccept", "[\"signedhex\"]")
-                // clang-format on
+            // clang-format on
         );
     }
 
@@ -2257,7 +2237,7 @@ UniValue testmempoolaccept(const JSONRPCRequest& request)
     {
         LOCK(cs_main);
         test_accept_res = AcceptToMemoryPool(mempool, state, std::move(tx), &missing_inputs,
-                                             nullptr /* plTxnReplaced */, false /* bypass_limits */, max_raw_tx_fee, /* test_accpet */ true);
+            nullptr /* plTxnReplaced */, false /* bypass_limits */, max_raw_tx_fee, /* test_accpet */ true);
     }
     result_0.pushKV("allowed", test_accept_res);
     if (!test_accept_res) {
@@ -2275,21 +2255,22 @@ UniValue testmempoolaccept(const JSONRPCRequest& request)
 }
 
 static const CRPCCommand commands[] =
-{ //  category              name                      actor (function)         argNames
-  //  --------------------- ------------------------  -----------------------  ----------
-    { "rawtransactions",    "getrawtransaction",      &getrawtransaction,      {"txid","verbose"} },
-    { "rawtransactions",    "createrawtransaction",   &createrawtransaction,   {"inputs","outputs","locktime"} },
-    { "rawtransactions",    "decoderawtransaction",   &decoderawtransaction,   {"hexstring"} },
-    { "rawtransactions",    "decodescript",           &decodescript,           {"hexstring"} },
-    { "rawtransactions",    "sendrawtransaction",     &sendrawtransaction,     {"hexstring","allowhighfees"} },
-    { "rawtransactions",    "combinerawtransaction",  &combinerawtransaction,  {"txs"} },
-    { "rawtransactions",    "signrawtransaction",     &signrawtransaction,     {"hexstring","prevtxs","privkeys","sighashtype"} }, /* uses wallet if enabled */
-    { "rawtransactions",    "testmempoolaccept",      &testmempoolaccept,      {"rawtxs","allowhighfees"} },
-    { "blockchain",         "gettxoutproof",          &gettxoutproof,          {"txids", "blockhash"} },
-    { "blockchain",         "verifytxoutproof",       &verifytxoutproof,       {"proof"} },
+    {
+        //  category              name                      actor (function)         argNames
+        //  --------------------- ------------------------  -----------------------  ----------
+        {"rawtransactions", "getrawtransaction", &getrawtransaction, {"txid", "verbose"}},
+        {"rawtransactions", "createrawtransaction", &createrawtransaction, {"inputs", "outputs", "locktime"}},
+        {"rawtransactions", "decoderawtransaction", &decoderawtransaction, {"hexstring"}},
+        {"rawtransactions", "decodescript", &decodescript, {"hexstring"}},
+        {"rawtransactions", "sendrawtransaction", &sendrawtransaction, {"hexstring", "allowhighfees"}},
+        {"rawtransactions", "combinerawtransaction", &combinerawtransaction, {"txs"}},
+        {"rawtransactions", "signrawtransaction", &signrawtransaction, {"hexstring", "prevtxs", "privkeys", "sighashtype"}}, /* uses wallet if enabled */
+        {"rawtransactions", "testmempoolaccept", &testmempoolaccept, {"rawtxs", "allowhighfees"}},
+        {"blockchain", "gettxoutproof", &gettxoutproof, {"txids", "blockhash"}},
+        {"blockchain", "verifytxoutproof", &verifytxoutproof, {"proof"}},
 };
 
-void RegisterRawTransactionRPCCommands(CRPCTable &t)
+void RegisterRawTransactionRPCCommands(CRPCTable& t)
 {
     for (unsigned int vcidx = 0; vcidx < ARRAYLEN(commands); vcidx++)
         t.appendCommand(commands[vcidx].name, &commands[vcidx]);

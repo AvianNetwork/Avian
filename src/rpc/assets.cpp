@@ -1801,6 +1801,7 @@ UniValue listassets(const JSONRPCRequest& request)
             detail.push_back(Pair("units", asset.units));
             detail.push_back(Pair("reissuable", asset.nReissuable));
             detail.push_back(Pair("has_ipfs", asset.nHasIPFS));
+            detail.push_back(Pair("has_ans", asset.nHasANS));
             detail.push_back(Pair("block_height", data.nHeight));
             detail.push_back(Pair("blockhash", data.blockHash.GetHex()));
             if (asset.nHasIPFS) {
@@ -1809,6 +1810,9 @@ UniValue listassets(const JSONRPCRequest& request)
                 } else {
                     detail.push_back(Pair("ipfs_hash", EncodeAssetData(asset.strIPFSHash)));
                 }
+            }
+            if (asset.nHasANS) {
+                detail.push_back(Pair("ans_id", asset.strANSID));
             }
             result.push_back(Pair(asset.strName, detail));
         } else {
