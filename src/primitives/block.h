@@ -15,22 +15,21 @@
 #include "unordered_lru_cache.h"
 #include "util.h"
 
-// Crow: An impossible pow hash (can't meet any target)
+// Dual Algo: An impossible pow hash (can't meet any target)
 const uint256 HIGH_HASH = uint256S("0x0fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
 
-// Crow: Default value for -powalgo argument
+// Dual Algo: Default value for -powalgo argument
 const std::string DEFAULT_POW_TYPE = "x16rt";
 
-// Crow: Pow type names
+// Dual Algo: Pow type names
 const std::string POW_TYPE_NAMES[] = {
     "x16rt",
-    "minotaurx"
-};
+    "minotaurx"};
 
-// Crow: Pow type IDs
+// Dual Algo: Pow type IDs
 enum POW_TYPE {
     POW_TYPE_X16RT,
-    POW_TYPE_CROW,
+    POW_TYPE_MINOTAURX,
     //
     NUM_BLOCK_TYPES
 };
@@ -74,7 +73,8 @@ public:
     ADD_SERIALIZE_METHODS;
 
     template <typename Stream, typename Operation>
-    inline void SerializationOp(Stream& s, Operation ser_action) {
+    inline void SerializationOp(Stream& s, Operation ser_action)
+    {
         READWRITE(this->nVersion);
         READWRITE(hashPrevBlock);
         READWRITE(hashMerkleRoot);
@@ -110,8 +110,8 @@ public:
     /// Compute X16R hash
     uint256 GetX16RHash() const;
 
-    // Crow: MinotaurX
-    static uint256 CrowHashArbitrary(const char* data);
+    // Dual Algo: MinotaurX
+    static uint256 MinotaurxHashArbitrary(const char* data);
 
     /// Use for testing algo switch
     uint256 TestTiger() const;
@@ -123,13 +123,15 @@ public:
         return (int64_t)nTime;
     }
 
-    // Crow: Get pow type from version bits
-    POW_TYPE GetPoWType() const {
+    // Dual Algo: Get pow type from version bits
+    POW_TYPE GetPoWType() const
+    {
         return (POW_TYPE)((nVersion >> 16) & 0xFF);
     }
 
-    // Crow: Get pow type name
-    std::string GetPoWTypeName() const {
+    // Dual Algo: Get pow type name
+    std::string GetPoWTypeName() const
+    {
         // if (nVersion >= 0x20000000)
         //     return POW_TYPE_NAMES[0];
         POW_TYPE pt = GetPoWType();
@@ -148,7 +150,7 @@ public:
 
     // founder payment
     mutable CTxOut txoutFounder;
-    
+
     // memory only
     mutable bool fChecked;
 
@@ -157,7 +159,7 @@ public:
         SetNull();
     }
 
-    CBlock(const CBlockHeader &header)
+    CBlock(const CBlockHeader& header)
     {
         SetNull();
         *((CBlockHeader*)this) = header;
@@ -166,7 +168,8 @@ public:
     ADD_SERIALIZE_METHODS;
 
     template <typename Stream, typename Operation>
-    inline void SerializationOp(Stream& s, Operation ser_action) {
+    inline void SerializationOp(Stream& s, Operation ser_action)
+    {
         READWRITE(*(CBlockHeader*)this);
         READWRITE(vtx);
     }
@@ -182,16 +185,16 @@ public:
     CBlockHeader GetBlockHeader() const
     {
         CBlockHeader block;
-        block.nVersion       = nVersion;
-        block.hashPrevBlock  = hashPrevBlock;
+        block.nVersion = nVersion;
+        block.hashPrevBlock = hashPrevBlock;
         block.hashMerkleRoot = hashMerkleRoot;
-        block.nTime          = nTime;
-        block.nBits          = nBits;
-        block.nNonce         = nNonce;
+        block.nTime = nTime;
+        block.nBits = nBits;
+        block.nNonce = nNonce;
         return block;
     }
 
-    // void SetPrevBlockHash(uint256 prevHash) 
+    // void SetPrevBlockHash(uint256 prevHash)
     // {
     //     block.hashPrevBlock = prevHash;
     // }
@@ -203,8 +206,7 @@ public:
  * other node doesn't have the same branch, it can find a recent common trunk.
  * The further back it is, the further before the fork it may be.
  */
-struct CBlockLocator
-{
+struct CBlockLocator {
     std::vector<uint256> vHave;
 
     CBlockLocator() {}
@@ -214,7 +216,8 @@ struct CBlockLocator
     ADD_SERIALIZE_METHODS;
 
     template <typename Stream, typename Operation>
-    inline void SerializationOp(Stream& s, Operation ser_action) {
+    inline void SerializationOp(Stream& s, Operation ser_action)
+    {
         int nVersion = s.GetVersion();
         if (!(s.GetType() & SER_GETHASH))
             READWRITE(nVersion);

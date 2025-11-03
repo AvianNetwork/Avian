@@ -8,15 +8,15 @@
 #include "chainparams.h"
 #include "consensus/merkle.h"
 
+#include "arith_uint256.h"
 #include "tinyformat.h"
 #include "util.h"
 #include "utilstrencodings.h"
-#include "arith_uint256.h"
 
-#include <assert.h>
 #include "chainparamsseeds.h"
+#include <assert.h>
 
-//TODO: Take these out
+// TODO: Take these out
 extern double algoHashTotal[16];
 extern int algoHashHits[16];
 
@@ -32,9 +32,9 @@ static CBlock CreateGenesisBlock(const char* pszTimestamp, const CScript& genesi
     txNew.vout[0].scriptPubKey = genesisOutputScript;
 
     CBlock genesis;
-    genesis.nTime    = nTime;
-    genesis.nBits    = nBits;
-    genesis.nNonce   = nNonce;
+    genesis.nTime = nTime;
+    genesis.nBits = nBits;
+    genesis.nNonce = nNonce;
     genesis.nVersion = nVersion;
     genesis.vtx.push_back(MakeTransactionRef(std::move(txNew)));
     genesis.hashPrevBlock.SetNull();
@@ -67,40 +67,49 @@ void CChainParams::UpdateVersionBitsParameters(Consensus::DeploymentPos d, int64
     consensus.vDeployments[d].nTimeout = nTimeout;
 }
 
-void CChainParams::TurnOffSegwit() {
-	consensus.nSegwitEnabled = false;
+void CChainParams::TurnOffSegwit()
+{
+    consensus.nSegwitEnabled = false;
 }
 
-void CChainParams::TurnOffCSV() {
-	consensus.nCSVEnabled = false;
+void CChainParams::TurnOffCSV()
+{
+    consensus.nCSVEnabled = false;
 }
 
-void CChainParams::TurnOffBIP34() {
-	consensus.nBIP34Enabled = false;
+void CChainParams::TurnOffBIP34()
+{
+    consensus.nBIP34Enabled = false;
 }
 
-void CChainParams::TurnOffBIP65() {
-	consensus.nBIP65Enabled = false;
+void CChainParams::TurnOffBIP65()
+{
+    consensus.nBIP65Enabled = false;
 }
 
-void CChainParams::TurnOffBIP66() {
-	consensus.nBIP66Enabled = false;
+void CChainParams::TurnOffBIP66()
+{
+    consensus.nBIP66Enabled = false;
 }
 
-bool CChainParams::BIP34() {
-	return consensus.nBIP34Enabled;
+bool CChainParams::BIP34()
+{
+    return consensus.nBIP34Enabled;
 }
 
-bool CChainParams::BIP65() {
-	return consensus.nBIP34Enabled;
+bool CChainParams::BIP65()
+{
+    return consensus.nBIP34Enabled;
 }
 
-bool CChainParams::BIP66() {
-	return consensus.nBIP34Enabled;
+bool CChainParams::BIP66()
+{
+    return consensus.nBIP34Enabled;
 }
 
-bool CChainParams::CSVEnabled() const{
-	return consensus.nCSVEnabled;
+bool CChainParams::CSVEnabled() const
+{
+    return consensus.nCSVEnabled;
 }
 
 
@@ -115,11 +124,13 @@ bool CChainParams::CSVEnabled() const{
  * + Contains no strange transactions
  */
 
-class CMainParams : public CChainParams {
+class CMainParams : public CChainParams
+{
 public:
-    CMainParams() {
+    CMainParams()
+    {
         strNetworkID = "main";
-        consensus.nSubsidyHalvingInterval = 2100000;  //~ 4 yrs at 1 min block time
+        consensus.nSubsidyHalvingInterval = 2100000; //~ 4 yrs at 1 min block time
         consensus.nBIP34Enabled = true;
         consensus.nBIP65Enabled = true; // 000000000000000004c2b624ed5d7756c508d90fd0da2c7c679febfa6c4735f0
         consensus.nBIP66Enabled = true;
@@ -128,30 +139,30 @@ public:
         consensus.powLimit = uint256S("00000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
         consensus.nPowTargetTimespan = 2016 * 30; // 1.4 days
         consensus.nPowTargetSpacing = 1 * 30;
-		consensus.fPowAllowMinDifficultyBlocks = false;
+        consensus.fPowAllowMinDifficultyBlocks = false;
         consensus.fPowNoRetargeting = false;
         consensus.nRuleChangeActivationThreshold = 1814; // Approx 90% of 2016
-        consensus.nMinerConfirmationWindow = 2016; // nPowTargetTimespan / nPowTargetSpacing
+        consensus.nMinerConfirmationWindow = 2016;       // nPowTargetTimespan / nPowTargetSpacing
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].bit = 28;
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nStartTime = 1199145601; // January 1, 2008
-        consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nTimeout = 1230767999; // December 31, 2008
+        consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nTimeout = 1230767999;   // December 31, 2008
 
-        // Crow Algo consensus
-        consensus.powForkTime = 1638847407;                 // Time of PoW hash method change (Dec 06 2021)
-        consensus.lwmaAveragingWindow = 45;                 // Averaging window size for LWMA diff adjust
-        consensus.diffRetargetFix = 275109;                 // Block for diff algo fix
-        consensus.diffRetargetTake2 = 1639269000;           // Third iteration of diff retargetter fix
+        // Minotaurx Algo consensus
+        consensus.powForkTime = 1638847407;       // Time of PoW hash method change (Dec 06 2021)
+        consensus.lwmaAveragingWindow = 45;       // Averaging window size for LWMA diff adjust
+        consensus.diffRetargetFix = 275109;       // Block for diff algo fix
+        consensus.diffRetargetTake2 = 1639269000; // Third iteration of diff retargetter fix
 
-	    // until "LWMA3" retarget algo, only "00000fff..." was used. these will apply once LWMA3 goes live
-        consensus.powTypeLimits.emplace_back(uint256S("00000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"));   // x16rt limit
-        consensus.powTypeLimits.emplace_back(uint256S("000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"));   // Crow limit
+        // until "LWMA3" retarget algo, only "00000fff..." was used. these will apply once LWMA3 goes live
+        consensus.powTypeLimits.emplace_back(uint256S("00000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffff")); // x16rt limit
+        consensus.powTypeLimits.emplace_back(uint256S("000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff")); // Minotaurx limit
 
         // x16rt switch
         consensus.nX16rtTimestamp = 1638847406;
 
         // Avian Assets, Messaging, Restricted
-        consensus.nAssetActivationTime = 1666202400; // TODO
-        consensus.nMessagingActivationTime = 1666202400; // TODO
+        consensus.nAssetActivationTime = 1666202400;      // TODO
+        consensus.nMessagingActivationTime = 1666202400;  // TODO
         consensus.nRestrictedActivationTime = 1666202400; // TODO
 
         // Avian Flight Plans
@@ -167,12 +178,12 @@ public:
 
         // The best chain should have at least this much work.
 
-        //TODO: This needs to be changed when we re-start the chain
-        //consensus.nMinimumChainWork = uint256S("0x000000000000000000000000000000000000000000000000000000000c000c00");
+        // TODO: This needs to be changed when we re-start the chain
+        // consensus.nMinimumChainWork = uint256S("0x000000000000000000000000000000000000000000000000000000000c000c00");
 
-        //TODO - Set this to genesis block
-        // By default assume that the signatures in ancestors of this block are valid.
-        //consensus.defaultAssumeValid = uint256S("0x0000000000000000003b9ce759c2a087d52abc4266f8f4ebd6d768b89defa50a"); //477890
+        // TODO - Set this to genesis block
+        //  By default assume that the signatures in ancestors of this block are valid.
+        // consensus.defaultAssumeValid = uint256S("0x0000000000000000003b9ce759c2a087d52abc4266f8f4ebd6d768b89defa50a"); //477890
 
         /**
          * The message start string is designed to be unlikely to occur in normal data.
@@ -197,9 +208,9 @@ public:
         vSeeds.emplace_back("dnsseed.ap.avn.network", true);
         vSeeds.emplace_back("dnsseed.eu.avn.network", true);
 
-        base58Prefixes[PUBKEY_ADDRESS] = std::vector<unsigned char>(1,60);
-        base58Prefixes[SCRIPT_ADDRESS] = std::vector<unsigned char>(1,122);
-        base58Prefixes[SECRET_KEY] =     std::vector<unsigned char>(1,128);
+        base58Prefixes[PUBKEY_ADDRESS] = std::vector<unsigned char>(1, 60);
+        base58Prefixes[SCRIPT_ADDRESS] = std::vector<unsigned char>(1, 122);
+        base58Prefixes[SECRET_KEY] = std::vector<unsigned char>(1, 128);
         base58Prefixes[EXT_PUBLIC_KEY] = {0x04, 0x88, 0xB2, 0x1E};
         base58Prefixes[EXT_SECRET_KEY] = {0x04, 0x88, 0xAD, 0xE4};
 
@@ -219,18 +230,15 @@ public:
         fMineBlocksOnDemand = false;
         fMiningRequiresPeers = true;
 
-        checkpointData = (CCheckpointData) {
-            {
-                { 0, uint256S("0x000000cdb10fc01df7fba251f2168ef7cd7854b571049db4902c315694461dd0")},
-                { 275972, uint256S("0x0000004ac340f01da45c151990567a90a3c65010511ba7a05f3439a83c878efb")},
-                { 508245, uint256S("0x00000000006cd2496fb78aedbd6524c8b1993589097fb848740e37eeab651682")},
-                { 818787, uint256S("0x0000000247de51f4188fc43316cc5e1f8711cff6210b242d234004aae39163d5")},
-                { 939610, uint256S("0x00000003cb151bde7f7c91b0dd145fbd8a0d6267873980662819fcddc3c74e24")},
-                { 940202, uint256S("0x00000000ed69247f7ef177a14e44de41d9c1ba689cb930946ff773ebfe23f64c")},
-                { 952399, uint256S("0x0000000000a11f354eacb65fee963df9818ee8884d8dd926da33921691ec9969")},
-                { 1072359, uint256S("0x00000000005ab90c287e481b1f2911228d26723ac07bcadd65031158ad733316")}
-            }
-        };
+        checkpointData = (CCheckpointData){
+            {{0, uint256S("0x000000cdb10fc01df7fba251f2168ef7cd7854b571049db4902c315694461dd0")},
+                {275972, uint256S("0x0000004ac340f01da45c151990567a90a3c65010511ba7a05f3439a83c878efb")},
+                {508245, uint256S("0x00000000006cd2496fb78aedbd6524c8b1993589097fb848740e37eeab651682")},
+                {818787, uint256S("0x0000000247de51f4188fc43316cc5e1f8711cff6210b242d234004aae39163d5")},
+                {939610, uint256S("0x00000003cb151bde7f7c91b0dd145fbd8a0d6267873980662819fcddc3c74e24")},
+                {940202, uint256S("0x00000000ed69247f7ef177a14e44de41d9c1ba689cb930946ff773ebfe23f64c")},
+                {952399, uint256S("0x0000000000a11f354eacb65fee963df9818ee8884d8dd926da33921691ec9969")},
+                {1072359, uint256S("0x00000000005ab90c287e481b1f2911228d26723ac07bcadd65031158ad733316")}}};
 
         chainTxData = ChainTxData{
             // Update as we know more about the contents of the Avian chain
@@ -283,11 +291,13 @@ public:
 /**
  * Testnet (v6)
  */
-class CTestNetParams : public CChainParams {
+class CTestNetParams : public CChainParams
+{
 public:
-    CTestNetParams() {
+    CTestNetParams()
+    {
         strNetworkID = "test";
-        consensus.nSubsidyHalvingInterval = 2100000;  //~ 4 yrs at 1 min block time
+        consensus.nSubsidyHalvingInterval = 2100000; //~ 4 yrs at 1 min block time
         consensus.nBIP34Enabled = true;
         consensus.nBIP65Enabled = true; // 000000000000000004c2b624ed5d7756c508d90fd0da2c7c679febfa6c4735f0
         consensus.nBIP66Enabled = true;
@@ -300,26 +310,26 @@ public:
         consensus.fPowAllowMinDifficultyBlocks = true;
         consensus.fPowNoRetargeting = false;
         consensus.nRuleChangeActivationThreshold = 1310; // Approx 65% for testchains
-        consensus.nMinerConfirmationWindow = 2016; // nPowTargetTimespan / nPowTargetSpacing
+        consensus.nMinerConfirmationWindow = 2016;       // nPowTargetTimespan / nPowTargetSpacing
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].bit = 28;
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nStartTime = 0;
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nTimeout = 999999999999ULL;
 
-        // Crow Algo consensus
-        consensus.powForkTime = 1639005225;                 // Time of PoW hash method change
-        consensus.lwmaAveragingWindow = 45;                 // Averaging window size for LWMA diff adjust
-        consensus.diffRetargetFix = 0;                      // Block of diff algo change
-        consensus.diffRetargetTake2 = 1639269000;           // Third iteration of LWMA retarget activation timestamp
+        // Minotaurx Algo consensus
+        consensus.powForkTime = 1639005225;       // Time of PoW hash method change
+        consensus.lwmaAveragingWindow = 45;       // Averaging window size for LWMA diff adjust
+        consensus.diffRetargetFix = 0;            // Block of diff algo change
+        consensus.diffRetargetTake2 = 1639269000; // Third iteration of LWMA retarget activation timestamp
 
-        consensus.powTypeLimits.emplace_back(uint256S("00000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"));   // x16rt limit
-        consensus.powTypeLimits.emplace_back(uint256S("000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"));   // Crow limit
+        consensus.powTypeLimits.emplace_back(uint256S("00000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffff")); // x16rt limit
+        consensus.powTypeLimits.emplace_back(uint256S("000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff")); // Minotaurx limit
 
         // testnet x16rt switch
-        consensus.nX16rtTimestamp = 1634101200; // Oct 13, 2021 
+        consensus.nX16rtTimestamp = 1634101200; // Oct 13, 2021
 
         // Avian Assets, Messaging, Restricted
-        consensus.nAssetActivationTime = 1645104453; // Feb 17, 2022
-        consensus.nMessagingActivationTime = 1645104453; // Feb 17, 2022
+        consensus.nAssetActivationTime = 1645104453;      // Feb 17, 2022
+        consensus.nMessagingActivationTime = 1645104453;  // Feb 17, 2022
         consensus.nRestrictedActivationTime = 1645104453; // Feb 17, 2022
 
         // Avian Flight Plans
@@ -351,9 +361,9 @@ public:
         vFixedSeeds.clear();
         vSeeds.clear();
 
-        base58Prefixes[PUBKEY_ADDRESS] = std::vector<unsigned char>(1,111);
-        base58Prefixes[SCRIPT_ADDRESS] = std::vector<unsigned char>(1,196);
-        base58Prefixes[SECRET_KEY] =     std::vector<unsigned char>(1,239);
+        base58Prefixes[PUBKEY_ADDRESS] = std::vector<unsigned char>(1, 111);
+        base58Prefixes[SCRIPT_ADDRESS] = std::vector<unsigned char>(1, 196);
+        base58Prefixes[SECRET_KEY] = std::vector<unsigned char>(1, 239);
         base58Prefixes[EXT_PUBLIC_KEY] = {0x04, 0x35, 0x87, 0xCF};
         base58Prefixes[EXT_SECRET_KEY] = {0x04, 0x35, 0x83, 0x94};
 
@@ -373,17 +383,13 @@ public:
         fMineBlocksOnDemand = false;
         fMiningRequiresPeers = true;
 
-        checkpointData = (CCheckpointData) {
-            {
-                    { 0, uint256S("0x63d9b6b6b549a2d96eb5ac4eb2ab80761e6d7bffa9ae1a647191e08d6416184d")}
-            }
-        };
+        checkpointData = (CCheckpointData){
+            {{0, uint256S("0x63d9b6b6b549a2d96eb5ac4eb2ab80761e6d7bffa9ae1a647191e08d6416184d")}}};
 
         chainTxData = ChainTxData{
             0,
             0,
-            0
-        };
+            0};
 
         /** AVN Start **/
         // Burn Amounts
@@ -426,9 +432,11 @@ public:
 /**
  * Regression test
  */
-class CRegTestParams : public CChainParams {
+class CRegTestParams : public CChainParams
+{
 public:
-    CRegTestParams() {
+    CRegTestParams()
+    {
         strNetworkID = "regtest";
         consensus.nBIP34Enabled = true;
         consensus.nBIP65Enabled = true; // 000000000000000004c2b624ed5d7756c508d90fd0da2c7c679febfa6c4735f0
@@ -442,26 +450,26 @@ public:
         consensus.fPowAllowMinDifficultyBlocks = true;
         consensus.fPowNoRetargeting = true;
         consensus.nRuleChangeActivationThreshold = 108; // 75% for testchains
-        consensus.nMinerConfirmationWindow = 144; // Faster than normal for regtest (144 instead of 2016)
+        consensus.nMinerConfirmationWindow = 144;       // Faster than normal for regtest (144 instead of 2016)
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].bit = 28;
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nStartTime = 0;
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nTimeout = 999999999999ULL;
 
-        // Crow Algo consensus
-        consensus.powForkTime = 1629951212;        // Time of PoW hash method change
-        consensus.lwmaAveragingWindow = 45;        // Averaging window size for LWMA diff adjust
-        consensus.diffRetargetFix = 0;             // Block of diff algo change
-        consensus.diffRetargetTake2 = 1629951212;  // Third iteration of LWMA retarget activation timestamp
+        // Minotaurx Algo consensus
+        consensus.powForkTime = 1629951212;       // Time of PoW hash method change
+        consensus.lwmaAveragingWindow = 45;       // Averaging window size for LWMA diff adjust
+        consensus.diffRetargetFix = 0;            // Block of diff algo change
+        consensus.diffRetargetTake2 = 1629951212; // Third iteration of LWMA retarget activation timestamp
 
-        consensus.powTypeLimits.emplace_back(uint256S("7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"));   // x16rt limit
-        consensus.powTypeLimits.emplace_back(uint256S("7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"));   // Crow limit
+        consensus.powTypeLimits.emplace_back(uint256S("7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff")); // x16rt limit
+        consensus.powTypeLimits.emplace_back(uint256S("7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff")); // Minotaurx limit
 
         // regtest x16rt switch (genesis +1)
         consensus.nX16rtTimestamp = 1629951212;
 
         // Avian Assets, Messaging, Restricted
-        consensus.nAssetActivationTime = 1629951212; // (genesis +1)
-        consensus.nMessagingActivationTime = 1629951212; // (genesis +1)
+        consensus.nAssetActivationTime = 1629951212;      // (genesis +1)
+        consensus.nMessagingActivationTime = 1629951212;  // (genesis +1)
         consensus.nRestrictedActivationTime = 1629951212; // (genesis +1)
 
         // Avian Flight Plans
@@ -483,65 +491,65 @@ public:
         nDefaultPort = 18444;
         nPruneAfterHeight = 1000;
 
-// This is used inorder to mine the genesis block. Once found, we can use the nonce and block hash found to create a valid genesis block
+        // This is used inorder to mine the genesis block. Once found, we can use the nonce and block hash found to create a valid genesis block
         /////////////////////////////////////////////////////////////////
 
-/**
-        arith_uint256 test;
-        bool fNegative;
-        bool fOverflow;
-        test.SetCompact(0x207fffff, &fNegative, &fOverflow);
-        std::cout << "Test threshold: " << test.GetHex() << "\n\n";
+        /**
+                arith_uint256 test;
+                bool fNegative;
+                bool fOverflow;
+                test.SetCompact(0x207fffff, &fNegative, &fOverflow);
+                std::cout << "Test threshold: " << test.GetHex() << "\n\n";
 
-        int genesisNonce = 0;
-        uint256 TempHashHolding = uint256S("0x0000000000000000000000000000000000000000000000000000000000000000");
-        uint256 BestBlockHash = uint256S("0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
-        for (int i=0;i<40000000;i++) {
-            genesis = CreateGenesisBlock(1629951211, i, 0x207fffff, 2, 2500 * COIN);
-            //genesis.hashPrevBlock = TempHashHolding;
-            consensus.hashGenesisBlock = genesis.GetHash();
+                int genesisNonce = 0;
+                uint256 TempHashHolding = uint256S("0x0000000000000000000000000000000000000000000000000000000000000000");
+                uint256 BestBlockHash = uint256S("0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
+                for (int i=0;i<40000000;i++) {
+                    genesis = CreateGenesisBlock(1629951211, i, 0x207fffff, 2, 2500 * COIN);
+                    //genesis.hashPrevBlock = TempHashHolding;
+                    consensus.hashGenesisBlock = genesis.GetHash();
 
-            arith_uint256 BestBlockHashArith = UintToArith256(BestBlockHash);
-            if (UintToArith256(consensus.hashGenesisBlock) < BestBlockHashArith) {
-                BestBlockHash = consensus.hashGenesisBlock;
-                std::cout << BestBlockHash.GetHex() << " Nonce: " << i << "\n";
-                std::cout << "   PrevBlockHash: " << genesis.hashPrevBlock.GetHex() << "\n";
-            }
+                    arith_uint256 BestBlockHashArith = UintToArith256(BestBlockHash);
+                    if (UintToArith256(consensus.hashGenesisBlock) < BestBlockHashArith) {
+                        BestBlockHash = consensus.hashGenesisBlock;
+                        std::cout << BestBlockHash.GetHex() << " Nonce: " << i << "\n";
+                        std::cout << "   PrevBlockHash: " << genesis.hashPrevBlock.GetHex() << "\n";
+                    }
 
-            TempHashHolding = consensus.hashGenesisBlock;
+                    TempHashHolding = consensus.hashGenesisBlock;
 
-            if (BestBlockHashArith < test) {
-                genesisNonce = i - 1;
-                break;
-            }
-            //std::cout << consensus.hashGenesisBlock.GetHex() << "\n";
-        }
-        std::cout << "\n";
-        std::cout << "\n";
-        std::cout << "\n";
+                    if (BestBlockHashArith < test) {
+                        genesisNonce = i - 1;
+                        break;
+                    }
+                    //std::cout << consensus.hashGenesisBlock.GetHex() << "\n";
+                }
+                std::cout << "\n";
+                std::cout << "\n";
+                std::cout << "\n";
 
-        std::cout << "hashGenesisBlock to 0x" << BestBlockHash.GetHex() << std::endl;
-        std::cout << "Genesis Nonce to " << genesisNonce << std::endl;
-        std::cout << "Genesis Merkle " << genesis.hashMerkleRoot.GetHex() << std::endl;
+                std::cout << "hashGenesisBlock to 0x" << BestBlockHash.GetHex() << std::endl;
+                std::cout << "Genesis Nonce to " << genesisNonce << std::endl;
+                std::cout << "Genesis Merkle " << genesis.hashMerkleRoot.GetHex() << std::endl;
 
-        std::cout << "\n";
-        std::cout << "\n";
-        int totalHits = 0;
-        double totalTime = 0.0;
+                std::cout << "\n";
+                std::cout << "\n";
+                int totalHits = 0;
+                double totalTime = 0.0;
 
-        for(int x = 0; x < 16; x++) {
-            totalHits += algoHashHits[x];
-            totalTime += algoHashTotal[x];
-            std::cout << "hash algo " << x << " hits " << algoHashHits[x] << " total " << algoHashTotal[x] << " avg " << algoHashTotal[x]/algoHashHits[x] << std::endl;
-        }
+                for(int x = 0; x < 16; x++) {
+                    totalHits += algoHashHits[x];
+                    totalTime += algoHashTotal[x];
+                    std::cout << "hash algo " << x << " hits " << algoHashHits[x] << " total " << algoHashTotal[x] << " avg " << algoHashTotal[x]/algoHashHits[x] << std::endl;
+                }
 
-        std::cout << "Totals: hash algo " <<  " hits " << totalHits << " total " << totalTime << " avg " << totalTime/totalHits << std::endl;
+                std::cout << "Totals: hash algo " <<  " hits " << totalHits << " total " << totalTime << " avg " << totalTime/totalHits << std::endl;
 
-        genesis.hashPrevBlock = TempHashHolding;
+                genesis.hashPrevBlock = TempHashHolding;
 
-        return;
-*/
-//        /////////////////////////////////////////////////////////////////
+                return;
+        */
+        //        /////////////////////////////////////////////////////////////////
 
 
         genesis = CreateGenesisBlock(1629951211, 1, 0x207fffff, 2, 2500 * COIN);
@@ -564,20 +572,17 @@ public:
         fMineBlocksOnDemand = true;
         fMiningRequiresPeers = false;
 
-        checkpointData = (CCheckpointData) {
-            {
-            }
-        };
+        checkpointData = (CCheckpointData){
+            {}};
 
         chainTxData = ChainTxData{
             0,
             0,
-            0
-        };
+            0};
 
-        base58Prefixes[PUBKEY_ADDRESS] = std::vector<unsigned char>(1,111);
-        base58Prefixes[SCRIPT_ADDRESS] = std::vector<unsigned char>(1,196);
-        base58Prefixes[SECRET_KEY] =     std::vector<unsigned char>(1,239);
+        base58Prefixes[PUBKEY_ADDRESS] = std::vector<unsigned char>(1, 111);
+        base58Prefixes[SCRIPT_ADDRESS] = std::vector<unsigned char>(1, 196);
+        base58Prefixes[SECRET_KEY] = std::vector<unsigned char>(1, 239);
         base58Prefixes[EXT_PUBLIC_KEY] = {0x04, 0x35, 0x87, 0xCF};
         base58Prefixes[EXT_SECRET_KEY] = {0x04, 0x35, 0x83, 0x94};
 
@@ -624,7 +629,8 @@ public:
 
 static std::unique_ptr<CChainParams> globalChainParams;
 
-const CChainParams &Params() {
+const CChainParams& Params()
+{
     assert(globalChainParams);
     return *globalChainParams;
 }
@@ -654,22 +660,27 @@ void UpdateVersionBitsParameters(Consensus::DeploymentPos d, int64_t nStartTime,
     globalChainParams->UpdateVersionBitsParameters(d, nStartTime, nTimeout);
 }
 
-void TurnOffSegwit(){
-	globalChainParams->TurnOffSegwit();
+void TurnOffSegwit()
+{
+    globalChainParams->TurnOffSegwit();
 }
 
-void TurnOffCSV() {
-	globalChainParams->TurnOffCSV();
+void TurnOffCSV()
+{
+    globalChainParams->TurnOffCSV();
 }
 
-void TurnOffBIP34() {
-	globalChainParams->TurnOffBIP34();
+void TurnOffBIP34()
+{
+    globalChainParams->TurnOffBIP34();
 }
 
-void TurnOffBIP65() {
-	globalChainParams->TurnOffBIP65();
+void TurnOffBIP65()
+{
+    globalChainParams->TurnOffBIP65();
 }
 
-void TurnOffBIP66() {
-	globalChainParams->TurnOffBIP66();
+void TurnOffBIP66()
+{
+    globalChainParams->TurnOffBIP66();
 }

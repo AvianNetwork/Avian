@@ -9,7 +9,7 @@
 #define RAVEN_POW_H
 
 #include "consensus/params.h"
-#include "primitives/block.h" // For Crow Algo update (POW_TYPE)
+#include "primitives/block.h" // For Dual Algo update (POW_TYPE)
 
 #include <stdint.h>
 
@@ -17,15 +17,15 @@ class CBlockHeader;
 class CBlockIndex;
 class uint256;
 
-unsigned int GetNextWorkRequiredLWMA(const CBlockIndex* pindexLast, const CBlockHeader *pblock, const Consensus::ConsensusParams& params, const POW_TYPE powType); // Crow: LWMA difficulty adjustment for all pow types
-unsigned int GetNextWorkRequiredLWMA1(const CBlockIndex* pindexLast, const CBlockHeader *pblock, const Consensus::ConsensusParams& params, const POW_TYPE powType); // Crow: LWMA difficulty adjustment for all pow types
-unsigned int GetNextWorkRequiredLWMA2(const CBlockIndex* pindexLast, const CBlockHeader *pblock, const Consensus::ConsensusParams& params, const POW_TYPE powType); // Crow: LWMA difficulty adjustment for all pow types
-unsigned int GetNextWorkRequiredLWMA3(const CBlockIndex* pindexLast, const CBlockHeader *pblock, const Consensus::ConsensusParams& params, const POW_TYPE powType); // Crow: LWMA difficulty adjustment for all pow types
+unsigned int GetNextWorkRequiredLWMA(const CBlockIndex* pindexLast, const CBlockHeader* pblock, const Consensus::ConsensusParams& params, const POW_TYPE powType);  // Dual Algo: LWMA difficulty adjustment for all pow types
+unsigned int GetNextWorkRequiredLWMA1(const CBlockIndex* pindexLast, const CBlockHeader* pblock, const Consensus::ConsensusParams& params, const POW_TYPE powType); // Dual Algo: LWMA difficulty adjustment for all pow types
+unsigned int GetNextWorkRequiredLWMA2(const CBlockIndex* pindexLast, const CBlockHeader* pblock, const Consensus::ConsensusParams& params, const POW_TYPE powType); // Dual Algo: LWMA difficulty adjustment for all pow types
+unsigned int GetNextWorkRequiredLWMA3(const CBlockIndex* pindexLast, const CBlockHeader* pblock, const Consensus::ConsensusParams& params, const POW_TYPE powType); // Dual Algo: LWMA difficulty adjustment for all pow types
 
-unsigned int GetNextWorkRequired(const CBlockIndex* pindexLast, const CBlockHeader *pblock, const Consensus::ConsensusParams&);
+unsigned int GetNextWorkRequired(const CBlockIndex* pindexLast, const CBlockHeader* pblock, const Consensus::ConsensusParams&);
 unsigned int CalculateNextWorkRequired(const CBlockIndex* pindexLast, int64_t nFirstBlockTime, const Consensus::ConsensusParams&);
 
 /** Check whether a block hash satisfies the proof-of-work requirement */
-bool CheckProofOfWork(const CBlockHeader& blockheader, const Consensus::ConsensusParams& params, bool cache=true);
+bool CheckProofOfWork(const CBlockHeader& blockheader, const Consensus::ConsensusParams& params, bool cache = true);
 
 #endif // RAVEN_POW_H

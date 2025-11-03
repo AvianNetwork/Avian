@@ -8,17 +8,17 @@
 #ifndef AVIAN_CONSENSUS_PARAMS_H
 #define AVIAN_CONSENSUS_PARAMS_H
 
-#include "uint256.h"
 #include "founder_payment.h"
+#include "uint256.h"
 
 #include <cstdint>
 #include <map>
 #include <string>
 
-namespace Consensus {
-
-enum DeploymentPos
+namespace Consensus
 {
+
+enum DeploymentPos {
     DEPLOYMENT_TESTDUMMY,
     // DEPLOYMENT_CSV, // Deployment of BIP68, BIP112, and BIP113.
     // DEPLOYMENT_SEGWIT, // Deployment of BIP141, BIP143, and BIP147.
@@ -74,7 +74,7 @@ struct ConsensusParams {
     bool nCSVEnabled;
     uint32_t nX16rtTimestamp;
 
-    // Crow consensus fields
+    // Dual Algo consensus fields
     uint32_t powForkTime;
     int64_t diffRetargetFix;
     int64_t diffRetargetTake2;
@@ -98,7 +98,6 @@ struct ConsensusParams {
 
     // Avian Name System (ANS)
     uint32_t nAvianNameSystemTime;
-
 };
 } // namespace Consensus
 

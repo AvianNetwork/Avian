@@ -7,6 +7,7 @@
 #define AVIAN_RPC_MINING_H
 
 #include "script/script.h"
+#include <primitives/block.h>
 
 #include <univalue.h>
 

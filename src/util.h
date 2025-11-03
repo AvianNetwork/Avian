@@ -106,7 +106,7 @@ enum LogFlags : uint32_t {
     QT = (1 << 19),
     LEVELDB = (1 << 20),
     REWARDS = (1 << 21),
-    CROW = (1 << 22), // Crow
+    DUAL_ALGO = (1 << 22), // Dual Algo
     ALL = ~(uint32_t)0,
 };
 }
