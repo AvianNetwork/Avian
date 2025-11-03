@@ -4794,12 +4794,13 @@ bool static LoadBlockIndexDB(const CChainParams& chainparams)
         nNow = GetTime();
         if (nNow >= nLastNow + 5) {
             int nPercent = 100 * nHeight / nHighest;
-            if (nPercent > nLastPercent) {
+            if (nPercent >= nLastPercent + 5 || nPercent == 100) {
                 uiInterface.InitMessage(strprintf(_("Indexing blocks... %d%%"), (100 * nHeight) / nHighest));
                 nLastPercent = nPercent;
             }
             nLastNow = nNow;
         }
+        nHeight++;
         CBlockIndex* pindex = item.second;
         pindex->nChainWork = (pindex->pprev ? pindex->pprev->nChainWork : 0) + GetBlockProof(*pindex);
         pindex->nTimeMax = (pindex->pprev ? std::max(pindex->pprev->nTimeMax, pindex->nTime) : pindex->nTime);
