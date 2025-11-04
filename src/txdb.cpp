@@ -487,8 +487,8 @@ bool CBlockTreeDB::LoadBlockIndexGuts(const Consensus::ConsensusParams& consensu
     // Load mapBlockIndex
     while (pcursor->Valid()) {
         int nPercent = 100 * nCount / nHighest;
-        if (nPercent >= nLastPercent + 5 || nPercent == 100) {
-            uiInterface.InitMessage(strprintf(_("Loading blocks... %d%%"), (100 * nCount) / nHighest));
+        if (nPercent % 5 == 0 && nPercent != nLastPercent) {
+            uiInterface.InitMessage(strprintf(_("Loading blocks... %d%%"), nPercent));
             nLastPercent = nPercent;
         }
         nCount++;
