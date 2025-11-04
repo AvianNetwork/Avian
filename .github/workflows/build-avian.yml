@@ -15,6 +15,7 @@ on:
 
 env:
   SCRIPTS: ${{ github.workspace }}/.github/scripts
+  AVIAN_GENBUILD_DEBUG: "1" # emit genbuild diagnostics into CI logs
 
 jobs:
   check-jobs:
@@ -57,6 +58,17 @@ jobs:
         run: |
           git config core.filemode false
           git update-index -q --refresh
+
+      - if: ${{ needs.check-jobs.outputs.should_skip != 'true' }}
+        name: Debug repository state after checkout
+        run: |
+          echo "HEAD: $(git rev-parse HEAD)"
+          echo "Short HEAD: $(git rev-parse --short HEAD)"
+          echo "Describe: $(git describe --tags --always --dirty 2>/dev/null || true)"
+          echo "Status (porcelain):"
+          git status --porcelain -uall || true
+          echo "Diff-index (excluding depends/):"
+          git diff-index --name-status HEAD -- . ":(exclude)depends/" || true
 
       - if: ${{ needs.check-jobs.outputs.should_skip != 'true' }}
         name: Make scripts executable
