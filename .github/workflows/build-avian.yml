@@ -15,11 +15,9 @@ on:
 
 env:
   SCRIPTS: ${{ github.workspace }}/.github/scripts
-  AVIAN_GENBUILD_DEBUG: "1" # emit genbuild diagnostics into CI logs
 
 jobs:
   check-jobs:
-    # continue-on-error: true # Uncomment once integration is finished
     runs-on: ubuntu-22.04
     # Map a step output to a job output
     outputs:
