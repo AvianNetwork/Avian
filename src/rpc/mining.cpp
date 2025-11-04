@@ -677,19 +677,6 @@ UniValue getblocktemplate(const JSONRPCRequest& request)
     UniValue result(UniValue::VOBJ);
     result.push_back(Pair("capabilities", aCaps));
 
-    UniValue founderObj(UniValue::VOBJ);
-    FounderPayment founderPayment = Params().GetConsensus().nFounderPayment;
-    if (pblock->txoutFounder != CTxOut()) {
-        CTxDestination address;
-        ExtractDestination(pblock->txoutFounder.scriptPubKey, address);
-        CAvianAddress address2(address);
-        founderObj.push_back(Pair("payee", address2.ToString().c_str()));
-        founderObj.push_back(Pair("script", HexStr(pblock->txoutFounder.scriptPubKey.begin(), pblock->txoutFounder.scriptPubKey.end())));
-        founderObj.push_back(Pair("amount", pblock->txoutFounder.nValue));
-    }
-    result.push_back(Pair("founder", founderObj));
-    result.push_back(Pair("founder_payments_started", pindexPrev->nHeight + 1 > founderPayment.getStartBlock()));
-
     UniValue aRules(UniValue::VARR);
     UniValue vbavailable(UniValue::VOBJ);
     for (int j = 0; j < (int)Consensus::MAX_VERSION_BITS_DEPLOYMENTS; ++j) {
@@ -746,8 +733,39 @@ UniValue getblocktemplate(const JSONRPCRequest& request)
     result.push_back(Pair("previousblockhash", pblock->hashPrevBlock.GetHex()));
     result.push_back(Pair("transactions", transactions));
     result.push_back(Pair("coinbaseaux", aux));
-    result.push_back(Pair("coinbasevalue", (int64_t)pblock->vtx[0]->vout[0].nValue));
+
+    // Calculate total coinbase value (block subsidy + transaction fees) per BIP22
+    // Sum up all transaction fees from the block template
+    CAmount nFees = 0;
+    for (size_t i = 1; i < pblocktemplate->vTxFees.size(); ++i) { // Skip coinbase (index 0)
+        nFees += pblocktemplate->vTxFees[i];
+    }
+    // Total coinbase value = block subsidy + transaction fees
+    CAmount nCoinbaseValue = nFees + GetBlockSubsidy(pindexPrev->nHeight + 1, consensusParams);
+    result.push_back(Pair("coinbasevalue", nCoinbaseValue));
+
+    // Calculate miner portion (coinbasevalue minus founder payment)
+    CAmount nMinerValue = nCoinbaseValue;
+    if (pblock->txoutFounder != CTxOut()) {
+        nMinerValue -= pblock->txoutFounder.nValue;
+    }
+    result.push_back(Pair("minerpayment", nMinerValue)); // For convenience
+
     result.push_back(Pair("longpollid", chainActive.Tip()->GetBlockHash().GetHex() + i64tostr(nTransactionsUpdatedLast)));
+
+    UniValue founderObj(UniValue::VOBJ);
+    FounderPayment founderPayment = Params().GetConsensus().nFounderPayment;
+    if (pblock->txoutFounder != CTxOut()) {
+        CTxDestination address;
+        ExtractDestination(pblock->txoutFounder.scriptPubKey, address);
+        CAvianAddress address2(address);
+        founderObj.push_back(Pair("payee", address2.ToString().c_str()));
+        founderObj.push_back(Pair("script", HexStr(pblock->txoutFounder.scriptPubKey.begin(), pblock->txoutFounder.scriptPubKey.end())));
+        founderObj.push_back(Pair("amount", pblock->txoutFounder.nValue));
+    }
+    result.push_back(Pair("founder", founderObj));
+    result.push_back(Pair("founder_payments_started", pindexPrev->nHeight + 1 > founderPayment.getStartBlock()));
+
     result.push_back(Pair("target", hashTarget.GetHex()));
     result.push_back(Pair("mintime", (int64_t)pindexPrev->GetMedianTimePast() + 1));
     result.push_back(Pair("mutable", aMutable));

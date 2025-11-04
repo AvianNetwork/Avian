@@ -14,6 +14,7 @@
 #include "checkqueue.h"
 #include "consensus/consensus.h"
 #include "consensus/merkle.h"
+#include "consensus/params.h"
 #include "consensus/tx_verify.h"
 #include "consensus/validation.h"
 #include "cuckoocache.h"
@@ -5835,7 +5836,8 @@ bool AreAssetsDeployed()
     // if (thresholdState == THRESHOLD_ACTIVE)
     //     fAssetsIsActive = true;
 
-    if ((chainActive.Tip() != nullptr) && chainActive.Tip()->nTime > Params().GetConsensus().nAssetActivationTime)
+    if ((chainActive.Tip() != nullptr) && chainActive.Tip()->nTime > Params().GetConsensus().vUpgrades[Consensus::UPGRADE_AVIAN_ASSETS].nTimestamp)
+
         fAssetsIsActive = true;
 
     return fAssetsIsActive;
@@ -5846,7 +5848,7 @@ bool AreFlightPlansDeployed()
     if (fFlightPlansIsActive)
         return true;
 
-    if ((chainActive.Tip() != nullptr) && chainActive.Tip()->nTime > Params().GetConsensus().nFlightPlansActivationTime)
+    if ((chainActive.Tip() != nullptr) && chainActive.Tip()->nTime > Params().GetConsensus().vUpgrades[Consensus::UPGRADE_AVIAN_FLIGHT_PLANS].nTimestamp)
         fFlightPlansIsActive = true;
 
     return fFlightPlansIsActive;
@@ -5857,7 +5859,7 @@ bool AreMessagesDeployed()
     if (fMessaging)
         return true;
 
-    if ((chainActive.Tip() != nullptr) && chainActive.Tip()->nTime > Params().GetConsensus().nMessagingActivationTime)
+    if ((chainActive.Tip() != nullptr) && chainActive.Tip()->nTime > Params().GetConsensus().vUpgrades[Consensus::UPGRADE_AVIAN_ASSETS].nTimestamp)
         fMessaging = true;
 
     return fMessaging;
@@ -5868,7 +5870,7 @@ bool AreRestrictedAssetsDeployed()
     if (fRestricted)
         return true;
 
-    if ((chainActive.Tip() != nullptr) && chainActive.Tip()->nTime > Params().GetConsensus().nRestrictedActivationTime)
+    if ((chainActive.Tip() != nullptr) && chainActive.Tip()->nTime > Params().GetConsensus().vUpgrades[Consensus::UPGRADE_AVIAN_ASSETS].nTimestamp)
         fRestricted = true;
 
     return fRestricted;
@@ -5879,7 +5881,7 @@ bool IsAvianNameSystemDeployed()
     if (fAvianNameSystemIsActive)
         return true;
 
-    if ((chainActive.Tip() != nullptr) && chainActive.Tip()->nTime > Params().GetConsensus().nAvianNameSystemTime)
+    if ((chainActive.Tip() != nullptr) && chainActive.Tip()->nTime > Params().GetConsensus().vUpgrades[Consensus::UPGRADE_AVIAN_NAME_SYSTEM].nTimestamp)
         fAvianNameSystemIsActive = true;
 
     return fAvianNameSystemIsActive;

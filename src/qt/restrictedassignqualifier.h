@@ -7,8 +7,8 @@
 
 #include "amount.h"
 
-#include <QWidget>
 #include <QMenu>
+#include <QWidget>
 #include <memory>
 
 class ClientModel;
@@ -20,8 +20,9 @@ class QCompleter;
 class AssetFilterProxy;
 
 
-namespace Ui {
-    class AssignQualifier;
+namespace Ui
+{
+class AssignQualifier;
 }
 
 QT_BEGIN_NAMESPACE
@@ -34,11 +35,11 @@ class AssignQualifier : public QWidget
     Q_OBJECT
 
 public:
-    explicit AssignQualifier(const PlatformStyle *_platformStyle, QWidget *parent = 0);
+    explicit AssignQualifier(const PlatformStyle* _platformStyle, QWidget* parent = 0);
     ~AssignQualifier();
 
-    void setClientModel(ClientModel *clientModel);
-    void setWalletModel(WalletModel *walletModel);
+    void setClientModel(ClientModel* clientModel);
+    void setWalletModel(WalletModel* walletModel);
     void showOutOfSyncWarning(bool fShow);
     Ui::AssignQualifier* getUI();
     bool eventFilter(QObject* object, QEvent* event);
@@ -47,16 +48,17 @@ public:
     void showWarning(QString string, bool failure = true);
     void hideWarning();
 
-    AssetFilterProxy *assetFilterProxy;
+    AssetFilterProxy* assetFilterProxy;
     QCompleter* completer;
 
-    void clear();
-
 private:
-    Ui::AssignQualifier *ui;
-    ClientModel *clientModel;
-    WalletModel *walletModel;
-    const PlatformStyle *platformStyle;
+    Ui::AssignQualifier* ui;
+    ClientModel* clientModel;
+    WalletModel* walletModel;
+    const PlatformStyle* platformStyle;
+
+public Q_SLOTS:
+    void clear();
 
 private Q_SLOTS:
     void check();

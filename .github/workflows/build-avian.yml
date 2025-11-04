@@ -48,6 +48,15 @@ jobs:
       - if: ${{ needs.check-jobs.outputs.should_skip != 'true' }}
         name: Checkout the Code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # ensure full history so `git describe` can find tags
+          fetch-tags: true # fetch annotated/lightweight tags for BUILD_DESC
+
+      - if: ${{ needs.check-jobs.outputs.should_skip != 'true' }}
+        name: Normalize Git metadata (avoid false "-dirty")
+        run: |
+          git config core.filemode false
+          git update-index -q --refresh
 
       - if: ${{ needs.check-jobs.outputs.should_skip != 'true' }}
         name: Make scripts executable

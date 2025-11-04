@@ -9,17 +9,13 @@
 #include "consensus/merkle.h"
 
 #include "arith_uint256.h"
+#include "consensus/params.h"
 #include "tinyformat.h"
 #include "util.h"
 #include "utilstrencodings.h"
 
 #include "chainparamsseeds.h"
 #include <assert.h>
-
-// TODO: Take these out
-extern double algoHashTotal[16];
-extern int algoHashHits[16];
-
 
 static CBlock CreateGenesisBlock(const char* pszTimestamp, const CScript& genesisOutputScript, uint32_t nTime, uint32_t nNonce, uint32_t nBits, int32_t nVersion, const CAmount& genesisReward)
 {
@@ -143,9 +139,18 @@ public:
         consensus.fPowNoRetargeting = false;
         consensus.nRuleChangeActivationThreshold = 1814; // Approx 90% of 2016
         consensus.nMinerConfirmationWindow = 2016;       // nPowTargetTimespan / nPowTargetSpacing
+
+        // BIP9 deployments
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].bit = 28;
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nStartTime = 1199145601; // January 1, 2008
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nTimeout = 1230767999;   // December 31, 2008
+
+        // Avian network upgrades (hardforks)
+        consensus.vUpgrades[Consensus::UPGRADE_X16RT_SWITCH].nTimestamp = 1638847406;
+        consensus.vUpgrades[Consensus::UPGRADE_DUAL_ALGO].nTimestamp = 1638847407;
+        consensus.vUpgrades[Consensus::UPGRADE_AVIAN_ASSETS].nTimestamp = 1666202400;
+        consensus.vUpgrades[Consensus::UPGRADE_AVIAN_FLIGHT_PLANS].nTimestamp = 999999999999ULL; // TODO
+        consensus.vUpgrades[Consensus::UPGRADE_AVIAN_NAME_SYSTEM].nTimestamp = 999999999999ULL;  // TODO
 
         // Minotaurx Algo consensus
         consensus.powForkTime = 1638847407;       // Time of PoW hash method change (Dec 06 2021)
@@ -157,33 +162,10 @@ public:
         consensus.powTypeLimits.emplace_back(uint256S("00000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffff")); // x16rt limit
         consensus.powTypeLimits.emplace_back(uint256S("000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff")); // Minotaurx limit
 
-        // x16rt switch
-        consensus.nX16rtTimestamp = 1638847406;
-
-        // Avian Assets, Messaging, Restricted
-        consensus.nAssetActivationTime = 1666202400;      // TODO
-        consensus.nMessagingActivationTime = 1666202400;  // TODO
-        consensus.nRestrictedActivationTime = 1666202400; // TODO
-
-        // Avian Flight Plans
-        consensus.nFlightPlansActivationTime = 999999999999ULL; // TODO
-
-        // Avian Name System (ANS)
-        consensus.nAvianNameSystemTime = 999999999999ULL; // TODO
-
         // The best chain should have at least this much work.
         consensus.nMinimumChainWork = uint256S("0x00000000000000000000000000000000000000000000000029178e309cb56715"); // Block 1072359
         // By default assume that the signatures in ancestors of this block are valid.
         consensus.defaultAssumeValid = uint256S("0x00000000005ab90c287e481b1f2911228d26723ac07bcadd65031158ad733316"); // Block 1072359
-
-        // The best chain should have at least this much work.
-
-        // TODO: This needs to be changed when we re-start the chain
-        // consensus.nMinimumChainWork = uint256S("0x000000000000000000000000000000000000000000000000000000000c000c00");
-
-        // TODO - Set this to genesis block
-        //  By default assume that the signatures in ancestors of this block are valid.
-        // consensus.defaultAssumeValid = uint256S("0x0000000000000000003b9ce759c2a087d52abc4266f8f4ebd6d768b89defa50a"); //477890
 
         /**
          * The message start string is designed to be unlikely to occur in normal data.
@@ -311,11 +293,19 @@ public:
         consensus.fPowNoRetargeting = false;
         consensus.nRuleChangeActivationThreshold = 1310; // Approx 65% for testchains
         consensus.nMinerConfirmationWindow = 2016;       // nPowTargetTimespan / nPowTargetSpacing
+        // BIP9 deployments
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].bit = 28;
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nStartTime = 0;
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nTimeout = 999999999999ULL;
 
-        // Minotaurx Algo consensus
+        // Avian network upgrades (hardforks)
+        consensus.vUpgrades[Consensus::UPGRADE_X16RT_SWITCH].nTimestamp = 1634101200; // Oct 13, 2021
+        consensus.vUpgrades[Consensus::UPGRADE_DUAL_ALGO].nTimestamp = 1639005225;
+        consensus.vUpgrades[Consensus::UPGRADE_AVIAN_ASSETS].nTimestamp = 1645104453;       // Feb 17, 2022
+        consensus.vUpgrades[Consensus::UPGRADE_AVIAN_FLIGHT_PLANS].nTimestamp = 1645104453; // Feb 17, 2022
+        consensus.vUpgrades[Consensus::UPGRADE_AVIAN_NAME_SYSTEM].nTimestamp = 1645104453;  // Feb 17, 2022
+
+        // Crow Algo consensus
         consensus.powForkTime = 1639005225;       // Time of PoW hash method change
         consensus.lwmaAveragingWindow = 45;       // Averaging window size for LWMA diff adjust
         consensus.diffRetargetFix = 0;            // Block of diff algo change
@@ -323,20 +313,6 @@ public:
 
         consensus.powTypeLimits.emplace_back(uint256S("00000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffff")); // x16rt limit
         consensus.powTypeLimits.emplace_back(uint256S("000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff")); // Minotaurx limit
-
-        // testnet x16rt switch
-        consensus.nX16rtTimestamp = 1634101200; // Oct 13, 2021
-
-        // Avian Assets, Messaging, Restricted
-        consensus.nAssetActivationTime = 1645104453;      // Feb 17, 2022
-        consensus.nMessagingActivationTime = 1645104453;  // Feb 17, 2022
-        consensus.nRestrictedActivationTime = 1645104453; // Feb 17, 2022
-
-        // Avian Flight Plans
-        consensus.nFlightPlansActivationTime = 1645104453; // Feb 17, 2022
-
-        // Avian Name System (ANS)
-        consensus.nAvianNameSystemTime = 1645104453; // Feb 17, 2022
 
         // The best chain should have at least this much work.
         consensus.nMinimumChainWork = uint256S("0x0000000000000000000000000000000000000000000000000000000000000002");
@@ -376,7 +352,7 @@ public:
         vector<FounderRewardStructure> rewardStructures = {
             {INT_MAX, 5} // 5% founder/dev fee forever
         };
-        consensus.nFounderPayment = FounderPayment(rewardStructures, 150, "n1BurnXXXXXXXXXXXXXXXXXXXXXXU1qejP"); // Block 150 (burn coins)
+        consensus.nFounderPayment = FounderPayment(rewardStructures, 10, "2MvpouPdDEujBZg5eZnLNv5bCn78EE2bi65"); // Block 10 (testnet P2SH)
 
         fDefaultConsistencyChecks = false;
         fRequireStandard = false;
@@ -451,10 +427,17 @@ public:
         consensus.fPowNoRetargeting = true;
         consensus.nRuleChangeActivationThreshold = 108; // 75% for testchains
         consensus.nMinerConfirmationWindow = 144;       // Faster than normal for regtest (144 instead of 2016)
+        // BIP9 deployments
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].bit = 28;
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nStartTime = 0;
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nTimeout = 999999999999ULL;
 
+        // Avian network upgrades (hardforks)
+        consensus.vUpgrades[Consensus::UPGRADE_X16RT_SWITCH].nTimestamp = 1629951212;       // (genesis +1)
+        consensus.vUpgrades[Consensus::UPGRADE_DUAL_ALGO].nTimestamp = 1629951212;          // (genesis +1)
+        consensus.vUpgrades[Consensus::UPGRADE_AVIAN_ASSETS].nTimestamp = 1629951212;       // (genesis +1)
+        consensus.vUpgrades[Consensus::UPGRADE_AVIAN_FLIGHT_PLANS].nTimestamp = 1629951212; // (genesis +1)
+        consensus.vUpgrades[Consensus::UPGRADE_AVIAN_NAME_SYSTEM].nTimestamp = 1629951212;  // (genesis +1)
         // Minotaurx Algo consensus
         consensus.powForkTime = 1629951212;       // Time of PoW hash method change
         consensus.lwmaAveragingWindow = 45;       // Averaging window size for LWMA diff adjust
@@ -463,20 +446,6 @@ public:
 
         consensus.powTypeLimits.emplace_back(uint256S("7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff")); // x16rt limit
         consensus.powTypeLimits.emplace_back(uint256S("7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff")); // Minotaurx limit
-
-        // regtest x16rt switch (genesis +1)
-        consensus.nX16rtTimestamp = 1629951212;
-
-        // Avian Assets, Messaging, Restricted
-        consensus.nAssetActivationTime = 1629951212;      // (genesis +1)
-        consensus.nMessagingActivationTime = 1629951212;  // (genesis +1)
-        consensus.nRestrictedActivationTime = 1629951212; // (genesis +1)
-
-        // Avian Flight Plans
-        consensus.nFlightPlansActivationTime = 1629951212; // (genesis +1)
-
-        // Avian Name System (ANS)
-        consensus.nAvianNameSystemTime = 1629951212; // (genesis +1)
 
         // The best chain should have at least this much work.
         consensus.nMinimumChainWork = uint256S("0x00");
@@ -554,7 +523,7 @@ public:
 
         genesis = CreateGenesisBlock(1629951211, 1, 0x207fffff, 2, 2500 * COIN);
 
-        consensus.hashGenesisBlock = genesis.GetHash();
+        consensus.hashGenesisBlock = genesis.GetX16RHash();
         assert(consensus.hashGenesisBlock == uint256S("0x653634d03d27ed84e8aba5dd47903906ad7be4876a1d3677be0db2891dcf787f"));
         assert(genesis.hashMerkleRoot == uint256S("63d9b6b6b549a2d96eb5ac4eb2ab80761e6d7bffa9ae1a647191e08d6416184d"));
 
@@ -562,7 +531,7 @@ public:
         vector<FounderRewardStructure> rewardStructures = {
             {INT_MAX, 5} // 5% founder/dev fee forever
         };
-        consensus.nFounderPayment = FounderPayment(rewardStructures, 1, "n1BurnXXXXXXXXXXXXXXXXXXXXXXU1qejP"); // Block 1 (burn coins)
+        consensus.nFounderPayment = FounderPayment(rewardStructures, 1, "2MwTWhsKXQTpMPEGsWZCdYy7UZRECPPapM1"); // Block 1 (burn coins)
 
         vFixedSeeds.clear(); //!< Regtest mode doesn't have any fixed seeds.
         vSeeds.clear();      //!< Regtest mode doesn't have any DNS seeds.
@@ -646,12 +615,9 @@ std::unique_ptr<CChainParams> CreateChainParams(const std::string& chain)
     throw std::runtime_error(strprintf("%s: Unknown chain %s.", __func__, chain));
 }
 
-void SelectParams(const std::string& network, bool fForceBlockNetwork)
+void SelectParams(const std::string& network)
 {
     SelectBaseParams(network);
-    if (fForceBlockNetwork) {
-        bNetwork.SetNetwork(network);
-    }
     globalChainParams = CreateChainParams(network);
 }
 

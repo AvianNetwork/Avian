@@ -431,13 +431,9 @@ std::string HelpMessage(HelpMessageMode mode)
     const auto testnetChainParams = CreateChainParams(CBaseChainParams::TESTNET);
 
     // We want to make sure to set the correct values after we get the help values
-    if (bNetwork.fOnRegtest) {
-        CreateChainParams(CBaseChainParams::REGTEST);
-    } else if (bNetwork.fOnTestnet) {
-        CreateChainParams(CBaseChainParams::TESTNET);
-    } else {
-        CreateChainParams(CBaseChainParams::MAIN);
-    }
+    CreateChainParams(CBaseChainParams::REGTEST);
+    CreateChainParams(CBaseChainParams::TESTNET);
+    CreateChainParams(CBaseChainParams::MAIN);
 
     const bool showDebug = gArgs.GetBoolArg("-help-debug", false);
 

@@ -5,7 +5,7 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include "versionbits.h"
+#include "chainparams.h"
 
 #include <cstdint>
 
@@ -22,35 +22,11 @@
 #include "tinyformat.h"
 #include "util.h"
 #include "utilstrencodings.h"
+#include "versionbits.h"
 
 #include "consensus/consensus.h"
 
 #define TIME_MASK 0xffffff80
-
-static const uint32_t MAINNET_X16RT_ACTIVATIONTIME = 1638847406;
-static const uint32_t TESTNET_X16RT_ACTIVATIONTIME = 1634101200;
-static const uint32_t REGTEST_X16RT_ACTIVATIONTIME = 1629951212;
-
-static const uint32_t MAINNET_DUAL_ALGO_MULTI_ACTIVATIONTIME = 1638847407;
-static const uint32_t TESTNET_DUAL_ALGO_MULTI_ACTIVATIONTIME = 1639005225;
-static const uint32_t REGTEST_DUAL_ALGO_MULTI_ACTIVATIONTIME = 1629951212;
-
-BlockNetwork bNetwork = BlockNetwork();
-
-BlockNetwork::BlockNetwork()
-{
-    fOnTestnet = false;
-    fOnRegtest = false;
-}
-
-void BlockNetwork::SetNetwork(const std::string& net)
-{
-    if (net == "test") {
-        fOnTestnet = true;
-    } else if (net == "regtest") {
-        fOnRegtest = true;
-    }
-}
 
 uint256 CBlockHeader::GetSHA256Hash() const
 {
@@ -61,22 +37,12 @@ uint256 CBlockHeader::ComputePoWHash() const
 {
     uint256 thash;
     unsigned int profile = 0x0;
-    uint32_t nTimeToUse = MAINNET_X16RT_ACTIVATIONTIME;
-    uint32_t nDualAlgoTimeToUse = MAINNET_DUAL_ALGO_MULTI_ACTIVATIONTIME;
 
-    if (bNetwork.fOnTestnet) {
-        nTimeToUse = TESTNET_X16RT_ACTIVATIONTIME;
-        nDualAlgoTimeToUse = TESTNET_DUAL_ALGO_MULTI_ACTIVATIONTIME;
-    } else if (bNetwork.fOnRegtest) {
-        nTimeToUse = REGTEST_X16RT_ACTIVATIONTIME;
-        nDualAlgoTimeToUse = REGTEST_DUAL_ALGO_MULTI_ACTIVATIONTIME;
-    } else {
-        nTimeToUse = MAINNET_X16RT_ACTIVATIONTIME;
-        nDualAlgoTimeToUse = MAINNET_DUAL_ALGO_MULTI_ACTIVATIONTIME;
-    }
+    uint32_t nX16rtTimestamp = Params().GetConsensus().vUpgrades[Consensus::UPGRADE_X16RT_SWITCH].nTimestamp;
+    uint32_t nDualAlgoTimestamp = Params().GetConsensus().vUpgrades[Consensus::UPGRADE_DUAL_ALGO].nTimestamp;
 
-    if (nTime > nTimeToUse) {
-        if (nTime > nDualAlgoTimeToUse) {
+    if (nTime > nX16rtTimestamp) {
+        if (nTime > nDualAlgoTimestamp) {
             // Mutli algo (x16rt + Minotaurx algo)
             switch (GetPoWType()) {
             case POW_TYPE_X16RT: {
@@ -157,36 +123,3 @@ std::string CBlock::ToString() const
     }
     return s.str();
 }
-
-/// Used to test algo switching between X16R and X16RV2
-
-// uint256 CBlockHeader::TestTiger() const
-//{
-//     return HashTestTiger(BEGIN(nVersion), END(nNonce), hashPrevBlock);
-// }
-//
-// uint256 CBlockHeader::TestSha512() const
-//{
-//     return HashTestSha512(BEGIN(nVersion), END(nNonce), hashPrevBlock);
-// }
-//
-// uint256 CBlockHeader::TestGost512() const
-//{
-//     return HashTestGost512(BEGIN(nVersion), END(nNonce), hashPrevBlock);
-// }
-
-// CBlock block = ConsensusParams().GenesisBlock();
-// int64_t nStart = GetTimeMillis();
-// LogPrintf("Starting Tiger %dms\n", nStart);
-// block.TestTiger();
-// LogPrintf("Tiger Finished %dms\n", GetTimeMillis() - nStart);
-//
-// nStart = GetTimeMillis();
-// LogPrintf("Starting Sha512 %dms\n", nStart);
-// block.TestSha512();
-// LogPrintf("Sha512 Finished %dms\n", GetTimeMillis() - nStart);
-//
-// nStart = GetTimeMillis();
-// LogPrintf("Starting Gost512 %dms\n", nStart);
-// block.TestGost512();
-// LogPrintf("Gost512 Finished %dms\n", GetTimeMillis() - nStart);
