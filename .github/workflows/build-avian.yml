@@ -6,6 +6,7 @@ on:
       - master
       - develop
       - V4.2
+      - "chore/ci-dirty-diagnose"
   pull_request:
     branches:
       - master
