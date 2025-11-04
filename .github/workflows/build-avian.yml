@@ -105,8 +105,28 @@ jobs:
         run: cd ${{ GITHUB.WORKSPACE }} && ./autogen.sh
 
       - if: ${{ needs.check-jobs.outputs.should_skip != 'true' }}
+        name: Debug repository state after autogen
+        run: |
+          echo "HEAD: $(git rev-parse HEAD)"
+          echo "Describe: $(git describe --tags --always --dirty 2>/dev/null || true)"
+          echo "Status (porcelain):"
+          git status --porcelain -uall || true
+          echo "Diff-index (excluding depends/):"
+          git diff-index --name-status HEAD -- . ":(exclude)depends/" || true
+
+      - if: ${{ needs.check-jobs.outputs.should_skip != 'true' }}
         name: Configure Build
         run: ${SCRIPTS}/04-configure-build.sh ${{ MATRIX.OS }} ${{ GITHUB.WORKSPACE }}
+
+      - if: ${{ needs.check-jobs.outputs.should_skip != 'true' }}
+        name: Debug repository state after configure
+        run: |
+          echo "HEAD: $(git rev-parse HEAD)"
+          echo "Describe: $(git describe --tags --always --dirty 2>/dev/null || true)"
+          echo "Status (porcelain):"
+          git status --porcelain -uall || true
+          echo "Diff-index (excluding depends/):"
+          git diff-index --name-status HEAD -- . ":(exclude)depends/" || true
 
       - if: ${{ needs.check-jobs.outputs.should_skip != 'true' }}
         name: Build Avian
