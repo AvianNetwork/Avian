@@ -47,11 +47,20 @@ if [ "${AVIAN_GENBUILD_NO_GIT}" != "1" -a -e "$(which git 2>/dev/null)" -a "$(gi
 
     # otherwise generate suffix from git, i.e. string like "59887e8-dirty"
     SUFFIX=$(git rev-parse --short HEAD)
-    if git diff-index --quiet HEAD -- . ":(exclude)depends/"; then
+
+    # Treat common Autotools outputs as generated and ignore them for "dirty" checks.
+    # This avoids spurious "-dirty" when ./autogen.sh or configure regenerates tracked files.
+    EXCLUDES=":(exclude)depends/ :(
+exclude)build-aux/ :(
+exclude)configure :(
+exclude)aclocal.m4 :(
+exclude,glob)**/Makefile.in"
+
+    if git diff-index --quiet HEAD -- . $EXCLUDES; then
         log "Working tree clean (excluding depends/). SUFFIX=${SUFFIX}"
     else
         log "Dirty paths detected (excluding depends/):"
-        git diff-index --name-status HEAD -- . ":(exclude)depends/" 1>&2 || true
+        git diff-index --name-status HEAD -- . $EXCLUDES 1>&2 || true
         SUFFIX="$SUFFIX-dirty"
     fi
 fi
