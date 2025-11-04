@@ -4791,14 +4791,10 @@ bool static LoadBlockIndexDB(const CChainParams& chainparams)
     int nHeight = 0;
     int nLastPercent = -1;
     for (const std::pair<int, CBlockIndex*>& item : vSortedByHeight) {
-        nNow = GetTime();
-        if (nNow >= nLastNow + 5) {
-            int nPercent = 100 * nHeight / nHighest;
-            if (nPercent >= nLastPercent + 5 || nPercent == 100) {
-                uiInterface.InitMessage(strprintf(_("Indexing blocks... %d%%"), (100 * nHeight) / nHighest));
-                nLastPercent = nPercent;
-            }
-            nLastNow = nNow;
+        int nPercent = 100 * nHeight / nHighest;
+        if (nPercent % 5 == 0 && nPercent != nLastPercent) {
+            uiInterface.InitMessage(strprintf(_("Indexing blocks... %d%%"), nPercent));
+            nLastPercent = nPercent;
         }
         nHeight++;
         CBlockIndex* pindex = item.second;
