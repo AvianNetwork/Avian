@@ -138,6 +138,7 @@ AvianGUI::AvianGUI(const PlatformStyle* _platformStyle, const NetworkStyle* netw
                                                                                                              toggleHideAction(nullptr),
                                                                                                              encryptWalletAction(nullptr),
                                                                                                              backupWalletAction(nullptr),
+                                                                                                             dustWalletAction(nullptr),
                                                                                                              changePassphraseAction(nullptr),
                                                                                                              getMyWordsAction(nullptr),
                                                                                                              aboutQtAction(nullptr),
@@ -518,6 +519,8 @@ void AvianGUI::createActions()
     encryptWalletAction->setCheckable(true);
     backupWalletAction = new QAction(platformStyle->TextColorIcon(":/icons/filesave"), tr("&Backup Wallet..."), this);
     backupWalletAction->setStatusTip(tr("Backup wallet to another location"));
+    dustWalletAction = new QAction(platformStyle->TextColorIcon(":/icons/filesave"), tr("&Consolidate UTXOs..."), this);
+    dustWalletAction->setStatusTip(tr("Consolidate small balance UTXOs into larger ones to reduce wallet size"));
     changePassphraseAction = new QAction(platformStyle->TextColorIcon(":/icons/key"), tr("&Change Passphrase..."), this);
     changePassphraseAction->setStatusTip(tr("Change the passphrase used for wallet encryption"));
     getMyWordsAction = new QAction(platformStyle->TextColorIcon(":/icons/key"), tr("&Get my words..."), this);
@@ -566,6 +569,7 @@ void AvianGUI::createActions()
     if (walletFrame) {
         connect(encryptWalletAction, SIGNAL(triggered(bool)), walletFrame, SLOT(encryptWallet(bool)));
         connect(backupWalletAction, SIGNAL(triggered()), walletFrame, SLOT(backupWallet()));
+        connect(dustWalletAction, SIGNAL(triggered()), walletFrame, SLOT(dustWallet()));
         connect(changePassphraseAction, SIGNAL(triggered()), walletFrame, SLOT(changePassphrase()));
         connect(getMyWordsAction, SIGNAL(triggered()), walletFrame, SLOT(getMyWords()));
         connect(signMessageAction, SIGNAL(triggered()), this, SLOT(gotoSignMessageTab()));
@@ -611,6 +615,7 @@ void AvianGUI::createMenuBar()
     if (walletFrame) {
         settings->addAction(encryptWalletAction);
         settings->addAction(backupWalletAction);
+        settings->addAction(dustWalletAction);
         settings->addAction(changePassphraseAction);
         settings->addAction(getMyWordsAction);
         settings->addSeparator();
@@ -733,7 +738,7 @@ void AvianGUI::createToolBars()
         labelCurrentPrice->setObjectName("labelCurrentPrice");
 
         QLabel* labelBtcAVN = new QLabel();
-        labelBtcAVN->setText("USD / AVN");
+        labelBtcAVN->setText("USDT / AVN");
         labelBtcAVN->setContentsMargins(15, 0, 0, 0);
         labelBtcAVN->setFixedHeight(75);
         labelBtcAVN->setAlignment(Qt::AlignVCenter);
@@ -1002,6 +1007,7 @@ void AvianGUI::setWalletActionsEnabled(bool enabled)
     encryptWalletAction->setEnabled(enabled);
     importPrivateKeyAction->setEnabled(enabled);
     backupWalletAction->setEnabled(enabled);
+    dustWalletAction->setEnabled(enabled);
     changePassphraseAction->setEnabled(enabled);
     getMyWordsAction->setEnabled(enabled);
     signMessageAction->setEnabled(enabled);

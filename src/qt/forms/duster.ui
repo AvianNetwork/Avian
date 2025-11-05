@@ -1,0 +1,236 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>DusterDialog</class>
+ <widget class="QDialog" name="DusterDialogPage">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>878</width>
+    <height>457</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Consolidate UTXO Transactions</string>
+  </property>
+  <layout class="QVBoxLayout" name="verticalLayout">
+   <item>
+    <widget class="QGroupBox" name="settingsGroupBox">
+     <property name="title">
+      <string>Consolidation Settings</string>
+     </property>
+     <layout class="QGridLayout" name="settingsLayout">
+      <item row="0" column="0">
+       <widget class="QLabel" name="labelMinAmount">
+        <property name="text">
+         <string>Minimum Input Amount:</string>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="1">
+       <widget class="AvianAmountField" name="minInputAmount">
+       </widget>
+      </item>
+      <item row="0" column="2">
+       <widget class="QLabel" name="labelMaxAmount">
+        <property name="text">
+         <string>Maximum Input Amount:</string>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="3">
+       <widget class="AvianAmountField" name="maxInputAmount">
+       </widget>
+      </item>
+      <item row="1" column="0">
+       <widget class="QLabel" name="labelMaxBatchAmount">
+        <property name="text">
+         <string>Maximum Batch Amount:</string>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="1">
+       <widget class="AvianAmountField" name="maxBatchAmount">
+       </widget>
+      </item>
+      <item row="1" column="2">
+       <widget class="QLabel" name="labelMaxUtxos">
+        <property name="text">
+         <string>Maximum UTXOs per Batch:</string>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="3">
+       <widget class="QSpinBox" name="maxUtxosPerBatch">
+        <property name="minimum">
+         <number>3</number>
+        </property>
+        <property name="maximum">
+         <number>2000</number>
+        </property>
+        <property name="value">
+         <number>500</number>
+        </property>
+       </widget>
+      </item>
+      <item row="2" column="0">
+       <widget class="QLabel" name="labelMaxBatches">
+        <property name="text">
+         <string>Maximum Batches:</string>
+        </property>
+       </widget>
+      </item>
+      <item row="2" column="1">
+       <widget class="QSpinBox" name="maxBatches">
+        <property name="minimum">
+         <number>0</number>
+        </property>
+        <property name="maximum">
+         <number>1000</number>
+        </property>
+        <property name="value">
+         <number>0</number>
+        </property>
+        <property name="specialValueText">
+         <string>Unlimited</string>
+        </property>
+        <property name="toolTip">
+         <string>Maximum number of batches to process (0 = unlimited)</string>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <item>
+    <widget class="QGroupBox" name="addressGroupBox">
+     <property name="title">
+      <string>Destination</string>
+     </property>
+     <layout class="QHBoxLayout" name="addressLayout">
+      <item>
+       <widget class="QLabel" name="labelAddress">
+        <property name="text">
+         <string>Consolidate to address:</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QLineEdit" name="dustAddress">
+        <property name="readOnly">
+         <bool>true</bool>
+        </property>
+        <property name="placeholderText">
+         <string>Click the address book button to select a destination address</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QToolButton" name="addressBookButton">
+        <property name="toolTip">
+         <string>Choose address from address book</string>
+        </property>
+        <property name="text">
+         <string/>
+        </property>
+        <property name="icon">
+         <iconset resource="../avian.qrc">
+          <normaloff>:/icons/address-book</normaloff>:/icons/address-book</iconset>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <item>
+    <widget class="QGroupBox" name="utxoGroupBox">
+     <property name="title">
+      <string>Available UTXOs</string>
+     </property>
+     <layout class="QVBoxLayout" name="utxoLayout">
+      <item>
+       <widget class="QLabel" name="infoLabel">
+        <property name="text">
+         <string/>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QTableWidget" name="blocksTable">
+        <property name="selectionBehavior">
+         <enum>QAbstractItemView::SelectRows</enum>
+        </property>
+        <property name="selectionMode">
+         <enum>QAbstractItemView::NoSelection</enum>
+        </property>
+        <property name="showGrid">
+         <bool>true</bool>
+        </property>
+        <column>
+         <property name="text">
+          <string>Amount</string>
+         </property>
+        </column>
+        <column>
+         <property name="text">
+          <string>Date</string>
+         </property>
+        </column>
+        <column>
+         <property name="text">
+          <string>Label</string>
+         </property>
+        </column>
+        <column>
+         <property name="text">
+          <string>Received with</string>
+         </property>
+        </column>
+        <column>
+         <property name="text">
+          <string>Confirmations</string>
+         </property>
+        </column>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <item>
+    <layout class="QHBoxLayout" name="buttonLayout">
+     <item>
+      <widget class="QPushButton" name="refreshButton">
+       <property name="text">
+        <string>&amp;Refresh</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <spacer name="horizontalSpacer">
+       <property name="orientation">
+        <enum>Qt::Horizontal</enum>
+       </property>
+       <property name="sizeHint" stdset="0">
+        <size>
+         <width>40</width>
+         <height>20</height>
+        </size>
+       </property>
+      </spacer>
+     </item>
+     <item>
+      <widget class="QPushButton" name="consolidateButton">
+       <property name="text">
+        <string>&amp;Consolidate</string>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </item>
+  </layout>
+ </widget>
+ <resources>
+  <include location="../avian.qrc"/>
+ </resources>
+ <connections/>
+</ui>
