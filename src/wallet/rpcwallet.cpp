@@ -11,7 +11,6 @@
 #include "consensus/validation.h"
 #include "core_io.h"
 #include "httpserver.h"
-#include "validation.h"
 #include "net.h"
 #include "policy/feerate.h"
 #include "policy/fees.h"
@@ -23,14 +22,15 @@
 #include "script/sign.h"
 #include "timedata.h"
 #include "util.h"
-#include "utiltime.h"
 #include "utilmoneystr.h"
+#include "utiltime.h"
+#include "validation.h"
 #include "wallet/coincontrol.h"
 #include "wallet/feebumper.h"
 #include "wallet/wallet.h"
 #include "wallet/walletdb.h"
 
-#include <init.h>  // For StartShutdown
+#include <init.h> // For StartShutdown
 
 #include <stdint.h>
 
@@ -38,7 +38,7 @@
 
 static const std::string WALLET_ENDPOINT_BASE = "/wallet/";
 
-CWallet *GetWalletForJSONRPCRequest(const JSONRPCRequest& request)
+CWallet* GetWalletForJSONRPCRequest(const JSONRPCRequest& request)
 {
     if (request.URI.substr(0, WALLET_ENDPOINT_BASE.size()) == WALLET_ENDPOINT_BASE) {
         // wallet endpoint was used
@@ -54,14 +54,12 @@ CWallet *GetWalletForJSONRPCRequest(const JSONRPCRequest& request)
 }
 
 
-std::string HelpRequiringPassphrase(CWallet * const pwallet)
+std::string HelpRequiringPassphrase(CWallet* const pwallet)
 {
-    return pwallet && pwallet->IsCrypted()
-        ? "\nRequires wallet passphrase to be set with walletpassphrase call."
-        : "";
+    return pwallet && pwallet->IsCrypted() ? "\nRequires wallet passphrase to be set with walletpassphrase call." : "";
 }
 
-bool EnsureWalletIsAvailable(CWallet * const pwallet, bool avoidException)
+bool EnsureWalletIsAvailable(CWallet* const pwallet, bool avoidException)
 {
     if (pwallet) return true;
     if (avoidException) return false;
@@ -78,7 +76,7 @@ bool EnsureWalletIsAvailable(CWallet * const pwallet, bool avoidException)
         "Wallet file not specified (must request wallet RPC through /wallet/<filename> uri-path).");
 }
 
-void EnsureWalletIsUnlocked(CWallet * const pwallet)
+void EnsureWalletIsUnlocked(CWallet* const pwallet)
 {
     if (pwallet->IsLocked()) {
         throw JSONRPCError(RPC_WALLET_UNLOCK_NEEDED, "Error: Please enter the wallet passphrase with walletpassphrase first.");
@@ -91,8 +89,7 @@ void WalletTxToJSON(const CWalletTx& wtx, UniValue& entry)
     entry.push_back(Pair("confirmations", confirms));
     if (wtx.IsCoinBase())
         entry.push_back(Pair("generated", true));
-    if (confirms > 0)
-    {
+    if (confirms > 0) {
         entry.push_back(Pair("blockhash", wtx.hashBlock.GetHex()));
         entry.push_back(Pair("blockindex", wtx.nIndex));
         entry.push_back(Pair("blocktime", mapBlockIndex[wtx.hashBlock]->GetBlockTime()));
@@ -110,14 +107,14 @@ void WalletTxToJSON(const CWalletTx& wtx, UniValue& entry)
 
     // Add opt-in RBF status
     std::string rbfStatus = "no";
-//    if (confirms <= 0) {
-//        LOCK(mempool.cs);
-//        RBFTransactionState rbfState = IsRBFOptIn(wtx, mempool);
-//        if (rbfState == RBF_TRANSACTIONSTATE_UNKNOWN)
-//            rbfStatus = "unknown";
-//        else if (rbfState == RBF_TRANSACTIONSTATE_REPLACEABLE_BIP125)
-//            rbfStatus = "yes";
-//    }
+    //    if (confirms <= 0) {
+    //        LOCK(mempool.cs);
+    //        RBFTransactionState rbfState = IsRBFOptIn(wtx, mempool);
+    //        if (rbfState == RBF_TRANSACTIONSTATE_UNKNOWN)
+    //            rbfStatus = "unknown";
+    //        else if (rbfState == RBF_TRANSACTIONSTATE_REPLACEABLE_BIP125)
+    //            rbfStatus = "yes";
+    //    }
     entry.push_back(Pair("bip125-replaceable", rbfStatus));
 
     for (const std::pair<std::string, std::string>& item : wtx.mapValue)
@@ -134,24 +131,22 @@ std::string AccountFromValue(const UniValue& value)
 
 UniValue getmywords(const JSONRPCRequest& request)
 {
-    CWallet * const pwallet = GetWalletForJSONRPCRequest(request);
+    CWallet* const pwallet = GetWalletForJSONRPCRequest(request);
     if (!EnsureWalletIsAvailable(pwallet, request.fHelp)) {
         return NullUniValue;
     }
 
     if (request.fHelp || request.params.size() > 1)
         throw std::runtime_error(
-                "getmywords ( \"account\" )\n"
-                "\nReturns the 12 words and passphrase used by BIP39 to generate the wallets private keys\n"
-                "Only returns value if wallet was created by the 12 words import/generation\n"
+            "getmywords ( \"account\" )\n"
+            "\nReturns the 12 words and passphrase used by BIP39 to generate the wallets private keys\n"
+            "Only returns value if wallet was created by the 12 words import/generation\n"
 
-                "\nResult:\n"
-                "\"word_list:\"    (string) A string of words separated by spaces\n"
-                "\"passphrase:\"    (optional) Only show if passphrase was used when creating the wallet\n"
-                "\nExamples:\n"
-                + HelpExampleCli("getmywords", "")
-                + HelpExampleRpc("getmywords", "")
-        );
+            "\nResult:\n"
+            "\"word_list:\"    (string) A string of words separated by spaces\n"
+            "\"passphrase:\"    (optional) Only show if passphrase was used when creating the wallet\n"
+            "\nExamples:\n" +
+            HelpExampleCli("getmywords", "") + HelpExampleRpc("getmywords", ""));
 
     LOCK2(cs_main, pwallet->cs_wallet);
 
@@ -180,7 +175,7 @@ UniValue getmywords(const JSONRPCRequest& request)
 
 UniValue getnewaddress(const JSONRPCRequest& request)
 {
-    CWallet * const pwallet = GetWalletForJSONRPCRequest(request);
+    CWallet* const pwallet = GetWalletForJSONRPCRequest(request);
     if (!EnsureWalletIsAvailable(pwallet, request.fHelp)) {
         return NullUniValue;
     }
@@ -195,10 +190,8 @@ UniValue getnewaddress(const JSONRPCRequest& request)
             "1. \"account\"        (string, optional) DEPRECATED. The account name for the address to be linked to. If not provided, the default account \"\" is used. It can also be set to the empty string \"\" to represent the default account. The account does not need to exist, it will be created if there is no account by the given name.\n"
             "\nResult:\n"
             "\"address\"    (string) The new avian address\n"
-            "\nExamples:\n"
-            + HelpExampleCli("getnewaddress", "")
-            + HelpExampleRpc("getnewaddress", "")
-        );
+            "\nExamples:\n" +
+            HelpExampleCli("getnewaddress", "") + HelpExampleRpc("getnewaddress", ""));
 
     LOCK2(cs_main, pwallet->cs_wallet);
 
@@ -224,7 +217,7 @@ UniValue getnewaddress(const JSONRPCRequest& request)
 }
 
 
-CTxDestination GetAccountAddress(CWallet* const pwallet, std::string strAccount, bool bForceNew=false)
+CTxDestination GetAccountAddress(CWallet* const pwallet, std::string strAccount, bool bForceNew = false)
 {
     CPubKey pubKey;
     if (!pwallet->GetAccountPubkey(pubKey, strAccount, bForceNew)) {
@@ -236,7 +229,7 @@ CTxDestination GetAccountAddress(CWallet* const pwallet, std::string strAccount,
 
 UniValue getaccountaddress(const JSONRPCRequest& request)
 {
-    CWallet * const pwallet = GetWalletForJSONRPCRequest(request);
+    CWallet* const pwallet = GetWalletForJSONRPCRequest(request);
     if (!EnsureWalletIsAvailable(pwallet, request.fHelp)) {
         return NullUniValue;
     }
@@ -249,12 +242,8 @@ UniValue getaccountaddress(const JSONRPCRequest& request)
             "1. \"account\"       (string, required) The account name for the address. It can also be set to the empty string \"\" to represent the default account. The account does not need to exist, it will be created and a new address created  if there is no account by the given name.\n"
             "\nResult:\n"
             "\"address\"          (string) The account avian address\n"
-            "\nExamples:\n"
-            + HelpExampleCli("getaccountaddress", "")
-            + HelpExampleCli("getaccountaddress", "\"\"")
-            + HelpExampleCli("getaccountaddress", "\"myaccount\"")
-            + HelpExampleRpc("getaccountaddress", "\"myaccount\"")
-        );
+            "\nExamples:\n" +
+            HelpExampleCli("getaccountaddress", "") + HelpExampleCli("getaccountaddress", "\"\"") + HelpExampleCli("getaccountaddress", "\"myaccount\"") + HelpExampleRpc("getaccountaddress", "\"myaccount\""));
 
     LOCK2(cs_main, pwallet->cs_wallet);
 
@@ -270,7 +259,7 @@ UniValue getaccountaddress(const JSONRPCRequest& request)
 
 UniValue getrawchangeaddress(const JSONRPCRequest& request)
 {
-    CWallet * const pwallet = GetWalletForJSONRPCRequest(request);
+    CWallet* const pwallet = GetWalletForJSONRPCRequest(request);
     if (!EnsureWalletIsAvailable(pwallet, request.fHelp)) {
         return NullUniValue;
     }
@@ -282,10 +271,8 @@ UniValue getrawchangeaddress(const JSONRPCRequest& request)
             "This is for use with raw transactions, NOT normal use.\n"
             "\nResult:\n"
             "\"address\"    (string) The address\n"
-            "\nExamples:\n"
-            + HelpExampleCli("getrawchangeaddress", "")
-            + HelpExampleRpc("getrawchangeaddress", "")
-       );
+            "\nExamples:\n" +
+            HelpExampleCli("getrawchangeaddress", "") + HelpExampleRpc("getrawchangeaddress", ""));
 
     LOCK2(cs_main, pwallet->cs_wallet);
 
@@ -308,7 +295,7 @@ UniValue getrawchangeaddress(const JSONRPCRequest& request)
 
 UniValue setaccount(const JSONRPCRequest& request)
 {
-    CWallet * const pwallet = GetWalletForJSONRPCRequest(request);
+    CWallet* const pwallet = GetWalletForJSONRPCRequest(request);
     if (!EnsureWalletIsAvailable(pwallet, request.fHelp)) {
         return NullUniValue;
     }
@@ -320,10 +307,8 @@ UniValue setaccount(const JSONRPCRequest& request)
             "\nArguments:\n"
             "1. \"address\"         (string, required) The avian address to be associated with an account.\n"
             "2. \"account\"         (string, required) The account to assign the address to.\n"
-            "\nExamples:\n"
-            + HelpExampleCli("setaccount", "\"1D1ZrZNe3JUo7ZycKEYQQiQAWd9y54F4XX\" \"tabby\"")
-            + HelpExampleRpc("setaccount", "\"1D1ZrZNe3JUo7ZycKEYQQiQAWd9y54F4XX\", \"tabby\"")
-        );
+            "\nExamples:\n" +
+            HelpExampleCli("setaccount", "\"1D1ZrZNe3JUo7ZycKEYQQiQAWd9y54F4XX\" \"tabby\"") + HelpExampleRpc("setaccount", "\"1D1ZrZNe3JUo7ZycKEYQQiQAWd9y54F4XX\", \"tabby\""));
 
     LOCK2(cs_main, pwallet->cs_wallet);
 
@@ -346,8 +331,7 @@ UniValue setaccount(const JSONRPCRequest& request)
             }
         }
         pwallet->SetAddressBook(dest, strAccount, "receive");
-    }
-    else
+    } else
         throw JSONRPCError(RPC_MISC_ERROR, "setaccount can only be used with own address");
 
     return NullUniValue;
@@ -356,7 +340,7 @@ UniValue setaccount(const JSONRPCRequest& request)
 
 UniValue getaccount(const JSONRPCRequest& request)
 {
-    CWallet * const pwallet = GetWalletForJSONRPCRequest(request);
+    CWallet* const pwallet = GetWalletForJSONRPCRequest(request);
     if (!EnsureWalletIsAvailable(pwallet, request.fHelp)) {
         return NullUniValue;
     }
@@ -369,10 +353,8 @@ UniValue getaccount(const JSONRPCRequest& request)
             "1. \"address\"         (string, required) The avian address for account lookup.\n"
             "\nResult:\n"
             "\"accountname\"        (string) the account address\n"
-            "\nExamples:\n"
-            + HelpExampleCli("getaccount", "\"1D1ZrZNe3JUo7ZycKEYQQiQAWd9y54F4XX\"")
-            + HelpExampleRpc("getaccount", "\"1D1ZrZNe3JUo7ZycKEYQQiQAWd9y54F4XX\"")
-        );
+            "\nExamples:\n" +
+            HelpExampleCli("getaccount", "\"1D1ZrZNe3JUo7ZycKEYQQiQAWd9y54F4XX\"") + HelpExampleRpc("getaccount", "\"1D1ZrZNe3JUo7ZycKEYQQiQAWd9y54F4XX\""));
 
     LOCK2(cs_main, pwallet->cs_wallet);
 
@@ -392,7 +374,7 @@ UniValue getaccount(const JSONRPCRequest& request)
 
 UniValue getaddressesbyaccount(const JSONRPCRequest& request)
 {
-    CWallet * const pwallet = GetWalletForJSONRPCRequest(request);
+    CWallet* const pwallet = GetWalletForJSONRPCRequest(request);
     if (!EnsureWalletIsAvailable(pwallet, request.fHelp)) {
         return NullUniValue;
     }
@@ -408,10 +390,8 @@ UniValue getaddressesbyaccount(const JSONRPCRequest& request)
             "  \"address\"         (string) a avian address associated with the given account\n"
             "  ,...\n"
             "]\n"
-            "\nExamples:\n"
-            + HelpExampleCli("getaddressesbyaccount", "\"tabby\"")
-            + HelpExampleRpc("getaddressesbyaccount", "\"tabby\"")
-        );
+            "\nExamples:\n" +
+            HelpExampleCli("getaddressesbyaccount", "\"tabby\"") + HelpExampleRpc("getaddressesbyaccount", "\"tabby\""));
 
     LOCK2(cs_main, pwallet->cs_wallet);
 
@@ -429,7 +409,7 @@ UniValue getaddressesbyaccount(const JSONRPCRequest& request)
     return ret;
 }
 
-static void SendMoney(CWallet * const pwallet, const CTxDestination &address, CAmount nValue, bool fSubtractFeeFromAmount, CWalletTx& wtxNew, const CCoinControl& coin_control)
+static void SendMoney(CWallet* const pwallet, const CTxDestination& address, CAmount nValue, bool fSubtractFeeFromAmount, CWalletTx& wtxNew, const CCoinControl& coin_control)
 {
     CAmount curBalance = pwallet->GetBalance();
 
@@ -469,7 +449,7 @@ static void SendMoney(CWallet * const pwallet, const CTxDestination &address, CA
 
 UniValue sendtoaddress(const JSONRPCRequest& request)
 {
-    CWallet * const pwallet = GetWalletForJSONRPCRequest(request);
+    CWallet* const pwallet = GetWalletForJSONRPCRequest(request);
     if (!EnsureWalletIsAvailable(pwallet, request.fHelp)) {
         return NullUniValue;
     }
@@ -477,32 +457,29 @@ UniValue sendtoaddress(const JSONRPCRequest& request)
     if (request.fHelp || request.params.size() < 2 || request.params.size() > 7)
         throw std::runtime_error(
             "sendtoaddress \"address\" amount ( \"comment\" \"comment_to\" subtractfeefromamount replaceable conf_target \"estimate_mode\")\n"
-            "\nSend an amount to a given address.\n"
-            + HelpRequiringPassphrase(pwallet) +
+            "\nSend an amount to a given address.\n" +
+            HelpRequiringPassphrase(pwallet) +
             "\nArguments:\n"
             "1. \"address\"            (string, required) The avian address to send to.\n"
-            "2. \"amount\"             (numeric or string, required) The amount in " + CURRENCY_UNIT + " to send. eg 0.1\n"
-            "3. \"comment\"            (string, optional) A comment used to store what the transaction is for. \n"
-            "                             This is not part of the transaction, just kept in your wallet.\n"
-            "4. \"comment_to\"         (string, optional) A comment to store the name of the person or organization \n"
-            "                             to which you're sending the transaction. This is not part of the \n"
-            "                             transaction, just kept in your wallet.\n"
-            "5. subtractfeefromamount  (boolean, optional, default=false) The fee will be deducted from the amount being sent.\n"
-            "                             The recipient will receive less avians than you enter in the amount field.\n"
-//            "6. replaceable            (boolean, optional) Allow this transaction to be replaced by a transaction with higher fees via BIP 125\n"
-            "6. conf_target            (numeric, optional) Confirmation target (in blocks)\n"
-            "7. \"estimate_mode\"      (string, optional, default=UNSET) The fee estimate mode, must be one of:\n"
-            "       \"UNSET\"\n"
-            "       \"ECONOMICAL\"\n"
-            "       \"CONSERVATIVE\"\n"
-            "\nResult:\n"
-            "\"txid\"                  (string) The transaction id.\n"
-            "\nExamples:\n"
-            + HelpExampleCli("sendtoaddress", "\"1M72Sfpbz1BPpXFHz9m3CdqATR44Jvaydd\" 0.1")
-            + HelpExampleCli("sendtoaddress", "\"1M72Sfpbz1BPpXFHz9m3CdqATR44Jvaydd\" 0.1 \"donation\" \"seans outpost\"")
-            + HelpExampleCli("sendtoaddress", "\"1M72Sfpbz1BPpXFHz9m3CdqATR44Jvaydd\" 0.1 \"\" \"\" true")
-            + HelpExampleRpc("sendtoaddress", "\"1M72Sfpbz1BPpXFHz9m3CdqATR44Jvaydd\", 0.1, \"donation\", \"seans outpost\"")
-        );
+            "2. \"amount\"             (numeric or string, required) The amount in " +
+            CURRENCY_UNIT + " to send. eg 0.1\n"
+                            "3. \"comment\"            (string, optional) A comment used to store what the transaction is for. \n"
+                            "                             This is not part of the transaction, just kept in your wallet.\n"
+                            "4. \"comment_to\"         (string, optional) A comment to store the name of the person or organization \n"
+                            "                             to which you're sending the transaction. This is not part of the \n"
+                            "                             transaction, just kept in your wallet.\n"
+                            "5. subtractfeefromamount  (boolean, optional, default=false) The fee will be deducted from the amount being sent.\n"
+                            "                             The recipient will receive less avians than you enter in the amount field.\n"
+                            //            "6. replaceable            (boolean, optional) Allow this transaction to be replaced by a transaction with higher fees via BIP 125\n"
+                            "6. conf_target            (numeric, optional) Confirmation target (in blocks)\n"
+                            "7. \"estimate_mode\"      (string, optional, default=UNSET) The fee estimate mode, must be one of:\n"
+                            "       \"UNSET\"\n"
+                            "       \"ECONOMICAL\"\n"
+                            "       \"CONSERVATIVE\"\n"
+                            "\nResult:\n"
+                            "\"txid\"                  (string) The transaction id.\n"
+                            "\nExamples:\n" +
+            HelpExampleCli("sendtoaddress", "\"1M72Sfpbz1BPpXFHz9m3CdqATR44Jvaydd\" 0.1") + HelpExampleCli("sendtoaddress", "\"1M72Sfpbz1BPpXFHz9m3CdqATR44Jvaydd\" 0.1 \"donation\" \"seans outpost\"") + HelpExampleCli("sendtoaddress", "\"1M72Sfpbz1BPpXFHz9m3CdqATR44Jvaydd\" 0.1 \"\" \"\" true") + HelpExampleRpc("sendtoaddress", "\"1M72Sfpbz1BPpXFHz9m3CdqATR44Jvaydd\", 0.1, \"donation\", \"seans outpost\""));
 
     ObserveSafeMode();
     LOCK2(cs_main, pwallet->cs_wallet);
@@ -522,7 +499,7 @@ UniValue sendtoaddress(const JSONRPCRequest& request)
     if (!request.params[2].isNull() && !request.params[2].get_str().empty())
         wtx.mapValue["comment"] = request.params[2].get_str();
     if (!request.params[3].isNull() && !request.params[3].get_str().empty())
-        wtx.mapValue["to"]      = request.params[3].get_str();
+        wtx.mapValue["to"] = request.params[3].get_str();
 
     bool fSubtractFeeFromAmount = false;
     if (!request.params[4].isNull()) {
@@ -530,9 +507,9 @@ UniValue sendtoaddress(const JSONRPCRequest& request)
     }
 
     CCoinControl coin_control;
-//    if (!request.params[5].isNull()) {
-//        coin_control.signalRbf = request.params[5].get_bool();
-//    }
+    //    if (!request.params[5].isNull()) {
+    //        coin_control.signalRbf = request.params[5].get_bool();
+    //    }
 
     if (!request.params[5].isNull()) {
         coin_control.m_confirm_target = ParseConfirmTarget(request.params[6]);
@@ -554,7 +531,7 @@ UniValue sendtoaddress(const JSONRPCRequest& request)
 
 UniValue sendfromaddress(const JSONRPCRequest& request)
 {
-    CWallet * const pwallet = GetWalletForJSONRPCRequest(request);
+    CWallet* const pwallet = GetWalletForJSONRPCRequest(request);
     if (!EnsureWalletIsAvailable(pwallet, request.fHelp)) {
         return NullUniValue;
     }
@@ -562,32 +539,29 @@ UniValue sendfromaddress(const JSONRPCRequest& request)
     if (request.fHelp || request.params.size() < 3 || request.params.size() > 8)
         throw std::runtime_error(
             "sendfromaddress \"from_address\" \"to_address\" amount ( \"comment\" \"comment_to\" subtractfeefromamount replaceable conf_target \"estimate_mode\")\n"
-            "\nSend an amount from a specific address to a given address. All avn change will get sent back to the from_address\n"
-            + HelpRequiringPassphrase(pwallet) +
+            "\nSend an amount from a specific address to a given address. All avn change will get sent back to the from_address\n" +
+            HelpRequiringPassphrase(pwallet) +
             "\nArguments:\n"
             "1. \"from_address\"       (string, required) The avian address to send from.\n"
             "2. \"to_address\"            (string, required) The avian address to send to.\n"
-            "3. \"amount\"             (numeric or string, required) The amount in " + CURRENCY_UNIT + " to send. eg 0.1\n"
-            "4. \"comment\"            (string, optional) A comment used to store what the transaction is for. \n"
-            "                             This is not part of the transaction, just kept in your wallet.\n"
-            "5. \"comment_to\"         (string, optional) A comment to store the name of the person or organization \n"
-            "                             to which you're sending the transaction. This is not part of the \n"
-            "                             transaction, just kept in your wallet.\n"
-            "6. subtractfeefromamount  (boolean, optional, default=false) The fee will be deducted from the amount being sent.\n"
-            "                             The recipient will receive less avians than you enter in the amount field.\n"
-            "7. conf_target            (numeric, optional) Confirmation target (in blocks)\n"
-            "8. \"estimate_mode\"      (string, optional, default=UNSET) The fee estimate mode, must be one of:\n"
-            "       \"UNSET\"\n"
-            "       \"ECONOMICAL\"\n"
-            "       \"CONSERVATIVE\"\n"
-            "\nResult:\n"
-            "\"txid\"                  (string) The transaction id.\n"
-            "\nExamples:\n"
-            + HelpExampleCli("sendfromaddress", "\"1M72Sfpbz1BPpXFHz9m3CdqATR44Jvaydd\" \"1M72Sfpbz1BPpXFHz9m3CdqATR44Jvaydd\" 0.1")
-            + HelpExampleCli("sendfromaddress", "\"1M72Sfpbz1BPpXFHz9m3CdqATR44Jvaydd\" \"1M72Sfpbz1BPpXFHz9m3CdqATR44Jvaydd\" 0.1 \"donation\" \"seans outpost\"")
-            + HelpExampleCli("sendfromaddress", "\"1M72Sfpbz1BPpXFHz9m3CdqATR44Jvaydd\" \"1M72Sfpbz1BPpXFHz9m3CdqATR44Jvaydd\" 0.1 \"\" \"\" true")
-            + HelpExampleRpc("sendfromaddress", "\"1M72Sfpbz1BPpXFHz9m3CdqATR44Jvaydd\" \"1M72Sfpbz1BPpXFHz9m3CdqATR44Jvaydd\", 0.1, \"donation\", \"seans outpost\"")
-        );
+            "3. \"amount\"             (numeric or string, required) The amount in " +
+            CURRENCY_UNIT + " to send. eg 0.1\n"
+                            "4. \"comment\"            (string, optional) A comment used to store what the transaction is for. \n"
+                            "                             This is not part of the transaction, just kept in your wallet.\n"
+                            "5. \"comment_to\"         (string, optional) A comment to store the name of the person or organization \n"
+                            "                             to which you're sending the transaction. This is not part of the \n"
+                            "                             transaction, just kept in your wallet.\n"
+                            "6. subtractfeefromamount  (boolean, optional, default=false) The fee will be deducted from the amount being sent.\n"
+                            "                             The recipient will receive less avians than you enter in the amount field.\n"
+                            "7. conf_target            (numeric, optional) Confirmation target (in blocks)\n"
+                            "8. \"estimate_mode\"      (string, optional, default=UNSET) The fee estimate mode, must be one of:\n"
+                            "       \"UNSET\"\n"
+                            "       \"ECONOMICAL\"\n"
+                            "       \"CONSERVATIVE\"\n"
+                            "\nResult:\n"
+                            "\"txid\"                  (string) The transaction id.\n"
+                            "\nExamples:\n" +
+            HelpExampleCli("sendfromaddress", "\"1M72Sfpbz1BPpXFHz9m3CdqATR44Jvaydd\" \"1M72Sfpbz1BPpXFHz9m3CdqATR44Jvaydd\" 0.1") + HelpExampleCli("sendfromaddress", "\"1M72Sfpbz1BPpXFHz9m3CdqATR44Jvaydd\" \"1M72Sfpbz1BPpXFHz9m3CdqATR44Jvaydd\" 0.1 \"donation\" \"seans outpost\"") + HelpExampleCli("sendfromaddress", "\"1M72Sfpbz1BPpXFHz9m3CdqATR44Jvaydd\" \"1M72Sfpbz1BPpXFHz9m3CdqATR44Jvaydd\" 0.1 \"\" \"\" true") + HelpExampleRpc("sendfromaddress", "\"1M72Sfpbz1BPpXFHz9m3CdqATR44Jvaydd\" \"1M72Sfpbz1BPpXFHz9m3CdqATR44Jvaydd\", 0.1, \"donation\", \"seans outpost\""));
 
     ObserveSafeMode();
     LOCK2(cs_main, pwallet->cs_wallet);
@@ -643,7 +617,7 @@ UniValue sendfromaddress(const JSONRPCRequest& request)
     if (!request.params[3].isNull() && !request.params[2].get_str().empty())
         wtx.mapValue["comment"] = request.params[2].get_str();
     if (!request.params[4].isNull() && !request.params[3].get_str().empty())
-        wtx.mapValue["to"]      = request.params[3].get_str();
+        wtx.mapValue["to"] = request.params[3].get_str();
 
     bool fSubtractFeeFromAmount = false;
     if (!request.params[5].isNull()) {
@@ -668,10 +642,9 @@ UniValue sendfromaddress(const JSONRPCRequest& request)
 }
 
 
-
 UniValue listaddressgroupings(const JSONRPCRequest& request)
 {
-    CWallet * const pwallet = GetWalletForJSONRPCRequest(request);
+    CWallet* const pwallet = GetWalletForJSONRPCRequest(request);
     if (!EnsureWalletIsAvailable(pwallet, request.fHelp)) {
         return NullUniValue;
     }
@@ -687,17 +660,16 @@ UniValue listaddressgroupings(const JSONRPCRequest& request)
             "  [\n"
             "    [\n"
             "      \"address\",            (string) The avian address\n"
-            "      amount,                 (numeric) The amount in " + CURRENCY_UNIT + "\n"
-            "      \"account\"             (string, optional) DEPRECATED. The account\n"
-            "    ]\n"
-            "    ,...\n"
-            "  ]\n"
-            "  ,...\n"
-            "]\n"
-            "\nExamples:\n"
-            + HelpExampleCli("listaddressgroupings", "")
-            + HelpExampleRpc("listaddressgroupings", "")
-        );
+            "      amount,                 (numeric) The amount in " +
+            CURRENCY_UNIT + "\n"
+                            "      \"account\"             (string, optional) DEPRECATED. The account\n"
+                            "    ]\n"
+                            "    ,...\n"
+                            "  ]\n"
+                            "  ,...\n"
+                            "]\n"
+                            "\nExamples:\n" +
+            HelpExampleCli("listaddressgroupings", "") + HelpExampleRpc("listaddressgroupings", ""));
 
     ObserveSafeMode();
     LOCK2(cs_main, pwallet->cs_wallet);
@@ -706,8 +678,7 @@ UniValue listaddressgroupings(const JSONRPCRequest& request)
     std::map<CTxDestination, CAmount> balances = pwallet->GetAddressBalances();
     for (const std::set<CTxDestination>& grouping : pwallet->GetAddressGroupings()) {
         UniValue jsonGrouping(UniValue::VARR);
-        for (const CTxDestination& address : grouping)
-        {
+        for (const CTxDestination& address : grouping) {
             UniValue addressInfo(UniValue::VARR);
             addressInfo.push_back(EncodeDestination(address));
             addressInfo.push_back(ValueFromAmount(balances[address]));
@@ -725,7 +696,7 @@ UniValue listaddressgroupings(const JSONRPCRequest& request)
 
 UniValue signmessage(const JSONRPCRequest& request)
 {
-    CWallet * const pwallet = GetWalletForJSONRPCRequest(request);
+    CWallet* const pwallet = GetWalletForJSONRPCRequest(request);
     if (!EnsureWalletIsAvailable(pwallet, request.fHelp)) {
         return NullUniValue;
     }
@@ -733,23 +704,19 @@ UniValue signmessage(const JSONRPCRequest& request)
     if (request.fHelp || request.params.size() != 2)
         throw std::runtime_error(
             "signmessage \"address\" \"message\"\n"
-            "\nSign a message with the private key of an address"
-            + HelpRequiringPassphrase(pwallet) + "\n"
-            "\nArguments:\n"
-            "1. \"address\"         (string, required) The avian address to use for the private key.\n"
-            "2. \"message\"         (string, required) The message to create a signature of.\n"
-            "\nResult:\n"
-            "\"signature\"          (string) The signature of the message encoded in base 64\n"
-            "\nExamples:\n"
-            "\nUnlock the wallet for 30 seconds\n"
-            + HelpExampleCli("walletpassphrase", "\"mypassphrase\" 30") +
-            "\nCreate the signature\n"
-            + HelpExampleCli("signmessage", "\"1D1ZrZNe3JUo7ZycKEYQQiQAWd9y54F4XX\" \"my message\"") +
-            "\nVerify the signature\n"
-            + HelpExampleCli("verifymessage", "\"1D1ZrZNe3JUo7ZycKEYQQiQAWd9y54F4XX\" \"signature\" \"my message\"") +
-            "\nAs json rpc\n"
-            + HelpExampleRpc("signmessage", "\"1D1ZrZNe3JUo7ZycKEYQQiQAWd9y54F4XX\", \"my message\"")
-        );
+            "\nSign a message with the private key of an address" +
+            HelpRequiringPassphrase(pwallet) + "\n"
+                                               "\nArguments:\n"
+                                               "1. \"address\"         (string, required) The avian address to use for the private key.\n"
+                                               "2. \"message\"         (string, required) The message to create a signature of.\n"
+                                               "\nResult:\n"
+                                               "\"signature\"          (string) The signature of the message encoded in base 64\n"
+                                               "\nExamples:\n"
+                                               "\nUnlock the wallet for 30 seconds\n" +
+            HelpExampleCli("walletpassphrase", "\"mypassphrase\" 30") +
+            "\nCreate the signature\n" + HelpExampleCli("signmessage", "\"1D1ZrZNe3JUo7ZycKEYQQiQAWd9y54F4XX\" \"my message\"") +
+            "\nVerify the signature\n" + HelpExampleCli("verifymessage", "\"1D1ZrZNe3JUo7ZycKEYQQiQAWd9y54F4XX\" \"signature\" \"my message\"") +
+            "\nAs json rpc\n" + HelpExampleRpc("signmessage", "\"1D1ZrZNe3JUo7ZycKEYQQiQAWd9y54F4XX\", \"my message\""));
 
     LOCK2(cs_main, pwallet->cs_wallet);
 
@@ -763,7 +730,7 @@ UniValue signmessage(const JSONRPCRequest& request)
         throw JSONRPCError(RPC_TYPE_ERROR, "Invalid address");
     }
 
-    const CKeyID *keyID = boost::get<CKeyID>(&dest);
+    const CKeyID* keyID = boost::get<CKeyID>(&dest);
     if (!keyID) {
         throw JSONRPCError(RPC_TYPE_ERROR, "Address does not refer to key");
     }
@@ -786,7 +753,7 @@ UniValue signmessage(const JSONRPCRequest& request)
 
 UniValue getreceivedbyaddress(const JSONRPCRequest& request)
 {
-    CWallet * const pwallet = GetWalletForJSONRPCRequest(request);
+    CWallet* const pwallet = GetWalletForJSONRPCRequest(request);
     if (!EnsureWalletIsAvailable(pwallet, request.fHelp)) {
         return NullUniValue;
     }
@@ -799,17 +766,14 @@ UniValue getreceivedbyaddress(const JSONRPCRequest& request)
             "1. \"address\"         (string, required) The avian address for transactions.\n"
             "2. minconf             (numeric, optional, default=1) Only include transactions confirmed at least this many times.\n"
             "\nResult:\n"
-            "amount   (numeric) The total amount in " + CURRENCY_UNIT + " received at this address.\n"
-            "\nExamples:\n"
-            "\nThe amount from transactions with at least 1 confirmation\n"
-            + HelpExampleCli("getreceivedbyaddress", "\"1D1ZrZNe3JUo7ZycKEYQQiQAWd9y54F4XX\"") +
-            "\nThe amount including unconfirmed transactions, zero confirmations\n"
-            + HelpExampleCli("getreceivedbyaddress", "\"1D1ZrZNe3JUo7ZycKEYQQiQAWd9y54F4XX\" 0") +
-            "\nThe amount with at least 6 confirmations\n"
-            + HelpExampleCli("getreceivedbyaddress", "\"1D1ZrZNe3JUo7ZycKEYQQiQAWd9y54F4XX\" 6") +
-            "\nAs a json rpc call\n"
-            + HelpExampleRpc("getreceivedbyaddress", "\"1D1ZrZNe3JUo7ZycKEYQQiQAWd9y54F4XX\", 6")
-       );
+            "amount   (numeric) The total amount in " +
+            CURRENCY_UNIT + " received at this address.\n"
+                            "\nExamples:\n"
+                            "\nThe amount from transactions with at least 1 confirmation\n" +
+            HelpExampleCli("getreceivedbyaddress", "\"1D1ZrZNe3JUo7ZycKEYQQiQAWd9y54F4XX\"") +
+            "\nThe amount including unconfirmed transactions, zero confirmations\n" + HelpExampleCli("getreceivedbyaddress", "\"1D1ZrZNe3JUo7ZycKEYQQiQAWd9y54F4XX\" 0") +
+            "\nThe amount with at least 6 confirmations\n" + HelpExampleCli("getreceivedbyaddress", "\"1D1ZrZNe3JUo7ZycKEYQQiQAWd9y54F4XX\" 6") +
+            "\nAs a json rpc call\n" + HelpExampleRpc("getreceivedbyaddress", "\"1D1ZrZNe3JUo7ZycKEYQQiQAWd9y54F4XX\", 6"));
 
     ObserveSafeMode();
     LOCK2(cs_main, pwallet->cs_wallet);
@@ -842,13 +806,13 @@ UniValue getreceivedbyaddress(const JSONRPCRequest& request)
                     nAmount += txout.nValue;
     }
 
-    return  ValueFromAmount(nAmount);
+    return ValueFromAmount(nAmount);
 }
 
 
 UniValue getreceivedbyaccount(const JSONRPCRequest& request)
 {
-    CWallet * const pwallet = GetWalletForJSONRPCRequest(request);
+    CWallet* const pwallet = GetWalletForJSONRPCRequest(request);
     if (!EnsureWalletIsAvailable(pwallet, request.fHelp)) {
         return NullUniValue;
     }
@@ -861,17 +825,14 @@ UniValue getreceivedbyaccount(const JSONRPCRequest& request)
             "1. \"account\"      (string, required) The selected account, may be the default account using \"\".\n"
             "2. minconf          (numeric, optional, default=1) Only include transactions confirmed at least this many times.\n"
             "\nResult:\n"
-            "amount              (numeric) The total amount in " + CURRENCY_UNIT + " received for this account.\n"
-            "\nExamples:\n"
-            "\nAmount received by the default account with at least 1 confirmation\n"
-            + HelpExampleCli("getreceivedbyaccount", "\"\"") +
-            "\nAmount received at the tabby account including unconfirmed amounts with zero confirmations\n"
-            + HelpExampleCli("getreceivedbyaccount", "\"tabby\" 0") +
-            "\nThe amount with at least 6 confirmations\n"
-            + HelpExampleCli("getreceivedbyaccount", "\"tabby\" 6") +
-            "\nAs a json rpc call\n"
-            + HelpExampleRpc("getreceivedbyaccount", "\"tabby\", 6")
-        );
+            "amount              (numeric) The total amount in " +
+            CURRENCY_UNIT + " received for this account.\n"
+                            "\nExamples:\n"
+                            "\nAmount received by the default account with at least 1 confirmation\n" +
+            HelpExampleCli("getreceivedbyaccount", "\"\"") +
+            "\nAmount received at the tabby account including unconfirmed amounts with zero confirmations\n" + HelpExampleCli("getreceivedbyaccount", "\"tabby\" 0") +
+            "\nThe amount with at least 6 confirmations\n" + HelpExampleCli("getreceivedbyaccount", "\"tabby\" 6") +
+            "\nAs a json rpc call\n" + HelpExampleRpc("getreceivedbyaccount", "\"tabby\", 6"));
 
     ObserveSafeMode();
     LOCK2(cs_main, pwallet->cs_wallet);
@@ -892,8 +853,7 @@ UniValue getreceivedbyaccount(const JSONRPCRequest& request)
         if (wtx.IsCoinBase() || !CheckFinalTx(*wtx.tx))
             continue;
 
-        for (const CTxOut& txout : wtx.tx->vout)
-        {
+        for (const CTxOut& txout : wtx.tx->vout) {
             CTxDestination address;
             if (ExtractDestination(txout.scriptPubKey, address) && IsMine(*pwallet, address) && setAddress.count(address)) {
                 if (wtx.GetDepthInMainChain() >= nMinDepth)
@@ -908,7 +868,7 @@ UniValue getreceivedbyaccount(const JSONRPCRequest& request)
 
 UniValue getbalance(const JSONRPCRequest& request)
 {
-    CWallet * const pwallet = GetWalletForJSONRPCRequest(request);
+    CWallet* const pwallet = GetWalletForJSONRPCRequest(request);
     if (!EnsureWalletIsAvailable(pwallet, request.fHelp)) {
         return NullUniValue;
     }
@@ -936,15 +896,13 @@ UniValue getbalance(const JSONRPCRequest& request)
             "2. minconf           (numeric, optional, default=1) Only include transactions confirmed at least this many times.\n"
             "3. include_watchonly (bool, optional, default=false) Also include balance in watch-only addresses (see 'importaddress')\n"
             "\nResult:\n"
-            "amount              (numeric) The total amount in " + CURRENCY_UNIT + " received for this account.\n"
-            "\nExamples:\n"
-            "\nThe total amount in the wallet with 1 or more confirmations\n"
-            + HelpExampleCli("getbalance", "") +
-            "\nThe total amount in the wallet at least 6 blocks confirmed\n"
-            + HelpExampleCli("getbalance", "\"*\" 6") +
-            "\nAs a json rpc call\n"
-            + HelpExampleRpc("getbalance", "\"*\", 6")
-        );
+            "amount              (numeric) The total amount in " +
+            CURRENCY_UNIT + " received for this account.\n"
+                            "\nExamples:\n"
+                            "\nThe total amount in the wallet with 1 or more confirmations\n" +
+            HelpExampleCli("getbalance", "") +
+            "\nThe total amount in the wallet at least 6 blocks confirmed\n" + HelpExampleCli("getbalance", "\"*\" 6") +
+            "\nAs a json rpc call\n" + HelpExampleRpc("getbalance", "\"*\", 6"));
 
     ObserveSafeMode();
     LOCK2(cs_main, pwallet->cs_wallet);
@@ -972,24 +930,24 @@ UniValue getbalance(const JSONRPCRequest& request)
     if (!minconf.isNull())
         nMinDepth = minconf.get_int();
     isminefilter filter = ISMINE_SPENDABLE;
-    if(!include_watchonly.isNull())
-        if(include_watchonly.get_bool())
+    if (!include_watchonly.isNull())
+        if (include_watchonly.get_bool())
             filter = filter | ISMINE_WATCH_ONLY;
 
     return ValueFromAmount(pwallet->GetLegacyBalance(filter, nMinDepth, account));
 }
 
-UniValue getunconfirmedbalance(const JSONRPCRequest &request)
+UniValue getunconfirmedbalance(const JSONRPCRequest& request)
 {
-    CWallet * const pwallet = GetWalletForJSONRPCRequest(request);
+    CWallet* const pwallet = GetWalletForJSONRPCRequest(request);
     if (!EnsureWalletIsAvailable(pwallet, request.fHelp)) {
         return NullUniValue;
     }
 
     if (request.fHelp || request.params.size() > 0)
         throw std::runtime_error(
-                "getunconfirmedbalance\n"
-                "Returns the server's total unconfirmed balance\n");
+            "getunconfirmedbalance\n"
+            "Returns the server's total unconfirmed balance\n");
 
     ObserveSafeMode();
     LOCK2(cs_main, pwallet->cs_wallet);
@@ -1000,7 +958,7 @@ UniValue getunconfirmedbalance(const JSONRPCRequest &request)
 
 UniValue movecmd(const JSONRPCRequest& request)
 {
-    CWallet * const pwallet = GetWalletForJSONRPCRequest(request);
+    CWallet* const pwallet = GetWalletForJSONRPCRequest(request);
     if (!EnsureWalletIsAvailable(pwallet, request.fHelp)) {
         return NullUniValue;
     }
@@ -1012,19 +970,17 @@ UniValue movecmd(const JSONRPCRequest& request)
             "\nArguments:\n"
             "1. \"fromaccount\"   (string, required) The name of the account to move funds from. May be the default account using \"\".\n"
             "2. \"toaccount\"     (string, required) The name of the account to move funds to. May be the default account using \"\".\n"
-            "3. amount            (numeric) Quantity of " + CURRENCY_UNIT + " to move between accounts.\n"
-            "4. (dummy)           (numeric, optional) Ignored. Remains for backward compatibility.\n"
-            "5. \"comment\"       (string, optional) An optional comment, stored in the wallet only.\n"
-            "\nResult:\n"
-            "true|false           (boolean) true if successful.\n"
-            "\nExamples:\n"
-            "\nMove 0.01 " + CURRENCY_UNIT + " from the default account to the account named tabby\n"
-            + HelpExampleCli("move", "\"\" \"tabby\" 0.01") +
-            "\nMove 0.01 " + CURRENCY_UNIT + " timotei to akiko with a comment and funds have 6 confirmations\n"
-            + HelpExampleCli("move", "\"timotei\" \"akiko\" 0.01 6 \"happy birthday!\"") +
-            "\nAs a json rpc call\n"
-            + HelpExampleRpc("move", "\"timotei\", \"akiko\", 0.01, 6, \"happy birthday!\"")
-        );
+            "3. amount            (numeric) Quantity of " +
+            CURRENCY_UNIT + " to move between accounts.\n"
+                            "4. (dummy)           (numeric, optional) Ignored. Remains for backward compatibility.\n"
+                            "5. \"comment\"       (string, optional) An optional comment, stored in the wallet only.\n"
+                            "\nResult:\n"
+                            "true|false           (boolean) true if successful.\n"
+                            "\nExamples:\n"
+                            "\nMove 0.01 " +
+            CURRENCY_UNIT + " from the default account to the account named tabby\n" + HelpExampleCli("move", "\"\" \"tabby\" 0.01") +
+            "\nMove 0.01 " + CURRENCY_UNIT + " timotei to akiko with a comment and funds have 6 confirmations\n" + HelpExampleCli("move", "\"timotei\" \"akiko\" 0.01 6 \"happy birthday!\"") +
+            "\nAs a json rpc call\n" + HelpExampleRpc("move", "\"timotei\", \"akiko\", 0.01, 6, \"happy birthday!\""));
 
     ObserveSafeMode();
     LOCK2(cs_main, pwallet->cs_wallet);
@@ -1051,7 +1007,7 @@ UniValue movecmd(const JSONRPCRequest& request)
 
 UniValue sendfrom(const JSONRPCRequest& request)
 {
-    CWallet * const pwallet = GetWalletForJSONRPCRequest(request);
+    CWallet* const pwallet = GetWalletForJSONRPCRequest(request);
     if (!EnsureWalletIsAvailable(pwallet, request.fHelp)) {
         return NullUniValue;
     }
@@ -1059,31 +1015,29 @@ UniValue sendfrom(const JSONRPCRequest& request)
     if (request.fHelp || request.params.size() < 3 || request.params.size() > 6)
         throw std::runtime_error(
             "sendfrom \"fromaccount\" \"toaddress\" amount ( minconf \"comment\" \"comment_to\" )\n"
-            "\nDEPRECATED (use sendtoaddress). Sent an amount from an account to a avian address."
-            + HelpRequiringPassphrase(pwallet) + "\n"
-            "\nArguments:\n"
-            "1. \"fromaccount\"       (string, required) The name of the account to send funds from. May be the default account using \"\".\n"
-            "                       Specifying an account does not influence coin selection, but it does associate the newly created\n"
-            "                       transaction with the account, so the account's balance computation and transaction history can reflect\n"
-            "                       the spend.\n"
-            "2. \"toaddress\"         (string, required) The avian address to send funds to.\n"
-            "3. amount                (numeric or string, required) The amount in " + CURRENCY_UNIT + " (transaction fee is added on top).\n"
-            "4. minconf               (numeric, optional, default=1) Only use funds with at least this many confirmations.\n"
-            "5. \"comment\"           (string, optional) A comment used to store what the transaction is for. \n"
-            "                                     This is not part of the transaction, just kept in your wallet.\n"
-            "6. \"comment_to\"        (string, optional) An optional comment to store the name of the person or organization \n"
-            "                                     to which you're sending the transaction. This is not part of the transaction, \n"
-            "                                     it is just kept in your wallet.\n"
-            "\nResult:\n"
-            "\"txid\"                 (string) The transaction id.\n"
-            "\nExamples:\n"
-            "\nSend 0.01 " + CURRENCY_UNIT + " from the default account to the address, must have at least 1 confirmation\n"
-            + HelpExampleCli("sendfrom", "\"\" \"1M72Sfpbz1BPpXFHz9m3CdqATR44Jvaydd\" 0.01") +
-            "\nSend 0.01 from the tabby account to the given address, funds must have at least 6 confirmations\n"
-            + HelpExampleCli("sendfrom", "\"tabby\" \"1M72Sfpbz1BPpXFHz9m3CdqATR44Jvaydd\" 0.01 6 \"donation\" \"seans outpost\"") +
-            "\nAs a json rpc call\n"
-            + HelpExampleRpc("sendfrom", "\"tabby\", \"1M72Sfpbz1BPpXFHz9m3CdqATR44Jvaydd\", 0.01, 6, \"donation\", \"seans outpost\"")
-        );
+            "\nDEPRECATED (use sendtoaddress). Sent an amount from an account to a avian address." +
+            HelpRequiringPassphrase(pwallet) + "\n"
+                                               "\nArguments:\n"
+                                               "1. \"fromaccount\"       (string, required) The name of the account to send funds from. May be the default account using \"\".\n"
+                                               "                       Specifying an account does not influence coin selection, but it does associate the newly created\n"
+                                               "                       transaction with the account, so the account's balance computation and transaction history can reflect\n"
+                                               "                       the spend.\n"
+                                               "2. \"toaddress\"         (string, required) The avian address to send funds to.\n"
+                                               "3. amount                (numeric or string, required) The amount in " +
+            CURRENCY_UNIT + " (transaction fee is added on top).\n"
+                            "4. minconf               (numeric, optional, default=1) Only use funds with at least this many confirmations.\n"
+                            "5. \"comment\"           (string, optional) A comment used to store what the transaction is for. \n"
+                            "                                     This is not part of the transaction, just kept in your wallet.\n"
+                            "6. \"comment_to\"        (string, optional) An optional comment to store the name of the person or organization \n"
+                            "                                     to which you're sending the transaction. This is not part of the transaction, \n"
+                            "                                     it is just kept in your wallet.\n"
+                            "\nResult:\n"
+                            "\"txid\"                 (string) The transaction id.\n"
+                            "\nExamples:\n"
+                            "\nSend 0.01 " +
+            CURRENCY_UNIT + " from the default account to the address, must have at least 1 confirmation\n" + HelpExampleCli("sendfrom", "\"\" \"1M72Sfpbz1BPpXFHz9m3CdqATR44Jvaydd\" 0.01") +
+            "\nSend 0.01 from the tabby account to the given address, funds must have at least 6 confirmations\n" + HelpExampleCli("sendfrom", "\"tabby\" \"1M72Sfpbz1BPpXFHz9m3CdqATR44Jvaydd\" 0.01 6 \"donation\" \"seans outpost\"") +
+            "\nAs a json rpc call\n" + HelpExampleRpc("sendfrom", "\"tabby\", \"1M72Sfpbz1BPpXFHz9m3CdqATR44Jvaydd\", 0.01, 6, \"donation\", \"seans outpost\""));
 
     ObserveSafeMode();
     LOCK2(cs_main, pwallet->cs_wallet);
@@ -1105,7 +1059,7 @@ UniValue sendfrom(const JSONRPCRequest& request)
     if (!request.params[4].isNull() && !request.params[4].get_str().empty())
         wtx.mapValue["comment"] = request.params[4].get_str();
     if (!request.params[5].isNull() && !request.params[5].get_str().empty())
-        wtx.mapValue["to"]      = request.params[5].get_str();
+        wtx.mapValue["to"] = request.params[5].get_str();
 
     EnsureWalletIsUnlocked(pwallet);
 
@@ -1123,7 +1077,7 @@ UniValue sendfrom(const JSONRPCRequest& request)
 
 UniValue sendmany(const JSONRPCRequest& request)
 {
-    CWallet * const pwallet = GetWalletForJSONRPCRequest(request);
+    CWallet* const pwallet = GetWalletForJSONRPCRequest(request);
     if (!EnsureWalletIsAvailable(pwallet, request.fHelp)) {
         return NullUniValue;
     }
@@ -1131,44 +1085,41 @@ UniValue sendmany(const JSONRPCRequest& request)
     if (request.fHelp || request.params.size() < 2 || request.params.size() > 8)
         throw std::runtime_error(
             "sendmany \"fromaccount\" {\"address\":amount,...} ( minconf \"comment\" [\"address\",...] replaceable conf_target \"estimate_mode\")\n"
-            "\nSend multiple times. Amounts are double-precision floating point numbers."
-            + HelpRequiringPassphrase(pwallet) + "\n"
-            "\nArguments:\n"
-            "1. \"fromaccount\"         (string, required) DEPRECATED. The account to send the funds from. Should be \"\" for the default account\n"
-            "2. \"amounts\"             (string, required) A json object with addresses and amounts\n"
-            "    {\n"
-            "      \"address\":amount   (numeric or string) The avian address is the key, the numeric amount (can be string) in " + CURRENCY_UNIT + " is the value\n"
-            "      ,...\n"
-            "    }\n"
-            "3. minconf                 (numeric, optional, default=1) Only use the balance confirmed at least this many times.\n"
-            "4. \"comment\"             (string, optional) A comment\n"
-            "5. subtractfeefrom         (array, optional) A json array with addresses.\n"
-            "                           The fee will be equally deducted from the amount of each selected address.\n"
-            "                           Those recipients will receive less avians than you enter in their corresponding amount field.\n"
-            "                           If no addresses are specified here, the sender pays the fee.\n"
-            "    [\n"
-            "      \"address\"          (string) Subtract fee from this address\n"
-            "      ,...\n"
-            "    ]\n"
-//            "6. replaceable            (boolean, optional) Allow this transaction to be replaced by a transaction with higher fees via BIP 125\n"
-            "6. conf_target            (numeric, optional) Confirmation target (in blocks)\n"
-            "7. \"estimate_mode\"      (string, optional, default=UNSET) The fee estimate mode, must be one of:\n"
-            "       \"UNSET\"\n"
-            "       \"ECONOMICAL\"\n"
-            "       \"CONSERVATIVE\"\n"
-             "\nResult:\n"
-            "\"txid\"                   (string) The transaction id for the send. Only 1 transaction is created regardless of \n"
-            "                                    the number of addresses.\n"
-            "\nExamples:\n"
-            "\nSend two amounts to two different addresses:\n"
-            + HelpExampleCli("sendmany", "\"\" \"{\\\"1D1ZrZNe3JUo7ZycKEYQQiQAWd9y54F4XX\\\":0.01,\\\"1353tsE8YMTA4EuV7dgUXGjNFf9KpVvKHz\\\":0.02}\"") +
-            "\nSend two amounts to two different addresses setting the confirmation and comment:\n"
-            + HelpExampleCli("sendmany", "\"\" \"{\\\"1D1ZrZNe3JUo7ZycKEYQQiQAWd9y54F4XX\\\":0.01,\\\"1353tsE8YMTA4EuV7dgUXGjNFf9KpVvKHz\\\":0.02}\" 6 \"testing\"") +
-            "\nSend two amounts to two different addresses, subtract fee from amount:\n"
-            + HelpExampleCli("sendmany", "\"\" \"{\\\"1D1ZrZNe3JUo7ZycKEYQQiQAWd9y54F4XX\\\":0.01,\\\"1353tsE8YMTA4EuV7dgUXGjNFf9KpVvKHz\\\":0.02}\" 1 \"\" \"[\\\"1D1ZrZNe3JUo7ZycKEYQQiQAWd9y54F4XX\\\",\\\"1353tsE8YMTA4EuV7dgUXGjNFf9KpVvKHz\\\"]\"") +
-            "\nAs a json rpc call\n"
-            + HelpExampleRpc("sendmany", "\"\", \"{\\\"1D1ZrZNe3JUo7ZycKEYQQiQAWd9y54F4XX\\\":0.01,\\\"1353tsE8YMTA4EuV7dgUXGjNFf9KpVvKHz\\\":0.02}\", 6, \"testing\"")
-        );
+            "\nSend multiple times. Amounts are double-precision floating point numbers." +
+            HelpRequiringPassphrase(pwallet) + "\n"
+                                               "\nArguments:\n"
+                                               "1. \"fromaccount\"         (string, required) DEPRECATED. The account to send the funds from. Should be \"\" for the default account\n"
+                                               "2. \"amounts\"             (string, required) A json object with addresses and amounts\n"
+                                               "    {\n"
+                                               "      \"address\":amount   (numeric or string) The avian address is the key, the numeric amount (can be string) in " +
+            CURRENCY_UNIT + " is the value\n"
+                            "      ,...\n"
+                            "    }\n"
+                            "3. minconf                 (numeric, optional, default=1) Only use the balance confirmed at least this many times.\n"
+                            "4. \"comment\"             (string, optional) A comment\n"
+                            "5. subtractfeefrom         (array, optional) A json array with addresses.\n"
+                            "                           The fee will be equally deducted from the amount of each selected address.\n"
+                            "                           Those recipients will receive less avians than you enter in their corresponding amount field.\n"
+                            "                           If no addresses are specified here, the sender pays the fee.\n"
+                            "    [\n"
+                            "      \"address\"          (string) Subtract fee from this address\n"
+                            "      ,...\n"
+                            "    ]\n"
+                            //            "6. replaceable            (boolean, optional) Allow this transaction to be replaced by a transaction with higher fees via BIP 125\n"
+                            "6. conf_target            (numeric, optional) Confirmation target (in blocks)\n"
+                            "7. \"estimate_mode\"      (string, optional, default=UNSET) The fee estimate mode, must be one of:\n"
+                            "       \"UNSET\"\n"
+                            "       \"ECONOMICAL\"\n"
+                            "       \"CONSERVATIVE\"\n"
+                            "\nResult:\n"
+                            "\"txid\"                   (string) The transaction id for the send. Only 1 transaction is created regardless of \n"
+                            "                                    the number of addresses.\n"
+                            "\nExamples:\n"
+                            "\nSend two amounts to two different addresses:\n" +
+            HelpExampleCli("sendmany", "\"\" \"{\\\"1D1ZrZNe3JUo7ZycKEYQQiQAWd9y54F4XX\\\":0.01,\\\"1353tsE8YMTA4EuV7dgUXGjNFf9KpVvKHz\\\":0.02}\"") +
+            "\nSend two amounts to two different addresses setting the confirmation and comment:\n" + HelpExampleCli("sendmany", "\"\" \"{\\\"1D1ZrZNe3JUo7ZycKEYQQiQAWd9y54F4XX\\\":0.01,\\\"1353tsE8YMTA4EuV7dgUXGjNFf9KpVvKHz\\\":0.02}\" 6 \"testing\"") +
+            "\nSend two amounts to two different addresses, subtract fee from amount:\n" + HelpExampleCli("sendmany", "\"\" \"{\\\"1D1ZrZNe3JUo7ZycKEYQQiQAWd9y54F4XX\\\":0.01,\\\"1353tsE8YMTA4EuV7dgUXGjNFf9KpVvKHz\\\":0.02}\" 1 \"\" \"[\\\"1D1ZrZNe3JUo7ZycKEYQQiQAWd9y54F4XX\\\",\\\"1353tsE8YMTA4EuV7dgUXGjNFf9KpVvKHz\\\"]\"") +
+            "\nAs a json rpc call\n" + HelpExampleRpc("sendmany", "\"\", \"{\\\"1D1ZrZNe3JUo7ZycKEYQQiQAWd9y54F4XX\\\":0.01,\\\"1353tsE8YMTA4EuV7dgUXGjNFf9KpVvKHz\\\":0.02}\", 6, \"testing\""));
 
     ObserveSafeMode();
     LOCK2(cs_main, pwallet->cs_wallet);
@@ -1193,9 +1144,9 @@ UniValue sendmany(const JSONRPCRequest& request)
         subtractFeeFromAmount = request.params[4].get_array();
 
     CCoinControl coin_control;
-//    if (!request.params[5].isNull()) {
-//        coin_control.signalRbf = request.params[5].get_bool();
-//    }
+    //    if (!request.params[5].isNull()) {
+    //        coin_control.signalRbf = request.params[5].get_bool();
+    //    }
 
     if (!request.params[5].isNull()) {
         coin_control.m_confirm_target = ParseConfirmTarget(request.params[6]);
@@ -1265,40 +1216,37 @@ UniValue sendmany(const JSONRPCRequest& request)
 }
 
 // Defined in rpc/misc.cpp
-extern CScript _createmultisig_redeemScript(CWallet * const pwallet, const UniValue& params);
+extern CScript _createmultisig_redeemScript(CWallet* const pwallet, const UniValue& params);
 
 UniValue addmultisigaddress(const JSONRPCRequest& request)
 {
-    CWallet * const pwallet = GetWalletForJSONRPCRequest(request);
+    CWallet* const pwallet = GetWalletForJSONRPCRequest(request);
     if (!EnsureWalletIsAvailable(pwallet, request.fHelp)) {
         return NullUniValue;
     }
 
-    if (request.fHelp || request.params.size() < 2 || request.params.size() > 3)
-    {
+    if (request.fHelp || request.params.size() < 2 || request.params.size() > 3) {
         std::string msg = "addmultisigaddress nrequired [\"key\",...] ( \"account\" )\n"
-            "\nAdd a nrequired-to-sign multisignature address to the wallet.\n"
-            "Each key is a Avian address or hex-encoded public key.\n"
-            "If 'account' is specified (DEPRECATED), assign address to that account.\n"
+                          "\nAdd a nrequired-to-sign multisignature address to the wallet.\n"
+                          "Each key is a Avian address or hex-encoded public key.\n"
+                          "If 'account' is specified (DEPRECATED), assign address to that account.\n"
 
-            "\nArguments:\n"
-            "1. nrequired        (numeric, required) The number of required signatures out of the n keys or addresses.\n"
-            "2. \"keys\"         (string, required) A json array of avian addresses or hex-encoded public keys\n"
-            "     [\n"
-            "       \"address\"  (string) avian address or hex-encoded public key\n"
-            "       ...,\n"
-            "     ]\n"
-            "3. \"account\"      (string, optional) DEPRECATED. An account to assign the addresses to.\n"
+                          "\nArguments:\n"
+                          "1. nrequired        (numeric, required) The number of required signatures out of the n keys or addresses.\n"
+                          "2. \"keys\"         (string, required) A json array of avian addresses or hex-encoded public keys\n"
+                          "     [\n"
+                          "       \"address\"  (string) avian address or hex-encoded public key\n"
+                          "       ...,\n"
+                          "     ]\n"
+                          "3. \"account\"      (string, optional) DEPRECATED. An account to assign the addresses to.\n"
 
-            "\nResult:\n"
-            "\"address\"         (string) A avian address associated with the keys.\n"
+                          "\nResult:\n"
+                          "\"address\"         (string) A avian address associated with the keys.\n"
 
-            "\nExamples:\n"
-            "\nAdd a multisig address from 2 addresses\n"
-            + HelpExampleCli("addmultisigaddress", "2 \"[\\\"16sSauSf5pF2UkUwvKGq4qjNRzBZYqgEL5\\\",\\\"171sgjn4YtPu27adkKGrdDwzRTxnRkBfKV\\\"]\"") +
-            "\nAs json rpc call\n"
-            + HelpExampleRpc("addmultisigaddress", "2, \"[\\\"16sSauSf5pF2UkUwvKGq4qjNRzBZYqgEL5\\\",\\\"171sgjn4YtPu27adkKGrdDwzRTxnRkBfKV\\\"]\"")
-        ;
+                          "\nExamples:\n"
+                          "\nAdd a multisig address from 2 addresses\n" +
+                          HelpExampleCli("addmultisigaddress", "2 \"[\\\"16sSauSf5pF2UkUwvKGq4qjNRzBZYqgEL5\\\",\\\"171sgjn4YtPu27adkKGrdDwzRTxnRkBfKV\\\"]\"") +
+                          "\nAs json rpc call\n" + HelpExampleRpc("addmultisigaddress", "2, \"[\\\"16sSauSf5pF2UkUwvKGq4qjNRzBZYqgEL5\\\",\\\"171sgjn4YtPu27adkKGrdDwzRTxnRkBfKV\\\"]\"");
         throw std::runtime_error(msg);
     }
 
@@ -1320,14 +1268,15 @@ UniValue addmultisigaddress(const JSONRPCRequest& request)
 class Witnessifier : public boost::static_visitor<bool>
 {
 public:
-    CWallet * const pwallet;
+    CWallet* const pwallet;
     CScriptID result;
 
-    explicit Witnessifier(CWallet *_pwallet) : pwallet(_pwallet) {}
+    explicit Witnessifier(CWallet* _pwallet) : pwallet(_pwallet) {}
 
-    bool operator()(const CNoDestination &dest) const { return false; }
+    bool operator()(const CNoDestination& dest) const { return false; }
 
-    bool operator()(const CKeyID &keyID) {
+    bool operator()(const CKeyID& keyID)
+    {
         if (pwallet) {
             CScript basescript = GetScriptForDestination(keyID);
             CScript witscript = GetScriptForWitness(basescript);
@@ -1346,7 +1295,8 @@ public:
         return false;
     }
 
-    bool operator()(const CScriptID &scriptID) {
+    bool operator()(const CScriptID& scriptID)
+    {
         CScript subscript;
         if (pwallet && pwallet->GetCScript(scriptID, subscript)) {
             int witnessversion;
@@ -1374,24 +1324,22 @@ public:
 
 UniValue addwitnessaddress(const JSONRPCRequest& request)
 {
-    CWallet * const pwallet = GetWalletForJSONRPCRequest(request);
+    CWallet* const pwallet = GetWalletForJSONRPCRequest(request);
     if (!EnsureWalletIsAvailable(pwallet, request.fHelp)) {
         return NullUniValue;
     }
 
-    if (request.fHelp || request.params.size() < 1 || request.params.size() > 1)
-    {
+    if (request.fHelp || request.params.size() < 1 || request.params.size() > 1) {
         std::string msg = "addwitnessaddress \"address\"\n"
-            "\nAdd a witness address for a script (with pubkey or redeemscript known).\n"
-            "It returns the witness script.\n"
+                          "\nAdd a witness address for a script (with pubkey or redeemscript known).\n"
+                          "It returns the witness script.\n"
 
-            "\nArguments:\n"
-            "1. \"address\"       (string, required) An address known to the wallet\n"
+                          "\nArguments:\n"
+                          "1. \"address\"       (string, required) An address known to the wallet\n"
 
-            "\nResult:\n"
-            "\"witnessaddress\",  (string) The value of the new address (P2SH of witness script).\n"
-            "}\n"
-        ;
+                          "\nResult:\n"
+                          "\"witnessaddress\",  (string) The value of the new address (P2SH of witness script).\n"
+                          "}\n";
         throw std::runtime_error(msg);
     }
 
@@ -1418,8 +1366,7 @@ UniValue addwitnessaddress(const JSONRPCRequest& request)
     return EncodeDestination(w.result);
 }
 
-struct tallyitem
-{
+struct tallyitem {
     CAmount nAmount;
     int nConf;
     std::vector<uint256> txids;
@@ -1432,7 +1379,7 @@ struct tallyitem
     }
 };
 
-UniValue ListReceived(CWallet * const pwallet, const UniValue& params, bool fByAccounts)
+UniValue ListReceived(CWallet* const pwallet, const UniValue& params, bool fByAccounts)
 {
     // Minimum confirmations
     int nMinDepth = 1;
@@ -1445,8 +1392,8 @@ UniValue ListReceived(CWallet * const pwallet, const UniValue& params, bool fByA
         fIncludeEmpty = params[1].get_bool();
 
     isminefilter filter = ISMINE_SPENDABLE;
-    if(!params[2].isNull())
-        if(params[2].get_bool())
+    if (!params[2].isNull())
+        if (params[2].get_bool())
             filter = filter | ISMINE_WATCH_ONLY;
 
     // Tally
@@ -1461,14 +1408,13 @@ UniValue ListReceived(CWallet * const pwallet, const UniValue& params, bool fByA
         if (nDepth < nMinDepth)
             continue;
 
-        for (const CTxOut& txout : wtx.tx->vout)
-        {
+        for (const CTxOut& txout : wtx.tx->vout) {
             CTxDestination address;
             if (!ExtractDestination(txout.scriptPubKey, address))
                 continue;
 
             isminefilter mine = IsMine(*pwallet, address);
-            if(!(mine & filter))
+            if (!(mine & filter))
                 continue;
 
             tallyitem& item = mapTally[address];
@@ -1493,36 +1439,30 @@ UniValue ListReceived(CWallet * const pwallet, const UniValue& params, bool fByA
         CAmount nAmount = 0;
         int nConf = std::numeric_limits<int>::max();
         bool fIsWatchonly = false;
-        if (it != mapTally.end())
-        {
+        if (it != mapTally.end()) {
             nAmount = (*it).second.nAmount;
             nConf = (*it).second.nConf;
             fIsWatchonly = (*it).second.fIsWatchonly;
         }
 
-        if (fByAccounts)
-        {
+        if (fByAccounts) {
             tallyitem& _item = mapAccountTally[strAccount];
             _item.nAmount += nAmount;
             _item.nConf = std::min(_item.nConf, nConf);
             _item.fIsWatchonly = fIsWatchonly;
-        }
-        else
-        {
+        } else {
             UniValue obj(UniValue::VOBJ);
-            if(fIsWatchonly)
+            if (fIsWatchonly)
                 obj.push_back(Pair("involvesWatchonly", true));
-            obj.push_back(Pair("address",       EncodeDestination(dest)));
-            obj.push_back(Pair("account",       strAccount));
-            obj.push_back(Pair("amount",        ValueFromAmount(nAmount)));
+            obj.push_back(Pair("address", EncodeDestination(dest)));
+            obj.push_back(Pair("account", strAccount));
+            obj.push_back(Pair("amount", ValueFromAmount(nAmount)));
             obj.push_back(Pair("confirmations", (nConf == std::numeric_limits<int>::max() ? 0 : nConf)));
             if (!fByAccounts)
                 obj.push_back(Pair("label", strAccount));
             UniValue transactions(UniValue::VARR);
-            if (it != mapTally.end())
-            {
-                for (const uint256& _item : (*it).second.txids)
-                {
+            if (it != mapTally.end()) {
+                for (const uint256& _item : (*it).second.txids) {
                     transactions.push_back(_item.GetHex());
                 }
             }
@@ -1531,17 +1471,15 @@ UniValue ListReceived(CWallet * const pwallet, const UniValue& params, bool fByA
         }
     }
 
-    if (fByAccounts)
-    {
-        for (std::map<std::string, tallyitem>::iterator it = mapAccountTally.begin(); it != mapAccountTally.end(); ++it)
-        {
+    if (fByAccounts) {
+        for (std::map<std::string, tallyitem>::iterator it = mapAccountTally.begin(); it != mapAccountTally.end(); ++it) {
             CAmount nAmount = (*it).second.nAmount;
             int nConf = (*it).second.nConf;
             UniValue obj(UniValue::VOBJ);
-            if((*it).second.fIsWatchonly)
+            if ((*it).second.fIsWatchonly)
                 obj.push_back(Pair("involvesWatchonly", true));
-            obj.push_back(Pair("account",       (*it).first));
-            obj.push_back(Pair("amount",        ValueFromAmount(nAmount)));
+            obj.push_back(Pair("account", (*it).first));
+            obj.push_back(Pair("amount", ValueFromAmount(nAmount)));
             obj.push_back(Pair("confirmations", (nConf == std::numeric_limits<int>::max() ? 0 : nConf)));
             ret.push_back(obj);
         }
@@ -1552,7 +1490,7 @@ UniValue ListReceived(CWallet * const pwallet, const UniValue& params, bool fByA
 
 UniValue listreceivedbyaddress(const JSONRPCRequest& request)
 {
-    CWallet * const pwallet = GetWalletForJSONRPCRequest(request);
+    CWallet* const pwallet = GetWalletForJSONRPCRequest(request);
     if (!EnsureWalletIsAvailable(pwallet, request.fHelp)) {
         return NullUniValue;
     }
@@ -1572,22 +1510,20 @@ UniValue listreceivedbyaddress(const JSONRPCRequest& request)
             "    \"involvesWatchonly\" : true,        (bool) Only returned if imported addresses were involved in transaction\n"
             "    \"address\" : \"receivingaddress\",  (string) The receiving address\n"
             "    \"account\" : \"accountname\",       (string) DEPRECATED. The account of the receiving address. The default account is \"\".\n"
-            "    \"amount\" : x.xxx,                  (numeric) The total amount in " + CURRENCY_UNIT + " received by the address\n"
-            "    \"confirmations\" : n,               (numeric) The number of confirmations of the most recent transaction included\n"
-            "    \"label\" : \"label\",               (string) A comment for the address/transaction, if any\n"
-            "    \"txids\": [\n"
-            "       n,                                (numeric) The ids of transactions received with the address \n"
-            "       ...\n"
-            "    ]\n"
-            "  }\n"
-            "  ,...\n"
-            "]\n"
+            "    \"amount\" : x.xxx,                  (numeric) The total amount in " +
+            CURRENCY_UNIT + " received by the address\n"
+                            "    \"confirmations\" : n,               (numeric) The number of confirmations of the most recent transaction included\n"
+                            "    \"label\" : \"label\",               (string) A comment for the address/transaction, if any\n"
+                            "    \"txids\": [\n"
+                            "       n,                                (numeric) The ids of transactions received with the address \n"
+                            "       ...\n"
+                            "    ]\n"
+                            "  }\n"
+                            "  ,...\n"
+                            "]\n"
 
-            "\nExamples:\n"
-            + HelpExampleCli("listreceivedbyaddress", "")
-            + HelpExampleCli("listreceivedbyaddress", "6 true")
-            + HelpExampleRpc("listreceivedbyaddress", "6, true, true")
-        );
+                            "\nExamples:\n" +
+            HelpExampleCli("listreceivedbyaddress", "") + HelpExampleCli("listreceivedbyaddress", "6 true") + HelpExampleRpc("listreceivedbyaddress", "6, true, true"));
 
     ObserveSafeMode();
     LOCK2(cs_main, pwallet->cs_wallet);
@@ -1597,7 +1533,7 @@ UniValue listreceivedbyaddress(const JSONRPCRequest& request)
 
 UniValue listreceivedbyaccount(const JSONRPCRequest& request)
 {
-    CWallet * const pwallet = GetWalletForJSONRPCRequest(request);
+    CWallet* const pwallet = GetWalletForJSONRPCRequest(request);
     if (!EnsureWalletIsAvailable(pwallet, request.fHelp)) {
         return NullUniValue;
     }
@@ -1623,11 +1559,8 @@ UniValue listreceivedbyaccount(const JSONRPCRequest& request)
             "  ,...\n"
             "]\n"
 
-            "\nExamples:\n"
-            + HelpExampleCli("listreceivedbyaccount", "")
-            + HelpExampleCli("listreceivedbyaccount", "6 true")
-            + HelpExampleRpc("listreceivedbyaccount", "6, true, true")
-        );
+            "\nExamples:\n" +
+            HelpExampleCli("listreceivedbyaccount", "") + HelpExampleCli("listreceivedbyaccount", "6 true") + HelpExampleRpc("listreceivedbyaccount", "6, true, true"));
 
     ObserveSafeMode();
     LOCK2(cs_main, pwallet->cs_wallet);
@@ -1635,7 +1568,7 @@ UniValue listreceivedbyaccount(const JSONRPCRequest& request)
     return ListReceived(pwallet, request.params, true);
 }
 
-static void MaybePushAddress(UniValue & entry, const CTxDestination &dest)
+static void MaybePushAddress(UniValue& entry, const CTxDestination& dest)
 {
     if (IsValidDestination(dest)) {
         entry.push_back(Pair("address", EncodeDestination(dest)));
@@ -1669,10 +1602,8 @@ void ListTransactions(CWallet* const pwallet, const CWalletTx& wtx, const std::s
     bool involvesWatchonly = wtx.IsFromMe(ISMINE_WATCH_ONLY);
 
     // Sent
-    if ((!listSent.empty() || nFee != 0) && (fAllAccounts || strAccount == strSentAccount))
-    {
-        for (const COutputEntry& s : listSent)
-        {
+    if ((!listSent.empty() || nFee != 0) && (fAllAccounts || strAccount == strSentAccount)) {
+        for (const COutputEntry& s : listSent) {
             UniValue entry(UniValue::VOBJ);
             if (involvesWatchonly || (::IsMine(*pwallet, s.destination) & ISMINE_WATCH_ONLY)) {
                 entry.push_back(Pair("involvesWatchonly", true));
@@ -1694,33 +1625,27 @@ void ListTransactions(CWallet* const pwallet, const CWalletTx& wtx, const std::s
     }
 
     // Received
-    if (listReceived.size() > 0 && wtx.GetDepthInMainChain() >= nMinDepth)
-    {
-        for (const COutputEntry& r : listReceived)
-        {
+    if (listReceived.size() > 0 && wtx.GetDepthInMainChain() >= nMinDepth) {
+        for (const COutputEntry& r : listReceived) {
             std::string account;
             if (pwallet->mapAddressBook.count(r.destination)) {
                 account = pwallet->mapAddressBook[r.destination].name;
             }
-            if (fAllAccounts || (account == strAccount))
-            {
+            if (fAllAccounts || (account == strAccount)) {
                 UniValue entry(UniValue::VOBJ);
                 if (involvesWatchonly || (::IsMine(*pwallet, r.destination) & ISMINE_WATCH_ONLY)) {
                     entry.push_back(Pair("involvesWatchonly", true));
                 }
                 entry.push_back(Pair("account", account));
                 MaybePushAddress(entry, r.destination);
-                if (wtx.IsCoinBase())
-                {
+                if (wtx.IsCoinBase()) {
                     if (wtx.GetDepthInMainChain() < 1)
                         entry.push_back(Pair("category", "orphan"));
                     else if (wtx.GetBlocksToMaturity() > 0)
                         entry.push_back(Pair("category", "immature"));
                     else
                         entry.push_back(Pair("category", "generate"));
-                }
-                else
-                {
+                } else {
                     entry.push_back(Pair("category", "receive"));
                 }
                 entry.push_back(Pair("amount", ValueFromAmount(r.amount)));
@@ -1738,7 +1663,7 @@ void ListTransactions(CWallet* const pwallet, const CWalletTx& wtx, const std::s
     /** AVN START */
     if (AreAssetsDeployed()) {
         if (listAssetsReceived.size() > 0 && wtx.GetDepthInMainChain() >= nMinDepth) {
-            for (const CAssetOutputEntry &data : listAssetsReceived){
+            for (const CAssetOutputEntry& data : listAssetsReceived) {
                 UniValue entry(UniValue::VOBJ);
 
                 if (involvesWatchonly || (::IsMine(*pwallet, data.destination) & ISMINE_WATCH_ONLY)) {
@@ -1762,7 +1687,7 @@ void ListTransactions(CWallet* const pwallet, const CWalletTx& wtx, const std::s
         }
 
         if ((!listAssetsSent.empty() || nFee != 0) && (fAllAccounts || strAccount == strSentAccount)) {
-            for (const CAssetOutputEntry &data : listAssetsSent) {
+            for (const CAssetOutputEntry& data : listAssetsSent) {
                 UniValue entry(UniValue::VOBJ);
 
                 if (involvesWatchonly || (::IsMine(*pwallet, data.destination) & ISMINE_WATCH_ONLY)) {
@@ -1799,8 +1724,7 @@ void AcentryToJSON(const CAccountingEntry& acentry, const std::string& strAccoun
 {
     bool fAllAccounts = (strAccount == std::string("*"));
 
-    if (fAllAccounts || acentry.strAccount == strAccount)
-    {
+    if (fAllAccounts || acentry.strAccount == strAccount) {
         UniValue entry(UniValue::VOBJ);
         entry.push_back(Pair("account", acentry.strAccount));
         entry.push_back(Pair("category", "move"));
@@ -1814,7 +1738,7 @@ void AcentryToJSON(const CAccountingEntry& acentry, const std::string& strAccoun
 
 UniValue listtransactions(const JSONRPCRequest& request)
 {
-    CWallet * const pwallet = GetWalletForJSONRPCRequest(request);
+    CWallet* const pwallet = GetWalletForJSONRPCRequest(request);
     if (!EnsureWalletIsAvailable(pwallet, request.fHelp)) {
         return NullUniValue;
     }
@@ -1839,45 +1763,44 @@ UniValue listtransactions(const JSONRPCRequest& request)
             "                                                transaction between accounts, and not associated with an address,\n"
             "                                                transaction id or block. 'send' and 'receive' transactions are \n"
             "                                                associated with an address, transaction id and block details\n"
-            "    \"amount\": x.xxx,          (numeric) The amount in " + CURRENCY_UNIT + ". This is negative for the 'send' category, and for the\n"
-            "                                         'move' category for moves outbound. It is positive for the 'receive' category,\n"
-            "                                         and for the 'move' category for inbound funds.\n"
-            "    \"label\": \"label\",       (string) A comment for the address/transaction, if any\n"
-            "    \"vout\": n,                (numeric) the vout value\n"
-            "    \"fee\": x.xxx,             (numeric) The amount of the fee in " + CURRENCY_UNIT + ". This is negative and only available for the \n"
-            "                                         'send' category of transactions.\n"
-            "    \"confirmations\": n,       (numeric) The number of confirmations for the transaction. Available for 'send' and \n"
-            "                                         'receive' category of transactions. Negative confirmations indicate the\n"
-            "                                         transaction conflicts with the block chain\n"
-            "    \"trusted\": xxx,           (bool) Whether we consider the outputs of this unconfirmed transaction safe to spend.\n"
-            "    \"blockhash\": \"hashvalue\", (string) The block hash containing the transaction. Available for 'send' and 'receive'\n"
-            "                                          category of transactions.\n"
-            "    \"blockindex\": n,          (numeric) The index of the transaction in the block that includes it. Available for 'send' and 'receive'\n"
-            "                                          category of transactions.\n"
-            "    \"blocktime\": xxx,         (numeric) The block time in seconds since epoch (1 Jan 1970 GMT).\n"
-            "    \"txid\": \"transactionid\", (string) The transaction id. Available for 'send' and 'receive' category of transactions.\n"
-            "    \"time\": xxx,              (numeric) The transaction time in seconds since epoch (midnight Jan 1 1970 GMT).\n"
-            "    \"timereceived\": xxx,      (numeric) The time received in seconds since epoch (midnight Jan 1 1970 GMT). Available \n"
-            "                                          for 'send' and 'receive' category of transactions.\n"
-            "    \"comment\": \"...\",       (string) If a comment is associated with the transaction.\n"
-            "    \"otheraccount\": \"accountname\",  (string) DEPRECATED. For the 'move' category of transactions, the account the funds came \n"
-            "                                          from (for receiving funds, positive amounts), or went to (for sending funds,\n"
-            "                                          negative amounts).\n"
-            "    \"bip125-replaceable\": \"yes|no|unknown\",  (string) Whether this transaction could be replaced due to BIP125 (replace-by-fee);\n"
-            "                                                     may be unknown for unconfirmed transactions not in the mempool\n"
-            "    \"abandoned\": xxx          (bool) 'true' if the transaction has been abandoned (inputs are respendable). Only available for the \n"
-            "                                         'send' category of transactions.\n"
-            "  }\n"
-            "]\n"
+            "    \"amount\": x.xxx,          (numeric) The amount in " +
+            CURRENCY_UNIT + ". This is negative for the 'send' category, and for the\n"
+                            "                                         'move' category for moves outbound. It is positive for the 'receive' category,\n"
+                            "                                         and for the 'move' category for inbound funds.\n"
+                            "    \"label\": \"label\",       (string) A comment for the address/transaction, if any\n"
+                            "    \"vout\": n,                (numeric) the vout value\n"
+                            "    \"fee\": x.xxx,             (numeric) The amount of the fee in " +
+            CURRENCY_UNIT + ". This is negative and only available for the \n"
+                            "                                         'send' category of transactions.\n"
+                            "    \"confirmations\": n,       (numeric) The number of confirmations for the transaction. Available for 'send' and \n"
+                            "                                         'receive' category of transactions. Negative confirmations indicate the\n"
+                            "                                         transaction conflicts with the block chain\n"
+                            "    \"trusted\": xxx,           (bool) Whether we consider the outputs of this unconfirmed transaction safe to spend.\n"
+                            "    \"blockhash\": \"hashvalue\", (string) The block hash containing the transaction. Available for 'send' and 'receive'\n"
+                            "                                          category of transactions.\n"
+                            "    \"blockindex\": n,          (numeric) The index of the transaction in the block that includes it. Available for 'send' and 'receive'\n"
+                            "                                          category of transactions.\n"
+                            "    \"blocktime\": xxx,         (numeric) The block time in seconds since epoch (1 Jan 1970 GMT).\n"
+                            "    \"txid\": \"transactionid\", (string) The transaction id. Available for 'send' and 'receive' category of transactions.\n"
+                            "    \"time\": xxx,              (numeric) The transaction time in seconds since epoch (midnight Jan 1 1970 GMT).\n"
+                            "    \"timereceived\": xxx,      (numeric) The time received in seconds since epoch (midnight Jan 1 1970 GMT). Available \n"
+                            "                                          for 'send' and 'receive' category of transactions.\n"
+                            "    \"comment\": \"...\",       (string) If a comment is associated with the transaction.\n"
+                            "    \"otheraccount\": \"accountname\",  (string) DEPRECATED. For the 'move' category of transactions, the account the funds came \n"
+                            "                                          from (for receiving funds, positive amounts), or went to (for sending funds,\n"
+                            "                                          negative amounts).\n"
+                            "    \"bip125-replaceable\": \"yes|no|unknown\",  (string) Whether this transaction could be replaced due to BIP125 (replace-by-fee);\n"
+                            "                                                     may be unknown for unconfirmed transactions not in the mempool\n"
+                            "    \"abandoned\": xxx          (bool) 'true' if the transaction has been abandoned (inputs are respendable). Only available for the \n"
+                            "                                         'send' category of transactions.\n"
+                            "  }\n"
+                            "]\n"
 
-            "\nExamples:\n"
-            "\nList the most recent 10 transactions in the systems\n"
-            + HelpExampleCli("listtransactions", "") +
-            "\nList transactions 100 to 120\n"
-            + HelpExampleCli("listtransactions", "\"*\" 20 100") +
-            "\nAs a json rpc call\n"
-            + HelpExampleRpc("listtransactions", "\"*\", 20, 100")
-        );
+                            "\nExamples:\n"
+                            "\nList the most recent 10 transactions in the systems\n" +
+            HelpExampleCli("listtransactions", "") +
+            "\nList transactions 100 to 120\n" + HelpExampleCli("listtransactions", "\"*\" 20 100") +
+            "\nAs a json rpc call\n" + HelpExampleRpc("listtransactions", "\"*\", 20, 100"));
 
     ObserveSafeMode();
     LOCK2(cs_main, pwallet->cs_wallet);
@@ -1892,8 +1815,8 @@ UniValue listtransactions(const JSONRPCRequest& request)
     if (!request.params[2].isNull())
         nFrom = request.params[2].get_int();
     isminefilter filter = ISMINE_SPENDABLE;
-    if(!request.params[3].isNull())
-        if(request.params[3].get_bool())
+    if (!request.params[3].isNull())
+        if (request.params[3].get_bool())
             filter = filter | ISMINE_WATCH_ONLY;
 
     if (nCount < 0)
@@ -1903,19 +1826,18 @@ UniValue listtransactions(const JSONRPCRequest& request)
 
     UniValue ret(UniValue::VARR);
 
-    const CWallet::TxItems & txOrdered = pwallet->wtxOrdered;
+    const CWallet::TxItems& txOrdered = pwallet->wtxOrdered;
 
     // iterate backwards until we have nCount items to return:
-    for (CWallet::TxItems::const_reverse_iterator it = txOrdered.rbegin(); it != txOrdered.rend(); ++it)
-    {
-        CWalletTx *const pwtx = (*it).second.first;
+    for (CWallet::TxItems::const_reverse_iterator it = txOrdered.rbegin(); it != txOrdered.rend(); ++it) {
+        CWalletTx* const pwtx = (*it).second.first;
         if (pwtx != nullptr)
             ListTransactions(pwallet, *pwtx, strAccount, 0, true, ret, filter);
-        CAccountingEntry *const pacentry = (*it).second.second;
+        CAccountingEntry* const pacentry = (*it).second.second;
         if (pacentry != nullptr)
             AcentryToJSON(*pacentry, strAccount, ret);
 
-        if ((int)ret.size() >= (nCount+nFrom)) break;
+        if ((int)ret.size() >= (nCount + nFrom)) break;
     }
     // ret is newest to oldest
 
@@ -1929,7 +1851,7 @@ UniValue listtransactions(const JSONRPCRequest& request)
     std::vector<UniValue>::iterator first = arrTmp.begin();
     std::advance(first, nFrom);
     std::vector<UniValue>::iterator last = arrTmp.begin();
-    std::advance(last, nFrom+nCount);
+    std::advance(last, nFrom + nCount);
 
     if (last != arrTmp.end()) arrTmp.erase(last, arrTmp.end());
     if (first != arrTmp.begin()) arrTmp.erase(arrTmp.begin(), first);
@@ -1945,7 +1867,7 @@ UniValue listtransactions(const JSONRPCRequest& request)
 
 UniValue liststucktransactions(const JSONRPCRequest& request)
 {
-    CWallet * const pwallet = GetWalletForJSONRPCRequest(request);
+    CWallet* const pwallet = GetWalletForJSONRPCRequest(request);
     if (!EnsureWalletIsAvailable(pwallet, request.fHelp)) {
         return NullUniValue;
     }
@@ -1958,52 +1880,53 @@ UniValue liststucktransactions(const JSONRPCRequest& request)
             "1. verbose (boolean, optional, default=false) True for a JSON representation of the transactions, false for array of transaction ids\n"
             "2. include_watchonly (bool, optional, default=false) Include transactions to watch-only addresses (see 'importaddress')\n"
             "\nResult: (for verbose = false):\n"
-           "[                     (json array of string)\n"
+            "[                     (json array of string)\n"
             "  \"transactionid\",   (string) The transaction id\n"
             "  ...\n"
             "]\n"
             "\nResult: (for verbose = true):\n"
             "[\n"
             "   {\n"
-            "     \"amount\" : x.xxx,        (numeric) The transaction amount in " + CURRENCY_UNIT + "\n"
-            "     \"fee\": x.xxx,            (numeric) The amount of the fee in " + CURRENCY_UNIT + ". This is negative and only available for the \n"
-            "                                 'send' category of transactions.\n"
-            "     \"confirmations\" : n,     (numeric) The number of confirmations\n"
-            "     \"blockhash\" : \"hash\",  (string) The block hash\n"
-            "     \"blockindex\" : xx,       (numeric) The index of the transaction in the block that includes it\n"
-            "     \"blocktime\" : ttt,       (numeric) The time in seconds since epoch (1 Jan 1970 GMT)\n"
-            "     \"txid\" : \"transactionid\",   (string) The transaction id.\n"
-            "     \"time\" : ttt,            (numeric) The transaction time in seconds since epoch (1 Jan 1970 GMT)\n"
-            "     \"timereceived\" : ttt,    (numeric) The time received in seconds since epoch (1 Jan 1970 GMT)\n"
-            "     \"bip125-replaceable\": \"yes|no|unknown\",  (string) Whether this transaction could be replaced due to BIP125 (replace-by-fee);\n"
-            "                                                      may be unknown for unconfirmed transactions not in the mempool\n"
-            "     \"details\" : [\n"
-            "       {\n"
-            "         \"account\" : \"accountname\",      (string) DEPRECATED. The account name involved in the transaction, can be \"\" for the default account.\n"
-            "         \"address\" : \"address\",          (string) The dogecoin address involved in the transaction\n"
-            "         \"category\" : \"send|receive\",    (string) The category, either 'send' or 'receive'\n"
-            "         \"amount\" : x.xxx,                 (numeric) The amount in " + CURRENCY_UNIT + "\n"
-            "         \"label\" : \"label\",              (string) A comment for the address/transaction, if any\n"
-            "         \"vout\" : n,                       (numeric) the vout value\n"
-            "         \"fee\": x.xxx,                     (numeric) The amount of the fee in " + CURRENCY_UNIT + ". This is negative and only available for the \n"
-            "                                              'send' category of transactions.\n"
-            "         \"abandoned\": xxx                  (bool) 'true' if the transaction has been abandoned (inputs are respendable). Only available for the \n"
-            "                                              'send' category of transactions.\n"
-            "       }\n"
-            "       ,...\n"
-            "     ],\n"
-            "     \"hex\" : \"data\"         (string) Raw data for transaction\n"
-            "   }\n"
-            "]\n"
+            "     \"amount\" : x.xxx,        (numeric) The transaction amount in " +
+            CURRENCY_UNIT + "\n"
+                            "     \"fee\": x.xxx,            (numeric) The amount of the fee in " +
+            CURRENCY_UNIT + ". This is negative and only available for the \n"
+                            "                                 'send' category of transactions.\n"
+                            "     \"confirmations\" : n,     (numeric) The number of confirmations\n"
+                            "     \"blockhash\" : \"hash\",  (string) The block hash\n"
+                            "     \"blockindex\" : xx,       (numeric) The index of the transaction in the block that includes it\n"
+                            "     \"blocktime\" : ttt,       (numeric) The time in seconds since epoch (1 Jan 1970 GMT)\n"
+                            "     \"txid\" : \"transactionid\",   (string) The transaction id.\n"
+                            "     \"time\" : ttt,            (numeric) The transaction time in seconds since epoch (1 Jan 1970 GMT)\n"
+                            "     \"timereceived\" : ttt,    (numeric) The time received in seconds since epoch (1 Jan 1970 GMT)\n"
+                            "     \"bip125-replaceable\": \"yes|no|unknown\",  (string) Whether this transaction could be replaced due to BIP125 (replace-by-fee);\n"
+                            "                                                      may be unknown for unconfirmed transactions not in the mempool\n"
+                            "     \"details\" : [\n"
+                            "       {\n"
+                            "         \"account\" : \"accountname\",      (string) DEPRECATED. The account name involved in the transaction, can be \"\" for the default account.\n"
+                            "         \"address\" : \"address\",          (string) The dogecoin address involved in the transaction\n"
+                            "         \"category\" : \"send|receive\",    (string) The category, either 'send' or 'receive'\n"
+                            "         \"amount\" : x.xxx,                 (numeric) The amount in " +
+            CURRENCY_UNIT + "\n"
+                            "         \"label\" : \"label\",              (string) A comment for the address/transaction, if any\n"
+                            "         \"vout\" : n,                       (numeric) the vout value\n"
+                            "         \"fee\": x.xxx,                     (numeric) The amount of the fee in " +
+            CURRENCY_UNIT + ". This is negative and only available for the \n"
+                            "                                              'send' category of transactions.\n"
+                            "         \"abandoned\": xxx                  (bool) 'true' if the transaction has been abandoned (inputs are respendable). Only available for the \n"
+                            "                                              'send' category of transactions.\n"
+                            "       }\n"
+                            "       ,...\n"
+                            "     ],\n"
+                            "     \"hex\" : \"data\"         (string) Raw data for transaction\n"
+                            "   }\n"
+                            "]\n"
 
-            "\nExamples:\n"
-            "\nList all transactions ids in the wallet that do not have a mempool entry.\n"
-            + HelpExampleCli("liststucktransactions", "false") +
-            "\nList all transactions in the wallet that do not have a mempool entry as a JSON object.\n"
-            + HelpExampleCli("liststucktransactions", "true") +
-            "\nAs a json rpc call\n"
-            + HelpExampleRpc("liststucktransactions", "")
-        );
+                            "\nExamples:\n"
+                            "\nList all transactions ids in the wallet that do not have a mempool entry.\n" +
+            HelpExampleCli("liststucktransactions", "false") +
+            "\nList all transactions in the wallet that do not have a mempool entry as a JSON object.\n" + HelpExampleCli("liststucktransactions", "true") +
+            "\nAs a json rpc call\n" + HelpExampleRpc("liststucktransactions", ""));
 
     LOCK2(cs_main, pwallet->cs_wallet);
 
@@ -2012,19 +1935,17 @@ UniValue liststucktransactions(const JSONRPCRequest& request)
         verbose = request.params[0].get_bool();
 
     isminefilter filter = ISMINE_SPENDABLE;
-    if(request.params.size() > 1)
-        if(request.params[1].get_bool())
+    if (request.params.size() > 1)
+        if (request.params[1].get_bool())
             filter = filter | ISMINE_WATCH_ONLY;
 
     UniValue ret(UniValue::VARR);
 
     const CWallet::TxItems& txOrdered = pwallet->wtxOrdered;
 
-    for (CWallet::TxItems::const_iterator it = txOrdered.begin(); it != txOrdered.end(); ++it)
-    {
-        CWalletTx *const wtx = (*it).second.first;
-        if (wtx->GetDepthInMainChain() <= 0 && !wtx->InMempool() && wtx->IsFromMe(filter))
-        {
+    for (CWallet::TxItems::const_iterator it = txOrdered.begin(); it != txOrdered.end(); ++it) {
+        CWalletTx* const wtx = (*it).second.first;
+        if (wtx->GetDepthInMainChain() <= 0 && !wtx->InMempool() && wtx->IsFromMe(filter)) {
             if (!verbose) {
                 ret.push_back(wtx->GetHash().ToString());
             } else {
@@ -2056,7 +1977,7 @@ UniValue liststucktransactions(const JSONRPCRequest& request)
 
 UniValue listaccounts(const JSONRPCRequest& request)
 {
-    CWallet * const pwallet = GetWalletForJSONRPCRequest(request);
+    CWallet* const pwallet = GetWalletForJSONRPCRequest(request);
     if (!EnsureWalletIsAvailable(pwallet, request.fHelp)) {
         return NullUniValue;
     }
@@ -2074,15 +1995,11 @@ UniValue listaccounts(const JSONRPCRequest& request)
             "  ...\n"
             "}\n"
             "\nExamples:\n"
-            "\nList account balances where there at least 1 confirmation\n"
-            + HelpExampleCli("listaccounts", "") +
-            "\nList account balances including zero confirmation transactions\n"
-            + HelpExampleCli("listaccounts", "0") +
-            "\nList account balances for 6 or more confirmations\n"
-            + HelpExampleCli("listaccounts", "6") +
-            "\nAs json rpc call\n"
-            + HelpExampleRpc("listaccounts", "6")
-        );
+            "\nList account balances where there at least 1 confirmation\n" +
+            HelpExampleCli("listaccounts", "") +
+            "\nList account balances including zero confirmation transactions\n" + HelpExampleCli("listaccounts", "0") +
+            "\nList account balances for 6 or more confirmations\n" + HelpExampleCli("listaccounts", "6") +
+            "\nAs json rpc call\n" + HelpExampleRpc("listaccounts", "6"));
 
     ObserveSafeMode();
     LOCK2(cs_main, pwallet->cs_wallet);
@@ -2091,13 +2008,13 @@ UniValue listaccounts(const JSONRPCRequest& request)
     if (!request.params[0].isNull())
         nMinDepth = request.params[0].get_int();
     isminefilter includeWatchonly = ISMINE_SPENDABLE;
-    if(!request.params[1].isNull())
-        if(request.params[1].get_bool())
+    if (!request.params[1].isNull())
+        if (request.params[1].get_bool())
             includeWatchonly = includeWatchonly | ISMINE_WATCH_ONLY;
 
     std::map<std::string, CAmount> mapAccountBalances;
     for (const std::pair<CTxDestination, CAddressBookData>& entry : pwallet->mapAddressBook) {
-        if (IsMine(*pwallet, entry.first) & includeWatchonly) {  // This address belongs to me
+        if (IsMine(*pwallet, entry.first) & includeWatchonly) { // This address belongs to me
             mapAccountBalances[entry.second.name] = 0;
         }
     }
@@ -2115,13 +2032,11 @@ UniValue listaccounts(const JSONRPCRequest& request)
         mapAccountBalances[strSentAccount] -= nFee;
         for (const COutputEntry& s : listSent)
             mapAccountBalances[strSentAccount] -= s.amount;
-        if (nDepth >= nMinDepth)
-        {
+        if (nDepth >= nMinDepth) {
             for (const COutputEntry& r : listReceived)
                 if (pwallet->mapAddressBook.count(r.destination)) {
                     mapAccountBalances[pwallet->mapAddressBook[r.destination].name] += r.amount;
-                }
-                else
+                } else
                     mapAccountBalances[""] += r.amount;
         }
     }
@@ -2139,7 +2054,7 @@ UniValue listaccounts(const JSONRPCRequest& request)
 
 UniValue listsinceblock(const JSONRPCRequest& request)
 {
-    CWallet * const pwallet = GetWalletForJSONRPCRequest(request);
+    CWallet* const pwallet = GetWalletForJSONRPCRequest(request);
     if (!EnsureWalletIsAvailable(pwallet, request.fHelp)) {
         return NullUniValue;
     }
@@ -2162,36 +2077,35 @@ UniValue listsinceblock(const JSONRPCRequest& request)
             "    \"account\":\"accountname\",       (string) DEPRECATED. The account name associated with the transaction. Will be \"\" for the default account.\n"
             "    \"address\":\"address\",    (string) The avian address of the transaction. Not present for move transactions (category = move).\n"
             "    \"category\":\"send|receive\",     (string) The transaction category. 'send' has negative amounts, 'receive' has positive amounts.\n"
-            "    \"amount\": x.xxx,          (numeric) The amount in " + CURRENCY_UNIT + ". This is negative for the 'send' category, and for the 'move' category for moves \n"
-            "                                          outbound. It is positive for the 'receive' category, and for the 'move' category for inbound funds.\n"
-            "    \"vout\" : n,               (numeric) the vout value\n"
-            "    \"fee\": x.xxx,             (numeric) The amount of the fee in " + CURRENCY_UNIT + ". This is negative and only available for the 'send' category of transactions.\n"
-            "    \"confirmations\": n,       (numeric) The number of confirmations for the transaction. Available for 'send' and 'receive' category of transactions.\n"
-            "                                          When it's < 0, it means the transaction conflicted that many blocks ago.\n"
-            "    \"blockhash\": \"hashvalue\",     (string) The block hash containing the transaction. Available for 'send' and 'receive' category of transactions.\n"
-            "    \"blockindex\": n,          (numeric) The index of the transaction in the block that includes it. Available for 'send' and 'receive' category of transactions.\n"
-            "    \"blocktime\": xxx,         (numeric) The block time in seconds since epoch (1 Jan 1970 GMT).\n"
-            "    \"txid\": \"transactionid\",  (string) The transaction id. Available for 'send' and 'receive' category of transactions.\n"
-            "    \"time\": xxx,              (numeric) The transaction time in seconds since epoch (Jan 1 1970 GMT).\n"
-            "    \"timereceived\": xxx,      (numeric) The time received in seconds since epoch (Jan 1 1970 GMT). Available for 'send' and 'receive' category of transactions.\n"
-            "    \"bip125-replaceable\": \"yes|no|unknown\",  (string) Whether this transaction could be replaced due to BIP125 (replace-by-fee);\n"
-            "                                                   may be unknown for unconfirmed transactions not in the mempool\n"
-            "    \"abandoned\": xxx,         (bool) 'true' if the transaction has been abandoned (inputs are respendable). Only available for the 'send' category of transactions.\n"
-            "    \"comment\": \"...\",       (string) If a comment is associated with the transaction.\n"
-            "    \"label\" : \"label\"       (string) A comment for the address/transaction, if any\n"
-            "    \"to\": \"...\",            (string) If a comment to is associated with the transaction.\n"
-            "  ],\n"
-            "  \"removed\": [\n"
-            "    <structure is the same as \"transactions\" above, only present if include_removed=true>\n"
-            "    Note: transactions that were readded in the active chain will appear as-is in this array, and may thus have a positive confirmation count.\n"
-            "  ],\n"
-            "  \"lastblock\": \"lastblockhash\"     (string) The hash of the block (target_confirmations-1) from the best block on the main chain. This is typically used to feed back into listsinceblock the next time you call it. So you would generally use a target_confirmations of say 6, so you will be continually re-notified of transactions until they've reached 6 confirmations plus any new ones\n"
-            "}\n"
-            "\nExamples:\n"
-            + HelpExampleCli("listsinceblock", "")
-            + HelpExampleCli("listsinceblock", "\"000000000000000bacf66f7497b7dc45ef753ee9a7d38571037cdb1a57f663ad\" 6")
-            + HelpExampleRpc("listsinceblock", "\"000000000000000bacf66f7497b7dc45ef753ee9a7d38571037cdb1a57f663ad\", 6")
-        );
+            "    \"amount\": x.xxx,          (numeric) The amount in " +
+            CURRENCY_UNIT + ". This is negative for the 'send' category, and for the 'move' category for moves \n"
+                            "                                          outbound. It is positive for the 'receive' category, and for the 'move' category for inbound funds.\n"
+                            "    \"vout\" : n,               (numeric) the vout value\n"
+                            "    \"fee\": x.xxx,             (numeric) The amount of the fee in " +
+            CURRENCY_UNIT + ". This is negative and only available for the 'send' category of transactions.\n"
+                            "    \"confirmations\": n,       (numeric) The number of confirmations for the transaction. Available for 'send' and 'receive' category of transactions.\n"
+                            "                                          When it's < 0, it means the transaction conflicted that many blocks ago.\n"
+                            "    \"blockhash\": \"hashvalue\",     (string) The block hash containing the transaction. Available for 'send' and 'receive' category of transactions.\n"
+                            "    \"blockindex\": n,          (numeric) The index of the transaction in the block that includes it. Available for 'send' and 'receive' category of transactions.\n"
+                            "    \"blocktime\": xxx,         (numeric) The block time in seconds since epoch (1 Jan 1970 GMT).\n"
+                            "    \"txid\": \"transactionid\",  (string) The transaction id. Available for 'send' and 'receive' category of transactions.\n"
+                            "    \"time\": xxx,              (numeric) The transaction time in seconds since epoch (Jan 1 1970 GMT).\n"
+                            "    \"timereceived\": xxx,      (numeric) The time received in seconds since epoch (Jan 1 1970 GMT). Available for 'send' and 'receive' category of transactions.\n"
+                            "    \"bip125-replaceable\": \"yes|no|unknown\",  (string) Whether this transaction could be replaced due to BIP125 (replace-by-fee);\n"
+                            "                                                   may be unknown for unconfirmed transactions not in the mempool\n"
+                            "    \"abandoned\": xxx,         (bool) 'true' if the transaction has been abandoned (inputs are respendable). Only available for the 'send' category of transactions.\n"
+                            "    \"comment\": \"...\",       (string) If a comment is associated with the transaction.\n"
+                            "    \"label\" : \"label\"       (string) A comment for the address/transaction, if any\n"
+                            "    \"to\": \"...\",            (string) If a comment to is associated with the transaction.\n"
+                            "  ],\n"
+                            "  \"removed\": [\n"
+                            "    <structure is the same as \"transactions\" above, only present if include_removed=true>\n"
+                            "    Note: transactions that were readded in the active chain will appear as-is in this array, and may thus have a positive confirmation count.\n"
+                            "  ],\n"
+                            "  \"lastblock\": \"lastblockhash\"     (string) The hash of the block (target_confirmations-1) from the best block on the main chain. This is typically used to feed back into listsinceblock the next time you call it. So you would generally use a target_confirmations of say 6, so you will be continually re-notified of transactions until they've reached 6 confirmations plus any new ones\n"
+                            "}\n"
+                            "\nExamples:\n" +
+            HelpExampleCli("listsinceblock", "") + HelpExampleCli("listsinceblock", "\"000000000000000bacf66f7497b7dc45ef753ee9a7d38571037cdb1a57f663ad\" 6") + HelpExampleRpc("listsinceblock", "\"000000000000000bacf66f7497b7dc45ef753ee9a7d38571037cdb1a57f663ad\", 6"));
 
     ObserveSafeMode();
     LOCK2(cs_main, pwallet->cs_wallet);
@@ -2264,7 +2178,7 @@ UniValue listsinceblock(const JSONRPCRequest& request)
         paltindex = paltindex->pprev;
     }
 
-    CBlockIndex *pblockLast = chainActive[chainActive.Height() + 1 - target_confirms];
+    CBlockIndex* pblockLast = chainActive[chainActive.Height() + 1 - target_confirms];
     uint256 lastblock = pblockLast ? pblockLast->GetBlockHash() : uint256();
 
     UniValue ret(UniValue::VOBJ);
@@ -2281,7 +2195,7 @@ UniValue listsinceblock(const JSONRPCRequest& request)
 
 UniValue gettransaction(const JSONRPCRequest& request)
 {
-    CWallet * const pwallet = GetWalletForJSONRPCRequest(request);
+    CWallet* const pwallet = GetWalletForJSONRPCRequest(request);
     if (!EnsureWalletIsAvailable(pwallet, request.fHelp)) {
         return NullUniValue;
     }
@@ -2295,53 +2209,55 @@ UniValue gettransaction(const JSONRPCRequest& request)
             "2. \"include_watchonly\"     (bool, optional, default=false) Whether to include watch-only addresses in balance calculation and details[]\n"
             "\nResult:\n"
             "{\n"
-            "  \"amount\" : x.xxx,        (numeric) The transaction amount in " + CURRENCY_UNIT + "\n"
-            "  \"fee\": x.xxx,            (numeric) The amount of the fee in " + CURRENCY_UNIT + ". This is negative and only available for the \n"
-            "                              'send' category of transactions.\n"
-            "  \"confirmations\" : n,     (numeric) The number of confirmations\n"
-            "  \"blockhash\" : \"hash\",  (string) The block hash\n"
-            "  \"blockindex\" : xx,       (numeric) The index of the transaction in the block that includes it\n"
-            "  \"blocktime\" : ttt,       (numeric) The time in seconds since epoch (1 Jan 1970 GMT)\n"
-            "  \"txid\" : \"transactionid\",   (string) The transaction id.\n"
-            "  \"time\" : ttt,            (numeric) The transaction time in seconds since epoch (1 Jan 1970 GMT)\n"
-            "  \"timereceived\" : ttt,    (numeric) The time received in seconds since epoch (1 Jan 1970 GMT)\n"
-            "  \"bip125-replaceable\": \"yes|no|unknown\",  (string) Whether this transaction could be replaced due to BIP125 (replace-by-fee);\n"
-            "                                                   may be unknown for unconfirmed transactions not in the mempool\n"
-            "  \"details\" : [\n"
-            "    {\n"
-            "      \"account\" : \"accountname\",      (string) DEPRECATED. The account name involved in the transaction, can be \"\" for the default account.\n"
-            "      \"address\" : \"address\",          (string) The avian address involved in the transaction\n"
-            "      \"category\" : \"send|receive\",    (string) The category, either 'send' or 'receive'\n"
-            "      \"amount\" : x.xxx,                 (numeric) The amount in " + CURRENCY_UNIT + "\n"
-            "      \"label\" : \"label\",              (string) A comment for the address/transaction, if any\n"
-            "      \"vout\" : n,                       (numeric) the vout value\n"
-            "      \"fee\": x.xxx,                     (numeric) The amount of the fee in " + CURRENCY_UNIT + ". This is negative and only available for the \n"
-            "                                           'send' category of transactions.\n"
-            "      \"abandoned\": xxx                  (bool) 'true' if the transaction has been abandoned (inputs are respendable). Only available for the \n"
-            "                                           'send' category of transactions.\n"
-            "    }\n"
-            "    ,...\n"
-            "  ],\n"
-            "  \"asset_details\" : [\n"
-            "    {\n"
-            "      \"asset_type\" : \"new_asset|transfer_asset|reissue_asset\", (string) The type of asset transaction\n"
-            "      \"asset_name\" : \"asset_name\",          (string) The name of the asset\n"
-            "      \"amount\" : x.xxx,                 (numeric) The amount in " + CURRENCY_UNIT + "\n"
-            "      \"address\" : \"address\",          (string) The avian address involved in the transaction\n"
-            "      \"vout\" : n,                       (numeric) the vout value\n"
-            "      \"category\" : \"send|receive\",    (string) The category, either 'send' or 'receive'\n"
-            "    }\n"
-            "    ,...\n"
-            "  ],\n"
+            "  \"amount\" : x.xxx,        (numeric) The transaction amount in " +
+            CURRENCY_UNIT + "\n"
+                            "  \"fee\": x.xxx,            (numeric) The amount of the fee in " +
+            CURRENCY_UNIT + ". This is negative and only available for the \n"
+                            "                              'send' category of transactions.\n"
+                            "  \"confirmations\" : n,     (numeric) The number of confirmations\n"
+                            "  \"blockhash\" : \"hash\",  (string) The block hash\n"
+                            "  \"blockindex\" : xx,       (numeric) The index of the transaction in the block that includes it\n"
+                            "  \"blocktime\" : ttt,       (numeric) The time in seconds since epoch (1 Jan 1970 GMT)\n"
+                            "  \"txid\" : \"transactionid\",   (string) The transaction id.\n"
+                            "  \"time\" : ttt,            (numeric) The transaction time in seconds since epoch (1 Jan 1970 GMT)\n"
+                            "  \"timereceived\" : ttt,    (numeric) The time received in seconds since epoch (1 Jan 1970 GMT)\n"
+                            "  \"bip125-replaceable\": \"yes|no|unknown\",  (string) Whether this transaction could be replaced due to BIP125 (replace-by-fee);\n"
+                            "                                                   may be unknown for unconfirmed transactions not in the mempool\n"
+                            "  \"details\" : [\n"
+                            "    {\n"
+                            "      \"account\" : \"accountname\",      (string) DEPRECATED. The account name involved in the transaction, can be \"\" for the default account.\n"
+                            "      \"address\" : \"address\",          (string) The avian address involved in the transaction\n"
+                            "      \"category\" : \"send|receive\",    (string) The category, either 'send' or 'receive'\n"
+                            "      \"amount\" : x.xxx,                 (numeric) The amount in " +
+            CURRENCY_UNIT + "\n"
+                            "      \"label\" : \"label\",              (string) A comment for the address/transaction, if any\n"
+                            "      \"vout\" : n,                       (numeric) the vout value\n"
+                            "      \"fee\": x.xxx,                     (numeric) The amount of the fee in " +
+            CURRENCY_UNIT + ". This is negative and only available for the \n"
+                            "                                           'send' category of transactions.\n"
+                            "      \"abandoned\": xxx                  (bool) 'true' if the transaction has been abandoned (inputs are respendable). Only available for the \n"
+                            "                                           'send' category of transactions.\n"
+                            "    }\n"
+                            "    ,...\n"
+                            "  ],\n"
+                            "  \"asset_details\" : [\n"
+                            "    {\n"
+                            "      \"asset_type\" : \"new_asset|transfer_asset|reissue_asset\", (string) The type of asset transaction\n"
+                            "      \"asset_name\" : \"asset_name\",          (string) The name of the asset\n"
+                            "      \"amount\" : x.xxx,                 (numeric) The amount in " +
+            CURRENCY_UNIT + "\n"
+                            "      \"address\" : \"address\",          (string) The avian address involved in the transaction\n"
+                            "      \"vout\" : n,                       (numeric) the vout value\n"
+                            "      \"category\" : \"send|receive\",    (string) The category, either 'send' or 'receive'\n"
+                            "    }\n"
+                            "    ,...\n"
+                            "  ],\n"
 
-            "  \"hex\" : \"data\"         (string) Raw data for transaction\n"
-            "}\n"
+                            "  \"hex\" : \"data\"         (string) Raw data for transaction\n"
+                            "}\n"
 
-            "\nExamples:\n"
-            + HelpExampleCli("gettransaction", "\"1075db55d416d3ca199f55b6084e2115b9345e16c5cf302fc80e9d5fbf5d48d\"")
-            + HelpExampleCli("gettransaction", "\"1075db55d416d3ca199f55b6084e2115b9345e16c5cf302fc80e9d5fbf5d48d\" true")
-            + HelpExampleRpc("gettransaction", "\"1075db55d416d3ca199f55b6084e2115b9345e16c5cf302fc80e9d5fbf5d48d\"")
-        );
+                            "\nExamples:\n" +
+            HelpExampleCli("gettransaction", "\"1075db55d416d3ca199f55b6084e2115b9345e16c5cf302fc80e9d5fbf5d48d\"") + HelpExampleCli("gettransaction", "\"1075db55d416d3ca199f55b6084e2115b9345e16c5cf302fc80e9d5fbf5d48d\" true") + HelpExampleRpc("gettransaction", "\"1075db55d416d3ca199f55b6084e2115b9345e16c5cf302fc80e9d5fbf5d48d\""));
 
     ObserveSafeMode();
     LOCK2(cs_main, pwallet->cs_wallet);
@@ -2350,8 +2266,8 @@ UniValue gettransaction(const JSONRPCRequest& request)
     hash.SetHex(request.params[0].get_str());
 
     isminefilter filter = ISMINE_SPENDABLE;
-    if(!request.params[1].isNull())
-        if(request.params[1].get_bool())
+    if (!request.params[1].isNull())
+        if (request.params[1].get_bool())
             filter = filter | ISMINE_WATCH_ONLY;
 
     UniValue entry(UniValue::VOBJ);
@@ -2386,7 +2302,7 @@ UniValue gettransaction(const JSONRPCRequest& request)
 
 UniValue abandontransaction(const JSONRPCRequest& request)
 {
-    CWallet * const pwallet = GetWalletForJSONRPCRequest(request);
+    CWallet* const pwallet = GetWalletForJSONRPCRequest(request);
     if (!EnsureWalletIsAvailable(pwallet, request.fHelp)) {
         return NullUniValue;
     }
@@ -2402,10 +2318,8 @@ UniValue abandontransaction(const JSONRPCRequest& request)
             "\nArguments:\n"
             "1. \"txid\"    (string, required) The transaction id\n"
             "\nResult:\n"
-            "\nExamples:\n"
-            + HelpExampleCli("abandontransaction", "\"1075db55d416d3ca199f55b6084e2115b9345e16c5cf302fc80e9d5fbf5d48d\"")
-            + HelpExampleRpc("abandontransaction", "\"1075db55d416d3ca199f55b6084e2115b9345e16c5cf302fc80e9d5fbf5d48d\"")
-        );
+            "\nExamples:\n" +
+            HelpExampleCli("abandontransaction", "\"1075db55d416d3ca199f55b6084e2115b9345e16c5cf302fc80e9d5fbf5d48d\"") + HelpExampleRpc("abandontransaction", "\"1075db55d416d3ca199f55b6084e2115b9345e16c5cf302fc80e9d5fbf5d48d\""));
 
     ObserveSafeMode();
     LOCK2(cs_main, pwallet->cs_wallet);
@@ -2426,7 +2340,7 @@ UniValue abandontransaction(const JSONRPCRequest& request)
 
 UniValue backupwallet(const JSONRPCRequest& request)
 {
-    CWallet * const pwallet = GetWalletForJSONRPCRequest(request);
+    CWallet* const pwallet = GetWalletForJSONRPCRequest(request);
     if (!EnsureWalletIsAvailable(pwallet, request.fHelp)) {
         return NullUniValue;
     }
@@ -2437,10 +2351,8 @@ UniValue backupwallet(const JSONRPCRequest& request)
             "\nSafely copies current wallet file to destination, which can be a directory or a path with filename.\n"
             "\nArguments:\n"
             "1. \"destination\"   (string) The destination directory or file\n"
-            "\nExamples:\n"
-            + HelpExampleCli("backupwallet", "\"backup.dat\"")
-            + HelpExampleRpc("backupwallet", "\"backup.dat\"")
-        );
+            "\nExamples:\n" +
+            HelpExampleCli("backupwallet", "\"backup.dat\"") + HelpExampleRpc("backupwallet", "\"backup.dat\""));
 
     LOCK2(cs_main, pwallet->cs_wallet);
 
@@ -2455,7 +2367,7 @@ UniValue backupwallet(const JSONRPCRequest& request)
 
 UniValue keypoolrefill(const JSONRPCRequest& request)
 {
-    CWallet * const pwallet = GetWalletForJSONRPCRequest(request);
+    CWallet* const pwallet = GetWalletForJSONRPCRequest(request);
     if (!EnsureWalletIsAvailable(pwallet, request.fHelp)) {
         return NullUniValue;
     }
@@ -2463,14 +2375,12 @@ UniValue keypoolrefill(const JSONRPCRequest& request)
     if (request.fHelp || request.params.size() > 1)
         throw std::runtime_error(
             "keypoolrefill ( newsize )\n"
-            "\nFills the keypool."
-            + HelpRequiringPassphrase(pwallet) + "\n"
-            "\nArguments\n"
-            "1. newsize     (numeric, optional, default=100) The new keypool size\n"
-            "\nExamples:\n"
-            + HelpExampleCli("keypoolrefill", "")
-            + HelpExampleRpc("keypoolrefill", "")
-        );
+            "\nFills the keypool." +
+            HelpRequiringPassphrase(pwallet) + "\n"
+                                               "\nArguments\n"
+                                               "1. newsize     (numeric, optional, default=100) The new keypool size\n"
+                                               "\nExamples:\n" +
+            HelpExampleCli("keypoolrefill", "") + HelpExampleRpc("keypoolrefill", ""));
 
     LOCK2(cs_main, pwallet->cs_wallet);
 
@@ -2502,7 +2412,7 @@ static void LockWallet(CWallet* pWallet)
 
 UniValue walletpassphrase(const JSONRPCRequest& request)
 {
-    CWallet * const pwallet = GetWalletForJSONRPCRequest(request);
+    CWallet* const pwallet = GetWalletForJSONRPCRequest(request);
     if (!EnsureWalletIsAvailable(pwallet, request.fHelp)) {
         return NullUniValue;
     }
@@ -2519,13 +2429,10 @@ UniValue walletpassphrase(const JSONRPCRequest& request)
             "Issuing the walletpassphrase command while the wallet is already unlocked will set a new unlock\n"
             "time that overrides the old one.\n"
             "\nExamples:\n"
-            "\nUnlock the wallet for 60 seconds\n"
-            + HelpExampleCli("walletpassphrase", "\"my pass phrase\" 60") +
-            "\nLock the wallet again (before 60 seconds)\n"
-            + HelpExampleCli("walletlock", "") +
-            "\nAs json rpc call\n"
-            + HelpExampleRpc("walletpassphrase", "\"my pass phrase\", 60")
-        );
+            "\nUnlock the wallet for 60 seconds\n" +
+            HelpExampleCli("walletpassphrase", "\"my pass phrase\" 60") +
+            "\nLock the wallet again (before 60 seconds)\n" + HelpExampleCli("walletlock", "") +
+            "\nAs json rpc call\n" + HelpExampleRpc("walletpassphrase", "\"my pass phrase\", 60"));
     }
 
     LOCK2(cs_main, pwallet->cs_wallet);
@@ -2543,13 +2450,11 @@ UniValue walletpassphrase(const JSONRPCRequest& request)
     // Alternately, find a way to make request.params[0] mlock()'d to begin with.
     strWalletPass = request.params[0].get_str().c_str();
 
-    if (strWalletPass.length() > 0)
-    {
+    if (strWalletPass.length() > 0) {
         if (!pwallet->Unlock(strWalletPass)) {
             throw JSONRPCError(RPC_WALLET_PASSPHRASE_INCORRECT, "Error: The wallet passphrase entered was incorrect.");
         }
-    }
-    else
+    } else
         throw std::runtime_error(
             "walletpassphrase <passphrase> <timeout>\n"
             "Stores the wallet decryption key in memory for <timeout> seconds.");
@@ -2566,7 +2471,7 @@ UniValue walletpassphrase(const JSONRPCRequest& request)
 
 UniValue walletpassphrasechange(const JSONRPCRequest& request)
 {
-    CWallet * const pwallet = GetWalletForJSONRPCRequest(request);
+    CWallet* const pwallet = GetWalletForJSONRPCRequest(request);
     if (!EnsureWalletIsAvailable(pwallet, request.fHelp)) {
         return NullUniValue;
     }
@@ -2578,10 +2483,8 @@ UniValue walletpassphrasechange(const JSONRPCRequest& request)
             "\nArguments:\n"
             "1. \"oldpassphrase\"      (string) The current passphrase\n"
             "2. \"newpassphrase\"      (string) The new passphrase\n"
-            "\nExamples:\n"
-            + HelpExampleCli("walletpassphrasechange", "\"old one\" \"new one\"")
-            + HelpExampleRpc("walletpassphrasechange", "\"old one\", \"new one\"")
-        );
+            "\nExamples:\n" +
+            HelpExampleCli("walletpassphrasechange", "\"old one\" \"new one\"") + HelpExampleRpc("walletpassphrasechange", "\"old one\", \"new one\""));
     }
 
     LOCK2(cs_main, pwallet->cs_wallet);
@@ -2617,7 +2520,7 @@ UniValue walletpassphrasechange(const JSONRPCRequest& request)
 
 UniValue walletlock(const JSONRPCRequest& request)
 {
-    CWallet * const pwallet = GetWalletForJSONRPCRequest(request);
+    CWallet* const pwallet = GetWalletForJSONRPCRequest(request);
     if (!EnsureWalletIsAvailable(pwallet, request.fHelp)) {
         return NullUniValue;
     }
@@ -2629,15 +2532,11 @@ UniValue walletlock(const JSONRPCRequest& request)
             "After calling this method, you will need to call walletpassphrase again\n"
             "before being able to call any methods which require the wallet to be unlocked.\n"
             "\nExamples:\n"
-            "\nSet the passphrase for 2 minutes to perform a transaction\n"
-            + HelpExampleCli("walletpassphrase", "\"my pass phrase\" 120") +
-            "\nPerform a send (requires passphrase set)\n"
-            + HelpExampleCli("sendtoaddress", "\"1M72Sfpbz1BPpXFHz9m3CdqATR44Jvaydd\" 1.0") +
-            "\nClear the passphrase since we are done before 2 minutes is up\n"
-            + HelpExampleCli("walletlock", "") +
-            "\nAs json rpc call\n"
-            + HelpExampleRpc("walletlock", "")
-        );
+            "\nSet the passphrase for 2 minutes to perform a transaction\n" +
+            HelpExampleCli("walletpassphrase", "\"my pass phrase\" 120") +
+            "\nPerform a send (requires passphrase set)\n" + HelpExampleCli("sendtoaddress", "\"1M72Sfpbz1BPpXFHz9m3CdqATR44Jvaydd\" 1.0") +
+            "\nClear the passphrase since we are done before 2 minutes is up\n" + HelpExampleCli("walletlock", "") +
+            "\nAs json rpc call\n" + HelpExampleRpc("walletlock", ""));
     }
 
     LOCK2(cs_main, pwallet->cs_wallet);
@@ -2657,7 +2556,7 @@ UniValue walletlock(const JSONRPCRequest& request)
 
 UniValue encryptwallet(const JSONRPCRequest& request)
 {
-    CWallet * const pwallet = GetWalletForJSONRPCRequest(request);
+    CWallet* const pwallet = GetWalletForJSONRPCRequest(request);
     if (!EnsureWalletIsAvailable(pwallet, request.fHelp)) {
         return NullUniValue;
     }
@@ -2674,17 +2573,12 @@ UniValue encryptwallet(const JSONRPCRequest& request)
             "\nArguments:\n"
             "1. \"passphrase\"    (string) The pass phrase to encrypt the wallet with. It must be at least 1 character, but should be long.\n"
             "\nExamples:\n"
-            "\nEncrypt your wallet\n"
-            + HelpExampleCli("encryptwallet", "\"my pass phrase\"") +
-            "\nNow set the passphrase to use the wallet, such as for signing or sending avian\n"
-            + HelpExampleCli("walletpassphrase", "\"my pass phrase\"") +
-            "\nNow we can do something like sign\n"
-            + HelpExampleCli("signmessage", "\"address\" \"test message\"") +
-            "\nNow lock the wallet again by removing the passphrase\n"
-            + HelpExampleCli("walletlock", "") +
-            "\nAs a json rpc call\n"
-            + HelpExampleRpc("encryptwallet", "\"my pass phrase\"")
-        );
+            "\nEncrypt your wallet\n" +
+            HelpExampleCli("encryptwallet", "\"my pass phrase\"") +
+            "\nNow set the passphrase to use the wallet, such as for signing or sending avian\n" + HelpExampleCli("walletpassphrase", "\"my pass phrase\"") +
+            "\nNow we can do something like sign\n" + HelpExampleCli("signmessage", "\"address\" \"test message\"") +
+            "\nNow lock the wallet again by removing the passphrase\n" + HelpExampleCli("walletlock", "") +
+            "\nAs a json rpc call\n" + HelpExampleRpc("encryptwallet", "\"my pass phrase\""));
     }
 
     LOCK2(cs_main, pwallet->cs_wallet);
@@ -2719,7 +2613,7 @@ UniValue encryptwallet(const JSONRPCRequest& request)
 
 UniValue lockunspent(const JSONRPCRequest& request)
 {
-    CWallet * const pwallet = GetWalletForJSONRPCRequest(request);
+    CWallet* const pwallet = GetWalletForJSONRPCRequest(request);
     if (!EnsureWalletIsAvailable(pwallet, request.fHelp)) {
         return NullUniValue;
     }
@@ -2749,17 +2643,12 @@ UniValue lockunspent(const JSONRPCRequest& request)
             "true|false    (boolean) Whether the command was successful or not\n"
 
             "\nExamples:\n"
-            "\nList the unspent transactions\n"
-            + HelpExampleCli("listunspent", "") +
-            "\nLock an unspent transaction\n"
-            + HelpExampleCli("lockunspent", "false \"[{\\\"txid\\\":\\\"a08e6907dbbd3d809776dbfc5d82e371b764ed838b5655e72f463568df1aadf0\\\",\\\"vout\\\":1}]\"") +
-            "\nList the locked transactions\n"
-            + HelpExampleCli("listlockunspent", "") +
-            "\nUnlock the transaction again\n"
-            + HelpExampleCli("lockunspent", "true \"[{\\\"txid\\\":\\\"a08e6907dbbd3d809776dbfc5d82e371b764ed838b5655e72f463568df1aadf0\\\",\\\"vout\\\":1}]\"") +
-            "\nAs a json rpc call\n"
-            + HelpExampleRpc("lockunspent", "false, \"[{\\\"txid\\\":\\\"a08e6907dbbd3d809776dbfc5d82e371b764ed838b5655e72f463568df1aadf0\\\",\\\"vout\\\":1}]\"")
-        );
+            "\nList the unspent transactions\n" +
+            HelpExampleCli("listunspent", "") +
+            "\nLock an unspent transaction\n" + HelpExampleCli("lockunspent", "false \"[{\\\"txid\\\":\\\"a08e6907dbbd3d809776dbfc5d82e371b764ed838b5655e72f463568df1aadf0\\\",\\\"vout\\\":1}]\"") +
+            "\nList the locked transactions\n" + HelpExampleCli("listlockunspent", "") +
+            "\nUnlock the transaction again\n" + HelpExampleCli("lockunspent", "true \"[{\\\"txid\\\":\\\"a08e6907dbbd3d809776dbfc5d82e371b764ed838b5655e72f463568df1aadf0\\\",\\\"vout\\\":1}]\"") +
+            "\nAs a json rpc call\n" + HelpExampleRpc("lockunspent", "false, \"[{\\\"txid\\\":\\\"a08e6907dbbd3d809776dbfc5d82e371b764ed838b5655e72f463568df1aadf0\\\",\\\"vout\\\":1}]\""));
 
     LOCK2(cs_main, pwallet->cs_wallet);
 
@@ -2809,7 +2698,7 @@ UniValue lockunspent(const JSONRPCRequest& request)
 
 UniValue listlockunspent(const JSONRPCRequest& request)
 {
-    CWallet * const pwallet = GetWalletForJSONRPCRequest(request);
+    CWallet* const pwallet = GetWalletForJSONRPCRequest(request);
     if (!EnsureWalletIsAvailable(pwallet, request.fHelp)) {
         return NullUniValue;
     }
@@ -2828,17 +2717,12 @@ UniValue listlockunspent(const JSONRPCRequest& request)
             "  ,...\n"
             "]\n"
             "\nExamples:\n"
-            "\nList the unspent transactions\n"
-            + HelpExampleCli("listunspent", "") +
-            "\nLock an unspent transaction\n"
-            + HelpExampleCli("lockunspent", "false \"[{\\\"txid\\\":\\\"a08e6907dbbd3d809776dbfc5d82e371b764ed838b5655e72f463568df1aadf0\\\",\\\"vout\\\":1}]\"") +
-            "\nList the locked transactions\n"
-            + HelpExampleCli("listlockunspent", "") +
-            "\nUnlock the transaction again\n"
-            + HelpExampleCli("lockunspent", "true \"[{\\\"txid\\\":\\\"a08e6907dbbd3d809776dbfc5d82e371b764ed838b5655e72f463568df1aadf0\\\",\\\"vout\\\":1}]\"") +
-            "\nAs a json rpc call\n"
-            + HelpExampleRpc("listlockunspent", "")
-        );
+            "\nList the unspent transactions\n" +
+            HelpExampleCli("listunspent", "") +
+            "\nLock an unspent transaction\n" + HelpExampleCli("lockunspent", "false \"[{\\\"txid\\\":\\\"a08e6907dbbd3d809776dbfc5d82e371b764ed838b5655e72f463568df1aadf0\\\",\\\"vout\\\":1}]\"") +
+            "\nList the locked transactions\n" + HelpExampleCli("listlockunspent", "") +
+            "\nUnlock the transaction again\n" + HelpExampleCli("lockunspent", "true \"[{\\\"txid\\\":\\\"a08e6907dbbd3d809776dbfc5d82e371b764ed838b5655e72f463568df1aadf0\\\",\\\"vout\\\":1}]\"") +
+            "\nAs a json rpc call\n" + HelpExampleRpc("listlockunspent", ""));
 
     ObserveSafeMode();
     LOCK2(cs_main, pwallet->cs_wallet);
@@ -2848,7 +2732,7 @@ UniValue listlockunspent(const JSONRPCRequest& request)
 
     UniValue ret(UniValue::VARR);
 
-    for (COutPoint &outpt : vOutpts) {
+    for (COutPoint& outpt : vOutpts) {
         UniValue o(UniValue::VOBJ);
 
         o.push_back(Pair("txid", outpt.hash.GetHex()));
@@ -2861,7 +2745,7 @@ UniValue listlockunspent(const JSONRPCRequest& request)
 
 UniValue settxfee(const JSONRPCRequest& request)
 {
-    CWallet * const pwallet = GetWalletForJSONRPCRequest(request);
+    CWallet* const pwallet = GetWalletForJSONRPCRequest(request);
     if (!EnsureWalletIsAvailable(pwallet, request.fHelp)) {
         return NullUniValue;
     }
@@ -2871,13 +2755,12 @@ UniValue settxfee(const JSONRPCRequest& request)
             "settxfee amount\n"
             "\nSet the transaction fee per kB. Overwrites the paytxfee parameter.\n"
             "\nArguments:\n"
-            "1. amount         (numeric or string, required) The transaction fee in " + CURRENCY_UNIT + "/kB\n"
-            "\nResult\n"
-            "true|false        (boolean) Returns true if successful\n"
-            "\nExamples:\n"
-            + HelpExampleCli("settxfee", "0.00001")
-            + HelpExampleRpc("settxfee", "0.00001")
-        );
+            "1. amount         (numeric or string, required) The transaction fee in " +
+            CURRENCY_UNIT + "/kB\n"
+                            "\nResult\n"
+                            "true|false        (boolean) Returns true if successful\n"
+                            "\nExamples:\n" +
+            HelpExampleCli("settxfee", "0.00001") + HelpExampleRpc("settxfee", "0.00001"));
 
     LOCK2(cs_main, pwallet->cs_wallet);
 
@@ -2890,7 +2773,7 @@ UniValue settxfee(const JSONRPCRequest& request)
 
 UniValue getwalletinfo(const JSONRPCRequest& request)
 {
-    CWallet * const pwallet = GetWalletForJSONRPCRequest(request);
+    CWallet* const pwallet = GetWalletForJSONRPCRequest(request);
     if (!EnsureWalletIsAvailable(pwallet, request.fHelp)) {
         return NullUniValue;
     }
@@ -2903,22 +2786,24 @@ UniValue getwalletinfo(const JSONRPCRequest& request)
             "{\n"
             "  \"walletname\": xxxxx,             (string) the wallet name\n"
             "  \"walletversion\": xxxxx,          (numeric) the wallet version\n"
-            "  \"balance\": xxxxxxx,              (numeric) the total confirmed balance of the wallet in " + CURRENCY_UNIT + "\n"
-            "  \"unconfirmed_balance\": xxx,      (numeric) the total unconfirmed balance of the wallet in " + CURRENCY_UNIT + "\n"
-            "  \"immature_balance\": xxxxxx,      (numeric) the total immature balance of the wallet in " + CURRENCY_UNIT + "\n"
-            "  \"txcount\": xxxxxxx,              (numeric) the total number of transactions in the wallet\n"
-            "  \"keypoololdest\": xxxxxx,         (numeric) the timestamp (seconds since Unix epoch) of the oldest pre-generated key in the key pool\n"
-            "  \"keypoolsize\": xxxx,             (numeric) how many new keys are pre-generated (only counts external keys)\n"
-            "  \"keypoolsize_hd_internal\": xxxx, (numeric) how many new keys are pre-generated for internal use (used for change outputs, only appears if the wallet is using this feature, otherwise external keys are used)\n"
-            "  \"unlocked_until\": ttt,           (numeric) the timestamp in seconds since epoch (midnight Jan 1 1970 GMT) that the wallet is unlocked for transfers, or 0 if the wallet is locked\n"
-            "  \"paytxfee\": x.xxxx,              (numeric) the transaction fee configuration, set in " + CURRENCY_UNIT + "/kB\n"
-            "  \"hdseedid\": \"<hash160>\"          (string, optional) the Hash160 of the HD seed (only present when HD is enabled)\n"
-            "  \"hdmasterkeyid\": \"<hash160>\"     (string, optional) alias for hdseedid retained for backwards-compatibility. Will be removed in V0.18.\n"
-            "}\n"
-            "\nExamples:\n"
-            + HelpExampleCli("getwalletinfo", "")
-            + HelpExampleRpc("getwalletinfo", "")
-        );
+            "  \"balance\": xxxxxxx,              (numeric) the total confirmed balance of the wallet in " +
+            CURRENCY_UNIT + "\n"
+                            "  \"unconfirmed_balance\": xxx,      (numeric) the total unconfirmed balance of the wallet in " +
+            CURRENCY_UNIT + "\n"
+                            "  \"immature_balance\": xxxxxx,      (numeric) the total immature balance of the wallet in " +
+            CURRENCY_UNIT + "\n"
+                            "  \"txcount\": xxxxxxx,              (numeric) the total number of transactions in the wallet\n"
+                            "  \"keypoololdest\": xxxxxx,         (numeric) the timestamp (seconds since Unix epoch) of the oldest pre-generated key in the key pool\n"
+                            "  \"keypoolsize\": xxxx,             (numeric) how many new keys are pre-generated (only counts external keys)\n"
+                            "  \"keypoolsize_hd_internal\": xxxx, (numeric) how many new keys are pre-generated for internal use (used for change outputs, only appears if the wallet is using this feature, otherwise external keys are used)\n"
+                            "  \"unlocked_until\": ttt,           (numeric) the timestamp in seconds since epoch (midnight Jan 1 1970 GMT) that the wallet is unlocked for transfers, or 0 if the wallet is locked\n"
+                            "  \"paytxfee\": x.xxxx,              (numeric) the transaction fee configuration, set in " +
+            CURRENCY_UNIT + "/kB\n"
+                            "  \"hdseedid\": \"<hash160>\"          (string, optional) the Hash160 of the HD seed (only present when HD is enabled)\n"
+                            "  \"hdmasterkeyid\": \"<hash160>\"     (string, optional) alias for hdseedid retained for backwards-compatibility. Will be removed in V0.18.\n"
+                            "}\n"
+                            "\nExamples:\n" +
+            HelpExampleCli("getwalletinfo", "") + HelpExampleRpc("getwalletinfo", ""));
 
     ObserveSafeMode();
     LOCK2(cs_main, pwallet->cs_wallet);
@@ -2928,20 +2813,20 @@ UniValue getwalletinfo(const JSONRPCRequest& request)
     size_t kpExternalSize = pwallet->KeypoolCountExternalKeys();
     obj.push_back(Pair("walletname", pwallet->GetName()));
     obj.push_back(Pair("walletversion", pwallet->GetVersion()));
-    obj.push_back(Pair("balance",       ValueFromAmount(pwallet->GetBalance())));
+    obj.push_back(Pair("balance", ValueFromAmount(pwallet->GetBalance())));
     obj.push_back(Pair("unconfirmed_balance", ValueFromAmount(pwallet->GetUnconfirmedBalance())));
-    obj.push_back(Pair("immature_balance",    ValueFromAmount(pwallet->GetImmatureBalance())));
-    obj.push_back(Pair("txcount",       (int)pwallet->mapWallet.size()));
+    obj.push_back(Pair("immature_balance", ValueFromAmount(pwallet->GetImmatureBalance())));
+    obj.push_back(Pair("txcount", (int)pwallet->mapWallet.size()));
     obj.push_back(Pair("keypoololdest", pwallet->GetOldestKeyPoolTime()));
     obj.push_back(Pair("keypoolsize", (int64_t)kpExternalSize));
     CKeyID seed_id = pwallet->GetHDChain().seed_id;
     if (!seed_id.IsNull() && pwallet->CanSupportFeature(FEATURE_HD_SPLIT)) {
-        obj.push_back(Pair("keypoolsize_hd_internal",   (int64_t)(pwallet->GetKeyPoolSize() - kpExternalSize)));
+        obj.push_back(Pair("keypoolsize_hd_internal", (int64_t)(pwallet->GetKeyPoolSize() - kpExternalSize)));
     }
     if (pwallet->IsCrypted()) {
         obj.push_back(Pair("unlocked_until", pwallet->nRelockTime));
     }
-    obj.push_back(Pair("paytxfee",      ValueFromAmount(payTxFee.GetFeePerK())));
+    obj.push_back(Pair("paytxfee", ValueFromAmount(payTxFee.GetFeePerK())));
     if (!seed_id.IsNull()) {
         obj.push_back(Pair("hdseedid", seed_id.GetHex()));
         obj.push_back(Pair("hdmasterkeyid", seed_id.GetHex()));
@@ -2961,15 +2846,12 @@ UniValue listwallets(const JSONRPCRequest& request)
             "  \"walletname\"            (string) the wallet name\n"
             "   ...\n"
             "]\n"
-            "\nExamples:\n"
-            + HelpExampleCli("listwallets", "")
-            + HelpExampleRpc("listwallets", "")
-        );
+            "\nExamples:\n" +
+            HelpExampleCli("listwallets", "") + HelpExampleRpc("listwallets", ""));
 
     UniValue obj(UniValue::VARR);
 
     for (CWalletRef pwallet : vpwallets) {
-
         if (!EnsureWalletIsAvailable(pwallet, request.fHelp)) {
             return NullUniValue;
         }
@@ -2984,7 +2866,7 @@ UniValue listwallets(const JSONRPCRequest& request)
 
 UniValue resendwallettransactions(const JSONRPCRequest& request)
 {
-    CWallet * const pwallet = GetWalletForJSONRPCRequest(request);
+    CWallet* const pwallet = GetWalletForJSONRPCRequest(request);
     if (!EnsureWalletIsAvailable(pwallet, request.fHelp)) {
         return NullUniValue;
     }
@@ -2996,8 +2878,7 @@ UniValue resendwallettransactions(const JSONRPCRequest& request)
             "Intended only for testing; the wallet code periodically re-broadcasts\n"
             "automatically.\n"
             "Returns an RPC error if -walletbroadcast is set to false.\n"
-            "Returns array of transaction ids that were re-broadcast.\n"
-            );
+            "Returns array of transaction ids that were re-broadcast.\n");
 
     if (!g_connman)
         throw JSONRPCError(RPC_CLIENT_P2P_DISABLED, "Error: Peer-to-peer functionality missing or disabled");
@@ -3010,8 +2891,7 @@ UniValue resendwallettransactions(const JSONRPCRequest& request)
 
     std::vector<uint256> txids = pwallet->ResendWalletTransactionsBefore(GetTime(), g_connman.get());
     UniValue result(UniValue::VARR);
-    for (const uint256& txid : txids)
-    {
+    for (const uint256& txid : txids) {
         result.push_back(txid.ToString());
     }
     return result;
@@ -3019,7 +2899,7 @@ UniValue resendwallettransactions(const JSONRPCRequest& request)
 
 UniValue listunspent(const JSONRPCRequest& request)
 {
-    CWallet * const pwallet = GetWalletForJSONRPCRequest(request);
+    CWallet* const pwallet = GetWalletForJSONRPCRequest(request);
     if (!EnsureWalletIsAvailable(pwallet, request.fHelp)) {
         return NullUniValue;
     }
@@ -3042,38 +2922,37 @@ UniValue listunspent(const JSONRPCRequest& request)
             "                  See description of \"safe\" attribute below.\n"
             "5. query_options    (json, optional) JSON with query options\n"
             "    {\n"
-            "      \"minimumAmount\"    (numeric or string, default=0) Minimum value of each UTXO in " + CURRENCY_UNIT + "\n"
-            "      \"maximumAmount\"    (numeric or string, default=unlimited) Maximum value of each UTXO in " + CURRENCY_UNIT + "\n"
-            "      \"maximumCount\"     (numeric or string, default=unlimited) Maximum number of UTXOs\n"
-            "      \"minimumSumAmount\" (numeric or string, default=unlimited) Minimum sum value of all UTXOs in " + CURRENCY_UNIT + "\n"
-            "    }\n"
-            "\nResult\n"
-            "[                   (array of json object)\n"
-            "  {\n"
-            "    \"txid\" : \"txid\",          (string) the transaction id \n"
-            "    \"vout\" : n,               (numeric) the vout value\n"
-            "    \"address\" : \"address\",    (string) the avian address\n"
-            "    \"account\" : \"account\",    (string) DEPRECATED. The associated account, or \"\" for the default account\n"
-            "    \"scriptPubKey\" : \"key\",   (string) the script key\n"
-            "    \"amount\" : x.xxx,         (numeric) the transaction output amount in " + CURRENCY_UNIT + "\n"
-            "    \"confirmations\" : n,      (numeric) The number of confirmations\n"
-            "    \"redeemScript\" : n        (string) The redeemScript if scriptPubKey is P2SH\n"
-            "    \"spendable\" : xxx,        (bool) Whether we have the private keys to spend this output\n"
-            "    \"solvable\" : xxx,         (bool) Whether we know how to spend this output, ignoring the lack of keys\n"
-            "    \"safe\" : xxx              (bool) Whether this output is considered safe to spend. Unconfirmed transactions\n"
-            "                              from outside keys and unconfirmed replacement transactions are considered unsafe\n"
-            "                              and are not eligible for spending by fundrawtransaction and sendtoaddress.\n"
-            "  }\n"
-            "  ,...\n"
-            "]\n"
+            "      \"minimumAmount\"    (numeric or string, default=0) Minimum value of each UTXO in " +
+            CURRENCY_UNIT + "\n"
+                            "      \"maximumAmount\"    (numeric or string, default=unlimited) Maximum value of each UTXO in " +
+            CURRENCY_UNIT + "\n"
+                            "      \"maximumCount\"     (numeric or string, default=unlimited) Maximum number of UTXOs\n"
+                            "      \"minimumSumAmount\" (numeric or string, default=unlimited) Minimum sum value of all UTXOs in " +
+            CURRENCY_UNIT + "\n"
+                            "    }\n"
+                            "\nResult\n"
+                            "[                   (array of json object)\n"
+                            "  {\n"
+                            "    \"txid\" : \"txid\",          (string) the transaction id \n"
+                            "    \"vout\" : n,               (numeric) the vout value\n"
+                            "    \"address\" : \"address\",    (string) the avian address\n"
+                            "    \"account\" : \"account\",    (string) DEPRECATED. The associated account, or \"\" for the default account\n"
+                            "    \"scriptPubKey\" : \"key\",   (string) the script key\n"
+                            "    \"amount\" : x.xxx,         (numeric) the transaction output amount in " +
+            CURRENCY_UNIT + "\n"
+                            "    \"confirmations\" : n,      (numeric) The number of confirmations\n"
+                            "    \"redeemScript\" : n        (string) The redeemScript if scriptPubKey is P2SH\n"
+                            "    \"spendable\" : xxx,        (bool) Whether we have the private keys to spend this output\n"
+                            "    \"solvable\" : xxx,         (bool) Whether we know how to spend this output, ignoring the lack of keys\n"
+                            "    \"safe\" : xxx              (bool) Whether this output is considered safe to spend. Unconfirmed transactions\n"
+                            "                              from outside keys and unconfirmed replacement transactions are considered unsafe\n"
+                            "                              and are not eligible for spending by fundrawtransaction and sendtoaddress.\n"
+                            "  }\n"
+                            "  ,...\n"
+                            "]\n"
 
-            "\nExamples\n"
-            + HelpExampleCli("listunspent", "")
-            + HelpExampleCli("listunspent", "6 9999999 \"[\\\"1PGFqEzfmQch1gKD3ra4k18PNj3tTUUSqg\\\",\\\"1LtvqCaApEdUGFkpKMM4MstjcaL4dKg8SP\\\"]\"")
-            + HelpExampleRpc("listunspent", "6, 9999999 \"[\\\"1PGFqEzfmQch1gKD3ra4k18PNj3tTUUSqg\\\",\\\"1LtvqCaApEdUGFkpKMM4MstjcaL4dKg8SP\\\"]\"")
-            + HelpExampleCli("listunspent", "6 9999999 '[]' true '{ \"minimumAmount\": 0.005 }'")
-            + HelpExampleRpc("listunspent", "6, 9999999, [] , true, { \"minimumAmount\": 0.005 } ")
-        );
+                            "\nExamples\n" +
+            HelpExampleCli("listunspent", "") + HelpExampleCli("listunspent", "6 9999999 \"[\\\"1PGFqEzfmQch1gKD3ra4k18PNj3tTUUSqg\\\",\\\"1LtvqCaApEdUGFkpKMM4MstjcaL4dKg8SP\\\"]\"") + HelpExampleRpc("listunspent", "6, 9999999 \"[\\\"1PGFqEzfmQch1gKD3ra4k18PNj3tTUUSqg\\\",\\\"1LtvqCaApEdUGFkpKMM4MstjcaL4dKg8SP\\\"]\"") + HelpExampleCli("listunspent", "6 9999999 '[]' true '{ \"minimumAmount\": 0.005 }'") + HelpExampleRpc("listunspent", "6, 9999999, [] , true, { \"minimumAmount\": 0.005 } "));
 
     ObserveSafeMode();
 
@@ -3180,40 +3059,41 @@ UniValue listunspent(const JSONRPCRequest& request)
 
 UniValue fundrawtransaction(const JSONRPCRequest& request)
 {
-    CWallet * const pwallet = GetWalletForJSONRPCRequest(request);
+    CWallet* const pwallet = GetWalletForJSONRPCRequest(request);
     if (!EnsureWalletIsAvailable(pwallet, request.fHelp)) {
         return NullUniValue;
     }
 
     if (request.fHelp || request.params.size() < 1 || request.params.size() > 2)
         throw std::runtime_error(
-                            "fundrawtransaction \"hexstring\" ( options )\n"
-                            "\nAdd inputs to a transaction until it has enough in value to meet its out value.\n"
-                            "This will not modify existing inputs, and will add at most one change output to the outputs.\n"
-                            "No existing outputs will be modified unless \"subtractFeeFromOutputs\" is specified.\n"
-                            "Note that inputs which were signed may need to be resigned after completion since in/outputs have been added.\n"
-                            "The inputs added will not be signed, use signrawtransaction for that.\n"
-                            "Note that all existing inputs must have their previous output transaction be in the wallet.\n"
-                            "Note that all inputs selected must be of standard form and P2SH scripts must be\n"
-                            "in the wallet using importaddress or addmultisigaddress (to calculate fees).\n"
-                            "You can see whether this is the case by checking the \"solvable\" field in the listunspent output.\n"
-                            "Only pay-to-pubkey, multisig, and P2SH versions thereof are currently supported for watch-only\n"
-                            "\nArguments:\n"
-                            "1. \"hexstring\"           (string, required) The hex string of the raw transaction\n"
-                            "2. options                 (object, optional)\n"
-                            "   {\n"
-                            "     \"changeAddress\"          (string, optional, default pool address) The avian address to receive the change\n"
-                            "     \"changePosition\"         (numeric, optional, default random) The index of the change output\n"
-                            "     \"includeWatching\"        (boolean, optional, default false) Also select inputs which are watch only\n"
-                            "     \"lockUnspents\"           (boolean, optional, default false) Lock selected unspent outputs\n"
-                            "     \"feeRate\"                (numeric, optional, default not set: makes wallet determine the fee) Set a specific fee rate in " + CURRENCY_UNIT + "/kB\n"
+            "fundrawtransaction \"hexstring\" ( options )\n"
+            "\nAdd inputs to a transaction until it has enough in value to meet its out value.\n"
+            "This will not modify existing inputs, and will add at most one change output to the outputs.\n"
+            "No existing outputs will be modified unless \"subtractFeeFromOutputs\" is specified.\n"
+            "Note that inputs which were signed may need to be resigned after completion since in/outputs have been added.\n"
+            "The inputs added will not be signed, use signrawtransaction for that.\n"
+            "Note that all existing inputs must have their previous output transaction be in the wallet.\n"
+            "Note that all inputs selected must be of standard form and P2SH scripts must be\n"
+            "in the wallet using importaddress or addmultisigaddress (to calculate fees).\n"
+            "You can see whether this is the case by checking the \"solvable\" field in the listunspent output.\n"
+            "Only pay-to-pubkey, multisig, and P2SH versions thereof are currently supported for watch-only\n"
+            "\nArguments:\n"
+            "1. \"hexstring\"           (string, required) The hex string of the raw transaction\n"
+            "2. options                 (object, optional)\n"
+            "   {\n"
+            "     \"changeAddress\"          (string, optional, default pool address) The avian address to receive the change\n"
+            "     \"changePosition\"         (numeric, optional, default random) The index of the change output\n"
+            "     \"includeWatching\"        (boolean, optional, default false) Also select inputs which are watch only\n"
+            "     \"lockUnspents\"           (boolean, optional, default false) Lock selected unspent outputs\n"
+            "     \"feeRate\"                (numeric, optional, default not set: makes wallet determine the fee) Set a specific fee rate in " +
+            CURRENCY_UNIT + "/kB\n"
                             "     \"subtractFeeFromOutputs\" (array, optional) A json array of integers.\n"
                             "                              The fee will be equally deducted from the amount of each specified output.\n"
                             "                              The outputs are specified by their zero-based index, before any change output is added.\n"
                             "                              Those recipients will receive less avians than you enter in their corresponding amount field.\n"
                             "                              If no outputs are specified here, the sender pays the fee.\n"
                             "                                  [vout_index,...]\n"
-//                            "     \"replaceable\"            (boolean, optional) Marks this transaction as BIP125 replaceable.\n"
+                            //                            "     \"replaceable\"            (boolean, optional) Marks this transaction as BIP125 replaceable.\n"
                             "                              Allows this transaction to be replaced by a transaction with higher fees\n"
                             "     \"conf_target\"            (numeric, optional) Confirmation target (in blocks)\n"
                             "     \"estimate_mode\"          (string, optional, default=UNSET) The fee estimate mode, must be one of:\n"
@@ -3225,19 +3105,16 @@ UniValue fundrawtransaction(const JSONRPCRequest& request)
                             "\nResult:\n"
                             "{\n"
                             "  \"hex\":       \"value\", (string)  The resulting raw transaction (hex-encoded string)\n"
-                            "  \"fee\":       n,         (numeric) Fee in " + CURRENCY_UNIT + " the resulting transaction pays\n"
+                            "  \"fee\":       n,         (numeric) Fee in " +
+            CURRENCY_UNIT + " the resulting transaction pays\n"
                             "  \"changepos\": n          (numeric) The position of the added change output, or -1\n"
                             "}\n"
                             "\nExamples:\n"
-                            "\nCreate a transaction with no inputs\n"
-                            + HelpExampleCli("createrawtransaction", "\"[]\" \"{\\\"myaddress\\\":0.01}\"") +
-                            "\nAdd sufficient unsigned inputs to meet the output value\n"
-                            + HelpExampleCli("fundrawtransaction", "\"rawtransactionhex\"") +
-                            "\nSign the transaction\n"
-                            + HelpExampleCli("signrawtransaction", "\"fundedtransactionhex\"") +
-                            "\nSend the transaction\n"
-                            + HelpExampleCli("sendrawtransaction", "\"signedtransactionhex\"")
-                            );
+                            "\nCreate a transaction with no inputs\n" +
+            HelpExampleCli("createrawtransaction", "\"[]\" \"{\\\"myaddress\\\":0.01}\"") +
+            "\nAdd sufficient unsigned inputs to meet the output value\n" + HelpExampleCli("fundrawtransaction", "\"rawtransactionhex\"") +
+            "\nSign the transaction\n" + HelpExampleCli("signrawtransaction", "\"fundedtransactionhex\"") +
+            "\nSend the transaction\n" + HelpExampleCli("sendrawtransaction", "\"signedtransactionhex\""));
 
     ObserveSafeMode();
     RPCTypeCheck(request.params, {UniValue::VSTR});
@@ -3249,76 +3126,74 @@ UniValue fundrawtransaction(const JSONRPCRequest& request)
     std::set<int> setSubtractFeeFromOutputs;
 
     if (!request.params[1].isNull()) {
-      if (request.params[1].type() == UniValue::VBOOL) {
-        // backward compatibility bool only fallback
-        coinControl.fAllowWatchOnly = request.params[1].get_bool();
-      }
-      else {
-        RPCTypeCheck(request.params, {UniValue::VSTR, UniValue::VOBJ});
+        if (request.params[1].type() == UniValue::VBOOL) {
+            // backward compatibility bool only fallback
+            coinControl.fAllowWatchOnly = request.params[1].get_bool();
+        } else {
+            RPCTypeCheck(request.params, {UniValue::VSTR, UniValue::VOBJ});
 
-        UniValue options = request.params[1];
+            UniValue options = request.params[1];
 
-        RPCTypeCheckObj(options,
-            {
-                {"changeAddress", UniValueType(UniValue::VSTR)},
-                {"changePosition", UniValueType(UniValue::VNUM)},
-                {"includeWatching", UniValueType(UniValue::VBOOL)},
-                {"lockUnspents", UniValueType(UniValue::VBOOL)},
-                {"reserveChangeKey", UniValueType(UniValue::VBOOL)}, // DEPRECATED (and ignored), should be removed in 0.16 or so.
-                {"feeRate", UniValueType()}, // will be checked below
-                {"subtractFeeFromOutputs", UniValueType(UniValue::VARR)},
-//                {"replaceable", UniValueType(UniValue::VBOOL)},
-                {"conf_target", UniValueType(UniValue::VNUM)},
-                {"estimate_mode", UniValueType(UniValue::VSTR)},
-            },
-            true, true);
+            RPCTypeCheckObj(options,
+                {
+                    {"changeAddress", UniValueType(UniValue::VSTR)},
+                    {"changePosition", UniValueType(UniValue::VNUM)},
+                    {"includeWatching", UniValueType(UniValue::VBOOL)},
+                    {"lockUnspents", UniValueType(UniValue::VBOOL)},
+                    {"reserveChangeKey", UniValueType(UniValue::VBOOL)}, // DEPRECATED (and ignored), should be removed in 0.16 or so.
+                    {"feeRate", UniValueType()},                         // will be checked below
+                    {"subtractFeeFromOutputs", UniValueType(UniValue::VARR)},
+                    //                {"replaceable", UniValueType(UniValue::VBOOL)},
+                    {"conf_target", UniValueType(UniValue::VNUM)},
+                    {"estimate_mode", UniValueType(UniValue::VSTR)},
+                },
+                true, true);
 
-        if (options.exists("changeAddress")) {
-            CTxDestination dest = DecodeDestination(options["changeAddress"].get_str());
+            if (options.exists("changeAddress")) {
+                CTxDestination dest = DecodeDestination(options["changeAddress"].get_str());
 
-            if (!IsValidDestination(dest)) {
-                throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "changeAddress must be a valid avian address");
+                if (!IsValidDestination(dest)) {
+                    throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "changeAddress must be a valid avian address");
+                }
+
+                coinControl.destChange = dest;
             }
 
-            coinControl.destChange = dest;
-        }
+            if (options.exists("changePosition"))
+                changePosition = options["changePosition"].get_int();
 
-        if (options.exists("changePosition"))
-            changePosition = options["changePosition"].get_int();
+            if (options.exists("includeWatching"))
+                coinControl.fAllowWatchOnly = options["includeWatching"].get_bool();
 
-        if (options.exists("includeWatching"))
-            coinControl.fAllowWatchOnly = options["includeWatching"].get_bool();
+            if (options.exists("lockUnspents"))
+                lockUnspents = options["lockUnspents"].get_bool();
 
-        if (options.exists("lockUnspents"))
-            lockUnspents = options["lockUnspents"].get_bool();
-
-        if (options.exists("feeRate"))
-        {
-            coinControl.m_feerate = CFeeRate(AmountFromValue(options["feeRate"]));
-            coinControl.fOverrideFeeRate = true;
-        }
-
-        if (options.exists("subtractFeeFromOutputs"))
-            subtractFeeFromOutputs = options["subtractFeeFromOutputs"].get_array();
-
-//        if (options.exists("replaceable")) {
-//            coinControl.signalRbf = options["replaceable"].get_bool();
-//        }
-        if (options.exists("conf_target")) {
             if (options.exists("feeRate")) {
-                throw JSONRPCError(RPC_INVALID_PARAMETER, "Cannot specify both conf_target and feeRate");
+                coinControl.m_feerate = CFeeRate(AmountFromValue(options["feeRate"]));
+                coinControl.fOverrideFeeRate = true;
             }
-            coinControl.m_confirm_target = ParseConfirmTarget(options["conf_target"]);
+
+            if (options.exists("subtractFeeFromOutputs"))
+                subtractFeeFromOutputs = options["subtractFeeFromOutputs"].get_array();
+
+            //        if (options.exists("replaceable")) {
+            //            coinControl.signalRbf = options["replaceable"].get_bool();
+            //        }
+            if (options.exists("conf_target")) {
+                if (options.exists("feeRate")) {
+                    throw JSONRPCError(RPC_INVALID_PARAMETER, "Cannot specify both conf_target and feeRate");
+                }
+                coinControl.m_confirm_target = ParseConfirmTarget(options["conf_target"]);
+            }
+            if (options.exists("estimate_mode")) {
+                if (options.exists("feeRate")) {
+                    throw JSONRPCError(RPC_INVALID_PARAMETER, "Cannot specify both estimate_mode and feeRate");
+                }
+                if (!FeeModeFromString(options["estimate_mode"].get_str(), coinControl.m_fee_mode)) {
+                    throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid estimate_mode parameter");
+                }
+            }
         }
-        if (options.exists("estimate_mode")) {
-            if (options.exists("feeRate")) {
-                throw JSONRPCError(RPC_INVALID_PARAMETER, "Cannot specify both estimate_mode and feeRate");
-            }
-            if (!FeeModeFromString(options["estimate_mode"].get_str(), coinControl.m_fee_mode)) {
-                throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid estimate_mode parameter");
-            }
-        }
-      }
     }
 
     // parse hex string from parameter
@@ -3362,147 +3237,147 @@ UniValue bumpfee(const JSONRPCRequest& request)
 {
     throw std::runtime_error("bumpfee has been deprecated on the AVN Wallet.");
 
-//    CWallet * const pwallet = GetWalletForJSONRPCRequest(request);
-//
-//    if (!EnsureWalletIsAvailable(pwallet, request.fHelp))
-//        return NullUniValue;
-//
-//    if (request.fHelp || request.params.size() < 1 || request.params.size() > 2) {
-//        throw std::runtime_error(
-//            "bumpfee \"txid\" ( options ) \n"
-//            "\nBumps the fee of an opt-in-RBF transaction T, replacing it with a new transaction B.\n"
-//            "An opt-in RBF transaction with the given txid must be in the wallet.\n"
-//            "The command will pay the additional fee by decreasing (or perhaps removing) its change output.\n"
-//            "If the change output is not big enough to cover the increased fee, the command will currently fail\n"
-//            "instead of adding new inputs to compensate. (A future implementation could improve this.)\n"
-//            "The command will fail if the wallet or mempool contains a transaction that spends one of T's outputs.\n"
-//            "By default, the new fee will be calculated automatically using estimatefee.\n"
-//            "The user can specify a confirmation target for estimatefee.\n"
-//            "Alternatively, the user can specify totalFee, or use RPC settxfee to set a higher fee rate.\n"
-//            "At a minimum, the new fee rate must be high enough to pay an additional new relay fee (incrementalfee\n"
-//            "returned by getnetworkinfo) to enter the node's mempool.\n"
-//            "\nArguments:\n"
-//            "1. txid                  (string, required) The txid to be bumped\n"
-//            "2. options               (object, optional)\n"
-//            "   {\n"
-//            "     \"confTarget\"        (numeric, optional) Confirmation target (in blocks)\n"
-//            "     \"totalFee\"          (numeric, optional) Total fee (NOT feerate) to pay, in satoshis.\n"
-//            "                         In rare cases, the actual fee paid might be slightly higher than the specified\n"
-//            "                         totalFee if the tx change output has to be removed because it is too close to\n"
-//            "                         the dust threshold.\n"
-//            "     \"replaceable\"       (boolean, optional, default true) Whether the new transaction should still be\n"
-//            "                         marked bip-125 replaceable. If true, the sequence numbers in the transaction will\n"
-//            "                         be left unchanged from the original. If false, any input sequence numbers in the\n"
-//            "                         original transaction that were less than 0xfffffffe will be increased to 0xfffffffe\n"
-//            "                         so the new transaction will not be explicitly bip-125 replaceable (though it may\n"
-//            "                         still be replaceable in practice, for example if it has unconfirmed ancestors which\n"
-//            "                         are replaceable).\n"
-//            "     \"estimate_mode\"     (string, optional, default=UNSET) The fee estimate mode, must be one of:\n"
-//            "         \"UNSET\"\n"
-//            "         \"ECONOMICAL\"\n"
-//            "         \"CONSERVATIVE\"\n"
-//            "   }\n"
-//            "\nResult:\n"
-//            "{\n"
-//            "  \"txid\":    \"value\",   (string)  The id of the new transaction\n"
-//            "  \"origfee\":  n,         (numeric) Fee of the replaced transaction\n"
-//            "  \"fee\":      n,         (numeric) Fee of the new transaction\n"
-//            "  \"errors\":  [ str... ] (json array of strings) Errors encountered during processing (may be empty)\n"
-//            "}\n"
-//            "\nExamples:\n"
-//            "\nBump the fee, get the new transaction\'s txid\n" +
-//            HelpExampleCli("bumpfee", "<txid>"));
-//    }
-//
-//    RPCTypeCheck(request.params, {UniValue::VSTR, UniValue::VOBJ});
-//    uint256 hash;
-//    hash.SetHex(request.params[0].get_str());
-//
-//    // optional parameters
-//    CAmount totalFee = 0;
-//    CCoinControl coin_control;
-//    coin_control.signalRbf = true;
-//    if (!request.params[1].isNull()) {
-//        UniValue options = request.params[1];
-//        RPCTypeCheckObj(options,
-//            {
-//                {"confTarget", UniValueType(UniValue::VNUM)},
-//                {"totalFee", UniValueType(UniValue::VNUM)},
-//                {"replaceable", UniValueType(UniValue::VBOOL)},
-//                {"estimate_mode", UniValueType(UniValue::VSTR)},
-//            },
-//            true, true);
-//
-//        if (options.exists("confTarget") && options.exists("totalFee")) {
-//            throw JSONRPCError(RPC_INVALID_PARAMETER, "confTarget and totalFee options should not both be set. Please provide either a confirmation target for fee estimation or an explicit total fee for the transaction.");
-//        } else if (options.exists("confTarget")) { // TODO: alias this to conf_target
-//            coin_control.m_confirm_target = ParseConfirmTarget(options["confTarget"]);
-//        } else if (options.exists("totalFee")) {
-//            totalFee = options["totalFee"].get_int64();
-//            if (totalFee <= 0) {
-//                throw JSONRPCError(RPC_INVALID_PARAMETER, strprintf("Invalid totalFee %s (must be greater than 0)", FormatMoney(totalFee)));
-//            }
-//        }
-//
-//        if (options.exists("replaceable")) {
-//            coin_control.signalRbf = options["replaceable"].get_bool();
-//        }
-//        if (options.exists("estimate_mode")) {
-//            if (!FeeModeFromString(options["estimate_mode"].get_str(), coin_control.m_fee_mode)) {
-//                throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid estimate_mode parameter");
-//            }
-//        }
-//    }
-//
-//    LOCK2(cs_main, pwallet->cs_wallet);
-//    EnsureWalletIsUnlocked(pwallet);
-//
-//    CFeeBumper feeBump(pwallet, hash, coin_control, totalFee);
-//    BumpFeeResult res = feeBump.getResult();
-//    if (res != BumpFeeResult::OK)
-//    {
-//        switch(res) {
-//            case BumpFeeResult::INVALID_ADDRESS_OR_KEY:
-//                throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, feeBump.getErrors()[0]);
-//                break;
-//            case BumpFeeResult::INVALID_REQUEST:
-//                throw JSONRPCError(RPC_INVALID_REQUEST, feeBump.getErrors()[0]);
-//                break;
-//            case BumpFeeResult::INVALID_PARAMETER:
-//                throw JSONRPCError(RPC_INVALID_PARAMETER, feeBump.getErrors()[0]);
-//                break;
-//            case BumpFeeResult::WALLET_ERROR:
-//                throw JSONRPCError(RPC_WALLET_ERROR, feeBump.getErrors()[0]);
-//                break;
-//            default:
-//                throw JSONRPCError(RPC_MISC_ERROR, feeBump.getErrors()[0]);
-//                break;
-//        }
-//    }
-//
-//    // sign bumped transaction
-//    if (!feeBump.signTransaction(pwallet)) {
-//        throw JSONRPCError(RPC_WALLET_ERROR, "Can't sign transaction.");
-//    }
-//    // commit the bumped transaction
-//    if(!feeBump.commit(pwallet)) {
-//        throw JSONRPCError(RPC_WALLET_ERROR, feeBump.getErrors()[0]);
-//    }
-//    UniValue result(UniValue::VOBJ);
-//    result.push_back(Pair("txid", feeBump.getBumpedTxId().GetHex()));
-//    result.push_back(Pair("origfee", ValueFromAmount(feeBump.getOldFee())));
-//    result.push_back(Pair("fee", ValueFromAmount(feeBump.getNewFee())));
-//    UniValue errors(UniValue::VARR);
-//    for (const std::string& err: feeBump.getErrors())
-//        errors.push_back(err);
-//    result.push_back(Pair("errors", errors));
-//
-//    return result;
+    //    CWallet * const pwallet = GetWalletForJSONRPCRequest(request);
+    //
+    //    if (!EnsureWalletIsAvailable(pwallet, request.fHelp))
+    //        return NullUniValue;
+    //
+    //    if (request.fHelp || request.params.size() < 1 || request.params.size() > 2) {
+    //        throw std::runtime_error(
+    //            "bumpfee \"txid\" ( options ) \n"
+    //            "\nBumps the fee of an opt-in-RBF transaction T, replacing it with a new transaction B.\n"
+    //            "An opt-in RBF transaction with the given txid must be in the wallet.\n"
+    //            "The command will pay the additional fee by decreasing (or perhaps removing) its change output.\n"
+    //            "If the change output is not big enough to cover the increased fee, the command will currently fail\n"
+    //            "instead of adding new inputs to compensate. (A future implementation could improve this.)\n"
+    //            "The command will fail if the wallet or mempool contains a transaction that spends one of T's outputs.\n"
+    //            "By default, the new fee will be calculated automatically using estimatefee.\n"
+    //            "The user can specify a confirmation target for estimatefee.\n"
+    //            "Alternatively, the user can specify totalFee, or use RPC settxfee to set a higher fee rate.\n"
+    //            "At a minimum, the new fee rate must be high enough to pay an additional new relay fee (incrementalfee\n"
+    //            "returned by getnetworkinfo) to enter the node's mempool.\n"
+    //            "\nArguments:\n"
+    //            "1. txid                  (string, required) The txid to be bumped\n"
+    //            "2. options               (object, optional)\n"
+    //            "   {\n"
+    //            "     \"confTarget\"        (numeric, optional) Confirmation target (in blocks)\n"
+    //            "     \"totalFee\"          (numeric, optional) Total fee (NOT feerate) to pay, in satoshis.\n"
+    //            "                         In rare cases, the actual fee paid might be slightly higher than the specified\n"
+    //            "                         totalFee if the tx change output has to be removed because it is too close to\n"
+    //            "                         the dust threshold.\n"
+    //            "     \"replaceable\"       (boolean, optional, default true) Whether the new transaction should still be\n"
+    //            "                         marked bip-125 replaceable. If true, the sequence numbers in the transaction will\n"
+    //            "                         be left unchanged from the original. If false, any input sequence numbers in the\n"
+    //            "                         original transaction that were less than 0xfffffffe will be increased to 0xfffffffe\n"
+    //            "                         so the new transaction will not be explicitly bip-125 replaceable (though it may\n"
+    //            "                         still be replaceable in practice, for example if it has unconfirmed ancestors which\n"
+    //            "                         are replaceable).\n"
+    //            "     \"estimate_mode\"     (string, optional, default=UNSET) The fee estimate mode, must be one of:\n"
+    //            "         \"UNSET\"\n"
+    //            "         \"ECONOMICAL\"\n"
+    //            "         \"CONSERVATIVE\"\n"
+    //            "   }\n"
+    //            "\nResult:\n"
+    //            "{\n"
+    //            "  \"txid\":    \"value\",   (string)  The id of the new transaction\n"
+    //            "  \"origfee\":  n,         (numeric) Fee of the replaced transaction\n"
+    //            "  \"fee\":      n,         (numeric) Fee of the new transaction\n"
+    //            "  \"errors\":  [ str... ] (json array of strings) Errors encountered during processing (may be empty)\n"
+    //            "}\n"
+    //            "\nExamples:\n"
+    //            "\nBump the fee, get the new transaction\'s txid\n" +
+    //            HelpExampleCli("bumpfee", "<txid>"));
+    //    }
+    //
+    //    RPCTypeCheck(request.params, {UniValue::VSTR, UniValue::VOBJ});
+    //    uint256 hash;
+    //    hash.SetHex(request.params[0].get_str());
+    //
+    //    // optional parameters
+    //    CAmount totalFee = 0;
+    //    CCoinControl coin_control;
+    //    coin_control.signalRbf = true;
+    //    if (!request.params[1].isNull()) {
+    //        UniValue options = request.params[1];
+    //        RPCTypeCheckObj(options,
+    //            {
+    //                {"confTarget", UniValueType(UniValue::VNUM)},
+    //                {"totalFee", UniValueType(UniValue::VNUM)},
+    //                {"replaceable", UniValueType(UniValue::VBOOL)},
+    //                {"estimate_mode", UniValueType(UniValue::VSTR)},
+    //            },
+    //            true, true);
+    //
+    //        if (options.exists("confTarget") && options.exists("totalFee")) {
+    //            throw JSONRPCError(RPC_INVALID_PARAMETER, "confTarget and totalFee options should not both be set. Please provide either a confirmation target for fee estimation or an explicit total fee for the transaction.");
+    //        } else if (options.exists("confTarget")) { // TODO: alias this to conf_target
+    //            coin_control.m_confirm_target = ParseConfirmTarget(options["confTarget"]);
+    //        } else if (options.exists("totalFee")) {
+    //            totalFee = options["totalFee"].get_int64();
+    //            if (totalFee <= 0) {
+    //                throw JSONRPCError(RPC_INVALID_PARAMETER, strprintf("Invalid totalFee %s (must be greater than 0)", FormatMoney(totalFee)));
+    //            }
+    //        }
+    //
+    //        if (options.exists("replaceable")) {
+    //            coin_control.signalRbf = options["replaceable"].get_bool();
+    //        }
+    //        if (options.exists("estimate_mode")) {
+    //            if (!FeeModeFromString(options["estimate_mode"].get_str(), coin_control.m_fee_mode)) {
+    //                throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid estimate_mode parameter");
+    //            }
+    //        }
+    //    }
+    //
+    //    LOCK2(cs_main, pwallet->cs_wallet);
+    //    EnsureWalletIsUnlocked(pwallet);
+    //
+    //    CFeeBumper feeBump(pwallet, hash, coin_control, totalFee);
+    //    BumpFeeResult res = feeBump.getResult();
+    //    if (res != BumpFeeResult::OK)
+    //    {
+    //        switch(res) {
+    //            case BumpFeeResult::INVALID_ADDRESS_OR_KEY:
+    //                throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, feeBump.getErrors()[0]);
+    //                break;
+    //            case BumpFeeResult::INVALID_REQUEST:
+    //                throw JSONRPCError(RPC_INVALID_REQUEST, feeBump.getErrors()[0]);
+    //                break;
+    //            case BumpFeeResult::INVALID_PARAMETER:
+    //                throw JSONRPCError(RPC_INVALID_PARAMETER, feeBump.getErrors()[0]);
+    //                break;
+    //            case BumpFeeResult::WALLET_ERROR:
+    //                throw JSONRPCError(RPC_WALLET_ERROR, feeBump.getErrors()[0]);
+    //                break;
+    //            default:
+    //                throw JSONRPCError(RPC_MISC_ERROR, feeBump.getErrors()[0]);
+    //                break;
+    //        }
+    //    }
+    //
+    //    // sign bumped transaction
+    //    if (!feeBump.signTransaction(pwallet)) {
+    //        throw JSONRPCError(RPC_WALLET_ERROR, "Can't sign transaction.");
+    //    }
+    //    // commit the bumped transaction
+    //    if(!feeBump.commit(pwallet)) {
+    //        throw JSONRPCError(RPC_WALLET_ERROR, feeBump.getErrors()[0]);
+    //    }
+    //    UniValue result(UniValue::VOBJ);
+    //    result.push_back(Pair("txid", feeBump.getBumpedTxId().GetHex()));
+    //    result.push_back(Pair("origfee", ValueFromAmount(feeBump.getOldFee())));
+    //    result.push_back(Pair("fee", ValueFromAmount(feeBump.getNewFee())));
+    //    UniValue errors(UniValue::VARR);
+    //    for (const std::string& err: feeBump.getErrors())
+    //        errors.push_back(err);
+    //    result.push_back(Pair("errors", errors));
+    //
+    //    return result;
 }
 
 UniValue generate(const JSONRPCRequest& request)
 {
-    CWallet * const pwallet = GetWalletForJSONRPCRequest(request);
+    CWallet* const pwallet = GetWalletForJSONRPCRequest(request);
 
     if (!EnsureWalletIsAvailable(pwallet, request.fHelp)) {
         return NullUniValue;
@@ -3518,9 +3393,8 @@ UniValue generate(const JSONRPCRequest& request)
             "\nResult:\n"
             "[ blockhashes ]     (array) hashes of blocks generated\n"
             "\nExamples:\n"
-            "\nGenerate 11 blocks\n"
-            + HelpExampleCli("generate", "11")
-        );
+            "\nGenerate 11 blocks\n" +
+            HelpExampleCli("generate", "11"));
     }
 
     int num_generate = request.params[0].get_int();
@@ -3537,7 +3411,7 @@ UniValue generate(const JSONRPCRequest& request)
         throw JSONRPCError(RPC_WALLET_KEYPOOL_RAN_OUT, "Error: Keypool ran out, please call keypoolrefill first");
     }
 
-    //throw an error if no script was provided
+    // throw an error if no script was provided
     if (coinbase_script->reserveScript.empty()) {
         throw JSONRPCError(RPC_INTERNAL_ERROR, "No coinbase script available");
     }
@@ -3553,7 +3427,7 @@ UniValue generate(const JSONRPCRequest& request)
             break;
         }
     }
-    
+
     if (!algoFound)
         throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid pow algorithm requested");
 
@@ -3562,7 +3436,7 @@ UniValue generate(const JSONRPCRequest& request)
 
 UniValue rescanblockchain(const JSONRPCRequest& request)
 {
-    CWallet * const pwallet = GetWalletForJSONRPCRequest(request);
+    CWallet* const pwallet = GetWalletForJSONRPCRequest(request);
     if (!EnsureWalletIsAvailable(pwallet, request.fHelp)) {
         return NullUniValue;
     }
@@ -3579,16 +3453,14 @@ UniValue rescanblockchain(const JSONRPCRequest& request)
             "  \"start_height\"     (numeric) The block height where the rescan has started. If omitted, rescan started from the genesis block.\n"
             "  \"stop_height\"      (numeric) The height of the last rescanned block. If omitted, rescan stopped at the chain tip.\n"
             "}\n"
-            "\nExamples:\n"
-            + HelpExampleCli("rescanblockchain", "100000 120000")
-            + HelpExampleRpc("rescanblockchain", "100000, 120000")
-            );
+            "\nExamples:\n" +
+            HelpExampleCli("rescanblockchain", "100000 120000") + HelpExampleRpc("rescanblockchain", "100000, 120000"));
     }
 
     LOCK2(cs_main, pwallet->cs_wallet);
 
-    CBlockIndex *pindexStart = chainActive.Genesis();
-    CBlockIndex *pindexStop = nullptr;
+    CBlockIndex* pindexStart = chainActive.Genesis();
+    CBlockIndex* pindexStop = nullptr;
     if (!request.params[0].isNull()) {
         pindexStart = chainActive[request.params[0].get_int()];
         if (!pindexStart) {
@@ -3600,15 +3472,14 @@ UniValue rescanblockchain(const JSONRPCRequest& request)
         pindexStop = chainActive[request.params[1].get_int()];
         if (!pindexStop) {
             throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid stop_height");
-        }
-        else if (pindexStop->nHeight < pindexStart->nHeight) {
+        } else if (pindexStop->nHeight < pindexStart->nHeight) {
             throw JSONRPCError(RPC_INVALID_PARAMETER, "stop_height must be greater then start_height");
         }
     }
 
     // We can't rescan beyond non-pruned blocks, stop and throw an error
     if (fPruneMode) {
-        CBlockIndex *block = pindexStop ? pindexStop : chainActive.Tip();
+        CBlockIndex* block = pindexStop ? pindexStop : chainActive.Tip();
         while (block && block->nHeight >= pindexStart->nHeight) {
             if (!(block->nStatus & BLOCK_HAVE_DATA)) {
                 throw JSONRPCError(RPC_MISC_ERROR, "Can't rescan beyond pruned data. Use RPC call getblockchaininfo to determine your pruned height.");
@@ -3617,15 +3488,14 @@ UniValue rescanblockchain(const JSONRPCRequest& request)
         }
     }
 
-    CBlockIndex *stopBlock = pwallet->ScanForWalletTransactions(pindexStart, pindexStop, true);
+    CBlockIndex* stopBlock = pwallet->ScanForWalletTransactions(pindexStart, pindexStop, true);
     if (!stopBlock) {
         if (pwallet->IsAbortingRescan()) {
             throw JSONRPCError(RPC_MISC_ERROR, "Rescan aborted.");
         }
         // if we got a nullptr returned, ScanForWalletTransactions did rescan up to the requested stopindex
         stopBlock = pindexStop ? pindexStop : chainActive.Tip();
-    }
-    else {
+    } else {
         throw JSONRPCError(RPC_MISC_ERROR, "Rescan failed. Potentially corrupted data files.");
     }
 
@@ -3633,6 +3503,309 @@ UniValue rescanblockchain(const JSONRPCRequest& request)
     response.pushKV("start_height", pindexStart->nHeight);
     response.pushKV("stop_height", stopBlock->nHeight);
     return response;
+}
+
+
+// Local version of strPad used by ConsolidateUtxosListCoins
+std::string strPad(string s, long unsigned int nPadLength, string sPadding)
+{
+    while (s.length() < nPadLength) {
+        s = sPadding + s;
+    }
+    return s;
+}
+
+// Function used by consolidateutxos below to refresh coin list
+void ConsolidateUtxosListCoins(std::map<string, vector<COutput>>& mapCoins, CWallet* const pwallet)
+{
+    std::vector<COutput> vCoins;
+    pwallet->AvailableCoins(vCoins);
+    std::vector<COutPoint> vLockedCoins;
+
+    // Add locked coins
+    for (const COutPoint& outpoint : vLockedCoins) {
+        if (!pwallet->mapWallet.count(outpoint.hash)) continue;
+        COutput out(&pwallet->mapWallet[outpoint.hash], outpoint.n, pwallet->mapWallet[outpoint.hash].GetDepthInMainChain(), true /* spendable */, true /* solvable */, true /* safe */);
+        vCoins.push_back(out);
+    }
+
+    for (const COutput& out : vCoins) {
+        COutput cout = out;
+
+        while (pwallet->IsChange(cout.tx->tx->vout[cout.i]) && cout.tx->tx->vin.size() > 0 && pwallet->IsMine(cout.tx->tx->vin[0])) {
+            if (!pwallet->mapWallet.count(cout.tx->tx->vin[0].prevout.hash)) break;
+            cout = COutput(&pwallet->mapWallet[cout.tx->tx->vin[0].prevout.hash], cout.tx->tx->vin[0].prevout.n, 0, true /* spendable */, true /* solvable */, true /* safe */);
+        }
+
+        CTxDestination address;
+        if (!ExtractDestination(cout.tx->tx->vout[cout.i].scriptPubKey, address)) continue;
+        mapCoins[strPad(std::to_string(out.tx->tx->vout[out.i].nValue), 18, "0") + out.tx->tx->GetHash().GetHex()].push_back(out);
+    }
+}
+
+UniValue consolidateutxos(const JSONRPCRequest& request)
+{
+    // Get wallet
+    CWallet* const pwallet = GetWalletForJSONRPCRequest(request);
+    if (!EnsureWalletIsAvailable(pwallet, request.fHelp)) {
+        return NullUniValue;
+    }
+
+    CCoinControl coinControl;
+    UniValue ret(UniValue::VARR);
+
+    if (request.fHelp || request.params.size() < 1)
+        throw std::runtime_error("consolidateutxos <address> [min_utxos=2000] [max_batches=0] [min_amount=0.01] [max_amount=25]\n"
+                                 "Consolidate (compact) unspent transaction outputs (UTXOs) to the specified <address>.\n"
+                                 "\nArguments:\n"
+                                 "1. address        (string, required) Destination address (must belong to this wallet)\n"
+                                 "2. min_utxos      (numeric, optional, default=2000) Minimum UTXOs required to trigger consolidation\n"
+                                 "3. max_batches    (numeric, optional, default=0=unlimited) Maximum number of batches to process\n"
+                                 "4. min_amount     (numeric, optional, default=0.01) Minimum UTXO amount in AVN to include\n"
+                                 "5. max_amount     (numeric, optional, default=25) Maximum UTXO amount in AVN to include\n"
+                                 "\nSecurity: For safety, the destination address must belong to your wallet.\n"
+                                 "Use 'getnewaddress' to generate a new address or 'getaddressesbyaccount \"\"' to list existing addresses.\n"
+                                 "\nThis reduces the number of small UTXOs by combining them into larger ones.\n"
+                                 "Each batch processes up to 500 UTXOs (matching Python consolidation script limits).\n");
+
+    ObserveSafeMode();
+    LOCK2(cs_main, pwallet->cs_wallet);
+
+    // Wallet needs to be unlocked first
+    EnsureWalletIsUnlocked(pwallet);
+
+    // Check if wallet is synced - consolidation requires accurate UTXO state
+    if (IsInitialBlockDownload()) {
+        throw JSONRPCError(RPC_CLIENT_IN_INITIAL_DOWNLOAD, "Cannot consolidate UTXOs while blockchain is syncing. Wait for sync to complete.");
+    }
+
+    // Security check: Verify the destination address belongs to this wallet
+    CAvianAddress address(request.params[0].get_str());
+    if (!address.IsValid()) {
+        throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Invalid Avian address");
+    }
+
+    CTxDestination dest = address.Get();
+    if (!IsMine(*pwallet, dest)) {
+        throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY,
+            "Destination address does not belong to this wallet. "
+            "For security, consolidation is only allowed to your own addresses. "
+            "Use 'getnewaddress' or 'getaddressesbyaccount \"\"' to get a valid destination address.");
+    }
+
+    // Loop unlocked coins
+    std::map<std::string, std::vector<COutput>> mapCoins;
+    ConsolidateUtxosListCoins(mapCoins, pwallet);
+
+    // Parse parameters using standard RPC pattern
+    int utxoCount = mapCoins.size();
+    int minimumUtxoAmount = 2000;
+    int maxBatches = 0;                   // 0 = unlimited
+    CAmount minSpendableAmount = 1000000; // 0.01 AVN default
+    CAmount maxInputAmount = 2500000000;  // 25 AVN default
+
+    if (request.params.size() > 1 && !request.params[1].isNull()) {
+        minimumUtxoAmount = std::stoi(request.params[1].get_str());
+    }
+
+    if (request.params.size() > 2 && !request.params[2].isNull()) {
+        maxBatches = std::stoi(request.params[2].get_str());
+    }
+
+    if (request.params.size() > 3 && !request.params[3].isNull()) {
+        minSpendableAmount = AmountFromValue(request.params[3]);
+    }
+
+    if (request.params.size() > 4 && !request.params[4].isNull()) {
+        maxInputAmount = AmountFromValue(request.params[4]);
+    }
+
+    int batchDivisor = 500;
+    CAmount maxOutputAmount = 1000000000000;
+
+    if (utxoCount <= minimumUtxoAmount) {
+        return ("The wallet is already optimized.");
+    }
+    int nOps = ((utxoCount - minimumUtxoAmount) / batchDivisor) + 1;
+    int nOdds = (utxoCount - minimumUtxoAmount) % batchDivisor;
+
+    if (nOdds == 0) {
+        nOdds = batchDivisor; // Full batch of 500
+    } else if (nOdds < 10) {
+        nOdds = batchDivisor;
+        nOps--;
+    }
+
+    int64_t selectionSum;
+    int batchCount = 0;
+    while (nOps > 0) {
+        if (maxBatches > 0 && batchCount >= maxBatches) {
+            break;
+        }
+
+        // Reset previous selection
+        UniValue obj(UniValue::VOBJ);
+        coinControl.SetNull();
+
+        CFeeRate minFeeRate(1000); // 1000 satoshis per kilobyte = 1 sat/byte
+        coinControl.m_feerate = minFeeRate;
+        coinControl.fOverrideFeeRate = true;
+
+        std::vector<COutput> vAllCoins;
+        pwallet->AvailableCoins(vAllCoins, true, nullptr);
+
+        // Filter and sort UTXOs by amount (smallest first) for proper dust consolidation
+        std::vector<COutput> vSortedCoins;
+        for (const COutput& out : vAllCoins) {
+            CAmount utxoAmount = out.tx->tx->vout[out.i].nValue;
+
+            // First priority: UTXOs in our preferred range
+            if (utxoAmount >= minSpendableAmount && utxoAmount <= maxInputAmount) {
+                vSortedCoins.push_back(out);
+            }
+        }
+
+        // Sort by amount (smallest first) - this is key for proper dust consolidation
+        std::sort(vSortedCoins.begin(), vSortedCoins.end(),
+            [](const COutput& a, const COutput& b) {
+                return a.tx->tx->vout[a.i].nValue < b.tx->tx->vout[b.i].nValue;
+            });
+
+        // If we don't have enough small UTXOs, add some larger ones (also sorted)
+        if (vSortedCoins.size() < nOdds) {
+            std::vector<COutput> vLargerCoins;
+            for (const COutput& out : vAllCoins) {
+                CAmount utxoAmount = out.tx->tx->vout[out.i].nValue;
+                if (utxoAmount > maxInputAmount && utxoAmount <= 10000000000LL) { // up to 100 AVN
+                    vLargerCoins.push_back(out);
+                }
+            }
+
+            // Sort larger coins by amount too
+            std::sort(vLargerCoins.begin(), vLargerCoins.end(),
+                [](const COutput& a, const COutput& b) {
+                    return a.tx->tx->vout[a.i].nValue < b.tx->tx->vout[b.i].nValue;
+                });
+
+            // Add as many larger coins as needed
+            int needed = std::min((int)vLargerCoins.size(), nOdds - (int)vSortedCoins.size());
+            vSortedCoins.insert(vSortedCoins.end(), vLargerCoins.begin(), vLargerCoins.begin() + needed);
+        }
+
+        // Select the smallest UTXOs for consolidation with output amount limit
+        CAmount selectionSum = 0;
+        int selectedCount = 0;
+
+        for (const COutput& out : vSortedCoins) {
+            if (selectedCount >= nOdds) {
+                break;
+            }
+
+            CAmount utxoValue = out.tx->tx->vout[out.i].nValue;
+
+            if (selectionSum + utxoValue > maxOutputAmount) {
+                break;
+            }
+
+            COutPoint outpt(out.tx->GetHash(), out.i);
+            coinControl.Select(outpt);
+            selectionSum += utxoValue;
+            selectedCount++;
+        }
+
+        // Check if any UTXOs were selected
+        if (selectedCount == 0) {
+            throw JSONRPCError(RPC_WALLET_ERROR, "No UTXOs available for consolidation");
+        }
+
+        // Check batch constraints
+        if (selectionSum > maxOutputAmount) {
+            throw JSONRPCError(RPC_WALLET_ERROR, strprintf("Selected amount %s exceeds maximum output %s",
+                                                     FormatMoney(selectionSum), FormatMoney(maxOutputAmount)));
+        }
+
+        CAmount estimatedFee = (180 + (selectedCount * 150)) * 1; // 1 sat/byte minimum
+        if (estimatedFee < 10000) estimatedFee = 10000;           // Minimum 0.0001 AVN fee
+        if (selectionSum <= estimatedFee * 3) {
+            throw JSONRPCError(RPC_WALLET_ERROR, strprintf("Selected amount %s too small for consolidation (estimated fee: %s, need at least %s)",
+                                                     FormatMoney(selectionSum), FormatMoney(estimatedFee), FormatMoney(estimatedFee * 3)));
+        }
+
+        std::vector<CRecipient> vecSend;
+        CScript scriptPubKey;
+        scriptPubKey = GetScriptForDestination(CAvianAddress(request.params[0].get_str()).Get());
+
+        CRecipient recipient = {scriptPubKey, selectionSum, true};
+        vecSend.push_back(recipient);
+
+        obj.push_back(Pair("selected_coins", selectedCount));
+        obj.push_back(Pair("selection_sum", FormatMoney(selectionSum)));
+
+        CWalletTx wtx;
+        CValidationState state;
+        CReserveKey keyChange(pwallet);
+
+        int64_t nFeeRequired = 0;
+        int nChangePosRet = -1;
+        std::string strFailReason;
+
+        bool fCreated = pwallet->CreateTransaction(vecSend, wtx, keyChange, nFeeRequired, nChangePosRet, strFailReason, coinControl);
+        if (!fCreated) {
+            // Provide detailed error information like other wallet functions
+            if (strFailReason == "Insufficient funds") {
+                CAmount nBalance = pwallet->GetBalance();
+                // Since we're using fSubtractFeeFromAmount=true, the output will be selectionSum - actualFee
+                throw JSONRPCError(RPC_WALLET_INSUFFICIENT_FUNDS,
+                    strprintf("Insufficient funds for consolidation. Selected %d UTXOs totaling %s, CreateTransaction failed with fee requirement %s (estimated: %s). Wallet balance: %s",
+                        selectedCount, FormatMoney(selectionSum), FormatMoney(nFeeRequired), FormatMoney(estimatedFee), FormatMoney(nBalance)));
+            } else if (nFeeRequired > 0) {
+                throw JSONRPCError(RPC_WALLET_ERROR,
+                    strprintf("Transaction creation failed: %s. This transaction requires a fee of at least %s",
+                        strFailReason, FormatMoney(nFeeRequired)));
+            } else {
+                throw JSONRPCError(RPC_WALLET_ERROR,
+                    strprintf("Transaction creation failed: %s", strFailReason));
+            }
+        }
+
+        if (!pwallet->CommitTransaction(wtx, keyChange, g_connman.get(), state)) {
+            throw JSONRPCError(RPC_WALLET_ERROR, strprintf("Error: The transaction was rejected! Reason given: %s", state.GetRejectReason()));
+        }
+
+        obj.push_back(Pair("txid", wtx.GetHash().GetHex()));
+        obj.push_back(Pair("batch_number", batchCount + 1));
+        ret.push_back(obj);
+
+        batchCount++;
+
+        // Refresh the coin map
+        mapCoins.clear();
+        ConsolidateUtxosListCoins(mapCoins, pwallet);
+        utxoCount = mapCoins.size();
+        nOps = (utxoCount - minimumUtxoAmount) / batchDivisor;
+        nOdds = (utxoCount - minimumUtxoAmount) % batchDivisor;
+
+        if (nOdds == 0) {
+            nOdds = batchDivisor; // Full batch of 500
+        } else if (nOdds < 10) {
+            nOdds = batchDivisor;
+            nOps--;
+        }
+    }
+
+    if (batchCount > 0) {
+        UniValue summary(UniValue::VOBJ);
+        summary.push_back(Pair("total_batches_processed", batchCount));
+        summary.push_back(Pair("remaining_utxos", (int)mapCoins.size()));
+        if (maxBatches > 0 && batchCount >= maxBatches) {
+            summary.push_back(Pair("status", "stopped_at_batch_limit"));
+        } else {
+            summary.push_back(Pair("status", "completed_all_eligible_utxos"));
+        }
+        ret.push_back(summary);
+    }
+
+    return ret;
 }
 
 extern UniValue abortrescan(const JSONRPCRequest& request); // in rpcdump.cpp
@@ -3649,68 +3822,70 @@ extern UniValue importmulti(const JSONRPCRequest& request);
 extern UniValue rescanblockchain(const JSONRPCRequest& request);
 
 static const CRPCCommand commands[] =
-{ //  category              name                        actor (function)           argNames
-    //  --------------------- ------------------------    -----------------------  ----------
-    { "rawtransactions",    "fundrawtransaction",       &fundrawtransaction,       {"hexstring","options"} },
-    { "hidden",             "resendwallettransactions", &resendwallettransactions, {} },
-    { "wallet",             "abandontransaction",       &abandontransaction,       {"txid"} },
-    { "wallet",             "abortrescan",              &abortrescan,              {} },
-    { "wallet",             "addmultisigaddress",       &addmultisigaddress,       {"nrequired","keys","account"} },
-    { "wallet",             "addwitnessaddress",        &addwitnessaddress,        {"address"} },
-    { "wallet",             "backupwallet",             &backupwallet,             {"destination"} },
-    { "wallet",             "bumpfee",                  &bumpfee,                  {"txid", "options"} },
-    { "wallet",             "dumpprivkey",              &dumpprivkey,              {"address"}  },
-    { "wallet",             "dumpwallet",               &dumpwallet,               {"filename"} },
-    { "wallet",             "encryptwallet",            &encryptwallet,            {"passphrase"} },
-    { "wallet",             "getaccountaddress",        &getaccountaddress,        {"account"} },
-    { "wallet",             "getaccount",               &getaccount,               {"address"} },
-    { "wallet",             "getaddressesbyaccount",    &getaddressesbyaccount,    {"account"} },
-    { "wallet",             "getbalance",               &getbalance,               {"account","minconf","include_watchonly"} },
-    { "wallet",             "getmasterkeyinfo",         &getmasterkeyinfo,         {} },
-    { "wallet",             "getmywords",               &getmywords,                        {} },
-    { "wallet",             "getnewaddress",            &getnewaddress,            {"account"} },
-    { "wallet",             "getrawchangeaddress",      &getrawchangeaddress,      {} },
-    { "wallet",             "getreceivedbyaccount",     &getreceivedbyaccount,     {"account","minconf"} },
-    { "wallet",             "getreceivedbyaddress",     &getreceivedbyaddress,     {"address","minconf"} },
-    { "wallet",             "gettransaction",           &gettransaction,           {"txid","include_watchonly"} },
-    { "wallet",             "getunconfirmedbalance",    &getunconfirmedbalance,    {} },
-    { "wallet",             "getwalletinfo",            &getwalletinfo,            {} },
-    { "wallet",             "importmulti",              &importmulti,              {"requests","options"} },
-    { "wallet",             "importprivkey",            &importprivkey,            {"privkey","label","rescan"} },
-    { "wallet",             "importwallet",             &importwallet,             {"filename"} },
-    { "wallet",             "importaddress",            &importaddress,            {"address","label","rescan","p2sh"} },
-    { "wallet",             "importprunedfunds",        &importprunedfunds,        {"rawtransaction","txoutproof"} },
-    { "wallet",             "importpubkey",             &importpubkey,             {"pubkey","label","rescan"} },
-    { "wallet",             "keypoolrefill",            &keypoolrefill,            {"newsize"} },
-    { "wallet",             "listaccounts",             &listaccounts,             {"minconf","include_watchonly"} },
-    { "wallet",             "listaddressgroupings",     &listaddressgroupings,     {} },
-    { "wallet",             "listlockunspent",          &listlockunspent,          {} },
-    { "wallet",             "listreceivedbyaccount",    &listreceivedbyaccount,    {"minconf","include_empty","include_watchonly"} },
-    { "wallet",             "listreceivedbyaddress",    &listreceivedbyaddress,    {"minconf","include_empty","include_watchonly"} },
-    { "wallet",             "listsinceblock",           &listsinceblock,           {"blockhash","target_confirmations","include_watchonly","include_removed"} },
-    { "wallet",             "listtransactions",         &listtransactions,         {"account","count","skip","include_watchonly"} },
-    { "wallet",             "liststucktransactions",    &liststucktransactions,    {"verbosity","include_watchonly"} },
-    { "wallet",             "listunspent",              &listunspent,              {"minconf","maxconf","addresses","include_unsafe","query_options"} },
-    { "wallet",             "listwallets",              &listwallets,              {} },
-    { "wallet",             "lockunspent",              &lockunspent,              {"unlock","transactions"} },
-    { "wallet",             "move",                     &movecmd,                  {"fromaccount","toaccount","amount","minconf","comment"} },
-    { "wallet",             "sendfrom",                 &sendfrom,                 {"fromaccount","toaddress","amount","minconf","comment","comment_to"} },
-    { "wallet",             "sendmany",                 &sendmany,                 {"fromaccount","amounts","minconf","comment","subtractfeefrom", "conf_target","estimate_mode"} },
-    { "wallet",             "sendtoaddress",            &sendtoaddress,            {"address","amount","comment","comment_to","subtractfeefromamount", "conf_target","estimate_mode"} },
-    { "wallet",             "sendfromaddress",          &sendfromaddress,          {"from_address","address","amount","comment","comment_to","subtractfeefromamount", "conf_target","estimate_mode"} },
-    { "wallet",             "setaccount",               &setaccount,               {"address","account"} },
-    { "wallet",             "settxfee",                 &settxfee,                 {"amount"} },
-    { "wallet",             "signmessage",              &signmessage,              {"address","message"} },
-    { "wallet",             "walletlock",               &walletlock,               {} },
-    { "wallet",             "walletpassphrasechange",   &walletpassphrasechange,   {"oldpassphrase","newpassphrase"} },
-    { "wallet",             "walletpassphrase",         &walletpassphrase,         {"passphrase","timeout"} },
-    { "wallet",             "removeprunedfunds",        &removeprunedfunds,        {"txid"} },
-    { "wallet",             "rescanblockchain",         &rescanblockchain,         {"start_height", "stop_height"} },
+    {
+        //  category              name                        actor (function)           argNames
+        //  --------------------- ------------------------    -----------------------  ----------
+        {"rawtransactions", "fundrawtransaction", &fundrawtransaction, {"hexstring", "options"}},
+        {"hidden", "resendwallettransactions", &resendwallettransactions, {}},
+        {"wallet", "abandontransaction", &abandontransaction, {"txid"}},
+        {"wallet", "abortrescan", &abortrescan, {}},
+        {"wallet", "addmultisigaddress", &addmultisigaddress, {"nrequired", "keys", "account"}},
+        {"wallet", "addwitnessaddress", &addwitnessaddress, {"address"}},
+        {"wallet", "backupwallet", &backupwallet, {"destination"}},
+        {"wallet", "bumpfee", &bumpfee, {"txid", "options"}},
+        {"wallet", "dumpprivkey", &dumpprivkey, {"address"}},
+        {"wallet", "dumpwallet", &dumpwallet, {"filename"}},
+        {"wallet", "encryptwallet", &encryptwallet, {"passphrase"}},
+        {"wallet", "getaccountaddress", &getaccountaddress, {"account"}},
+        {"wallet", "getaccount", &getaccount, {"address"}},
+        {"wallet", "getaddressesbyaccount", &getaddressesbyaccount, {"account"}},
+        {"wallet", "getbalance", &getbalance, {"account", "minconf", "include_watchonly"}},
+        {"wallet", "getmasterkeyinfo", &getmasterkeyinfo, {}},
+        {"wallet", "getmywords", &getmywords, {}},
+        {"wallet", "getnewaddress", &getnewaddress, {"account"}},
+        {"wallet", "getrawchangeaddress", &getrawchangeaddress, {}},
+        {"wallet", "getreceivedbyaccount", &getreceivedbyaccount, {"account", "minconf"}},
+        {"wallet", "getreceivedbyaddress", &getreceivedbyaddress, {"address", "minconf"}},
+        {"wallet", "gettransaction", &gettransaction, {"txid", "include_watchonly"}},
+        {"wallet", "getunconfirmedbalance", &getunconfirmedbalance, {}},
+        {"wallet", "getwalletinfo", &getwalletinfo, {}},
+        {"wallet", "importmulti", &importmulti, {"requests", "options"}},
+        {"wallet", "importprivkey", &importprivkey, {"privkey", "label", "rescan"}},
+        {"wallet", "importwallet", &importwallet, {"filename"}},
+        {"wallet", "importaddress", &importaddress, {"address", "label", "rescan", "p2sh"}},
+        {"wallet", "importprunedfunds", &importprunedfunds, {"rawtransaction", "txoutproof"}},
+        {"wallet", "importpubkey", &importpubkey, {"pubkey", "label", "rescan"}},
+        {"wallet", "keypoolrefill", &keypoolrefill, {"newsize"}},
+        {"wallet", "listaccounts", &listaccounts, {"minconf", "include_watchonly"}},
+        {"wallet", "listaddressgroupings", &listaddressgroupings, {}},
+        {"wallet", "listlockunspent", &listlockunspent, {}},
+        {"wallet", "listreceivedbyaccount", &listreceivedbyaccount, {"minconf", "include_empty", "include_watchonly"}},
+        {"wallet", "listreceivedbyaddress", &listreceivedbyaddress, {"minconf", "include_empty", "include_watchonly"}},
+        {"wallet", "listsinceblock", &listsinceblock, {"blockhash", "target_confirmations", "include_watchonly", "include_removed"}},
+        {"wallet", "listtransactions", &listtransactions, {"account", "count", "skip", "include_watchonly"}},
+        {"wallet", "liststucktransactions", &liststucktransactions, {"verbosity", "include_watchonly"}},
+        {"wallet", "listunspent", &listunspent, {"minconf", "maxconf", "addresses", "include_unsafe", "query_options"}},
+        {"wallet", "listwallets", &listwallets, {}},
+        {"wallet", "lockunspent", &lockunspent, {"unlock", "transactions"}},
+        {"wallet", "move", &movecmd, {"fromaccount", "toaccount", "amount", "minconf", "comment"}},
+        {"wallet", "sendfrom", &sendfrom, {"fromaccount", "toaddress", "amount", "minconf", "comment", "comment_to"}},
+        {"wallet", "sendmany", &sendmany, {"fromaccount", "amounts", "minconf", "comment", "subtractfeefrom", "conf_target", "estimate_mode"}},
+        {"wallet", "sendtoaddress", &sendtoaddress, {"address", "amount", "comment", "comment_to", "subtractfeefromamount", "conf_target", "estimate_mode"}},
+        {"wallet", "sendfromaddress", &sendfromaddress, {"from_address", "address", "amount", "comment", "comment_to", "subtractfeefromamount", "conf_target", "estimate_mode"}},
+        {"wallet", "setaccount", &setaccount, {"address", "account"}},
+        {"wallet", "settxfee", &settxfee, {"amount"}},
+        {"wallet", "signmessage", &signmessage, {"address", "message"}},
+        {"wallet", "walletlock", &walletlock, {}},
+        {"wallet", "walletpassphrasechange", &walletpassphrasechange, {"oldpassphrase", "newpassphrase"}},
+        {"wallet", "walletpassphrase", &walletpassphrase, {"passphrase", "timeout"}},
+        {"wallet", "removeprunedfunds", &removeprunedfunds, {"txid"}},
+        {"wallet", "rescanblockchain", &rescanblockchain, {"start_height", "stop_height"}},
+        {"wallet", "consolidateutxos", &consolidateutxos, {"address", "min_utxos", "max_batches", "min_amount", "max_amount"}},
 
-    { "generating",         "generate",                 &generate,                 {"nblocks","maxtries"} },
+        {"generating", "generate", &generate, {"nblocks", "maxtries"}},
 };
 
-void RegisterWalletRPCCommands(CRPCTable &t)
+void RegisterWalletRPCCommands(CRPCTable& t)
 {
     for (unsigned int vcidx = 0; vcidx < ARRAYLEN(commands); vcidx++)
         t.appendCommand(commands[vcidx].name, &commands[vcidx]);
