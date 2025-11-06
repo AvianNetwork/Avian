@@ -367,7 +367,7 @@ void DusterDialog::compactBlocks()
         }
         coinControl->SetNull();
 
-        CFeeRate minFeeRate(1000); // 1000 satoshis per kilobyte = 1 sat/byte
+        CFeeRate minFeeRate(1000); // 1000 satoshis per kilobyte (~1 sat/byte for typical transactions, but the math is per-kilobyte)
         coinControl->m_feerate = minFeeRate;
         coinControl->fOverrideFeeRate = true;
 
