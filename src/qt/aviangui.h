@@ -120,7 +120,7 @@ private:
     QAction* toggleHideAction = nullptr;
     QAction* encryptWalletAction = nullptr;
     QAction* backupWalletAction = nullptr;
-    QAction *dustWalletAction = nullptr;
+    QAction* dustWalletAction = nullptr;
     QAction* changePassphraseAction = nullptr;
     QAction* aboutQtAction = nullptr;
     QAction* openRPCConsoleAction = nullptr;
@@ -143,6 +143,7 @@ private:
     QNetworkAccessManager* networkManager = nullptr;
     QLabel* labelVersionUpdate = nullptr;
     QNetworkAccessManager* networkVersionManager = nullptr;
+    QTimer* initializationTimer = nullptr;
     /** AVN END */
 
     QSystemTrayIcon* trayIcon = nullptr;
@@ -275,6 +276,8 @@ private Q_SLOTS:
     void showDebugWindowActivateConsole();
     /** Show help message dialog */
     void showHelpMessageClicked();
+    /** Perform deferred network initialization after GUI is rendered */
+    void performDeferredInitialization();
 #ifndef Q_OS_MAC
     /** Handle tray icon clicked */
     void trayIconActivated(QSystemTrayIcon::ActivationReason reason);

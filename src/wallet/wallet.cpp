@@ -1784,14 +1784,23 @@ void CWallet::ReacceptWalletTransactions()
     // Try to add wallet transactions to memory pool
     if (!mapSorted.empty()) {
         uiInterface.InitMessage(strprintf(_("Reaccepting wallet transactions... (%d pending)"), mapSorted.size()));
-    }
 
-    for (std::pair<const int64_t, CWalletTx*>& item : mapSorted) {
-        CWalletTx& wtx = *(item.second);
+        int processed = 0;
+        for (std::pair<const int64_t, CWalletTx*>& item : mapSorted) {
+            CWalletTx& wtx = *(item.second);
 
-        LOCK(mempool.cs);
-        CValidationState state;
-        wtx.AcceptToMemoryPool(maxTxFee, state);
+            LOCK(mempool.cs);
+            CValidationState state;
+            wtx.AcceptToMemoryPool(maxTxFee, state);
+
+            processed++;
+            // Update progress every 100 transactions to avoid UI spam
+            if (processed % 100 == 0) {
+                uiInterface.InitMessage(strprintf(_("Reaccepting wallet transactions... (%d/%d)"), processed, mapSorted.size()));
+            }
+        }
+
+        uiInterface.InitMessage(_("Wallet transactions processed, starting interface..."));
     }
 }
 
@@ -4712,7 +4721,9 @@ void CWallet::postInitProcess(CScheduler& scheduler)
 {
     // Add wallet transactions that aren't already in a block to mempool
     // Do this here as mempool requires genesis block to be loaded
+    uiInterface.InitMessage(_("Reprocessing wallet transactions..."));
     ReacceptWalletTransactions();
+    uiInterface.InitMessage(_("Wallet ready, starting interface..."));
 
     // Run a thread to flush wallet periodically
     if (!CWallet::fFlushScheduled.exchange(true)) {

@@ -322,6 +322,13 @@ AvianGUI::AvianGUI(const PlatformStyle* _platformStyle, const NetworkStyle* netw
         connect(progressBar, SIGNAL(clicked(QPoint)), this, SLOT(showModalOverlay()));
     }
 #endif
+
+    // Defer network initialization calls to after GUI is rendered
+    // This prevents the splash screen from becoming unresponsive during startup
+    initializationTimer = new QTimer(this);
+    connect(initializationTimer, SIGNAL(timeout()), this, SLOT(performDeferredInitialization()));
+    initializationTimer->setSingleShot(true);
+    initializationTimer->start(100); // 100ms delay to allow GUI to render
 }
 
 AvianGUI::~AvianGUI()
@@ -815,7 +822,8 @@ void AvianGUI::createToolBars()
         // Create the timer
         connect(pricingTimer, SIGNAL(timeout()), this, SLOT(getPriceInfo()));
         pricingTimer->start(600000);
-        getPriceInfo();
+        // getPriceInfo will be called after GUI initialization to avoid blocking splash screen
+        // getPriceInfo();
         /** AVN END */
 
         // Get the latest Avian release and let the user know if they are using the latest version
@@ -910,7 +918,8 @@ void AvianGUI::createToolBars()
                     }
                 }
             });
-        getLatestVersion();
+        // getLatestVersion will be called after GUI initialization to avoid blocking splash screen
+        // getLatestVersion();
     }
 }
 
@@ -1796,6 +1805,14 @@ void UnitDisplayStatusBarControl::onMenuSelection(QAction* action)
     if (action) {
         optionsModel->setDisplayUnit(action->data());
     }
+}
+
+void AvianGUI::performDeferredInitialization()
+{
+    // Now that the GUI has been rendered and shown, perform network initialization
+    // that was deferred to avoid blocking the splash screen during startup
+    getPriceInfo();
+    getLatestVersion();
 }
 
 void AvianGUI::getPriceInfo()

@@ -919,6 +919,10 @@ void saveWindowGeometry(const QString& strSetting, QWidget* parent)
     QSettings settings;
     settings.setValue(strSetting + "Pos", parent->pos());
     settings.setValue(strSetting + "Size", parent->size());
+    // Only save maximized state for main window (identified by "MainWindowGeometry" key)
+    if (strSetting == "MainWindowGeometry") {
+        settings.setValue(strSetting + "State", (int)(parent->windowState() & Qt::WindowMaximized));
+    }
 }
 
 void restoreWindowGeometry(const QString& strSetting, const QSize& defaultSize, QWidget* parent)
@@ -926,6 +930,7 @@ void restoreWindowGeometry(const QString& strSetting, const QSize& defaultSize, 
     QSettings settings;
     QPoint pos = settings.value(strSetting + "Pos").toPoint();
     QSize size = settings.value(strSetting + "Size", defaultSize).toSize();
+    int state = settings.value(strSetting + "State", 0).toInt();
 
     if (!pos.x() && !pos.y()) {
         QRect screen = QApplication::desktop()->screenGeometry();
@@ -935,6 +940,11 @@ void restoreWindowGeometry(const QString& strSetting, const QSize& defaultSize, 
 
     parent->resize(size);
     parent->move(pos);
+
+    // Only restore maximized state for main window (identified by "MainWindowGeometry" key)
+    if (strSetting == "MainWindowGeometry" && (state & Qt::WindowMaximized)) {
+        parent->setWindowState(parent->windowState() | Qt::WindowMaximized);
+    }
 }
 
 void setClipboard(const QString& str)

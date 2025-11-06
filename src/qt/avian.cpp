@@ -275,6 +275,14 @@ private:
 
 #include "avian.moc"
 
+// Helper function to allow time-consuming operations to let the UI remain responsive
+static void processUIEvents()
+{
+    // Use WaitForMoreEvents to ensure we process paint events for the splash screen
+    QCoreApplication::processEvents(QEventLoop::ExcludeUserInputEvents);
+    QCoreApplication::processEvents(QEventLoop::WaitForMoreEvents);
+}
+
 AvianCore::AvianCore() : QObject()
 {
 }
@@ -424,6 +432,10 @@ void AvianApplication::createWindow(const NetworkStyle* networkStyle)
     pollShutdownTimer = new QTimer(window);
     connect(pollShutdownTimer, SIGNAL(timeout()), window, SLOT(detectShutdown()));
     pollShutdownTimer->start(200);
+
+    // Process events to ensure the GUI window is created and splash screen
+    // begins rendering before initialization thread starts
+    processEvents();
 }
 
 void AvianApplication::createSplashScreen(const NetworkStyle* networkStyle)
@@ -507,25 +519,58 @@ void AvianApplication::initializeResult(bool success)
         // Log this only after AppInitMain finishes, as then logging setup is guaranteed complete
         qWarning() << "Platform customization:" << platformStyle->getName();
 #ifdef ENABLE_WALLET
+        // Process events frequently with paint events to keep splash screen responsive
+        uiInterface.InitMessage(_("Initializing payment server..."));
+        processUIEvents();
         PaymentServer::LoadRootCAs();
+        processUIEvents();
         paymentServer->setOptionsModel(optionsModel);
+        processUIEvents();
 #endif
 
+        // Process events to keep splash responsive while creating client model
+        uiInterface.InitMessage(_("Initializing client model..."));
+        processUIEvents();
         clientModel = new ClientModel(optionsModel);
+        processUIEvents();
+
+        uiInterface.InitMessage(_("Connecting to client model..."));
         window->setClientModel(clientModel);
+        processUIEvents();
 
 #ifdef ENABLE_WALLET
         // TODO: Expose secondary wallets
+        // Load wallet model - keep splash screen visible during this expensive operation
         if (!vpwallets.empty()) {
+            uiInterface.InitMessage(_("Loading wallet transactions..."));
+            processUIEvents();
+
             walletModel = new WalletModel(platformStyle, vpwallets[0], optionsModel);
 
+            // Keep UI responsive during wallet model operations
+            for (int i = 0; i < 5; ++i) {
+                processUIEvents();
+                QThread::msleep(10);
+            }
+
+            uiInterface.InitMessage(_("Finalizing wallet..."));
+            processUIEvents();
+
             window->addWallet(AvianGUI::DEFAULT_WALLET, walletModel);
+            processUIEvents();
+
             window->setCurrentWallet(AvianGUI::DEFAULT_WALLET);
+            processUIEvents();
 
             connect(walletModel, SIGNAL(coinsSent(CWallet*, SendCoinsRecipient, QByteArray)),
                 paymentServer, SLOT(fetchPaymentACK(CWallet*, const SendCoinsRecipient&, QByteArray)));
+
+            processUIEvents();
         }
 #endif
+
+        uiInterface.InitMessage(_("Showing main window..."));
+        processUIEvents();
 
         // If -min option passed, start window minimized.
         if (gArgs.GetBoolArg("-min", false)) {
@@ -533,11 +578,13 @@ void AvianApplication::initializeResult(bool success)
         } else {
             window->show();
         }
+
+        // Dismiss splash screen now that everything is ready
         Q_EMIT splashFinished(window);
 
-#ifdef ENABLE_WALLET
         // Now that initialization/startup is done, process any command-line
         // avian: URIs or payment requests:
+#ifdef ENABLE_WALLET
         connect(paymentServer, SIGNAL(receivedPaymentRequest(SendCoinsRecipient)),
             window, SLOT(handlePaymentRequest(SendCoinsRecipient)));
         connect(window, SIGNAL(receivedURI(QString)),
@@ -743,6 +790,8 @@ int main(int argc, char* argv[])
         // This is acceptable because this function only contains steps that are quick to execute,
         // so the GUI thread won't be held up.
         if (AvianCore::baseInitialize()) {
+            // Process events to render splash screen before starting initialization
+            QApplication::processEvents();
             app.requestInitialize();
 #if defined(Q_OS_WIN) && QT_VERSION >= 0x050000
             WinShutdownMonitor::registerShutdownBlockReason(QObject::tr("%1 didn't yet exit safely...").arg(QObject::tr(PACKAGE_NAME)), (HWND)app.getMainWinId());

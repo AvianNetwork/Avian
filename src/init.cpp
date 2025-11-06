@@ -1976,12 +1976,13 @@ bool AppInitMain(boost::thread_group& threadGroup, CScheduler& scheduler)
     if (!fReindex && fLoaded && fMessaging && pmessagechanneldb && !gArgs.GetBoolArg("-disablewallet", false)) {
         bool found;
         if (!pmessagechanneldb->ReadFlag("init", found)) {
-            uiInterface.InitMessage(_("Init Message Channels - Scanning Asset Transactions"));
+            uiInterface.InitMessage(_("Scanning message channels..."));
             std::string strLoadError;
             if (!ScanForMessageChannels(strLoadError)) {
                 LogPrintf("%s : Failed to scan for message channels, %s\n", __func__, strLoadError);
             } else {
                 pmessagechanneldb->WriteFlag("init", true);
+                uiInterface.InitMessage(_("Message channels initialized"));
             }
         }
     }
@@ -1989,6 +1990,9 @@ bool AppInitMain(boost::thread_group& threadGroup, CScheduler& scheduler)
 
     // ********************************************************* Step 15: finished
     uiInterface.InitMessage(_("Done Loading"));
+
+    // Allow UI event loop to process before fully completing
+    uiInterface.InitMessage(_("Initializing user interface..."));
 
     return !fRequestShutdown;
 }
