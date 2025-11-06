@@ -39,16 +39,11 @@
 #include <boost/filesystem.hpp>
 #include <string>
 
-CCoinControl* DusterDialog::coinControl = nullptr;
-
 DusterDialog::DusterDialog(const PlatformStyle* _platformStyle, QWidget* parent) : QDialog(parent),
                                                                                    ui(new Ui::DusterDialog),
-                                                                                   platformStyle(_platformStyle)
+                                                                                   platformStyle(_platformStyle),
+                                                                                   coinControl(new CCoinControl())
 {
-    // Initialize coin control
-    if (!coinControl) {
-        coinControl = new CCoinControl();
-    }
     // Setup the UI
     ui->setupUi(this);
     ui->dustAddress->setReadOnly(true);
@@ -79,11 +74,9 @@ DusterDialog::DusterDialog(const PlatformStyle* _platformStyle, QWidget* parent)
 
 DusterDialog::~DusterDialog()
 {
-    // Clean up coin control if it exists
-    if (coinControl) {
-        delete coinControl;
-        coinControl = nullptr;
-    }
+    // Clean up coin control instance member
+    delete coinControl;
+    delete ui;
 }
 
 void DusterDialog::setModel(WalletModel* model)
@@ -362,12 +355,9 @@ void DusterDialog::compactBlocks()
         QApplication::processEvents();
 
         // Collect UTXOs for this batch
-        if (!coinControl) {
-            coinControl = new CCoinControl();
-        }
         coinControl->SetNull();
 
-        CFeeRate minFeeRate(1000); // 1000 satoshis per kilobyte (~1 sat/byte for typical transactions, but the math is per-kilobyte)
+        CFeeRate minFeeRate(1000); // 1000 satoshis per kilobyte = 1 sat/byte
         coinControl->m_feerate = minFeeRate;
         coinControl->fOverrideFeeRate = true;
 

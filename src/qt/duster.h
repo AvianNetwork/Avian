@@ -29,8 +29,6 @@ class DusterDialog : public QDialog
     Q_OBJECT
 
 public:
-    static CCoinControl* coinControl;
-
     DusterDialog(const PlatformStyle*, QWidget* parent = 0);
     ~DusterDialog();
     void setModel(WalletModel* model);
@@ -49,6 +47,7 @@ private:
     const PlatformStyle* platformStyle;
     QTableWidget* blocksTable;
     WalletModel* model;
+    CCoinControl* coinControl;
     int sortColumn;
     Qt::SortOrder sortOrder;
     QLabel* infoLabel;
