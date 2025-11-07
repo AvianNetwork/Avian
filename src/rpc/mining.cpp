@@ -5,6 +5,7 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include "rpc/mining.h"
+#include "rpc/params.h"
 #include "amount.h"
 #include "base58.h"
 #include "chain.h"
@@ -126,9 +127,8 @@ UniValue getnetworkhashps(const JSONRPCRequest& request)
             HelpExampleCli("getnetworkhashps", "") + HelpExampleRpc("getnetworkhashps", ""));
 
     // Dual Algo
-    std::string strAlgo = gArgs.GetArg("-powalgo", DEFAULT_POW_TYPE);
-    if (!request.params[2].isNull())
-        strAlgo = request.params[2].get_str();
+    RPC::Params params(request);
+    std::string strAlgo = params.GetString(2, gArgs.GetArg("-powalgo", DEFAULT_POW_TYPE));
 
     bool algoFound = false;
     POW_TYPE powType;
@@ -143,7 +143,7 @@ UniValue getnetworkhashps(const JSONRPCRequest& request)
         throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid pow algorithm requested");
 
     LOCK(cs_main);
-    return GetNetworkHashPS(!request.params[0].isNull() ? request.params[0].get_int() : 5, !request.params[1].isNull() ? request.params[1].get_int() : -1, powType);
+    return GetNetworkHashPS(params.GetInt(0, 5), params.GetInt(1, -1), powType);
 }
 
 UniValue generateBlocks(std::shared_ptr<CReserveScript> coinbaseScript, int nGenerate, uint64_t nMaxTries, bool keepScript, const POW_TYPE powType)
@@ -208,6 +208,7 @@ UniValue generatetoaddress(const JSONRPCRequest& request)
             "\nGenerate 11 blocks to myaddress\n" +
             HelpExampleCli("generatetoaddress", "11 \"myaddress\""));
 
+    RPC::Params params(request);
     std::string strAlgo = gArgs.GetArg("-powalgo", DEFAULT_POW_TYPE);
 
     bool algoFound = false;
@@ -222,14 +223,10 @@ UniValue generatetoaddress(const JSONRPCRequest& request)
     if (!algoFound)
         throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid pow algorithm requested");
 
+    int nGenerate = params.GetInt(0, 1);
+    uint64_t nMaxTries = params.GetInt64(2, 1000000);
 
-    int nGenerate = request.params[0].get_int();
-    uint64_t nMaxTries = 1000000;
-    if (!request.params[2].isNull()) {
-        nMaxTries = request.params[2].get_int();
-    }
-
-    CTxDestination destination = DecodeDestination(request.params[1].get_str());
+    CTxDestination destination = DecodeDestination(params.GetString(1));
     if (!IsValidDestination(destination)) {
         throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Error: Invalid address");
     }
@@ -264,6 +261,9 @@ UniValue getmininginfo(const JSONRPCRequest& request)
             HelpExampleCli("getmininginfo", "") + HelpExampleRpc("getmininginfo", ""));
 
     LOCK(cs_main);
+
+    RPC::Params params(request);
+    params.CheckCount(0);
 
     std::string strAlgo = gArgs.GetArg("-powalgo", DEFAULT_POW_TYPE);
 
@@ -446,13 +446,16 @@ UniValue getblocktemplate(const JSONRPCRequest& request)
 
     LOCK(cs_main);
 
+    RPC::Params params(request);
+    params.CheckCount(0, 1);
+
     std::string strMode = "template";
     UniValue lpval = NullUniValue;
     std::set<std::string> setClientRules;
     int64_t nMaxVersionPreVB = -1;
     std::string strAlgo = gArgs.GetArg("-powalgo", DEFAULT_POW_TYPE);
-    if (!request.params[0].isNull()) {
-        const UniValue& oparam = request.params[0].get_obj();
+    if (params.Has(0)) {
+        const UniValue& oparam = params.GetObj(0);
         const UniValue& modeval = find_value(oparam, "mode");
         if (modeval.isStr())
             strMode = modeval.get_str();

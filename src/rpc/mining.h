@@ -6,6 +6,7 @@
 #ifndef AVIAN_RPC_MINING_H
 #define AVIAN_RPC_MINING_H
 
+#include "rpc/params.h"
 #include "script/script.h"
 #include <primitives/block.h>
 
@@ -21,5 +22,8 @@ UniValue getgenerate(const UniValue& params, bool fHelp);
 
 /** Check bounds on a command line confirm target */
 unsigned int ParseConfirmTarget(const UniValue& value);
+
+/** Validate and return POW_TYPE from string, throws JSONRPCError if invalid */
+POW_TYPE ValidatePowType(const std::string& strAlgo);
 
 #endif

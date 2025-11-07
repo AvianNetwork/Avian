@@ -341,6 +341,7 @@ libavian_server_a_SOURCES = \
   rpc/blockchain.cpp \
   rpc/messages.cpp \
   rpc/mining.cpp \
+  rpc/params.cpp \
   rpc/misc.cpp \
   rpc/net.cpp \
   rpc/rawtransaction.cpp \

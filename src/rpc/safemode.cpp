@@ -11,4 +11,3 @@ void ObserveSafeMode()
         throw JSONRPCError(RPC_FORBIDDEN_BY_SAFE_MODE, std::string("Safe mode: ") + warning);
     }
 }
-

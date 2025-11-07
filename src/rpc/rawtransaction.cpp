@@ -18,6 +18,7 @@
 #include "primitives/transaction.h"
 #include "rpc/safemode.h"
 #include "rpc/server.h"
+#include "rpc/params.h"
 #include "script/script.h"
 #include "script/script_error.h"
 #include "script/sign.h"
@@ -183,11 +184,12 @@ UniValue getrawtransaction(const JSONRPCRequest& request)
 
     LOCK(cs_main);
 
+    RPC::Params params(request);
     uint256 hash = ParseHashV(request.params[0], "parameter 1");
 
     // Accept either a bool (true) or a num (>=1) to indicate verbose output.
     bool fVerbose = false;
-    if (!request.params[1].isNull()) {
+    if (params.Has(1)) {
         if (request.params[1].isNum()) {
             if (request.params[1].get_int() != 0) {
                 fVerbose = true;
@@ -253,11 +255,12 @@ UniValue gettxoutproof(const JSONRPCRequest& request)
 
     LOCK(cs_main);
 
+    RPC::Params params(request);
     CBlockIndex* pblockindex = nullptr;
 
     uint256 hashBlock;
-    if (!request.params[1].isNull()) {
-        hashBlock = uint256S(request.params[1].get_str());
+    if (params.Has(1)) {
+        hashBlock = params.GetHash(1, "blockhash");
         if (!mapBlockIndex.count(hashBlock))
             throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Block not found");
         pblockindex = mapBlockIndex[hashBlock];
@@ -311,6 +314,7 @@ UniValue verifytxoutproof(const JSONRPCRequest& request)
             "\nResult:\n"
             "[\"txid\"]      (array, strings) The txid(s) which the proof commits to, or empty array if the proof is invalid\n");
 
+    RPC::Params params(request);
     CDataStream ssMB(ParseHexV(request.params[0], "proof"), SER_NETWORK, PROTOCOL_VERSION | SERIALIZE_TRANSACTION_NO_WITNESS);
     CMerkleBlock merkleBlock;
     ssMB >> merkleBlock;
@@ -1585,6 +1589,7 @@ UniValue decoderawtransaction(const JSONRPCRequest& request)
     LOCK(cs_main);
     RPCTypeCheck(request.params, {UniValue::VSTR});
 
+    RPC::Params params(request);
     CMutableTransaction mtx;
 
     if (!DecodeHexTx(mtx, request.params[0].get_str(), true))
@@ -1637,6 +1642,7 @@ UniValue decodescript(const JSONRPCRequest& request)
 
     RPCTypeCheck(request.params, {UniValue::VSTR});
 
+    RPC::Params params(request);
     UniValue r(UniValue::VOBJ);
     CScript script;
     if (request.params[0].get_str().size() > 0) {
@@ -1776,7 +1782,7 @@ UniValue combinerawtransaction(const JSONRPCRequest& request)
             "\nExamples:\n" +
             HelpExampleCli("combinerawtransaction", "[\"myhex1\", \"myhex2\", \"myhex3\"]"));
 
-
+    RPC::Params params(request);
     UniValue txs = request.params[0].get_array();
     std::vector<CMutableTransaction> txVariants(txs.size());
 
@@ -2127,6 +2133,7 @@ UniValue sendrawtransaction(const JSONRPCRequest& request)
     LOCK(cs_main);
     RPCTypeCheck(request.params, {UniValue::VSTR, UniValue::VBOOL});
 
+    RPC::Params params(request);
     // parse hex string from parameter
     CMutableTransaction mtx;
     if (!DecodeHexTx(mtx, request.params[0].get_str()))
@@ -2135,7 +2142,7 @@ UniValue sendrawtransaction(const JSONRPCRequest& request)
     const uint256& hashTx = tx->GetHash();
 
     CAmount nMaxRawTxFee = maxTxFee;
-    if (!request.params[1].isNull() && request.params[1].get_bool())
+    if (params.Has(1) && request.params[1].get_bool())
         nMaxRawTxFee = 0;
 
     CCoinsViewCache& view = *pcoinsTip;
@@ -2215,6 +2222,7 @@ UniValue testmempoolaccept(const JSONRPCRequest& request)
         throw JSONRPCError(RPC_INVALID_PARAMETER, "Array must contain exactly one raw transaction for now");
     }
 
+    RPC::Params params(request);
     CMutableTransaction mtx;
     if (!DecodeHexTx(mtx, request.params[0].get_array()[0].get_str())) {
         throw JSONRPCError(RPC_DESERIALIZATION_ERROR, "TX decode failed");
@@ -2223,7 +2231,7 @@ UniValue testmempoolaccept(const JSONRPCRequest& request)
     const uint256& tx_hash = tx->GetHash();
 
     CAmount max_raw_tx_fee = ::maxTxFee;
-    if (!request.params[1].isNull() && request.params[1].get_bool()) {
+    if (params.Has(1) && request.params[1].get_bool()) {
         max_raw_tx_fee = 0;
     }
 
