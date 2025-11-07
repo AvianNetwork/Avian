@@ -5,7 +5,6 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include "rpc/mining.h"
-#include "rpc/params.h"
 #include "amount.h"
 #include "base58.h"
 #include "chain.h"
@@ -20,6 +19,7 @@
 #include "policy/fees.h"
 #include "pow.h"
 #include "rpc/blockchain.h"
+#include "rpc/params.h"
 #include "rpc/server.h"
 #include "txmempool.h"
 #include "util.h"
