@@ -24,6 +24,9 @@
 
 #include <univalue.h>
 
+#include <algorithm>
+#include <random>
+
 UniValue getconnectioncount(const JSONRPCRequest& request)
 {
     if (request.fHelp || request.params.size() != 0)
@@ -683,7 +686,7 @@ UniValue getnodeaddresses(const JSONRPCRequest& request)
     }
 
     // Shuffle and limit result
-    std::random_shuffle(vAddr.begin(), vAddr.end());
+    std::shuffle(vAddr.begin(), vAddr.end(), std::mt19937(GetRandInt(INT_MAX)));
     if (count > 0 && vAddr.size() > (size_t)count) {
         vAddr.resize(count);
     }
