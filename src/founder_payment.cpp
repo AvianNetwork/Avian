@@ -5,7 +5,7 @@
 #include "util.h"
 #include <boost/foreach.hpp>
 
-CAmount FounderPayment::getFounderPaymentAmount(int blockHeight, CAmount blockReward)
+CAmount FounderPayment::getFounderPaymentAmount(int blockHeight, CAmount blockReward) const
 {
     if (blockHeight <= startBlock) {
         return 0;

@@ -633,6 +633,9 @@ std::string HelpMessage(HelpMessageMode mode)
     }
     // Dual Algo: Allow switching of default pow algo via conf / command line, for miners that can't easily adjust their getblocktemplate calls
     strUsage += HelpMessageOpt("-powalgo=x16rt|minotaurx", strprintf(_("Default pow mining algorithm. Miners who can't easily adjust their getblocktemplate calls should use this argument to set their preferred mining algorithm. (default: %s)"), DEFAULT_POW_TYPE));
+    strUsage += HelpMessageOpt("-powhashcache=<n>", _("Size of the PoW hash cache in megabytes (default: built-in default)"));
+    if (showDebug)
+        strUsage += HelpMessageOpt("-powcachevalidate", _("Enable/disable PoW cache validation (default: disabled)"));
     // Flightplan: Show how to enable flightplans
     strUsage += HelpMessageOpt("-flightplans", strprintf(_("Enable Avian Flightplans for use via JSON-RPC")));
     return strUsage;

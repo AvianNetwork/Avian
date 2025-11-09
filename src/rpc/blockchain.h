@@ -11,6 +11,7 @@
 class CBlock;
 class CBlockIndex;
 class UniValue;
+class JSONRPCRequest;
 
 /**
  * Get the difficulty of the net wrt to the given block index, or the chain tip if
@@ -39,5 +40,8 @@ UniValue mempoolToJSON(bool fVerbose = false);
 
 /** Block header to JSON */
 UniValue blockheaderToJSON(const CBlockIndex* blockindex);
+
+/** Block statistics to JSON */
+UniValue getblockstats(const JSONRPCRequest& request);
 
 #endif

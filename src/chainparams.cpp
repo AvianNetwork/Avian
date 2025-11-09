@@ -220,7 +220,8 @@ public:
                 {939610, uint256S("0x00000003cb151bde7f7c91b0dd145fbd8a0d6267873980662819fcddc3c74e24")},
                 {940202, uint256S("0x00000000ed69247f7ef177a14e44de41d9c1ba689cb930946ff773ebfe23f64c")},
                 {952399, uint256S("0x0000000000a11f354eacb65fee963df9818ee8884d8dd926da33921691ec9969")},
-                {1072359, uint256S("0x00000000005ab90c287e481b1f2911228d26723ac07bcadd65031158ad733316")}}};
+                {1072359, uint256S("0x00000000005ab90c287e481b1f2911228d26723ac07bcadd65031158ad733316")},
+                {4338668, uint256S("0x0000001175a71ea764cf9784f255f755e129d4f1ea368255e0e9bd29c55802fb")}}};
 
         chainTxData = ChainTxData{
             // Update as we know more about the contents of the Avian chain

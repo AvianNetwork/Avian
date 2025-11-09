@@ -358,7 +358,7 @@ libavian_server_a_SOURCES = \
   validation.cpp \
   validationinterface.cpp \
   versionbits.cpp \
-  flightplans/avianlib.cpp \  
+  flightplans/avianlib.cpp \
   flightplans/flightplans.cpp \
   flightplans/json/strbuf.c \
   flightplans/json/fpconv.c \

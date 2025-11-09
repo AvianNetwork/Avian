@@ -28,11 +28,12 @@
 #include "sync.h"
 #include "txdb.h"
 #include "txmempool.h"
+#include "undo.h"
 #include "util.h"
 #include "utilstrencodings.h"
 #include "validation.h"
 #include "warnings.h"
-
+#include <numeric>
 #include <stdint.h>
 
 #include <univalue.h>
@@ -272,6 +273,318 @@ UniValue blockToJSON(const CBlock& block, const CBlockIndex* blockindex, bool tx
     if (pnext)
         result.push_back(Pair("nextblockhash", pnext->GetBlockHash().GetHex()));
     return result;
+}
+
+UniValue getblockstats(const JSONRPCRequest& request)
+{
+    if (request.fHelp || request.params.size() < 1 || request.params.size() > 2)
+        throw std::runtime_error(
+            "getblockstats hash_or_height ( stats )\n"
+            "\nCompute per-block statistics for a given window of blocks.\n"
+            "By default, all available statistics will be returned.\n"
+            "Pass an array of strings to select specific statistics.\n"
+            "\nArguments:\n"
+            "1. \"hash_or_height\"     (string or numeric, required) The block hash or height of the target block\n"
+            "2. \"stats\"              (array, optional) Values to plot (see result below)\n"
+            "    [\n"
+            "      \"height\",          (string) Selected statistic name\n"
+            "      \"hash\",            (string) Selected statistic name\n"
+            "      \"time\",            (string) Selected statistic name\n"
+            "      \"txs\",             (string) Selected statistic name\n"
+            "      \"txrate\",          (string) Selected statistic name\n"
+            "      \"txsize\",          (string) Selected statistic name\n"
+            "      \"txsizes\",         (string) Selected statistic name\n"
+            "      \"feerate\",         (string) Selected statistic name\n"
+            "      \"minfee\",          (string) Selected statistic name\n"
+            "      \"maxfee\",          (string) Selected statistic name\n"
+            "      \"avgfee\",          (string) Selected statistic name\n"
+            "      \"medianfee\",       (string) Selected statistic name\n"
+            "      \"feerate_percentiles\", (string) Selected statistic name\n"
+            "      \"utxo_increase\",   (string) Selected statistic name\n"
+            "      \"utxo_size_inc\",   (string) Selected statistic name\n"
+            "      \"total_out\",       (string) Selected statistic name\n"
+            "      \"total_size\",      (string) Selected statistic name\n"
+            "      \"swtotal_size\",    (string) Selected statistic name\n"
+            "      \"swtotal_weight\",  (string) Selected statistic name\n"
+            "      \"swtxs\",           (string) Selected statistic name\n"
+            "      \"time_range\",      (string) Selected statistic name\n"
+            "      \"minheight\",       (string) Selected statistic name\n"
+            "      \"maxheight\",       (string) Selected statistic name\n"
+            "      \"ins\",             (string) Selected statistic name\n"
+            "      \"outs\",            (string) Selected statistic name\n"
+            "      \"subsidy\",         (string) Selected statistic name\n"
+            "      \"total_out\"        (string) Selected statistic name\n"
+            "    ]\n"
+            "\nResult:\n"
+            "{                           (json object)\n"
+            "  \"avgfee\": xxxxx,        (numeric) Average fee in the block\n"
+            "  \"avgfeerate\": xxxxx,    (numeric) Average feerate (in " +
+            CURRENCY_UNIT + " per KB)\n"
+                            "  \"avgtxsize\": xxxxx,     (numeric) Average transaction size\n"
+                            "  \"blockhash\": \"...\",     (string) The block hash (same as provided)\n"
+                            "  \"feerate_percentiles\": [  (array of numeric) Feerates at the 10th, 25th, 50th, 75th, and 90th percentile weight unit (in " +
+            CURRENCY_UNIT + " per KB)\n"
+                            "      \"10th_percentile_feerate\", (numeric) The 10th percentile feerate\n"
+                            "      \"25th_percentile_feerate\", (numeric) The 25th percentile feerate\n"
+                            "      \"50th_percentile_feerate\", (numeric) The 50th percentile feerate\n"
+                            "      \"75th_percentile_feerate\", (numeric) The 75th percentile feerate\n"
+                            "      \"90th_percentile_feerate\"  (numeric) The 90th percentile feerate\n"
+                            "  ],\n"
+                            "  \"height\": xxxxx,        (numeric) The height of the block\n"
+                            "  \"ins\": xxxxx,           (numeric) The number of inputs (excluding coinbase)\n"
+                            "  \"maxfee\": xxxxx,        (numeric) Maximum fee in the block\n"
+                            "  \"maxfeerate\": xxxxx,    (numeric) Maximum feerate (in " +
+            CURRENCY_UNIT + " per KB)\n"
+                            "  \"maxtxsize\": xxxxx,     (numeric) Maximum transaction size\n"
+                            "  \"medianfee\": xxxxx,     (numeric) Truncated median fee in the block\n"
+                            "  \"mediantime\": xxxxx,    (numeric) The block median time past\n"
+                            "  \"mediantxsize\": xxxxx,  (numeric) Truncated median transaction size\n"
+                            "  \"minfee\": xxxxx,        (numeric) Minimum fee in the block\n"
+                            "  \"minfeerate\": xxxxx,    (numeric) Minimum feerate (in " +
+            CURRENCY_UNIT + " per KB)\n"
+                            "  \"mintxsize\": xxxxx,     (numeric) Minimum transaction size\n"
+                            "  \"outs\": xxxxx,          (numeric) The number of outputs\n"
+                            "  \"subsidy\": xxxxx,       (numeric) The block subsidy\n"
+                            "  \"swtotal_size\": xxxxx,  (numeric) Total size of all segwit transactions\n"
+                            "  \"swtotal_weight\": xxxxx, (numeric) Total weight of all segwit transactions\n"
+                            "  \"swtxs\": xxxxx,         (numeric) The number of segwit transactions\n"
+                            "  \"time\": xxxxx,          (numeric) The block time\n"
+                            "  \"total_out\": xxxxx,     (numeric) Total amount in all outputs (excluding coinbase and thus reward [ie subsidy + totalfee])\n"
+                            "  \"total_size\": xxxxx,    (numeric) Total size of all non-coinbase transactions\n"
+                            "  \"total_weight\": xxxxx,  (numeric) Total weight of all non-coinbase transactions\n"
+                            "  \"totalfee\": xxxxx,      (numeric) The total fee\n"
+                            "  \"txs\": xxxxx,           (numeric) The number of transactions (including coinbase)\n"
+                            "  \"utxo_increase\": xxxxx, (numeric) The increase/decrease in the number of unspent outputs\n"
+                            "  \"utxo_size_inc\": xxxxx, (numeric) The increase/decrease in size for the utxo index (not discounting op_return and similar)\n"
+                            "}\n"
+                            "\nExamples:\n" +
+            HelpExampleCli("getblockstats", "1000") + HelpExampleRpc("getblockstats", "1000") + HelpExampleCli("getblockstats", "1000 '[\"minfee\",\"avgfee\",\"maxfee\"]'") + HelpExampleRpc("getblockstats", "1000, [\"minfee\",\"avgfee\",\"maxfee\"]"));
+
+    LOCK(cs_main);
+
+    CBlockIndex* pindex;
+    if (request.params[0].isNum()) {
+        int height = request.params[0].get_int();
+        if (height < 0 || height > chainActive.Height()) {
+            throw JSONRPCError(RPC_INVALID_PARAMETER, "Block height out of range");
+        }
+        pindex = chainActive[height];
+    } else {
+        uint256 hash = uint256S(request.params[0].get_str());
+        pindex = mapBlockIndex[hash];
+        if (!pindex) {
+            throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Block not found");
+        }
+        if (!chainActive.Contains(pindex)) {
+            throw JSONRPCError(RPC_INVALID_PARAMETER, "Block is not in main chain");
+        }
+    }
+
+    CBlock block;
+    if (!ReadBlockFromDisk(block, pindex, Params().GetConsensus())) {
+        throw JSONRPCError(RPC_INTERNAL_ERROR, "Can't read block from disk");
+    }
+
+    // Calculate statistics
+    CAmount total_fee = 0;
+    CAmount total_out = 0;
+    int64_t total_size = 0;
+    int64_t total_weight = 0;
+    int64_t total_ins = 0;
+    int64_t total_outs = 0;
+    int64_t swtotal_size = 0;
+    int64_t swtotal_weight = 0;
+    int64_t swtxs = 0;
+
+    std::vector<CAmount> fees;
+    std::vector<CAmount> feerates;
+    std::vector<int64_t> tx_sizes;
+
+    // Read block undo data to get input values
+    CBlockUndo blockUndo;
+    bool hasUndoData = UndoReadFromDisk(blockUndo, pindex->GetUndoPos(), pindex->pprev->GetBlockHash());
+    if (!hasUndoData) {
+        // If we can't read undo data, we'll calculate what we can without fees
+        LogPrintf("Warning: Could not read block undo data for getblockstats\n");
+    }
+
+    // Process each transaction
+    for (size_t txIndex = 0; txIndex < block.vtx.size(); txIndex++) {
+        const auto& tx = block.vtx[txIndex];
+
+        if (tx->IsCoinBase()) {
+            // For coinbase, calculate subsidy
+            CAmount subsidy = 0;
+            for (const auto& out : tx->vout) {
+                subsidy += out.nValue;
+            }
+            total_out += subsidy;
+        } else {
+            // For non-coinbase transactions
+            CAmount fee = 0;
+            CAmount tx_in = 0;
+            CAmount tx_out = 0;
+
+            // Calculate inputs using block undo data
+            // Note: vtxundo excludes coinbase, so we need to adjust the index
+            size_t undoIndex = txIndex - 1; // Skip coinbase transaction
+            if (hasUndoData && undoIndex < blockUndo.vtxundo.size()) {
+                const auto& txundo = blockUndo.vtxundo[undoIndex];
+                for (size_t inputIndex = 0; inputIndex < tx->vin.size(); inputIndex++) {
+                    if (inputIndex < txundo.vprevout.size()) {
+                        CAmount inputValue = txundo.vprevout[inputIndex].out.nValue;
+                        tx_in += inputValue;
+                    }
+                    total_ins++;
+                }
+            } else {
+                // If undo data is not available, just count inputs
+                for (size_t i = 0; i < tx->vin.size(); i++) {
+                    total_ins++;
+                }
+            }
+
+            // Calculate outputs
+            for (const auto& output : tx->vout) {
+                tx_out += output.nValue;
+                total_outs++;
+            }
+
+            // Fee calculation: inputs - outputs
+            fee = tx_in - tx_out;
+            total_fee += fee;
+            total_out += tx_out;
+
+            // Calculate transaction size and weight
+            int64_t tx_size = ::GetSerializeSize(*tx, SER_NETWORK, PROTOCOL_VERSION);
+            int64_t tx_weight = ::GetTransactionWeight(*tx);
+            total_size += tx_size;
+            total_weight += tx_weight;
+
+            // Store for statistics (only for non-coinbase transactions)
+            fees.push_back(fee);
+            tx_sizes.push_back(tx_size);
+
+            // Calculate feerate (fee per 1000 bytes)
+            if (tx_size > 0) {
+                CAmount feerate = (fee * 1000) / tx_size;
+                feerates.push_back(feerate);
+            }
+
+            // Check for SegWit
+            if (tx->HasWitness()) {
+                swtxs++;
+                swtotal_size += tx_size;
+                swtotal_weight += tx_weight;
+            }
+        }
+    }
+
+    // Calculate derived statistics
+    CAmount avgfee = fees.empty() ? 0 : total_fee / fees.size();
+    CAmount avgfeerate = feerates.empty() ? 0 : std::accumulate(feerates.begin(), feerates.end(), CAmount(0)) / feerates.size();
+    int64_t avgtxsize = tx_sizes.empty() ? 0 : total_size / tx_sizes.size();
+
+    CAmount minfee = fees.empty() ? 0 : *std::min_element(fees.begin(), fees.end());
+    CAmount maxfee = fees.empty() ? 0 : *std::max_element(fees.begin(), fees.end());
+    CAmount minfeerate = feerates.empty() ? 0 : *std::min_element(feerates.begin(), feerates.end());
+    CAmount maxfeerate = feerates.empty() ? 0 : *std::max_element(feerates.begin(), feerates.end());
+    int64_t mintxsize = tx_sizes.empty() ? 0 : *std::min_element(tx_sizes.begin(), tx_sizes.end());
+    int64_t maxtxsize = tx_sizes.empty() ? 0 : *std::max_element(tx_sizes.begin(), tx_sizes.end());
+
+    // Calculate median values
+    CAmount medianfee = 0;
+    int64_t mediantxsize = 0;
+    if (!fees.empty()) {
+        std::sort(fees.begin(), fees.end());
+        medianfee = fees[fees.size() / 2];
+    }
+    if (!tx_sizes.empty()) {
+        std::sort(tx_sizes.begin(), tx_sizes.end());
+        mediantxsize = tx_sizes[tx_sizes.size() / 2];
+    }
+
+    // Calculate feerate percentiles
+    UniValue feerate_percentiles(UniValue::VARR);
+    if (!feerates.empty()) {
+        std::sort(feerates.begin(), feerates.end());
+        feerate_percentiles.push_back(ValueFromAmount(feerates[feerates.size() * 0.1]));
+        feerate_percentiles.push_back(ValueFromAmount(feerates[feerates.size() * 0.25]));
+        feerate_percentiles.push_back(ValueFromAmount(feerates[feerates.size() * 0.5]));
+        feerate_percentiles.push_back(ValueFromAmount(feerates[feerates.size() * 0.75]));
+        feerate_percentiles.push_back(ValueFromAmount(feerates[feerates.size() * 0.9]));
+    }
+
+    // Calculate subsidy (coinbase output)
+    CAmount subsidy = 0;
+    if (!block.vtx.empty() && block.vtx[0]->IsCoinBase()) {
+        for (const auto& out : block.vtx[0]->vout) {
+            subsidy += out.nValue;
+        }
+    }
+
+    // Calculate dev/founder fee
+    CAmount devfee = 0;
+    if (AreAssetsDeployed()) {
+        devfee = Params().GetConsensus().nFounderPayment.getFounderPaymentAmount(pindex->nHeight, subsidy);
+    }
+
+    // Build statistics object
+    UniValue stats(UniValue::VOBJ);
+    stats.push_back(Pair("avgfee", ValueFromAmount(avgfee)));
+    stats.push_back(Pair("avgfeerate", ValueFromAmount(avgfeerate)));
+    stats.push_back(Pair("avgtxsize", avgtxsize));
+    stats.push_back(Pair("blockhash", pindex->GetBlockHash().GetHex()));
+    stats.push_back(Pair("devfee", ValueFromAmount(devfee)));
+    stats.push_back(Pair("feerate_percentiles", feerate_percentiles));
+    stats.push_back(Pair("height", (int64_t)pindex->nHeight));
+    stats.push_back(Pair("ins", total_ins));
+    stats.push_back(Pair("maxfee", ValueFromAmount(maxfee)));
+    stats.push_back(Pair("maxfeerate", ValueFromAmount(maxfeerate)));
+    stats.push_back(Pair("maxtxsize", maxtxsize));
+    stats.push_back(Pair("medianfee", ValueFromAmount(medianfee)));
+    stats.push_back(Pair("mediantime", (int64_t)pindex->GetMedianTimePast()));
+    stats.push_back(Pair("mediantxsize", mediantxsize));
+    stats.push_back(Pair("minfee", ValueFromAmount(minfee)));
+    stats.push_back(Pair("minfeerate", ValueFromAmount(minfeerate)));
+    stats.push_back(Pair("mintxsize", mintxsize));
+    stats.push_back(Pair("outs", total_outs));
+    stats.push_back(Pair("subsidy", ValueFromAmount(subsidy)));
+    stats.push_back(Pair("swtotal_size", swtotal_size));
+    stats.push_back(Pair("swtotal_weight", swtotal_weight));
+    stats.push_back(Pair("swtxs", swtxs));
+    stats.push_back(Pair("time", (int64_t)block.GetBlockTime()));
+    stats.push_back(Pair("total_out", ValueFromAmount(total_out)));
+    stats.push_back(Pair("total_size", total_size));
+    stats.push_back(Pair("total_weight", total_weight));
+    stats.push_back(Pair("totalfee", ValueFromAmount(total_fee)));
+    stats.push_back(Pair("txs", (int64_t)block.vtx.size()));
+    stats.push_back(Pair("utxo_increase", total_outs - total_ins));
+    stats.push_back(Pair("utxo_size_inc", total_size));
+
+    // If specific stats are requested, filter the result
+    if (request.params.size() > 1) {
+        UniValue requested_stats = request.params[1];
+        if (!requested_stats.isArray()) {
+            throw JSONRPCError(RPC_INVALID_PARAMETER, "Stats parameter must be an array");
+        }
+
+        UniValue filtered_stats(UniValue::VOBJ);
+        for (const UniValue& stat : requested_stats.getValues()) {
+            if (!stat.isStr()) {
+                throw JSONRPCError(RPC_INVALID_PARAMETER, "Stat name must be a string");
+            }
+            std::string stat_name = stat.get_str();
+            if (stats.exists(stat_name)) {
+                filtered_stats.push_back(Pair(stat_name, stats[stat_name]));
+            } else {
+                throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid selected statistic " + stat_name);
+            }
+        }
+        return filtered_stats;
+    }
+
+    return stats;
 }
 
 UniValue getblockcount(const JSONRPCRequest& request)
@@ -1808,6 +2121,7 @@ static const CRPCCommand commands[] =
         {"blockchain", "gettxoutsetinfo", &gettxoutsetinfo, {}},
         {"blockchain", "pruneblockchain", &pruneblockchain, {"height"}},
         {"blockchain", "savemempool", &savemempool, {}},
+        {"blockchain", "getblockstats", &getblockstats, {"blockhash"}},
         {"blockchain", "verifychain", &verifychain, {"checklevel", "nblocks"}},
 
         {"blockchain", "preciousblock", &preciousblock, {"blockhash"}},
