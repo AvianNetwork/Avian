@@ -39,6 +39,7 @@
 #include <QTimer>
 #include <QUrl>
 
+#include <QtConcurrent/QtConcurrentRun>
 #include <QtNetwork/QNetworkAccessManager>
 #include <QtNetwork/QNetworkReply>
 
@@ -744,13 +745,19 @@ void OverviewPage::openDataForAsset(const QModelIndex& index, bool forceANS)
 
 void OverviewPage::getPriceInfo()
 {
-    QString url = "https://api.coingecko.com/api/v3/coins/avian-network/";
+    // Run network request in a background thread to prevent UI blocking
+    QtConcurrent::run([this]() {
+        // Execute on main thread to use QNetworkAccessManager
+        QMetaObject::invokeMethod(this, [this]() {
+            QString url = "https://api.coingecko.com/api/v3/coins/avian-network/";
 
-    QNetworkRequest request;
-    QSslConfiguration sslConfiguration;
-    sslConfiguration.setProtocol(QSsl::TlsV1_2OrLater);
-    sslConfiguration.setPeerVerifyMode(QSslSocket::QueryPeer);
-    request.setSslConfiguration(sslConfiguration);
-    request.setUrl(QUrl(url));
-    networkManager->get(request);
+            QNetworkRequest request;
+            QSslConfiguration sslConfiguration;
+            sslConfiguration.setProtocol(QSsl::TlsV1_2OrLater);
+            sslConfiguration.setPeerVerifyMode(QSslSocket::QueryPeer);
+            request.setSslConfiguration(sslConfiguration);
+            request.setUrl(QUrl(url));
+            
+            networkManager->get(request); }, Qt::QueuedConnection);
+    });
 }

@@ -65,11 +65,13 @@
 #include <QStackedWidget>
 #include <QStatusBar>
 #include <QStyle>
+#include <QThread>
 #include <QTimer>
 #include <QToolBar>
 #include <QToolButton>
 #include <QVBoxLayout>
 #include <QWidgetAction>
+#include <QtConcurrent/QtConcurrentRun>
 #include <QtNetwork/QNetworkAccessManager>
 #include <QtNetwork/QNetworkReply>
 
@@ -1817,15 +1819,21 @@ void AvianGUI::performDeferredInitialization()
 
 void AvianGUI::getPriceInfo()
 {
-    QString url = "https://api.coingecko.com/api/v3/simple/price?ids=avian-network&vs_currencies=usd";
+    // Run network request in a background thread to prevent UI blocking
+    QtConcurrent::run([this]() {
+        QString url = "https://api.coingecko.com/api/v3/simple/price?ids=avian-network&vs_currencies=usd";
 
-    QNetworkRequest request;
-    QSslConfiguration sslConfiguration;
-    sslConfiguration.setProtocol(QSsl::TlsV1_2OrLater);
-    sslConfiguration.setPeerVerifyMode(QSslSocket::QueryPeer);
-    request.setSslConfiguration(sslConfiguration);
-    request.setUrl(QUrl(url));
-    networkManager->get(request);
+        // Create request on background thread, but execute on main thread
+        QMetaObject::invokeMethod(this, [this, url]() {
+            QNetworkRequest request;
+            QSslConfiguration sslConfiguration;
+            sslConfiguration.setProtocol(QSsl::TlsV1_2OrLater);
+            sslConfiguration.setPeerVerifyMode(QSslSocket::QueryPeer);
+            request.setSslConfiguration(sslConfiguration);
+            request.setUrl(QUrl(url));
+            
+            networkManager->get(request); }, Qt::QueuedConnection);
+    });
 }
 
 void AvianGUI::mnemonic()
@@ -1836,11 +1844,17 @@ void AvianGUI::mnemonic()
 
 void AvianGUI::getLatestVersion()
 {
-    QNetworkRequest request;
-    QSslConfiguration sslConfiguration;
-    sslConfiguration.setProtocol(QSsl::TlsV1_2OrLater);
-    sslConfiguration.setPeerVerifyMode(QSslSocket::QueryPeer);
-    request.setSslConfiguration(sslConfiguration);
-    request.setUrl(QUrl("https://api.github.com/repos/aviannetwork/avian/releases"));
-    networkVersionManager->get(request);
+    // Run network request in a background thread to prevent UI blocking
+    QtConcurrent::run([this]() {
+        // Execute on main thread to use QNetworkAccessManager
+        QMetaObject::invokeMethod(this, [this]() {
+            QNetworkRequest request;
+            QSslConfiguration sslConfiguration;
+            sslConfiguration.setProtocol(QSsl::TlsV1_2OrLater);
+            sslConfiguration.setPeerVerifyMode(QSslSocket::QueryPeer);
+            request.setSslConfiguration(sslConfiguration);
+            request.setUrl(QUrl("https://api.github.com/repos/aviannetwork/avian/releases"));
+            
+            networkVersionManager->get(request); }, Qt::QueuedConnection);
+    });
 }

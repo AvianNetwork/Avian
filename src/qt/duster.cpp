@@ -36,6 +36,7 @@
 #include <QTextStream>
 #include <QThread>
 #include <QUrl>
+#include <QtConcurrent/QtConcurrentRun>
 #include <boost/filesystem.hpp>
 #include <string>
 
@@ -293,255 +294,244 @@ void DusterDialog::compactBlocks()
         return;
     }
 
-    // Create a simple progress dialog
-    QProgressDialog progressDialog(tr("Consolidating UTXOs..."), tr("Cancel"), 0, 100, this);
-    progressDialog.setWindowModality(Qt::WindowModal);
-    progressDialog.setValue(0);
-    progressDialog.show();
+    // Create a shared progress dialog that can be accessed from background thread
+    QProgressDialog* progressDialog = new QProgressDialog(tr("Consolidating UTXOs..."), tr("Cancel"), 0, 100, this);
+    progressDialog->setWindowModality(Qt::WindowModal);
+    progressDialog->setValue(0);
+    progressDialog->show();
 
-    // Process UTXOs in batches without manipulating the table during processing
-    int batchCount = 0;
-    int totalProcessed = 0;
+    // Run consolidation in background thread to keep UI responsive
+    QtConcurrent::run([this, progressDialog]() {
+        // Process UTXOs in batches without manipulating the table during processing
+        int batchCount = 0;
+        int totalProcessed = 0;
+        QString finalMessage;
 
-    while (true) {
-        // Check if user cancelled
-        if (progressDialog.wasCanceled()) {
-            QMessageBox::information(this, tr("UTXO Consolidation"),
-                tr("Consolidation was cancelled after processing %1 batches.").arg(batchCount),
-                QMessageBox::Ok, QMessageBox::Ok);
-            updateBlockList();
-            return;
-        }
+        while (true) {
+            // Check if user cancelled
+            if (progressDialog->wasCanceled()) {
+                finalMessage = tr("Consolidation was cancelled after processing %1 batches.").arg(batchCount);
+                break;
+            }
 
-        // Check if we've reached the maximum batch limit
-        int maxBatches = ui->maxBatches->value();
-        if (maxBatches > 0 && batchCount >= maxBatches) {
-            QMessageBox::information(this, tr("UTXO Consolidation"),
-                tr("Reached maximum batch limit of %1. Processed %2 batches.").arg(maxBatches).arg(batchCount),
-                QMessageBox::Ok, QMessageBox::Ok);
-            updateBlockList();
-            return;
-        }
+            // Check if we've reached the maximum batch limit
+            int maxBatches = ui->maxBatches->value();
+            if (maxBatches > 0 && batchCount >= maxBatches) {
+                finalMessage = tr("Reached maximum batch limit of %1. Processed %2 batches.").arg(maxBatches).arg(batchCount);
+                break;
+            }
 
-        // Safety check: ensure model is still valid
-        if (!model || !model->getWallet()) {
-            progressDialog.close();
-            QMessageBox::warning(this, tr("UTXO Consolidation"),
-                tr("Wallet model became unavailable during consolidation."),
-                QMessageBox::Ok, QMessageBox::Ok);
-            return;
-        }
+            // Safety check: ensure model is still valid
+            if (!model || !model->getWallet()) {
+                finalMessage = tr("Wallet model became unavailable during consolidation.");
+                break;
+            }
 
-        // Get fresh UTXO list from model (safer than using table)
-        std::map<QString, std::vector<COutput>> mapCoins;
-        model->listCoins(mapCoins);
+            // Get fresh UTXO list from model (safer than using table)
+            std::map<QString, std::vector<COutput>> mapCoins;
+            model->listCoins(mapCoins);
 
-        // Count total UTXOs
-        int totalUTXOs = 0;
-        for (const auto& coins : mapCoins) {
-            totalUTXOs += coins.second.size();
-        }
+            // Count total UTXOs
+            int totalUTXOs = 0;
+            for (const auto& coins : mapCoins) {
+                totalUTXOs += coins.second.size();
+            }
 
-        // Check if we're done
-        if (totalUTXOs <= minimumBlockAmount) {
-            break;
-        }
+            // Check if we're done
+            if (totalUTXOs <= minimumBlockAmount) {
+                break;
+            }
 
-        // Update progress
-        int estimatedBatches = qMax(1, (totalUTXOs + blockDivisor - 1) / blockDivisor); // Round up division
-        int progress = qMin(99, (batchCount * 100) / estimatedBatches);
-        progressDialog.setValue(progress);
-        progressDialog.setLabelText(tr("Processing batch %1... (%2 UTXOs remaining)").arg(batchCount + 1).arg(totalUTXOs));
-        QApplication::processEvents();
+            // Update progress
+            int estimatedBatches = qMax(1, (totalUTXOs + blockDivisor - 1) / blockDivisor); // Round up division
+            int progress = qMin(99, (batchCount * 100) / estimatedBatches);
+            progressDialog->setValue(progress);
+            progressDialog->setLabelText(tr("Processing batch %1... (%2 UTXOs remaining)").arg(batchCount + 1).arg(totalUTXOs));
+            QApplication::processEvents();
 
-        // Collect UTXOs for this batch
-        coinControl->SetNull();
+            // Collect UTXOs for this batch
+            coinControl->SetNull();
 
-        CFeeRate minFeeRate(1000); // 1000 satoshis per kilobyte = 1 sat/byte
-        coinControl->m_feerate = minFeeRate;
-        coinControl->fOverrideFeeRate = true;
+            CFeeRate minFeeRate(1000); // 1000 satoshis per kilobyte = 1 sat/byte
+            coinControl->m_feerate = minFeeRate;
+            coinControl->fOverrideFeeRate = true;
 
-        QList<SendCoinsRecipient> recipients;
-        qint64 selectionSum = 0;
-        int utxosInBatch = 0;
+            QList<SendCoinsRecipient> recipients;
+            qint64 selectionSum = 0;
+            int utxosInBatch = 0;
 
-        // Collect UTXOs from the coin map
-        for (const auto& coins : mapCoins) {
-            for (const COutput& out : coins.second) {
+            // Collect UTXOs from the coin map
+            for (const auto& coins : mapCoins) {
+                for (const COutput& out : coins.second) {
+                    if (utxosInBatch >= ui->maxUtxosPerBatch->value()) {
+                        break;
+                    }
+
+                    if (!out.tx || out.i >= out.tx->tx->vout.size()) {
+                        continue;
+                    }
+
+                    CAmount utxoValue = out.tx->tx->vout[out.i].nValue;
+                    CAmount minAmount = ui->minInputAmount->value();
+                    CAmount maxAmount = ui->maxInputAmount->value();
+
+                    if (utxoValue < minAmount || utxoValue > maxAmount) {
+                        continue;
+                    }
+
+                    // Stop when we reach max batch amount from UI
+                    CAmount maxBatchAmount = ui->maxBatchAmount->value();
+                    if (selectionSum + utxoValue > maxBatchAmount) {
+                        break;
+                    }
+                    COutPoint outpt(out.tx->GetHash(), out.i);
+                    coinControl->Select(outpt);
+                    selectionSum += utxoValue;
+                    utxosInBatch++;
+                }
                 if (utxosInBatch >= ui->maxUtxosPerBatch->value()) {
                     break;
                 }
+            }
 
-                if (!out.tx || out.i >= out.tx->tx->vout.size()) {
-                    continue;
+            CAmount minBatchAmount = ui->minInputAmount->value();
+            if (utxosInBatch < 3 || selectionSum <= minBatchAmount) {
+                break;
+            }
+
+            // Check against user-configured maximum batch amount
+            CAmount maxBatchAmount = ui->maxBatchAmount->value();
+            if (selectionSum > maxBatchAmount) {
+                break;
+            }
+
+            // Create the consolidation transaction
+            SendCoinsRecipient rcp;
+            rcp.amount = selectionSum;
+            rcp.fSubtractFeeFromAmount = true;
+            rcp.address = ui->dustAddress->text();
+
+            // Preserve existing label or create new one
+            QString existingLabel = model->getAddressTableModel()->labelForAddress(rcp.address);
+            if (existingLabel.isEmpty()) {
+                rcp.label = "[CONSOLIDATION]";
+            } else {
+                rcp.label = existingLabel;
+            }
+
+            if (selectionSum <= 100000LL) {
+                continue;
+            }
+
+            // Validate address format
+            if (rcp.address.isEmpty()) {
+                finalMessage = tr("Destination address is empty.");
+                break;
+            }
+
+            recipients.append(rcp);
+
+            // Send the transaction
+            WalletModelTransaction* tx = nullptr;
+            WalletModel::SendCoinsReturn sendstatus;
+            try {
+                tx = new WalletModelTransaction(recipients);
+
+                // Prepare transaction with coin control
+                WalletModel::SendCoinsReturn prepareStatus = model->prepareTransaction(*tx, *coinControl);
+                if (prepareStatus.status != WalletModel::OK) {
+                    sendstatus = prepareStatus;
+                } else {
+                    sendstatus = model->sendCoins(*tx);
                 }
-
-                CAmount utxoValue = out.tx->tx->vout[out.i].nValue;
-                CAmount minAmount = ui->minInputAmount->value();
-                CAmount maxAmount = ui->maxInputAmount->value();
-
-                if (utxoValue < minAmount || utxoValue > maxAmount) {
-                    continue;
+            } catch (const std::exception& e) {
+                if (tx) {
+                    delete tx;
                 }
+                finalMessage = tr("Exception occurred during transaction creation: %1").arg(e.what());
+                break;
+            } catch (...) {
+                if (tx) {
+                    delete tx;
+                }
+                finalMessage = tr("Unknown exception occurred during transaction creation.");
+                break;
+            }
 
-                // Stop when we reach max batch amount from UI
-                CAmount maxBatchAmount = ui->maxBatchAmount->value();
-                if (selectionSum + utxoValue > maxBatchAmount) {
+            if (tx) {
+                delete tx;
+            }
+
+            // Check result
+            if (sendstatus.status != WalletModel::OK) {
+                QString errorMsg = tr("Transaction failed: ");
+                QString debugInfo = tr("\nBatch: %1, UTXOs: %2, Amount: %3")
+                                        .arg(batchCount + 1)
+                                        .arg(utxosInBatch)
+                                        .arg(selectionSum);
+
+                switch (sendstatus.status) {
+                case WalletModel::InvalidAddress:
+                    errorMsg += tr("Invalid address");
+                    break;
+                case WalletModel::InvalidAmount:
+                    errorMsg += tr("Invalid amount");
+                    break;
+                case WalletModel::AmountExceedsBalance:
+                    errorMsg += tr("Amount exceeds balance");
+                    break;
+                case WalletModel::AmountWithFeeExceedsBalance:
+                    errorMsg += tr("Amount with fee exceeds balance");
+                    break;
+                case WalletModel::DuplicateAddress:
+                    errorMsg += tr("Duplicate address");
+                    break;
+                case WalletModel::TransactionCreationFailed:
+                    errorMsg += tr("Transaction creation failed (wallet may be locked)");
+                    break;
+                case WalletModel::TransactionCommitFailed:
+                    errorMsg += tr("Transaction commit failed");
+                    break;
+                case WalletModel::AbsurdFee:
+                    errorMsg += tr("Absurd fee");
+                    break;
+                case WalletModel::PaymentRequestExpired:
+                    errorMsg += tr("Payment request expired");
+                    break;
+                default:
+                    errorMsg += tr("Unknown error (code: %1)").arg((int)sendstatus.status);
                     break;
                 }
-                COutPoint outpt(out.tx->GetHash(), out.i);
-                coinControl->Select(outpt);
-                selectionSum += utxoValue;
-                utxosInBatch++;
-            }
-            if (utxosInBatch >= ui->maxUtxosPerBatch->value()) {
+
                 break;
             }
+
+            batchCount++;
+            totalProcessed += utxosInBatch;
+
+            // Small delay to prevent overwhelming the system
+            QThread::msleep(100);
         }
 
-        CAmount minBatchAmount = ui->minInputAmount->value();
-        if (utxosInBatch < 3 || selectionSum <= minBatchAmount) {
-            break;
-        }
+        // Close progress dialog and show result from UI thread via signal dispatch
+        progressDialog->close();
+        progressDialog->deleteLater();
 
-        // Check against user-configured maximum batch amount
-        CAmount maxBatchAmount = ui->maxBatchAmount->value();
-        if (selectionSum > maxBatchAmount) {
-            break;
-        }
-
-        // Create the consolidation transaction
-        SendCoinsRecipient rcp;
-        rcp.amount = selectionSum;
-        rcp.fSubtractFeeFromAmount = true;
-        rcp.address = ui->dustAddress->text();
-
-        // Preserve existing label or create new one
-        QString existingLabel = model->getAddressTableModel()->labelForAddress(rcp.address);
-        if (existingLabel.isEmpty()) {
-            rcp.label = "[CONSOLIDATION]";
+        if (finalMessage.isEmpty()) {
+            // Success case
+            QMetaObject::invokeMethod(this, [this, batchCount, totalProcessed]() {
+                QMessageBox::information(this, tr("UTXO Consolidation"),
+                    tr("Consolidation completed! Processed %1 batches with %2 total UTXOs.").arg(batchCount).arg(totalProcessed),
+                    QMessageBox::Ok, QMessageBox::Ok);
+                updateBlockList(); }, Qt::QueuedConnection);
         } else {
-            rcp.label = existingLabel;
+            // Error/cancelled case
+            QMetaObject::invokeMethod(this, [this, finalMessage]() {
+                QMessageBox::warning(this, tr("UTXO Consolidation"), finalMessage,
+                    QMessageBox::Ok, QMessageBox::Ok);
+                updateBlockList(); }, Qt::QueuedConnection);
         }
-
-        if (selectionSum <= 100000LL) {
-            continue;
-        }
-
-        // Validate address format
-        if (rcp.address.isEmpty()) {
-            progressDialog.close();
-            QMessageBox::warning(this, tr("UTXO Consolidation"),
-                tr("Destination address is empty."),
-                QMessageBox::Ok, QMessageBox::Ok);
-            return;
-        }
-
-        recipients.append(rcp);
-
-        // Send the transaction
-        WalletModelTransaction* tx = nullptr;
-        WalletModel::SendCoinsReturn sendstatus;
-        try {
-            tx = new WalletModelTransaction(recipients);
-
-            // Prepare transaction with coin control
-            WalletModel::SendCoinsReturn prepareStatus = model->prepareTransaction(*tx, *coinControl);
-            if (prepareStatus.status != WalletModel::OK) {
-                sendstatus = prepareStatus;
-            } else {
-                sendstatus = model->sendCoins(*tx);
-            }
-        } catch (const std::exception& e) {
-            if (tx) {
-                delete tx;
-            }
-            progressDialog.close();
-            QMessageBox::critical(this, tr("UTXO Consolidation"),
-                tr("Exception occurred during transaction creation: %1").arg(e.what()),
-                QMessageBox::Ok, QMessageBox::Ok);
-            return;
-        } catch (...) {
-            if (tx) {
-                delete tx;
-            }
-            progressDialog.close();
-            QMessageBox::critical(this, tr("UTXO Consolidation"),
-                tr("Unknown exception occurred during transaction creation."),
-                QMessageBox::Ok, QMessageBox::Ok);
-            return;
-        }
-
-        if (tx) {
-            delete tx;
-        }
-
-        // Check result
-        if (sendstatus.status != WalletModel::OK) {
-            progressDialog.close();
-            QString errorMsg = tr("Transaction failed: ");
-            QString debugInfo = tr("\nBatch: %1, UTXOs: %2, Amount: %3")
-                                    .arg(batchCount + 1)
-                                    .arg(utxosInBatch)
-                                    .arg(selectionSum);
-
-            switch (sendstatus.status) {
-            case WalletModel::InvalidAddress:
-                errorMsg += tr("Invalid address");
-                break;
-            case WalletModel::InvalidAmount:
-                errorMsg += tr("Invalid amount");
-                break;
-            case WalletModel::AmountExceedsBalance:
-                errorMsg += tr("Amount exceeds balance");
-                break;
-            case WalletModel::AmountWithFeeExceedsBalance:
-                errorMsg += tr("Amount with fee exceeds balance");
-                break;
-            case WalletModel::DuplicateAddress:
-                errorMsg += tr("Duplicate address");
-                break;
-            case WalletModel::TransactionCreationFailed:
-                errorMsg += tr("Transaction creation failed (wallet may be locked)");
-                break;
-            case WalletModel::TransactionCommitFailed:
-                errorMsg += tr("Transaction commit failed");
-                break;
-            case WalletModel::AbsurdFee:
-                errorMsg += tr("Absurd fee");
-                break;
-            case WalletModel::PaymentRequestExpired:
-                errorMsg += tr("Payment request expired");
-                break;
-            default:
-                errorMsg += tr("Unknown error (code: %1)").arg((int)sendstatus.status);
-                break;
-            }
-
-            QMessageBox::warning(this, tr("UTXO Consolidation"),
-                errorMsg + debugInfo,
-                QMessageBox::Ok, QMessageBox::Ok);
-            updateBlockList();
-            return;
-        }
-
-        batchCount++;
-        totalProcessed += utxosInBatch;
-
-        // Small delay to prevent overwhelming the system
-        QThread::msleep(100);
-    }
-
-    // Consolidation completed
-    progressDialog.setValue(100);
-    progressDialog.close();
-
-    QMessageBox::information(this, tr("UTXO Consolidation"),
-        tr("Consolidation completed! Processed %1 batches with %2 total UTXOs.").arg(batchCount).arg(totalProcessed),
-        QMessageBox::Ok, QMessageBox::Ok);
-
-    // Refresh the display
-    updateBlockList();
+    });
 }
 
 QString DusterDialog::strPad(QString s, int nPadLength, QString sPadding)
