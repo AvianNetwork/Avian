@@ -203,6 +203,7 @@ AVIAN_CORE_H = \
   policy/rbf.h \
   pow.h \
   protocol.h \
+  psbt.h \
   random.h \
   reverse_iterator.h \
   reverselock.h \
@@ -211,6 +212,7 @@ AVIAN_CORE_H = \
   rpc/client.h \
   rpc/mining.h \
   rpc/protocol.h \
+  rpc/psbt.h \
   rpc/safemode.h \
   rpc/server.h \
   rpc/register.h \
@@ -335,6 +337,7 @@ libavian_server_a_SOURCES = \
   policy/policy.cpp \
   policy/rbf.cpp \
   pow.cpp \
+  psbt.cpp \
   rest.cpp \
   rpc/flightplans.cpp \
   rpc/assets.cpp \
@@ -343,6 +346,7 @@ libavian_server_a_SOURCES = \
   rpc/mining.cpp \
   rpc/misc.cpp \
   rpc/net.cpp \
+  rpc/psbt.cpp \
   rpc/rawtransaction.cpp \
   rpc/rewards.cpp \
   rpc/safemode.cpp \
