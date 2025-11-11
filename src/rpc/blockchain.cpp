@@ -313,6 +313,7 @@ UniValue getblockstats(const JSONRPCRequest& request)
             "      \"ins\",             (string) Selected statistic name\n"
             "      \"outs\",            (string) Selected statistic name\n"
             "      \"subsidy\",         (string) Selected statistic name\n"
+            "      \"powtype\",         (string) Selected statistic name\n"
             "      \"total_out\"        (string) Selected statistic name\n"
             "    ]\n"
             "\nResult:\n"
@@ -402,10 +403,13 @@ UniValue getblockstats(const JSONRPCRequest& request)
 
     // Read block undo data to get input values
     CBlockUndo blockUndo;
-    bool hasUndoData = UndoReadFromDisk(blockUndo, pindex->GetUndoPos(), pindex->pprev->GetBlockHash());
-    if (!hasUndoData) {
-        // If we can't read undo data, we'll calculate what we can without fees
-        LogPrintf("Warning: Could not read block undo data for getblockstats\n");
+    bool hasUndoData = false;
+    if (pindex->pprev) {
+        hasUndoData = UndoReadFromDisk(blockUndo, pindex->GetUndoPos(), pindex->pprev->GetBlockHash());
+        if (!hasUndoData) {
+            // If we can't read undo data, we'll calculate what we can without fees
+            LogPrintf("Warning: Could not read block undo data for getblockstats\n");
+        }
     }
 
     // Process each transaction
@@ -535,6 +539,7 @@ UniValue getblockstats(const JSONRPCRequest& request)
     stats.push_back(Pair("avgfeerate", ValueFromAmount(avgfeerate)));
     stats.push_back(Pair("avgtxsize", avgtxsize));
     stats.push_back(Pair("blockhash", pindex->GetBlockHash().GetHex()));
+    stats.push_back(Pair("powtype", pindex->GetBlockHeader().GetPoWTypeName()));
     stats.push_back(Pair("devfee", ValueFromAmount(devfee)));
     stats.push_back(Pair("feerate_percentiles", feerate_percentiles));
     stats.push_back(Pair("height", (int64_t)pindex->nHeight));
