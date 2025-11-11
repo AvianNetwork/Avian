@@ -3,6 +3,7 @@
 OS=${1}
 GITHUB_WORKSPACE=${2}
 GITHUB_BASE_REF=${3}
+GITHUB_REF=${4}
 
 echo "----------------------------------------"
 env
@@ -10,7 +11,7 @@ echo "----------------------------------------"
 
 if [[ ! ${OS} || ! ${GITHUB_WORKSPACE} || ! ${GITHUB_BASE_REF} ]]; then
     echo "Error: Invalid options"
-    echo "Usage: ${0} <operating system> <github workspace path> <github base ref>"
+    echo "Usage: ${0} <operating system> <github workspace path> <github base ref> <github ref>"
     exit 1
 fi
 
@@ -20,6 +21,16 @@ VERSION="${PKGVERSION}"
 SHORTHASH=`git rev-parse --short HEAD`
 RELEASE_LOCATION="${GITHUB_WORKSPACE}/release"
 STAGE_DIR="${GITHUB_WORKSPACE}/stage"
+
+# Determine release name from git tag if available
+RELEASE_NAME="${VERSION}"
+if [[ ${GITHUB_REF} =~ ^refs/tags/v ]]; then
+    RELEASE_NAME=${GITHUB_REF#refs/tags/}
+elif [[ ${GITHUB_BASE_REF} =~ "release" ]]; then
+    RELEASE_NAME="${VERSION}"
+else
+    RELEASE_NAME="${VERSION}-${SHORTHASH}"
+fi
 
 echo "----------------------------------------"
 echo "RELEASE_LOCATION: ${RELEASE_LOCATION}"
@@ -31,13 +42,11 @@ fi
 
 echo "----------------------------------------"
 echo "GITHUB_BASE_REF: ${GITHUB_BASE_REF}"
+echo "GITHUB_REF: ${GITHUB_REF}"
+echo "RELEASE_NAME: ${RELEASE_NAME}"
 echo "----------------------------------------"
 
-if [[ ${GITHUB_BASE_REF} =~ "release" ]]; then
-    DISTNAME="avian-${VERSION}"
-else
-    DISTNAME="avian-${VERSION}-${SHORTHASH}"
-fi
+DISTNAME="avian-${RELEASE_NAME}"
 
 echo "----------------------------------------"
 echo "DISTNAME: ${DISTNAME}"
@@ -68,19 +77,19 @@ if [[ ${OS} == "windows" ]]; then
 
     if [[ -e ${RELEASE_LOCATION} ]]; then
         find ./${DISTNAME} -not -name "*.dbg"  -type f | sort | zip -X@ ./${DISTNAME}-x86_64-w64-mingw32.zip
-        mv ./${DISTNAME}-x86_64-*.zip ${RELEASE_LOCATION}/${DISTNAME}-win64.zip
+        mv ./${DISTNAME}-x86_64-*.zip ${RELEASE_LOCATION}/avian-${RELEASE_NAME}-win64.zip
         cp -rf ${GITHUB_WORKSPACE}/contrib/windeploy ${RELEASE_LOCATION}
         cd ${RELEASE_LOCATION}/windeploy
         mkdir unsigned
-        mv ${GITHUB_WORKSPACE}/${DISTNAME}-win64-setup-unsigned.exe ${RELEASE_LOCATION}
-        find . | sort | tar --no-recursion --mode='u+rw,go+r-w,a+X' --owner=0 --group=0 -c -T - | gzip -9n > ${RELEASE_LOCATION}/${DISTNAME}-win64-unsigned.tar.gz
+        mv ${GITHUB_WORKSPACE}/${DISTNAME}-win64-setup-unsigned.exe ${RELEASE_LOCATION}/avian-${RELEASE_NAME}-win64-setup-unsigned.exe
+        find . | sort | tar --no-recursion --mode='u+rw,go+r-w,a+X' --owner=0 --group=0 -c -T - | gzip -9n > ${RELEASE_LOCATION}/avian-${RELEASE_NAME}-win64-unsigned.tar.gz
     else
         echo "${RELEASE_LOCATION} doesn't exist"
         exit 1
     fi
 
     cd ${RELEASE_LOCATION}/
-    for i in ${DISTNAME}-win64.zip ${DISTNAME}-win64-setup.exe ${DISTNAME}-win64-setup-unsigned.exe; do
+    for i in avian-${RELEASE_NAME}-win64.zip avian-${RELEASE_NAME}-win64-setup-unsigned.exe; do
         if [[ -e ${i} ]]; then
             md5sum ${i} >> ${i}.md5sum
             sha256sum ${i} >> ${i}.sha256sum
@@ -117,13 +126,13 @@ elif [[ ${OS} == "osx" ]]; then
         mv dist unsigned-app-${DISTNAME}
         cd unsigned-app-${DISTNAME}
 
-        find . | sort | tar --no-recursion --mode='u+rw,go+r-w,a+X' --owner=0 --group=0 -c -T - | gzip -9n > ${RELEASE_LOCATION}/${DISTNAME}-osx-unsigned.tar.gz
+        find . | sort | tar --no-recursion --mode='u+rw,go+r-w,a+X' --owner=0 --group=0 -c -T - | gzip -9n > ${RELEASE_LOCATION}/avian-${RELEASE_NAME}-macos-unsigned.tar.gz
 
         cd ${GITHUB_WORKSPACE}
 
         make deploy
 
-        ${GITHUB_WORKSPACE}/depends/x86_64-apple-darwin14/native/bin/dmg dmg "Avian-Core.dmg" ${RELEASE_LOCATION}/${DISTNAME}-osx-unsigned.dmg
+        ${GITHUB_WORKSPACE}/depends/x86_64-apple-darwin14/native/bin/dmg dmg "Avian-Core.dmg" ${RELEASE_LOCATION}/avian-${RELEASE_NAME}-macos-unsigned.dmg
     else
         echo "Warning: Qt GUI build failed (likely due to cross-compilation). Building CLI-only package."
     fi
@@ -133,13 +142,13 @@ elif [[ ${OS} == "osx" ]]; then
     find . -name "lib*.a" -delete
     rm -rf ${DISTNAME}/lib/pkgconfig
 
-    find ${DISTNAME} | sort | tar --no-recursion --mode='u+rw,go+r-w,a+X' --owner=0 --group=0 -c -T - | gzip -9n > ${RELEASE_LOCATION}/${DISTNAME}-osx64.tar.gz
+    find ${DISTNAME} | sort | tar --no-recursion --mode='u+rw,go+r-w,a+X' --owner=0 --group=0 -c -T - | gzip -9n > ${RELEASE_LOCATION}/avian-${RELEASE_NAME}-macos-x86_64.tar.gz
 
     cd ${GITHUB_WORKSPACE}
 
     if [[ -e ${RELEASE_LOCATION} ]]; then
         cd ${RELEASE_LOCATION}
-        for i in ${DISTNAME}-osx-unsigned.tar.gz ${DISTNAME}-osx64.tar.gz ${DISTNAME}-osx-unsigned.dmg; do
+        for i in avian-${RELEASE_NAME}-macos-unsigned.tar.gz avian-${RELEASE_NAME}-macos-x86_64.tar.gz avian-${RELEASE_NAME}-macos-unsigned.dmg; do
             md5sum "${i}" >> ${i}.md5sum
             sha256sum "${i}" >> ${i}.sha256sum
         done
@@ -168,13 +177,13 @@ elif [[ ${OS} == "linux" || ${OS} == "linux-disable-wallet" ]]; then
 
     if [[ -e ${RELEASE_LOCATION} ]]; then
         cd ${STAGE_DIR}
-        find ${DISTNAME}/ -not -name "*.dbg" | sort | tar --no-recursion --mode='u+rw,go+r-w,a+X' --owner=0 --group=0 -c -T - | gzip -9n > ${RELEASE_LOCATION}/${DISTNAME}-x86_64-linux-gnu.tar.gz
-        if [[ -e ${RELEASE_LOCATION}/${DISTNAME}-x86_64-linux-gnu.tar.gz ]]; then
+        find ${DISTNAME}/ -not -name "*.dbg" | sort | tar --no-recursion --mode='u+rw,go+r-w,a+X' --owner=0 --group=0 -c -T - | gzip -9n > ${RELEASE_LOCATION}/avian-${RELEASE_NAME}-linux-x86_64.tar.gz
+        if [[ -e ${RELEASE_LOCATION}/avian-${RELEASE_NAME}-linux-x86_64.tar.gz ]]; then
             cd ${RELEASE_LOCATION}
-            md5sum ${DISTNAME}-x86_64-linux-gnu.tar.gz >> ${DISTNAME}-x86_64-linux-gnu.tar.gz.md5sum
-            sha256sum ${DISTNAME}-x86_64-linux-gnu.tar.gz >> ${DISTNAME}-x86_64-linux-gnu.tar.gz.sha256sum
+            md5sum avian-${RELEASE_NAME}-linux-x86_64.tar.gz >> avian-${RELEASE_NAME}-linux-x86_64.tar.gz.md5sum
+            sha256sum avian-${RELEASE_NAME}-linux-x86_64.tar.gz >> avian-${RELEASE_NAME}-linux-x86_64.tar.gz.sha256sum
         else
-            echo "${DISTNAME}-x86_64-linux-gnu.tar.gz doesn't exist. $?"
+            echo "avian-${RELEASE_NAME}-linux-x86_64.tar.gz doesn't exist. $?"
             exit 1
         fi
     else
@@ -201,13 +210,13 @@ elif [[ ${OS} == "arm32v7" || ${OS} == "arm32v7-disable-wallet" ]]; then
 
     if [[ -e ${RELEASE_LOCATION} ]]; then
         cd ${STAGE_DIR}
-        find ${DISTNAME}/ -not -name "*.dbg" | sort | tar --no-recursion --mode='u+rw,go+r-w,a+X' --owner=0 --group=0 -c -T - | gzip -9n > ${RELEASE_LOCATION}/${DISTNAME}-arm-linux-gnueabihf.tar.gz
-        if [[ -e ${RELEASE_LOCATION}/${DISTNAME}-arm-linux-gnueabihf.tar.gz ]]; then
+        find ${DISTNAME}/ -not -name "*.dbg" | sort | tar --no-recursion --mode='u+rw,go+r-w,a+X' --owner=0 --group=0 -c -T - | gzip -9n > ${RELEASE_LOCATION}/avian-${RELEASE_NAME}-linux-arm32v7.tar.gz
+        if [[ -e ${RELEASE_LOCATION}/avian-${RELEASE_NAME}-linux-arm32v7.tar.gz ]]; then
             cd ${RELEASE_LOCATION}
-            md5sum ${DISTNAME}-arm-linux-gnueabihf.tar.gz >> ${DISTNAME}-arm-linux-gnueabihf.tar.gz.md5sum
-            sha256sum ${DISTNAME}-arm-linux-gnueabihf.tar.gz >> ${DISTNAME}-arm-linux-gnueabihf.tar.gz.sha256sum
+            md5sum avian-${RELEASE_NAME}-linux-arm32v7.tar.gz >> avian-${RELEASE_NAME}-linux-arm32v7.tar.gz.md5sum
+            sha256sum avian-${RELEASE_NAME}-linux-arm32v7.tar.gz >> avian-${RELEASE_NAME}-linux-arm32v7.tar.gz.sha256sum
         else
-            echo "${DISTNAME}-arm-linux-gnueabihf.tar.gz doesn't exist. $?"
+            echo "avian-${RELEASE_NAME}-linux-arm32v7.tar.gz doesn't exist. $?"
             exit 1
         fi
         cd ${STAGE_DIR}
@@ -237,13 +246,13 @@ elif [[ ${OS} == "aarch64" || ${OS} == "aarch64-disable-wallet" ]]; then
 
     if [[ -e ${RELEASE_LOCATION} ]]; then
         cd ${STAGE_DIR}
-        find ${DISTNAME}/ -not -name "*.dbg" | sort | tar --no-recursion --mode='u+rw,go+r-w,a+X' --owner=0 --group=0 -c -T - | gzip -9n > ${RELEASE_LOCATION}/${DISTNAME}-aarch64-linux-gnu.tar.gz
-        if [[ -e ${RELEASE_LOCATION}/${DISTNAME}-aarch64-linux-gnu.tar.gz ]]; then
+        find ${DISTNAME}/ -not -name "*.dbg" | sort | tar --no-recursion --mode='u+rw,go+r-w,a+X' --owner=0 --group=0 -c -T - | gzip -9n > ${RELEASE_LOCATION}/avian-${RELEASE_NAME}-linux-aarch64.tar.gz
+        if [[ -e ${RELEASE_LOCATION}/avian-${RELEASE_NAME}-linux-aarch64.tar.gz ]]; then
             cd ${RELEASE_LOCATION}
-            md5sum ${DISTNAME}-aarch64-linux-gnu.tar.gz >> ${DISTNAME}-aarch64-linux-gnu.tar.gz.md5sum
-            sha256sum ${DISTNAME}-aarch64-linux-gnu.tar.gz >> ${DISTNAME}-aarch64-linux-gnu.tar.gz.sha256sum
+            md5sum avian-${RELEASE_NAME}-linux-aarch64.tar.gz >> avian-${RELEASE_NAME}-linux-aarch64.tar.gz.md5sum
+            sha256sum avian-${RELEASE_NAME}-linux-aarch64.tar.gz >> avian-${RELEASE_NAME}-linux-aarch64.tar.gz.sha256sum
         else
-            echo "${DISTNAME}-aarch64-linux-gnu.tar.gz doesn't exist. $?"
+            echo "avian-${RELEASE_NAME}-linux-aarch64.tar.gz doesn't exist. $?"
             exit 1
         fi
         cd ${STAGE_DIR}
