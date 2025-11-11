@@ -141,6 +141,15 @@ void DusterDialog::updateBlockList()
         int64_t nSum = 0;
         int nChildren = 0;
         for (const COutput& out : coins.second) {
+            // Apply amount filters
+            CAmount utxoValue = out.tx->tx->vout[out.i].nValue;
+            CAmount minAmount = ui->minInputAmount->value();
+            CAmount maxAmount = ui->maxInputAmount->value();
+
+            if (utxoValue < minAmount || utxoValue > maxAmount) {
+                continue; // Skip UTXOs outside the filter range
+            }
+
             // Create cell objects and associate values
             QTableWidgetItem* amountItem = new QTableWidgetItem();
             amountItem->setFlags(amountItem->flags() ^ Qt::ItemIsEditable);
@@ -304,6 +313,28 @@ void DusterDialog::compactBlocks()
     progressDialog.setMaximumWidth(400); // Limit maximum width to prevent growing
     progressDialog.setFixedHeight(130);  // Fixed height
     progressDialog.show();
+    QApplication::processEvents(); // Update dialog immediately after showing
+
+    // Get fresh UTXO list from model (on main thread for safety)
+    std::map<QString, std::vector<COutput>> mapCoins;
+    model->listCoins(mapCoins);
+
+    // Count total UTXOs that match the filter criteria
+    int totalUTXOFiltered = 0;
+    CAmount minAmount = ui->minInputAmount->value();
+    CAmount maxAmount = ui->maxInputAmount->value();
+
+    for (const auto& coins : mapCoins) {
+        for (const COutput& out : coins.second) {
+            if (!out.tx || out.i >= out.tx->tx->vout.size()) {
+                continue;
+            }
+            CAmount utxoValue = out.tx->tx->vout[out.i].nValue;
+            if (utxoValue >= minAmount && utxoValue <= maxAmount) {
+                totalUTXOFiltered++;
+            }
+        }
+    }
 
     // Keep wallet operations on main thread for thread safety
     // Use processEvents() to keep UI responsive during block validation
@@ -332,24 +363,22 @@ void DusterDialog::compactBlocks()
         std::map<QString, std::vector<COutput>> mapCoins;
         model->listCoins(mapCoins);
 
-        // Count total UTXOs
-        int totalUTXOs = 0;
-        for (const auto& coins : mapCoins) {
-            totalUTXOs += coins.second.size();
-        }
-
         // Check if we're done
-        if (totalUTXOs <= minimumBlockAmount) {
+        if (totalUTXOFiltered <= minimumBlockAmount) {
             finalMessage = tr("Consolidation completed! Processed %1 batches with %2 total UTXOs.").arg(batchCount).arg(totalProcessed);
             break;
         }
 
         // Update progress
-        int estimatedBatches = qMax(1, (totalUTXOs + blockDivisor - 1) / blockDivisor);
-        int progress = qMin(99, (batchCount * 100) / estimatedBatches);
-        progressDialog.setRange(0, estimatedBatches);
-        progressDialog.setValue(batchCount);
-        progressDialog.setLabelText(tr("Processing batch %1 of ~%2... (%3 UTXOs remaining)").arg(batchCount + 1).arg(estimatedBatches).arg(totalUTXOs));
+        int maxUtxosPerBatch = ui->maxUtxosPerBatch->value();
+        int estimatedBatches = qMax(1, (totalUTXOFiltered + maxUtxosPerBatch - 1) / maxUtxosPerBatch);
+        if (maxBatches > 0) {
+            estimatedBatches = qMin(estimatedBatches, maxBatches);
+        }
+        int progress = qMin(99, (batchCount * 100) / qMax(1, estimatedBatches));
+        progressDialog.setRange(0, 100);
+        progressDialog.setValue(progress);
+        progressDialog.setLabelText(tr("Processing batch %1 of ~%2... (%3 UTXOs remaining)").arg(batchCount + 1).arg(estimatedBatches).arg(totalUTXOFiltered));
 
         // Collect UTXOs for this batch
         coinControl->SetNull();
@@ -513,9 +542,15 @@ void DusterDialog::compactBlocks()
         batchCount++;
         totalProcessed += utxosInBatch;
 
+        // Update progress after successful batch
+        progressDialog.setValue(batchCount);
+
         // Small delay to prevent overwhelming the system
         QThread::msleep(100);
     }
+
+    // Ensure progress reaches 100% at the end
+    progressDialog.setValue(progressDialog.maximum());
 
     // Close progress dialog
     progressDialog.close();
