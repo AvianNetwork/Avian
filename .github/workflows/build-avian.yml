@@ -7,8 +7,8 @@ on:
       - develop
       - V4.2
     paths-ignore:
-      - 'doc/**'
-      - '**.md'
+      - "doc/**"
+      - "**.md"
   pull_request:
     branches:
       - master

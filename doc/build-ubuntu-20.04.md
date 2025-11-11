@@ -265,25 +265,32 @@ make -j"$(nproc)"
 ## Troubleshooting
 
 ### "gcc-10: command not found"
+
 Ensure you installed `gcc-10` and `g++-10`:
+
 ```bash
 sudo apt-get install -y gcc-10 g++-10
 ```
 
 ### Build fails with "Qt5Core not found"
+
 The depends system should have built Qt. If this error persists, try:
+
 ```bash
 rm -rf depends/built
 CC=gcc-10 CXX=g++-10 make -C depends HOST=x86_64-pc-linux-gnu -j"$(nproc)"
 ```
 
 ### Out of disk space during depends build
+
 The depends system can use 5-10GB of disk space. Ensure you have sufficient space:
+
 ```bash
 df -h
 ```
 
 ### Build hangs or takes very long
+
 This is normal for the first build. The depends system downloads and compiles many libraries. Use `-j$(nproc)` for parallel builds, which significantly speeds up the process.
 
 ---
@@ -293,4 +300,3 @@ This is normal for the first build. The depends system downloads and compiles ma
 - See [INSTALL.md](../INSTALL.md) for general installation instructions
 - See [README.md](../README.md) for usage documentation
 - Join the community on GitHub Discussions for questions and support
-
