@@ -579,6 +579,12 @@ void AvianApplication::initializeResult(bool success)
             window->show();
         }
 
+        // Ensure window is fully rendered before dismissing splash
+        for (int i = 0; i < 3; ++i) {
+            processUIEvents();
+            QThread::msleep(50);
+        }
+
         // Dismiss splash screen now that everything is ready
         Q_EMIT splashFinished(window);
 

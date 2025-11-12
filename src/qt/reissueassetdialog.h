@@ -45,6 +45,7 @@ public:
     void setupAssetDataView(const PlatformStyle *platformStyle);
     void setupFeeControl(const PlatformStyle *platformStyle);
     void updateAssetsList();
+    void updateAssetsListAsync();
 
     void clear();
 
@@ -143,6 +144,9 @@ private Q_SLOTS:
 Q_SIGNALS:
     // Fired when a message should be reported to the user
     void message(const QString &title, const QString &message, unsigned int style);
+
+private Q_SLOTS:
+    void onAssetsListLoaded(QStringList assetsList);
 };
 
 #endif // AVIAN_QT_REISSUEASSETDIALOG_H

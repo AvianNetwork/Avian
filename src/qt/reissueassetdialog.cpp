@@ -43,6 +43,7 @@
 #include <QCompleter>
 #include <QUrl>
 #include <QDesktopServices>
+#include <QtConcurrent/QtConcurrentRun>
 
 #if QT_VERSION < QT_VERSION_CHECK(5, 11, 0)
 #define QTversionPreFiveEleven
@@ -1400,29 +1401,60 @@ void ReissueAssetDialog::onUnitChanged(int value)
 
 void ReissueAssetDialog::updateAssetsList()
 {
-    LOCK(cs_main);
-    std::vector<std::string> assets;
-    GetAllAdministrativeAssets(model->getWallet(), assets, 0);
+    updateAssetsListAsync();
+}
 
-    QStringList list;
-    list << "";
+void ReissueAssetDialog::updateAssetsListAsync()
+{
+    // Clear and show loading state without disabling the combo box
+    // Keep it visible so the placeholder text is shown
+    ui->comboBox->setCurrentIndex(0);
+    
+    // Run asset loading in background thread to avoid blocking UI
+    // Note: GetAllAdministrativeAssets() acquires necessary locks internally via
+    // AvailableAssets() -> AvailableCoinsAll() which calls LOCK2(cs_main, cs_wallet)
+    // so we don't need to acquire cs_main here
+    QtConcurrent::run([this]() {
+        try {
+            std::vector<std::string> assets;
+            GetAllAdministrativeAssets(model->getWallet(), assets, 0);
 
-    // Load the assets that are reissuable
-    for (auto item : assets) {
-        std::string name = QString::fromStdString(item).split("!").first().toStdString();
-        CNewAsset asset;
-        if (passets->GetAssetMetaDataIfExists(name, asset)) {
-            if (asset.nReissuable)
-                list << QString::fromStdString(asset.strName);
+            QStringList list;
+            list << "";
+
+            // Load the assets that are reissuable
+            for (auto item : assets) {
+                std::string name = QString::fromStdString(item).split("!").first().toStdString();
+                CNewAsset asset;
+                if (passets->GetAssetMetaDataIfExists(name, asset)) {
+                    if (asset.nReissuable)
+                        list << QString::fromStdString(asset.strName);
+                }
+
+                if (passets->CheckIfAssetExists(RESTRICTED_CHAR + name)) {
+                    list << QString::fromStdString(RESTRICTED_CHAR + name);
+                }
+            }
+
+            // Update UI on main thread
+            QMetaObject::invokeMethod(this, [this, list]() {
+                onAssetsListLoaded(list);
+            }, Qt::QueuedConnection);
+        } catch (const std::exception& e) {
+            qWarning() << "Error loading assets list:" << e.what();
+            QStringList emptyList;
+            emptyList << "";
+            QMetaObject::invokeMethod(this, [this, emptyList]() {
+                onAssetsListLoaded(emptyList);
+            }, Qt::QueuedConnection);
         }
+    });
+}
 
-        if (passets->CheckIfAssetExists(RESTRICTED_CHAR + name)) {
-            list << QString::fromStdString(RESTRICTED_CHAR + name);
-        }
-    }
-
-
-    stringModel->setStringList(list);
+void ReissueAssetDialog::onAssetsListLoaded(QStringList assetsList)
+{
+    // Update the string model with loaded assets
+    stringModel->setStringList(assetsList);
 }
 
 void ReissueAssetDialog::clear()
