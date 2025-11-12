@@ -1699,8 +1699,24 @@ void AvianGUI::handleMaskValuesChanged(bool fMask)
         }
 
         // If mask values is being enabled and we're on a disabled page, go to overview
-        if (fMask && historyAction && !historyAction->isEnabled() && historyAction->isChecked()) {
-            gotoOverviewPage();
+        if (fMask) {
+            // Check if any disabled action is currently checked, if so navigate to overview
+            bool onDisabledPage = false;
+            if (historyAction && !historyAction->isEnabled() && historyAction->isChecked()) {
+                onDisabledPage = true;
+            } else if (transferAssetAction && !transferAssetAction->isEnabled() && transferAssetAction->isChecked()) {
+                onDisabledPage = true;
+            } else if (createAssetAction && !createAssetAction->isEnabled() && createAssetAction->isChecked()) {
+                onDisabledPage = true;
+            } else if (manageAssetAction && !manageAssetAction->isEnabled() && manageAssetAction->isChecked()) {
+                onDisabledPage = true;
+            } else if (restrictedAssetAction && !restrictedAssetAction->isEnabled() && restrictedAssetAction->isChecked()) {
+                onDisabledPage = true;
+            }
+
+            if (onDisabledPage) {
+                gotoOverviewPage();
+            }
         }
     });
 }
