@@ -99,6 +99,10 @@ void OptionsModel::Init(bool resetSettings)
         settings.setValue("fDarkModeEnabled", false);
     fDarkModeEnabled = settings.value("fDarkModeEnabled", false).toBool();
 
+    if (!settings.contains("fHideAmounts"))
+        settings.setValue("fHideAmounts", false);
+    fHideAmounts = settings.value("fHideAmounts", false).toBool();
+
     // These are shared with the core or have a command-line parameter
     // and we want command-line parameters to overwrite the GUI settings.
     //
@@ -307,6 +311,8 @@ QVariant OptionsModel::data(const QModelIndex& index, int role) const
             return fCustomFeeFeatures;
         case DarkModeEnabled:
             return fDarkModeEnabled;
+        case HideAmounts:
+            return fHideAmounts;
         default:
             return QVariant();
         }
@@ -480,6 +486,11 @@ bool OptionsModel::setData(const QModelIndex& index, const QVariant& value, int 
         case DarkModeEnabled:
             fDarkModeEnabled = value.toBool();
             settings.setValue("fDarkModeEnabled", fDarkModeEnabled);
+            break;
+        case HideAmounts:
+            fHideAmounts = value.toBool();
+            settings.setValue("fHideAmounts", fHideAmounts);
+            Q_EMIT hideAmountsChanged(fHideAmounts);
             break;
         default:
             break;

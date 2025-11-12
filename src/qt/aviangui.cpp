@@ -474,6 +474,8 @@ void AvianGUI::createActions()
     wrapAction->setFont(font);
     tabGroup->addAction(wrapAction);
 
+    handleMaskValuesChanged(false);
+
     /** AVN END */
 
 #ifdef ENABLE_WALLET
@@ -523,6 +525,11 @@ void AvianGUI::createActions()
     toggleHideAction = new QAction(platformStyle->TextColorIcon(":/icons/about"), tr("&Show / Hide"), this);
     toggleHideAction->setStatusTip(tr("Show or hide the main Window"));
 
+    hideAmountsAction = new QAction(tr("&Mask values"), this);
+    hideAmountsAction->setStatusTip(tr("Hide or show wallet amounts"));
+    hideAmountsAction->setCheckable(true);
+    hideAmountsAction->setChecked(false);
+
     encryptWalletAction = new QAction(platformStyle->TextColorIcon(":/icons/lock_closed"), tr("&Encrypt Wallet..."), this);
     encryptWalletAction->setStatusTip(tr("Encrypt the private keys that belong to your wallet"));
     encryptWalletAction->setCheckable(true);
@@ -566,6 +573,7 @@ void AvianGUI::createActions()
     connect(aboutQtAction, SIGNAL(triggered()), qApp, SLOT(aboutQt()));
     connect(optionsAction, SIGNAL(triggered()), this, SLOT(optionsClicked()));
     connect(toggleHideAction, SIGNAL(triggered()), this, SLOT(toggleHidden()));
+    connect(hideAmountsAction, SIGNAL(triggered()), this, SLOT(toggleHideAmounts()));
     connect(showHelpMessageAction, SIGNAL(triggered()), this, SLOT(showHelpMessageClicked()));
     connect(openRPCConsoleAction, SIGNAL(triggered()), this, SLOT(showDebugWindow()));
     // prevents an open debug window from becoming stuck/unusable on client shutdown
@@ -627,6 +635,8 @@ void AvianGUI::createMenuBar()
         settings->addAction(dustWalletAction);
         settings->addAction(changePassphraseAction);
         settings->addAction(getMyWordsAction);
+        settings->addSeparator();
+        settings->addAction(hideAmountsAction);
         settings->addSeparator();
     }
     settings->addAction(optionsAction);
@@ -963,6 +973,15 @@ void AvianGUI::setClientModel(ClientModel* _clientModel)
 
             // initialize the disable state of the tray icon with the current value in the model.
             setTrayIconVisible(optionsModel->getHideTrayIcon());
+
+            // Initialize mask values action checkmark from saved settings and apply button state
+            bool fHideAmounts = optionsModel->getHideAmounts();
+            if (hideAmountsAction) {
+                hideAmountsAction->setChecked(fHideAmounts);
+            }
+
+            // Update button states based on saved mask values setting
+            handleMaskValuesChanged(fHideAmounts);
         }
     } else {
         // Disable possibility to show main window via action
@@ -1525,6 +1544,11 @@ void AvianGUI::checkAssets()
         restrictedAssetAction->setDisabled(true);
         restrictedAssetAction->setToolTip(tr("Restricted Assets not yet active"));
     }
+
+    // Re-apply mask values state after asset availability is determined
+    if (clientModel && clientModel->getOptionsModel()) {
+        handleMaskValuesChanged(clientModel->getOptionsModel()->getHideAmounts());
+    }
 }
 #endif // ENABLE_WALLET
 
@@ -1639,6 +1663,47 @@ void AvianGUI::toggleHidden()
     showNormalIfMinimized(true);
 }
 
+void AvianGUI::toggleHideAmounts()
+{
+    if (clientModel && clientModel->getOptionsModel()) {
+        OptionsModel* optionsModel = clientModel->getOptionsModel();
+        bool currentHideAmounts = optionsModel->getHideAmounts();
+        optionsModel->setData(optionsModel->index(OptionsModel::HideAmounts, 0), !currentHideAmounts, Qt::EditRole);
+        hideAmountsAction->setChecked(!currentHideAmounts);
+    }
+}
+
+void AvianGUI::handleMaskValuesChanged(bool fMask)
+{
+    // Update menu checkmark when mask values state changes
+    if (hideAmountsAction) hideAmountsAction->setChecked(fMask);
+
+    // Defer button state updates slightly to ensure proper state handling
+    QTimer::singleShot(1, [this, fMask]() {
+        // Disable navigation buttons when mask values is enabled
+        if (historyAction) historyAction->setEnabled(!fMask);
+
+        // Only disable asset actions if they're currently enabled (i.e., assets are deployed)
+        if (transferAssetAction && transferAssetAction->isEnabled())
+            transferAssetAction->setEnabled(!fMask);
+        if (createAssetAction && createAssetAction->isEnabled())
+            createAssetAction->setEnabled(!fMask);
+        if (manageAssetAction && manageAssetAction->isEnabled())
+            manageAssetAction->setEnabled(!fMask);
+        if (restrictedAssetAction && restrictedAssetAction->isEnabled())
+            restrictedAssetAction->setEnabled(!fMask);
+
+        // If mask values is being disabled, re-check asset deployment status to restore buttons
+        if (!fMask) {
+            checkAssets();
+        }
+
+        // If mask values is being enabled and we're on a disabled page, go to overview
+        if (fMask && historyAction && !historyAction->isEnabled() && historyAction->isChecked()) {
+            gotoOverviewPage();
+        }
+    });
+}
 void AvianGUI::detectShutdown()
 {
     if (ShutdownRequested()) {

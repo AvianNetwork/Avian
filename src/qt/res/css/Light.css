@@ -1366,6 +1366,13 @@ QDialog#OptionsDialog QLabel#label_3 {
   color: #c79304;
 }
 
+/* QMenu Checkmarks */
+
+QMenu::item:checked {
+  background-color: #f0f0f0;
+}
+
+
 QDialog#OptionsDialog #line,
 QDialog#OptionsDialog #frame {
   border-top: 1px solid #110202;

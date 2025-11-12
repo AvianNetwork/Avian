@@ -127,6 +127,9 @@ void WalletView::setAvianGUI(AvianGUI* gui)
         // Clicking on a transaction on the overview page simply sends you to transaction history page
         connect(overviewPage, SIGNAL(transactionClicked(QModelIndex)), gui, SLOT(gotoHistoryPage()));
 
+        // Handle mask values changed signal
+        connect(overviewPage, SIGNAL(maskValuesChanged(bool)), gui, SLOT(handleMaskValuesChanged(bool)));
+
         // Clicking on a asset menu item Send
         connect(overviewPage, SIGNAL(assetSendClicked(QModelIndex)), gui, SLOT(gotoAssetsPage()));
 

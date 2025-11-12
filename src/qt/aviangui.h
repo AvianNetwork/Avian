@@ -126,6 +126,7 @@ private:
     QAction* openRPCConsoleAction = nullptr;
     QAction* openAction = nullptr;
     QAction* showHelpMessageAction = nullptr;
+    QAction* hideAmountsAction = nullptr;
 
     /** AVN START */
     QAction* transferAssetAction = nullptr;
@@ -287,6 +288,10 @@ private Q_SLOTS:
     void showNormalIfMinimized(bool fToggleHidden = false);
     /** Simply calls showNormalIfMinimized(true) for use in SLOT() macro */
     void toggleHidden();
+    /** Toggle hide amounts on the overview page */
+    void toggleHideAmounts();
+    /** Handle mask values changed to disable/enable navigation */
+    void handleMaskValuesChanged(bool fMask);
 
     /** called by a timer to check if fRequestShutdown has been set **/
     void detectShutdown();

@@ -297,6 +297,7 @@ OverviewPage::OverviewPage(const PlatformStyle* platformStyle, QWidget* parent) 
                                                                                   currentWatchImmatureBalance(-1),
                                                                                   pricingTimer(0),
                                                                                   networkManager(0),
+                                                                                  fHideAmounts(false),
                                                                                   txdelegate(new TxViewDelegate(platformStyle, this)),
                                                                                   assetdelegate(new AssetViewDelegate(platformStyle, this))
 {
@@ -410,7 +411,7 @@ OverviewPage::OverviewPage(const PlatformStyle* platformStyle, QWidget* parent) 
             if (reply->error()) {
                 qDebug() << reply->errorString();
                 // Failed to get price info, just display total balance.
-                ui->labelTotal->setText(AvianUnits::formatWithUnit(unit, currentBalance + currentUnconfirmedBalance + currentImmatureBalance, false, AvianUnits::separatorAlways));
+                ui->labelTotal->setText(formatAmount(currentBalance + currentUnconfirmedBalance + currentImmatureBalance));
                 return;
             }
 
@@ -439,11 +440,17 @@ OverviewPage::OverviewPage(const PlatformStyle* platformStyle, QWidget* parent) 
             // Access price
             double num = current_price.value(currency).toDouble();
 
-            // Get curreny value
+            // Get currency value
             double coinValue = AvianUnits::format(0, currentBalance + currentUnconfirmedBalance + currentImmatureBalance, false, AvianUnits::separatorAlways).simplified().remove(' ').toDouble() * num;
 
-            // Set total with curreny value
-            ui->labelTotal->setText(AvianUnits::formatWithUnit(unit, currentBalance + currentUnconfirmedBalance + currentImmatureBalance, false, AvianUnits::separatorAlways) + " (" + QString().setNum(coinValue, 'f', 2) + " " + currency.toUpper() + ")");
+            // Set total with currency value (respecting hideAmounts setting)
+            if (fHideAmounts) {
+                int unit = walletModel->getOptionsModel()->getDisplayUnit();
+                QString unitName = AvianUnits::name(unit);
+                ui->labelTotal->setText(QString("#.############ %1 (#.## %2)").arg(unitName).arg(currency.toUpper()));
+            } else {
+                ui->labelTotal->setText(formatAmount(currentBalance + currentUnconfirmedBalance + currentImmatureBalance) + " (" + QString().setNum(coinValue, 'f', 2) + " " + currency.toUpper() + ")");
+            }
         });
 
     // Create the timer
@@ -575,13 +582,13 @@ void OverviewPage::setBalance(const CAmount& balance, const CAmount& unconfirmed
     currentWatchUnconfBalance = watchUnconfBalance;
     currentWatchImmatureBalance = watchImmatureBalance;
     getPriceInfo();
-    ui->labelBalance->setText(AvianUnits::formatWithUnit(unit, balance, false, AvianUnits::separatorAlways));
-    ui->labelUnconfirmed->setText(AvianUnits::formatWithUnit(unit, unconfirmedBalance, false, AvianUnits::separatorAlways));
-    ui->labelImmature->setText(AvianUnits::formatWithUnit(unit, immatureBalance, false, AvianUnits::separatorAlways));
-    ui->labelWatchAvailable->setText(AvianUnits::formatWithUnit(unit, watchOnlyBalance, false, AvianUnits::separatorAlways));
-    ui->labelWatchPending->setText(AvianUnits::formatWithUnit(unit, watchUnconfBalance, false, AvianUnits::separatorAlways));
-    ui->labelWatchImmature->setText(AvianUnits::formatWithUnit(unit, watchImmatureBalance, false, AvianUnits::separatorAlways));
-    ui->labelWatchTotal->setText(AvianUnits::formatWithUnit(unit, watchOnlyBalance + watchUnconfBalance + watchImmatureBalance, false, AvianUnits::separatorAlways));
+    ui->labelBalance->setText(formatAmount(balance));
+    ui->labelUnconfirmed->setText(formatAmount(unconfirmedBalance));
+    ui->labelImmature->setText(formatAmount(immatureBalance));
+    ui->labelWatchAvailable->setText(formatAmount(watchOnlyBalance));
+    ui->labelWatchPending->setText(formatAmount(watchUnconfBalance));
+    ui->labelWatchImmature->setText(formatAmount(watchImmatureBalance));
+    ui->labelWatchTotal->setText(formatAmount(watchOnlyBalance + watchUnconfBalance + watchImmatureBalance));
 
     // only show immature (newly mined) balance if it's non-zero, so as not to complicate things
     // for the non-mining users
@@ -622,6 +629,14 @@ void OverviewPage::setWalletModel(WalletModel* model)
 {
     this->walletModel = model;
     if (model && model->getOptionsModel()) {
+        // Initialize hideAmounts setting from options
+        fHideAmounts = model->getOptionsModel()->getHideAmounts();
+
+        // Apply initial visibility based on hideAmounts setting
+        ui->frame_2->setVisible(!fHideAmounts);
+        ui->assetFrame->setVisible(!fHideAmounts);
+        ui->assetVerticalSpaceWidget2->setVisible(fHideAmounts);
+
         // Set up transaction list
         filter.reset(new TransactionFilterProxy());
         filter->setSourceModel(model->getTransactionTableModel());
@@ -646,6 +661,7 @@ void OverviewPage::setWalletModel(WalletModel* model)
         connect(model, SIGNAL(balanceChanged(CAmount, CAmount, CAmount, CAmount, CAmount, CAmount)), this, SLOT(setBalance(CAmount, CAmount, CAmount, CAmount, CAmount, CAmount)));
 
         connect(model->getOptionsModel(), SIGNAL(displayUnitChanged(int)), this, SLOT(updateDisplayUnit()));
+        connect(model->getOptionsModel(), SIGNAL(hideAmountsChanged(bool)), this, SLOT(toggleHideAmounts(bool)));
 
         updateWatchOnlyLabels(model->haveWatchOnly());
         connect(model, SIGNAL(notifyWatchonlyChanged(bool)), this, SLOT(updateWatchOnlyLabels(bool)));
@@ -760,4 +776,32 @@ void OverviewPage::getPriceInfo()
             
             networkManager->get(request); }, Qt::QueuedConnection);
     });
+}
+
+QString OverviewPage::formatAmount(const CAmount& amount)
+{
+    int unit = walletModel ? walletModel->getOptionsModel()->getDisplayUnit() : AvianUnits::AVN;
+    if (fHideAmounts) {
+        QString unitName = AvianUnits::name(unit);
+        return QString("#.############ %1").arg(unitName);
+    }
+    return AvianUnits::formatWithUnit(unit, amount, false, AvianUnits::separatorAlways);
+}
+
+void OverviewPage::toggleHideAmounts(bool fHide)
+{
+    fHideAmounts = fHide;
+
+    // Refresh all balance displays
+    if (currentBalance != -1) {
+        setBalance(currentBalance, currentUnconfirmedBalance, currentImmatureBalance,
+            currentWatchOnlyBalance, currentWatchUnconfBalance, currentWatchImmatureBalance);
+    }
+
+    ui->frame_2->setVisible(!fHide);
+    ui->assetFrame->setVisible(!fHide);
+    ui->assetVerticalSpaceWidget2->setVisible(fHide);
+
+    // Emit signal so main window can disable navigation buttons
+    Q_EMIT maskValuesChanged(fHide);
 }

@@ -65,6 +65,7 @@ Q_SIGNALS:
     void assetIssueUniqueClicked(const QModelIndex& index);
     void assetReissueClicked(const QModelIndex& index);
     void outOfSyncWarningClicked();
+    void maskValuesChanged(bool fMask);
 
 private:
     Ui::OverviewPage* ui;
@@ -94,6 +95,7 @@ private:
     /** AVN START */
     QTimer* pricingTimer;
     QNetworkAccessManager* networkManager;
+    bool fHideAmounts;
     /** AVN END */
 
 private Q_SLOTS:
@@ -104,6 +106,10 @@ private Q_SLOTS:
     void updateWatchOnlyLabels(bool showWatchOnly);
     void handleOutOfSyncWarningClicks();
     void assetSearchChanged();
+    void toggleHideAmounts(bool fHide);
+
+private:
+    QString formatAmount(const CAmount& amount);
 };
 
 #endif // AVIAN_QT_OVERVIEWPAGE_H
