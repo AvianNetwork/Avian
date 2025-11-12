@@ -14,11 +14,13 @@
 
 #include <QComboBox>
 #include <QDateTime>
+#include <QGraphicsBlurEffect>
 #include <QLabel>
 #include <QMainWindow>
 #include <QMap>
 #include <QMenu>
 #include <QPoint>
+#include <QPointer>
 #include <QSystemTrayIcon>
 
 class ClientModel;
@@ -126,7 +128,12 @@ private:
     QAction* openRPCConsoleAction = nullptr;
     QAction* openAction = nullptr;
     QAction* showHelpMessageAction = nullptr;
-    QAction* hideAmountsAction = nullptr;
+
+    /** AVN START - Privacy mode actions */
+    QAction* privacyOffAction = nullptr;
+    QAction* privacyMaskAction = nullptr;
+    QAction* privacyBlurAction = nullptr;
+    /** AVN END */
 
     /** AVN START */
     QAction* transferAssetAction = nullptr;
@@ -145,6 +152,9 @@ private:
     QLabel* labelVersionUpdate = nullptr;
     QNetworkAccessManager* networkVersionManager = nullptr;
     QTimer* initializationTimer = nullptr;
+    /** AVN START - Blur effects storage */
+    QMap<QWidget*, QGraphicsBlurEffect*> blurEffects;
+    /** AVN END */
     /** AVN END */
 
     QSystemTrayIcon* trayIcon = nullptr;
@@ -185,6 +195,17 @@ private:
     void updateNetworkState();
 
     void updateHeadersSyncProgressLabel();
+
+    /** AVN START - Privacy mode helpers */
+    /** Apply blur effect to all amount labels in the UI */
+    void applyBlurEffects();
+    /** Remove blur effects from all amount labels in the UI */
+    void removeBlurEffects();
+    /** Apply mask mode effects */
+    void applyMaskMode();
+    /** Remove mask mode effects */
+    void removeMaskMode();
+    /** AVN END */
 
 Q_SIGNALS:
     /** Signal raised when a URI was entered or dragged to the GUI */
@@ -288,10 +309,10 @@ private Q_SLOTS:
     void showNormalIfMinimized(bool fToggleHidden = false);
     /** Simply calls showNormalIfMinimized(true) for use in SLOT() macro */
     void toggleHidden();
-    /** Toggle hide amounts on the overview page */
-    void toggleHideAmounts();
-    /** Handle mask values changed to disable/enable navigation */
-    void handleMaskValuesChanged(bool fMask);
+    /** Toggle privacy mode (Off, Mask, or Blur) */
+    void togglePrivacyMode(int mode);
+    /** Handle privacy mode changed - disable/enable navigation or apply blur effects */
+    void handlePrivacyModeChanged(int mode);
 
     /** called by a timer to check if fRequestShutdown has been set **/
     void detectShutdown();

@@ -127,9 +127,6 @@ void WalletView::setAvianGUI(AvianGUI* gui)
         // Clicking on a transaction on the overview page simply sends you to transaction history page
         connect(overviewPage, SIGNAL(transactionClicked(QModelIndex)), gui, SLOT(gotoHistoryPage()));
 
-        // Handle mask values changed signal
-        connect(overviewPage, SIGNAL(maskValuesChanged(bool)), gui, SLOT(handleMaskValuesChanged(bool)));
-
         // Clicking on a asset menu item Send
         connect(overviewPage, SIGNAL(assetSendClicked(QModelIndex)), gui, SLOT(gotoAssetsPage()));
 
@@ -165,6 +162,11 @@ void WalletView::setClientModel(ClientModel* _clientModel)
 
     overviewPage->setClientModel(_clientModel);
     sendCoinsPage->setClientModel(_clientModel);
+
+    // Connect privacy mode changes to overview page
+    if (_clientModel && _clientModel->getOptionsModel()) {
+        connect(_clientModel->getOptionsModel(), SIGNAL(privacyModeChanged(int)), overviewPage, SLOT(toggleHideAmounts(int)));
+    }
 }
 
 void WalletView::setWalletModel(WalletModel* _walletModel)

@@ -784,16 +784,6 @@
         </widget>
        </item>
        <item>
-        <widget class="QCheckBox" name="hideAmountsCheckBox">
-         <property name="text">
-          <string>Mask values</string>
-         </property>
-         <property name="toolTip">
-          <string>Hide all balance amounts on the overview page</string>
-         </property>
-        </widget>
-       </item>
-       <item>
         <spacer name="verticalSpacer_Display">
          <property name="orientation">
           <enum>Qt::Vertical</enum>

@@ -65,7 +65,7 @@ Q_SIGNALS:
     void assetIssueUniqueClicked(const QModelIndex& index);
     void assetReissueClicked(const QModelIndex& index);
     void outOfSyncWarningClicked();
-    void maskValuesChanged(bool fMask);
+
 
 private:
     Ui::OverviewPage* ui;
@@ -106,7 +106,9 @@ private Q_SLOTS:
     void updateWatchOnlyLabels(bool showWatchOnly);
     void handleOutOfSyncWarningClicks();
     void assetSearchChanged();
-    void toggleHideAmounts(bool fHide);
+    /** AVN START - Updated to accept privacy mode int */
+    void toggleHideAmounts(int privacyMode);
+    /** AVN END */
 
 private:
     QString formatAmount(const CAmount& amount);

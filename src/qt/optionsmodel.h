@@ -53,8 +53,14 @@ public:
         Listen,               // bool
         CustomFeeFeatures,    // bool
         DarkModeEnabled,      // bool
-        HideAmounts,          // bool
+        PrivacyMode,          // int (0=Off, 1=Mask, 2=Blur)
         OptionIDRowCount,
+    };
+
+    enum PrivacyModeType {
+        PRIVACY_OFF = 0,
+        PRIVACY_MASK = 1,
+        PRIVACY_BLUR = 2
     };
 
     void Init(bool resetSettings = false);
@@ -82,7 +88,8 @@ public:
     bool getCoinControlFeatures() const { return fCoinControlFeatures; }
     bool getCustomFeeFeatures() const { return fCustomFeeFeatures; }
     bool getDarkModeEnabled() const { return fDarkModeEnabled; }
-    bool getHideAmounts() const { return fHideAmounts; }
+    int getPrivacyMode() const { return nPrivacyMode; }
+    bool getHideAmounts() const { return nPrivacyMode == PRIVACY_MASK; }
     const QString& getOverriddenByCommandLine() { return strOverriddenByCommandLine; }
 
     /* Restart flag helper */
@@ -103,7 +110,7 @@ private:
     /** AVN START*/
     bool fCustomFeeFeatures;
     bool fDarkModeEnabled;
-    bool fHideAmounts;
+    int nPrivacyMode;
     /** AVN END*/
     /* settings that were overridden by command-line */
     QString strOverriddenByCommandLine;
@@ -119,7 +126,7 @@ Q_SIGNALS:
     void coinControlFeaturesChanged(bool);
     void customFeeFeaturesChanged(bool);
     void hideTrayIconChanged(bool);
-    void hideAmountsChanged(bool);
+    void privacyModeChanged(int);
 };
 
 #endif // AVIAN_QT_OPTIONSMODEL_H

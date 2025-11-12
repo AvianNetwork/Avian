@@ -43,6 +43,7 @@
 
 #include <iostream>
 
+#include <QAbstractItemView>
 #include <QAction>
 #include <QApplication>
 #include <QComboBox>
@@ -50,8 +51,11 @@
 #include <QDebug>
 #include <QDesktopWidget>
 #include <QDragEnterEvent>
+#include <QGraphicsBlurEffect>
 #include <QGraphicsDropShadowEffect>
+#include <QLineEdit>
 #include <QListWidget>
+#include <QMap>
 #include <QMenuBar>
 #include <QMessageBox>
 #include <QMimeData>
@@ -62,6 +66,7 @@
 #include <QScreen>
 #include <QSettings>
 #include <QShortcut>
+#include <QSpinBox>
 #include <QStackedWidget>
 #include <QStatusBar>
 #include <QStyle>
@@ -474,8 +479,11 @@ void AvianGUI::createActions()
     wrapAction->setFont(font);
     tabGroup->addAction(wrapAction);
 
-    handleMaskValuesChanged(false);
-
+    /** AVN START - Privacy mode initialization is deferred to setClientModel() */
+    // Initialize radio button states to Off
+    if (privacyOffAction) privacyOffAction->setChecked(true);
+    if (privacyMaskAction) privacyMaskAction->setChecked(false);
+    if (privacyBlurAction) privacyBlurAction->setChecked(false);
     /** AVN END */
 
 #ifdef ENABLE_WALLET
@@ -525,10 +533,22 @@ void AvianGUI::createActions()
     toggleHideAction = new QAction(platformStyle->TextColorIcon(":/icons/about"), tr("&Show / Hide"), this);
     toggleHideAction->setStatusTip(tr("Show or hide the main Window"));
 
-    hideAmountsAction = new QAction(tr("&Mask values"), this);
-    hideAmountsAction->setStatusTip(tr("Hide or show wallet amounts"));
-    hideAmountsAction->setCheckable(true);
-    hideAmountsAction->setChecked(false);
+    /** AVN START - Privacy Mode Actions */
+    privacyOffAction = new QAction(tr("&Off"), this);
+    privacyOffAction->setStatusTip(tr("No privacy protection"));
+    privacyOffAction->setCheckable(true);
+    privacyOffAction->setChecked(true);
+
+    privacyMaskAction = new QAction(tr("&Mask values"), this);
+    privacyMaskAction->setStatusTip(tr("Hide wallet amounts and restrict navigation"));
+    privacyMaskAction->setCheckable(true);
+    privacyMaskAction->setChecked(false);
+
+    privacyBlurAction = new QAction(tr("&Blur values"), this);
+    privacyBlurAction->setStatusTip(tr("Blur wallet amounts for privacy"));
+    privacyBlurAction->setCheckable(true);
+    privacyBlurAction->setChecked(false);
+    /** AVN END */
 
     encryptWalletAction = new QAction(platformStyle->TextColorIcon(":/icons/lock_closed"), tr("&Encrypt Wallet..."), this);
     encryptWalletAction->setStatusTip(tr("Encrypt the private keys that belong to your wallet"));
@@ -573,7 +593,13 @@ void AvianGUI::createActions()
     connect(aboutQtAction, SIGNAL(triggered()), qApp, SLOT(aboutQt()));
     connect(optionsAction, SIGNAL(triggered()), this, SLOT(optionsClicked()));
     connect(toggleHideAction, SIGNAL(triggered()), this, SLOT(toggleHidden()));
-    connect(hideAmountsAction, SIGNAL(triggered()), this, SLOT(toggleHideAmounts()));
+
+    /** AVN START - Connect privacy mode actions */
+    connect(privacyOffAction, &QAction::triggered, this, [this]() { togglePrivacyMode(OptionsModel::PRIVACY_OFF); });
+    connect(privacyMaskAction, &QAction::triggered, this, [this]() { togglePrivacyMode(OptionsModel::PRIVACY_MASK); });
+    connect(privacyBlurAction, &QAction::triggered, this, [this]() { togglePrivacyMode(OptionsModel::PRIVACY_BLUR); });
+    /** AVN END */
+
     connect(showHelpMessageAction, SIGNAL(triggered()), this, SLOT(showHelpMessageClicked()));
     connect(openRPCConsoleAction, SIGNAL(triggered()), this, SLOT(showDebugWindow()));
     // prevents an open debug window from becoming stuck/unusable on client shutdown
@@ -636,7 +662,12 @@ void AvianGUI::createMenuBar()
         settings->addAction(changePassphraseAction);
         settings->addAction(getMyWordsAction);
         settings->addSeparator();
-        settings->addAction(hideAmountsAction);
+        /** AVN START - Privacy Mode Menu */
+        QMenu* privacyMenu = settings->addMenu(tr("&Privacy Mode"));
+        privacyMenu->addAction(privacyOffAction);
+        privacyMenu->addAction(privacyMaskAction);
+        privacyMenu->addAction(privacyBlurAction);
+        /** AVN END */
         settings->addSeparator();
     }
     settings->addAction(optionsAction);
@@ -974,14 +1005,13 @@ void AvianGUI::setClientModel(ClientModel* _clientModel)
             // initialize the disable state of the tray icon with the current value in the model.
             setTrayIconVisible(optionsModel->getHideTrayIcon());
 
-            // Initialize mask values action checkmark from saved settings and apply button state
-            bool fHideAmounts = optionsModel->getHideAmounts();
-            if (hideAmountsAction) {
-                hideAmountsAction->setChecked(fHideAmounts);
-            }
+            /** AVN START - Initialize privacy mode from saved settings */
+            int nPrivacyMode = optionsModel->getPrivacyMode();
+            handlePrivacyModeChanged(nPrivacyMode);
 
-            // Update button states based on saved mask values setting
-            handleMaskValuesChanged(fHideAmounts);
+            // Connect privacy mode changes
+            connect(optionsModel, SIGNAL(privacyModeChanged(int)), this, SLOT(handlePrivacyModeChanged(int)));
+            /** AVN END */
         }
     } else {
         // Disable possibility to show main window via action
@@ -1545,9 +1575,21 @@ void AvianGUI::checkAssets()
         restrictedAssetAction->setToolTip(tr("Restricted Assets not yet active"));
     }
 
-    // Re-apply mask values state after asset availability is determined
+    // Re-apply privacy mode mask state (but only the asset button disabling)
+    // This ensures that if we're in mask mode, the asset buttons stay disabled
     if (clientModel && clientModel->getOptionsModel()) {
-        handleMaskValuesChanged(clientModel->getOptionsModel()->getHideAmounts());
+        int nPrivacyMode = clientModel->getOptionsModel()->getPrivacyMode();
+        if (nPrivacyMode == OptionsModel::PRIVACY_MASK) {
+            // Re-apply mask to asset actions
+            if (transferAssetAction && transferAssetAction->isEnabled())
+                transferAssetAction->setEnabled(false);
+            if (createAssetAction && createAssetAction->isEnabled())
+                createAssetAction->setEnabled(false);
+            if (manageAssetAction && manageAssetAction->isEnabled())
+                manageAssetAction->setEnabled(false);
+            if (restrictedAssetAction && restrictedAssetAction->isEnabled())
+                restrictedAssetAction->setEnabled(false);
+        }
     }
 }
 #endif // ENABLE_WALLET
@@ -1663,63 +1705,306 @@ void AvianGUI::toggleHidden()
     showNormalIfMinimized(true);
 }
 
-void AvianGUI::toggleHideAmounts()
+void AvianGUI::togglePrivacyMode(int mode)
 {
     if (clientModel && clientModel->getOptionsModel()) {
         OptionsModel* optionsModel = clientModel->getOptionsModel();
-        bool currentHideAmounts = optionsModel->getHideAmounts();
-        optionsModel->setData(optionsModel->index(OptionsModel::HideAmounts, 0), !currentHideAmounts, Qt::EditRole);
-        hideAmountsAction->setChecked(!currentHideAmounts);
+        optionsModel->setData(optionsModel->index(OptionsModel::PrivacyMode, 0), mode, Qt::EditRole);
     }
 }
 
-void AvianGUI::handleMaskValuesChanged(bool fMask)
+/** AVN START - Privacy Mode Functions */
+void AvianGUI::handlePrivacyModeChanged(int mode)
 {
-    // Update menu checkmark when mask values state changes
-    if (hideAmountsAction) hideAmountsAction->setChecked(fMask);
+    if (!clientModel || !clientModel->getOptionsModel()) return;
 
-    // Defer button state updates slightly to ensure proper state handling
-    QTimer::singleShot(1, [this, fMask]() {
-        // Disable navigation buttons when mask values is enabled
-        if (historyAction) historyAction->setEnabled(!fMask);
+    OptionsModel* optionsModel = clientModel->getOptionsModel();
 
-        // Only disable asset actions if they're currently enabled (i.e., assets are deployed)
-        if (transferAssetAction && transferAssetAction->isEnabled())
-            transferAssetAction->setEnabled(!fMask);
-        if (createAssetAction && createAssetAction->isEnabled())
-            createAssetAction->setEnabled(!fMask);
-        if (manageAssetAction && manageAssetAction->isEnabled())
-            manageAssetAction->setEnabled(!fMask);
-        if (restrictedAssetAction && restrictedAssetAction->isEnabled())
-            restrictedAssetAction->setEnabled(!fMask);
+    // Update radio button checks
+    if (privacyOffAction) privacyOffAction->setChecked(mode == OptionsModel::PRIVACY_OFF);
+    if (privacyMaskAction) privacyMaskAction->setChecked(mode == OptionsModel::PRIVACY_MASK);
+    if (privacyBlurAction) privacyBlurAction->setChecked(mode == OptionsModel::PRIVACY_BLUR);
 
-        // If mask values is being disabled, re-check asset deployment status to restore buttons
-        if (!fMask) {
-            checkAssets();
-        }
-
-        // If mask values is being enabled and we're on a disabled page, go to overview
-        if (fMask) {
-            // Check if any disabled action is currently checked, if so navigate to overview
-            bool onDisabledPage = false;
-            if (historyAction && !historyAction->isEnabled() && historyAction->isChecked()) {
-                onDisabledPage = true;
-            } else if (transferAssetAction && !transferAssetAction->isEnabled() && transferAssetAction->isChecked()) {
-                onDisabledPage = true;
-            } else if (createAssetAction && !createAssetAction->isEnabled() && createAssetAction->isChecked()) {
-                onDisabledPage = true;
-            } else if (manageAssetAction && !manageAssetAction->isEnabled() && manageAssetAction->isChecked()) {
-                onDisabledPage = true;
-            } else if (restrictedAssetAction && !restrictedAssetAction->isEnabled() && restrictedAssetAction->isChecked()) {
-                onDisabledPage = true;
-            }
-
-            if (onDisabledPage) {
-                gotoOverviewPage();
-            }
-        }
-    });
+    // Apply the privacy mode
+    if (mode == OptionsModel::PRIVACY_MASK) {
+        removeBlurEffects();
+        applyMaskMode();
+    } else if (mode == OptionsModel::PRIVACY_BLUR) {
+        applyBlurEffects();
+        removeMaskMode();
+    } else {
+        removeBlurEffects();
+        removeMaskMode();
+    }
 }
+
+void AvianGUI::applyMaskMode()
+{
+    // Disable navigation buttons when mask is enabled
+    if (historyAction) {
+        historyAction->setEnabled(false);
+    }
+
+    // Only disable asset actions if they exist and are currently enabled
+    if (transferAssetAction) {
+        if (transferAssetAction->isEnabled())
+            transferAssetAction->setEnabled(false);
+    }
+    if (createAssetAction) {
+        if (createAssetAction->isEnabled())
+            createAssetAction->setEnabled(false);
+    }
+    if (manageAssetAction) {
+        if (manageAssetAction->isEnabled())
+            manageAssetAction->setEnabled(false);
+    }
+    if (restrictedAssetAction) {
+        if (restrictedAssetAction->isEnabled())
+            restrictedAssetAction->setEnabled(false);
+    }
+
+    bool onDisabledPage = false;
+    if (historyAction && historyAction->isChecked() && !historyAction->isEnabled()) {
+        onDisabledPage = true;
+    } else if (transferAssetAction && transferAssetAction->isChecked() && !transferAssetAction->isEnabled()) {
+        onDisabledPage = true;
+    } else if (createAssetAction && createAssetAction->isChecked() && !createAssetAction->isEnabled()) {
+        onDisabledPage = true;
+    } else if (manageAssetAction && manageAssetAction->isChecked() && !manageAssetAction->isEnabled()) {
+        onDisabledPage = true;
+    } else if (restrictedAssetAction && restrictedAssetAction->isChecked() && !restrictedAssetAction->isEnabled()) {
+        onDisabledPage = true;
+    }
+
+    if (onDisabledPage) {
+        // Defer the navigation to avoid potential issues
+        QTimer::singleShot(100, this, &AvianGUI::gotoOverviewPage);
+    }
+}
+
+void AvianGUI::removeMaskMode()
+{
+    // Re-enable navigation buttons
+    if (historyAction) historyAction->setEnabled(true);
+
+    // Re-enable asset buttons based on their deployment status
+    if (AreAssetsDeployed()) {
+        if (transferAssetAction) transferAssetAction->setEnabled(true);
+        if (createAssetAction) createAssetAction->setEnabled(true);
+        if (manageAssetAction) manageAssetAction->setEnabled(true);
+    }
+    if (AreRestrictedAssetsDeployed()) {
+        if (restrictedAssetAction) restrictedAssetAction->setEnabled(true);
+    }
+}
+
+void AvianGUI::applyBlurEffects()
+{
+    if (!walletFrame) return;
+
+    // Clear any existing effects first to avoid duplicates
+    removeBlurEffects();
+
+    // Disable navigation buttons like mask mode
+    if (historyAction) {
+        if (historyAction->isEnabled())
+            historyAction->setEnabled(false);
+    }
+    if (transferAssetAction) {
+        if (transferAssetAction->isEnabled())
+            transferAssetAction->setEnabled(false);
+    }
+    if (createAssetAction) {
+        if (createAssetAction->isEnabled())
+            createAssetAction->setEnabled(false);
+    }
+    if (manageAssetAction) {
+        if (manageAssetAction->isEnabled())
+            manageAssetAction->setEnabled(false);
+    }
+    if (restrictedAssetAction) {
+        if (restrictedAssetAction->isEnabled())
+            restrictedAssetAction->setEnabled(false);
+    }
+
+    // Find all labels in the wallet UI and blur them
+    QList<QLabel*> labels = walletFrame->findChildren<QLabel*>();
+
+    for (QLabel* label : labels) {
+        if (!label) continue;
+
+        QString name = label->objectName();
+        QString text = label->text();
+
+        // Skip already blurred labels
+        if (blurEffects.contains(label)) continue;
+
+        // Skip non-sensitive labels - these are just descriptions, not values
+        if (name.contains("Recommended", Qt::CaseInsensitive) ||
+            name.contains("Cost", Qt::CaseInsensitive) ||
+            name.contains("Fee", Qt::CaseInsensitive) ||
+            text == "Available:" ||
+            text == "Amount:" ||
+            text == "Total:" ||
+            text == "Pending:" ||
+            text == "Immature:") {
+            continue;
+        }
+
+        // Determine if this is an amount value to blur (not a title/label)
+        bool isAmountValue = false;
+
+        // Check object names - these are amount displays (these contain the ACTUAL values)
+        if (name.contains("labelBalance", Qt::CaseInsensitive) ||
+            name.contains("labelUnconfirmed", Qt::CaseInsensitive) ||
+            name.contains("labelImmature", Qt::CaseInsensitive) ||
+            name.contains("labelWatchAvailable", Qt::CaseInsensitive) ||
+            name.contains("labelWatchPending", Qt::CaseInsensitive) ||
+            name.contains("labelWatchImmature", Qt::CaseInsensitive) ||
+            name.contains("labelWatchTotal", Qt::CaseInsensitive) ||
+            name.contains("labelTotal", Qt::CaseInsensitive)) {
+            isAmountValue = true;
+        }
+
+        // Check text content for amount-like values (numbers with AVN or USD)
+        // Only blur if it starts with a digit (actual amount value, not a label)
+        if (!isAmountValue && !text.isEmpty() && text[0].isDigit()) {
+            if (text.contains("AVN") || text.contains("USD")) {
+                isAmountValue = true;
+            }
+        }
+
+        if (isAmountValue) {
+            // Create and apply blur effect with stronger blur
+            QGraphicsBlurEffect* blur = new QGraphicsBlurEffect();
+            blur->setBlurRadius(20.0); // Increased from 8.0 for better privacy
+            label->setGraphicsEffect(blur);
+            blurEffects.insert(label, blur);
+        }
+    }
+
+    // Also blur item view widgets (for assets and transactions)
+    QList<QAbstractItemView*> itemViews = walletFrame->findChildren<QAbstractItemView*>();
+    for (QAbstractItemView* view : itemViews) {
+        if (!view || blurEffects.contains(view)) continue;
+
+        QString name = view->objectName();
+
+        // Apply blur to asset and transaction views
+        if (name.contains("asset", Qt::CaseInsensitive) ||
+            name.contains("transaction", Qt::CaseInsensitive)) {
+            QGraphicsBlurEffect* blur = new QGraphicsBlurEffect();
+            blur->setBlurRadius(20.0);
+            view->setGraphicsEffect(blur);
+            blurEffects.insert(view, blur);
+        }
+    }
+
+    // Also blur input fields in coin control and other dialogs
+    QList<QLineEdit*> lineEdits = walletFrame->findChildren<QLineEdit*>();
+    for (QLineEdit* edit : lineEdits) {
+        if (!edit) continue;
+
+        QString name = edit->objectName();
+
+        // Blur input fields that contain amounts (coin control, send amounts, etc)
+        if (name.contains("Quantity", Qt::CaseInsensitive) ||
+            name.contains("Amount", Qt::CaseInsensitive) ||
+            (name.contains("lineEdit", Qt::CaseInsensitive) && edit->isReadOnly())) {
+            if (blurEffects.contains(edit)) continue;
+
+            QGraphicsBlurEffect* blur = new QGraphicsBlurEffect();
+            blur->setBlurRadius(20.0);
+            edit->setGraphicsEffect(blur);
+            blurEffects.insert(edit, blur);
+        }
+    }
+
+    // Also search for QLineEdit widgets in all top-level widgets (for dialogs like coin control)
+    for (QWidget* widget : qApp->allWidgets()) {
+        if (!widget || !widget->isVisible()) continue;
+
+        QString name = widget->objectName();
+
+        // Look for coin control and similar dialogs
+        if (name.contains("CoinControl", Qt::CaseInsensitive) ||
+            name.contains("sendCoinsDialog", Qt::CaseInsensitive)) {
+            QList<QLineEdit*> dialogLineEdits = widget->findChildren<QLineEdit*>();
+            for (QLineEdit* edit : dialogLineEdits) {
+                if (!edit || blurEffects.contains(edit)) continue;
+
+                QString editName = edit->objectName();
+
+                // Blur sensitive amount fields
+                if (editName.contains("Quantity", Qt::CaseInsensitive) ||
+                    editName.contains("Amount", Qt::CaseInsensitive) ||
+                    editName.contains("spinBoxQuantity", Qt::CaseInsensitive)) {
+                    QGraphicsBlurEffect* blur = new QGraphicsBlurEffect();
+                    blur->setBlurRadius(20.0);
+                    edit->setGraphicsEffect(blur);
+                    blurEffects.insert(edit, blur);
+                }
+            }
+
+            // Also blur spinbox widgets in coin control
+            QList<QSpinBox*> spinBoxes = widget->findChildren<QSpinBox*>();
+            for (QSpinBox* spinbox : spinBoxes) {
+                if (!spinbox || blurEffects.contains(spinbox)) continue;
+
+                QString spinName = spinbox->objectName();
+                if (spinName.contains("Quantity", Qt::CaseInsensitive) ||
+                    spinName.contains("spinBoxQuantity", Qt::CaseInsensitive)) {
+                    QGraphicsBlurEffect* blur = new QGraphicsBlurEffect();
+                    blur->setBlurRadius(20.0);
+                    spinbox->setGraphicsEffect(blur);
+                    blurEffects.insert(spinbox, blur);
+                }
+            }
+
+            // Also blur double spinbox widgets (for amounts)
+            QList<QDoubleSpinBox*> doubleSpinBoxes = widget->findChildren<QDoubleSpinBox*>();
+            for (QDoubleSpinBox* spinbox : doubleSpinBoxes) {
+                if (!spinbox || blurEffects.contains(spinbox)) continue;
+
+                QString spinName = spinbox->objectName();
+                if (spinName.contains("Amount", Qt::CaseInsensitive) ||
+                    spinName.contains("Quantity", Qt::CaseInsensitive)) {
+                    QGraphicsBlurEffect* blur = new QGraphicsBlurEffect();
+                    blur->setBlurRadius(20.0);
+                    spinbox->setGraphicsEffect(blur);
+                    blurEffects.insert(spinbox, blur);
+                }
+            }
+        }
+    }
+}
+
+void AvianGUI::removeBlurEffects()
+{
+    // Store list of widgets to update before clearing the map
+    QList<QWidget*> widgetsToUpdate = blurEffects.keys();
+
+    // Delete all effects
+    for (QGraphicsBlurEffect* effect : blurEffects.values()) {
+        if (effect) {
+            delete effect;
+        }
+    }
+
+    // Clear the map
+    blurEffects.clear();
+
+    // Repaint all widgets that had effects to force immediate re-rendering
+    for (QWidget* widget : widgetsToUpdate) {
+        if (widget) {
+            widget->update();  // Queue a repaint
+            widget->repaint(); // Force immediate repaint
+        }
+    }
+}
+
+/** AVN END */
+
 void AvianGUI::detectShutdown()
 {
     if (ShutdownRequested()) {

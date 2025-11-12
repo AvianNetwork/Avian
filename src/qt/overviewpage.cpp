@@ -629,13 +629,15 @@ void OverviewPage::setWalletModel(WalletModel* model)
 {
     this->walletModel = model;
     if (model && model->getOptionsModel()) {
-        // Initialize hideAmounts setting from options
-        fHideAmounts = model->getOptionsModel()->getHideAmounts();
+        /** AVN START - Initialize privacy mode setting from options */
+        int nPrivacyMode = model->getOptionsModel()->getPrivacyMode();
+        fHideAmounts = (nPrivacyMode == 1); // 1 = PRIVACY_MASK
 
-        // Apply initial visibility based on hideAmounts setting
+        // Apply initial visibility based on privacy mode
         ui->frame_2->setVisible(!fHideAmounts);
         ui->assetFrame->setVisible(!fHideAmounts);
         ui->assetVerticalSpaceWidget2->setVisible(fHideAmounts);
+        /** AVN END */
 
         // Set up transaction list
         filter.reset(new TransactionFilterProxy());
@@ -661,7 +663,9 @@ void OverviewPage::setWalletModel(WalletModel* model)
         connect(model, SIGNAL(balanceChanged(CAmount, CAmount, CAmount, CAmount, CAmount, CAmount)), this, SLOT(setBalance(CAmount, CAmount, CAmount, CAmount, CAmount, CAmount)));
 
         connect(model->getOptionsModel(), SIGNAL(displayUnitChanged(int)), this, SLOT(updateDisplayUnit()));
-        connect(model->getOptionsModel(), SIGNAL(hideAmountsChanged(bool)), this, SLOT(toggleHideAmounts(bool)));
+        /** AVN START - Updated to use privacyModeChanged signal instead of hideAmountsChanged */
+        connect(model->getOptionsModel(), SIGNAL(privacyModeChanged(int)), this, SLOT(toggleHideAmounts(int)));
+        /** AVN END */
 
         updateWatchOnlyLabels(model->haveWatchOnly());
         connect(model, SIGNAL(notifyWatchonlyChanged(bool)), this, SLOT(updateWatchOnlyLabels(bool)));
@@ -788,9 +792,17 @@ QString OverviewPage::formatAmount(const CAmount& amount)
     return AvianUnits::formatWithUnit(unit, amount, false, AvianUnits::separatorAlways);
 }
 
-void OverviewPage::toggleHideAmounts(bool fHide)
+/** AVN START - Updated to handle privacy mode */
+void OverviewPage::toggleHideAmounts(int privacyMode)
 {
-    fHideAmounts = fHide;
+    // Only hide amounts when in PRIVACY_MASK mode (1)
+    // PRIVACY_OFF (0) and PRIVACY_BLUR (2) still show amounts
+    fHideAmounts = (privacyMode == 1); // 1 = PRIVACY_MASK
+
+    // Update UI visibility based on mask mode
+    ui->frame_2->setVisible(!fHideAmounts);
+    ui->assetFrame->setVisible(!fHideAmounts);
+    ui->assetVerticalSpaceWidget2->setVisible(fHideAmounts);
 
     // Refresh all balance displays
     if (currentBalance != -1) {
@@ -798,10 +810,10 @@ void OverviewPage::toggleHideAmounts(bool fHide)
             currentWatchOnlyBalance, currentWatchUnconfBalance, currentWatchImmatureBalance);
     }
 
-    ui->frame_2->setVisible(!fHide);
-    ui->assetFrame->setVisible(!fHide);
-    ui->assetVerticalSpaceWidget2->setVisible(fHide);
-
-    // Emit signal so main window can disable navigation buttons
-    Q_EMIT maskValuesChanged(fHide);
+    // Immediately update Total label to avoid stale hash symbols
+    // This is necessary because getPriceInfo() runs async and may take time
+    if (currentBalance != -1 && !fHideAmounts) {
+        ui->labelTotal->setText(formatAmount(currentBalance + currentUnconfirmedBalance + currentImmatureBalance));
+    }
 }
+/** AVN END */

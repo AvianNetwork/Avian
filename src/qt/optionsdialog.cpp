@@ -196,7 +196,6 @@ void OptionsDialog::setMapper()
     mapper->addMapping(ui->coinControlFeatures, OptionsModel::CoinControlFeatures);
     mapper->addMapping(ui->customFeeFeatures, OptionsModel::CustomFeeFeatures);
     mapper->addMapping(ui->darkModeCheckBox, OptionsModel::DarkModeEnabled);
-    mapper->addMapping(ui->hideAmountsCheckBox, OptionsModel::HideAmounts);
 
     /* Network */
     mapper->addMapping(ui->mapPortUpnp, OptionsModel::MapPortUPnP);
