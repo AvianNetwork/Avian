@@ -5,7 +5,7 @@
 #include <psbt.h>
 
 #include <util/check.h>
-#include <util/strencodings.h>
+#include <utilstrencodings.h>
 
 
 PartiallySignedTransaction::PartiallySignedTransaction(const CMutableTransaction& tx) : tx(tx)
@@ -278,7 +278,8 @@ bool PSBTInputSigned(const PSBTInput& input)
     return !input.final_script_sig.empty() || !input.final_script_witness.IsNull();
 }
 
-size_t CountPSBTUnsignedInputs(const PartiallySignedTransaction& psbt) {
+size_t CountPSBTUnsignedInputs(const PartiallySignedTransaction& psbt)
+{
     size_t count = 0;
     for (const auto& input : psbt.inputs) {
         if (!PSBTInputSigned(input)) {
@@ -326,7 +327,7 @@ PrecomputedTransactionData PrecomputePSBTData(const PartiallySignedTransaction& 
     return txdata;
 }
 
-bool SignPSBTInput(const SigningProvider& provider, PartiallySignedTransaction& psbt, int index, const PrecomputedTransactionData* txdata, int sighash,  SignatureData* out_sigdata, bool finalize)
+bool SignPSBTInput(const SigningProvider& provider, PartiallySignedTransaction& psbt, int index, const PrecomputedTransactionData* txdata, int sighash, SignatureData* out_sigdata, bool finalize)
 {
     PSBTInput& input = psbt.inputs.at(index);
     const CMutableTransaction& tx = *psbt.tx;
@@ -443,13 +444,19 @@ TransactionError CombinePSBTs(PartiallySignedTransaction& out, const std::vector
     return TransactionError::OK;
 }
 
-std::string PSBTRoleName(PSBTRole role) {
+std::string PSBTRoleName(PSBTRole role)
+{
     switch (role) {
-    case PSBTRole::CREATOR: return "creator";
-    case PSBTRole::UPDATER: return "updater";
-    case PSBTRole::SIGNER: return "signer";
-    case PSBTRole::FINALIZER: return "finalizer";
-    case PSBTRole::EXTRACTOR: return "extractor";
+    case PSBTRole::CREATOR:
+        return "creator";
+    case PSBTRole::UPDATER:
+        return "updater";
+    case PSBTRole::SIGNER:
+        return "signer";
+    case PSBTRole::FINALIZER:
+        return "finalizer";
+    case PSBTRole::EXTRACTOR:
+        return "extractor";
         // no default case, so the compiler can warn about missing cases
     }
     assert(false);

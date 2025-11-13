@@ -335,6 +335,8 @@ libavian_server_a_SOURCES = \
   policy/policy.cpp \
   policy/rbf.cpp \
   pow.cpp \
+  psbt.cpp \
+  node/psbt.cpp \
   rest.cpp \
   rpc/flightplans.cpp \
   rpc/assets.cpp \

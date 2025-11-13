@@ -2,8 +2,8 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
+#include <amount.h>
 #include <coins.h>
-#include <consensus/amount.h>
 #include <consensus/tx_verify.h>
 #include <node/psbt.h>
 #include <policy/policy.h>
@@ -12,7 +12,8 @@
 
 #include <numeric>
 
-namespace node {
+namespace node
+{
 PSBTAnalysis AnalyzePSBT(PartiallySignedTransaction psbtx)
 {
     // Go through each input and build status
@@ -82,7 +83,7 @@ PSBTAnalysis AnalyzePSBT(PartiallySignedTransaction psbtx)
             } else {
                 input_analysis.next = PSBTRole::FINALIZER;
             }
-        } else if (!utxo.IsNull()){
+        } else if (!utxo.IsNull()) {
             input_analysis.is_final = true;
         }
     }
@@ -103,8 +104,7 @@ PSBTAnalysis AnalyzePSBT(PartiallySignedTransaction psbtx)
                     return CAmount(-1);
                 }
                 return a += b.nValue;
-            }
-        );
+            });
         if (!MoneyRange(out_amt)) {
             result.SetInvalid("PSBT is not valid. Output amount invalid");
             return result;
@@ -143,7 +143,6 @@ PSBTAnalysis AnalyzePSBT(PartiallySignedTransaction psbtx)
             CFeeRate feerate(fee, size);
             result.estimated_feerate = feerate;
         }
-
     }
 
     return result;
