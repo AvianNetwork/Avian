@@ -27,6 +27,7 @@
 
 #ifdef ENABLE_WALLET
 #include "mnemonicdialog.h"
+#include "psbtoperationsdialog.h"
 #include "walletframe.h"
 #include "walletmodel.h"
 #endif // ENABLE_WALLET
@@ -38,18 +39,24 @@
 #include "chainparams.h"
 #include "core_io.h"
 #include "init.h"
+#include "psbt.h"
+#include "serialize.h"
 #include "ui_interface.h"
 #include "util.h"
+#include "utilstrencodings.h"
 
 #include <iostream>
 
 #include <QAction>
 #include <QApplication>
+#include <QClipboard>
 #include <QComboBox>
 #include <QDateTime>
 #include <QDebug>
 #include <QDesktopWidget>
 #include <QDragEnterEvent>
+#include <QFile>
+#include <QFileDialog>
 #include <QGraphicsDropShadowEffect>
 #include <QListWidget>
 #include <QMenuBar>
@@ -65,6 +72,7 @@
 #include <QStackedWidget>
 #include <QStatusBar>
 #include <QStyle>
+#include <QTextStream>
 #include <QTimer>
 #include <QToolBar>
 #include <QToolButton>
@@ -539,6 +547,11 @@ void AvianGUI::createActions()
     paperWalletAction = new QAction(platformStyle->TextColorIcon(":/icons/print"), tr("&Print paper wallets"), this);
     paperWalletAction->setStatusTip(tr("Print paper wallets"));
 
+    loadPSBTFileAction = new QAction(platformStyle->TextColorIcon(":/icons/open"), tr("Load PSBT from &file..."), this);
+    loadPSBTFileAction->setStatusTip(tr("Load a partially signed transaction from file"));
+    loadPSBTClipboardAction = new QAction(platformStyle->TextColorIcon(":/icons/editcopy"), tr("Load PSBT from &clipboard..."), this);
+    loadPSBTClipboardAction->setStatusTip(tr("Load a partially signed transaction from clipboard"));
+
     openRPCConsoleAction = new QAction(platformStyle->TextColorIcon(":/icons/debugwindow"), tr("&Debug window"), this);
     openRPCConsoleAction->setStatusTip(tr("Open debugging and diagnostic console"));
     // initially disable the debug window menu item
@@ -586,6 +599,8 @@ void AvianGUI::createActions()
         connect(openAction, SIGNAL(triggered()), this, SLOT(openClicked()));
         connect(paperWalletAction, SIGNAL(triggered()), walletFrame, SLOT(printPaperWallets()));
         connect(importPrivateKeyAction, SIGNAL(triggered()), walletFrame, SLOT(importPrivateKey()));
+        connect(loadPSBTFileAction, SIGNAL(triggered()), this, SLOT(loadPSBTFromFile()));
+        connect(loadPSBTClipboardAction, SIGNAL(triggered()), this, SLOT(loadPSBTFromClipboard()));
     }
 #endif // ENABLE_WALLET
 
@@ -610,6 +625,9 @@ void AvianGUI::createMenuBar()
         file->addAction(signMessageAction);
         file->addAction(verifyMessageAction);
         file->addAction(paperWalletAction);
+        file->addSeparator();
+        file->addAction(loadPSBTFileAction);
+        file->addAction(loadPSBTClipboardAction);
         file->addSeparator();
         file->addAction(importPrivateKeyAction);
         file->addAction(usedSendingAddressesAction);
@@ -1832,6 +1850,78 @@ void AvianGUI::mnemonic()
 {
     MnemonicDialog dlg(this);
     dlg.exec();
+}
+
+void AvianGUI::loadPSBTFromFile()
+{
+    if (!psbtOperationsDialog) {
+        WalletModel* walletModel = walletFrame->currentWalletModel();
+        psbtOperationsDialog = new PSBTOperationsDialog(this, walletModel, clientModel);
+    }
+
+    QString fileName = QFileDialog::getOpenFileName(this,
+        tr("Open PSBT"), "", tr("PSBT Files (*.psbt);;All Files (*)"));
+
+    if (fileName.isEmpty()) {
+        return;
+    }
+
+    QFile file(fileName);
+    if (!file.open(QIODevice::ReadOnly)) {
+        QMessageBox::critical(this, tr("Error"), tr("Cannot open file for reading"));
+        return;
+    }
+
+    QByteArray fileData = file.readAll();
+    file.close();
+
+    // Try to deserialize as binary PSBT first
+    try {
+        CDataStream ds(fileData.begin(), fileData.end(), SER_NETWORK, PROTOCOL_VERSION);
+        PartiallySignedTransaction psbtx;
+        ds >> psbtx;
+        psbtOperationsDialog->openWithPSBT(psbtx);
+        psbtOperationsDialog->show();
+        psbtOperationsDialog->raise();
+        psbtOperationsDialog->activateWindow();
+    } catch (const std::exception& e) {
+        QMessageBox::critical(this, tr("Error"), tr("Failed to load PSBT: %1").arg(e.what()));
+    }
+}
+
+void AvianGUI::loadPSBTFromClipboard()
+{
+    if (!psbtOperationsDialog) {
+        WalletModel* walletModel = walletFrame->currentWalletModel();
+        psbtOperationsDialog = new PSBTOperationsDialog(this, walletModel, clientModel);
+    }
+
+    QClipboard* clipboard = QApplication::clipboard();
+    QString psbtData = clipboard->text().trimmed();
+
+    if (psbtData.isEmpty()) {
+        QMessageBox::warning(this, tr("Error"), tr("Clipboard is empty"));
+        return;
+    }
+
+    // Decode from base64
+    try {
+        std::vector<unsigned char> decoded = DecodeBase64(psbtData.toStdString().c_str());
+        if (decoded.empty()) {
+            QMessageBox::critical(this, tr("Error"), tr("Unable to decode PSBT from clipboard (invalid base64)"));
+            return;
+        }
+
+        CDataStream ds(decoded, SER_NETWORK, PROTOCOL_VERSION);
+        PartiallySignedTransaction psbtx;
+        ds >> psbtx;
+        psbtOperationsDialog->openWithPSBT(psbtx);
+        psbtOperationsDialog->show();
+        psbtOperationsDialog->raise();
+        psbtOperationsDialog->activateWindow();
+    } catch (const std::exception& e) {
+        QMessageBox::critical(this, tr("Error"), tr("Failed to load PSBT: %1").arg(e.what()));
+    }
 }
 
 void AvianGUI::getLatestVersion()

@@ -6,7 +6,6 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include "validation.h"
-
 #include "arith_uint256.h"
 #include "chain.h"
 #include "chainparams.h"
@@ -5794,6 +5793,74 @@ double GuessVerificationProgress(const ChainTxData& data, CBlockIndex* pindex)
     }
 
     return pindex->nChainTx / fTxTotal;
+}
+
+const char* TransactionErrorString(TransactionError error)
+{
+    switch (error) {
+    case TransactionError::OK:
+        return "Transaction accepted";
+    case TransactionError::MISSING_INPUTS:
+        return "Transaction rejected: missing inputs";
+    case TransactionError::MEMPOOL_REJECTED:
+        return "Transaction rejected by mempool";
+    case TransactionError::ALREADY_IN_CHAIN:
+        return "Transaction already known";
+    case TransactionError::P2P_DISABLED:
+        return "Networking disabled; transaction not relayed";
+    case TransactionError::INTERNAL_ERROR:
+    default:
+        return "Internal error while processing transaction";
+    }
+}
+
+TransactionError BroadcastTransaction(const CTransactionRef& tx, std::string& err_string, bool relay)
+{
+    err_string.clear();
+    if (!tx) {
+        err_string = "Invalid transaction";
+        return TransactionError::INTERNAL_ERROR;
+    }
+
+    CValidationState state;
+    bool missing_inputs = false;
+
+    if (!AcceptToMemoryPool(mempool, state, tx, &missing_inputs, nullptr, false, 0)) {
+        if (missing_inputs) {
+            err_string = "Missing inputs";
+            return TransactionError::MISSING_INPUTS;
+        }
+
+        if (state.IsInvalid()) {
+            err_string = state.GetRejectReason();
+            if (err_string.empty()) {
+                err_string = "Rejected";
+            }
+
+            if (err_string == "txn-already-known" || err_string == "txn-already-in-mempool") {
+                return TransactionError::ALREADY_IN_CHAIN;
+            }
+
+            return TransactionError::MEMPOOL_REJECTED;
+        }
+
+        err_string = "Validation failed";
+        return TransactionError::INTERNAL_ERROR;
+    }
+
+    if (relay) {
+        if (!g_connman) {
+            err_string = "P2P networking disabled";
+            return TransactionError::P2P_DISABLED;
+        }
+
+        CInv inv(MSG_TX, tx->GetHash());
+        g_connman->ForEachNode([&inv](CNode* pnode) {
+            pnode->PushInventory(inv);
+        });
+    }
+
+    return TransactionError::OK;
 }
 
 /** AVN START */

@@ -116,6 +116,7 @@ QT_FORMS_UI = \
   qt/forms/testpeerdialog.ui \
   qt/forms/wrapping.ui \
   qt/forms/duster.ui \
+  qt/forms/psbtoperationsdialog.ui \
   qt/forms/sendcoinsdialog.ui \
   qt/forms/sendcoinsentry.ui \
   qt/forms/signverifymessagedialog.ui \
@@ -184,6 +185,7 @@ QT_MOC_CPP = \
   qt/moc_utilitydialog.cpp \
   qt/moc_verticallabel.cpp \
   qt/moc_peerdialog.cpp \
+  qt/moc_psbtoperationsdialog.cpp \
   qt/moc_duster.cpp \
   qt/moc_walletframe.cpp \
   qt/moc_walletmodel.cpp \
@@ -286,6 +288,7 @@ AVIAN_QT_H = \
   qt/utilitydialog.h \
   qt/verticallabel.h \
   qt/peerdialog.h \
+  qt/psbtoperationsdialog.h \
   qt/duster.h \
   qt/walletframe.h \
   qt/walletmodel.h \
@@ -493,6 +496,7 @@ AVIAN_QT_WALLET_CPP = \
   qt/wrapping.cpp \
   qt/verticallabel.cpp \
   qt/peerdialog.cpp \
+  qt/psbtoperationsdialog.cpp \
   qt/duster.cpp \
   qt/walletframe.cpp \
   qt/walletmodel.cpp \

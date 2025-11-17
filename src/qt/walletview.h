@@ -62,6 +62,8 @@ public:
 
     void showOutOfSyncWarning(bool fShow);
 
+    WalletModel* getWalletModel() const { return walletModel; }
+
 private:
     ClientModel* clientModel;
     WalletModel* walletModel;

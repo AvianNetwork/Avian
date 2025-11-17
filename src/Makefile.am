@@ -249,6 +249,7 @@ AVIAN_CORE_H = \
   wallet/feebumper.h \
   wallet/fees.h \
   wallet/init.h \
+  wallet/psbtwallet.h \
   wallet/rpcwallet.h \
   wallet/wallet.h \
   wallet/walletdb.h \
@@ -265,34 +266,27 @@ AVIAN_CORE_H = \
   flightplans/json/fpconv.h \
   lua/lapi.h \
   lua/lauxlib.h \
-  lua/lbaselib.h \
   lua/lcode.h \
-  lua/lcorolib.h \
   lua/lctype.h \
-  lua/ldblib.h \
   lua/ldebug.h \
   lua/ldo.h \
-  lua/ldump.h \
   lua/lfunc.h \
   lua/lgc.h \
-  lua/linit.h \
-  lua/liolib.h \
   lua/llex.h \
-  lua/lmathlib.h \
+  lua/llimits.h \
   lua/lmem.h \
-  lua/loadlib.h \
   lua/lobject.h \
   lua/lopcodes.h \
-  lua/loslib.h \
   lua/lparser.h \
+  lua/lprefix.h \
   lua/lstate.h \
   lua/lstring.h \
-  lua/lstrlib.h \
   lua/ltable.h \
-  lua/ltablib.h \
   lua/ltm.h \
+  lua/lua.h \
+  lua/luaconf.h \
+  lua/lualib.h \
   lua/lundump.h \
-  lua/lutf8lib.h \
   lua/lvm.h \
   lua/lzio.h
 
@@ -422,6 +416,7 @@ libavian_wallet_a_SOURCES = \
   wallet/feebumper.cpp \
   wallet/fees.cpp \
   wallet/init.cpp \
+  wallet/psbtwallet.cpp \
   wallet/rpcdump.cpp \
   wallet/rpcwallet.cpp \
   wallet/wallet.cpp \

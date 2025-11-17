@@ -61,6 +61,7 @@ forms/ui_openuridialog.h
 forms/ui_optionsdialog.h
 forms/ui_overviewpage.h
 forms/ui_paperwalletdialog.h
+forms/ui_psbtoperationsdialog.h
 forms/ui_receivecoinsdialog.h
 forms/ui_receiverequestdialog.h
 forms/ui_reissueassetdialog.h
@@ -119,6 +120,7 @@ moc_optionsdialog.cpp
 moc_optionsmodel.cpp
 moc_overviewpage.cpp
 moc_paymentserver.cpp
+moc_psbtoperationsdialog.cpp
 moc_peerdialog.cpp
 moc_peertablemodel.cpp
 moc_qvalidatedlineedit.cpp
@@ -172,6 +174,8 @@ paymentrequestplus.cpp
 paymentrequestplus.h
 paymentserver.cpp
 paymentserver.h
+psbtoperationsdialog.cpp
+psbtoperationsdialog.h
 peerdialog.cpp
 peerdialog.h
 peertablemodel.cpp

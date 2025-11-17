@@ -613,4 +613,16 @@ bool IsDGWActive(unsigned int nBlockNumber);
 CAssetsCache* GetCurrentAssetCache();
 /** AVN END */
 
+enum class TransactionError {
+    OK = 0,
+    MISSING_INPUTS,
+    MEMPOOL_REJECTED,
+    ALREADY_IN_CHAIN,
+    P2P_DISABLED,
+    INTERNAL_ERROR,
+};
+
+const char* TransactionErrorString(TransactionError error);
+TransactionError BroadcastTransaction(const CTransactionRef& tx, std::string& err_string, bool relay = true);
+
 #endif // RAVEN_VALIDATION_H

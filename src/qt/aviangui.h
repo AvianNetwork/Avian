@@ -33,6 +33,7 @@ class WalletFrame;
 class WalletModel;
 class HelpMessageDialog;
 class ModalOverlay;
+class PSBTOperationsDialog;
 
 QT_BEGIN_NAMESPACE
 class QAction;
@@ -113,6 +114,8 @@ private:
     QAction* signMessageAction = nullptr;
     QAction* verifyMessageAction = nullptr;
     QAction* paperWalletAction = nullptr;
+    QAction* loadPSBTFileAction = nullptr;
+    QAction* loadPSBTClipboardAction = nullptr;
     QAction* aboutAction = nullptr;
     QAction* receiveCoinsAction = nullptr;
     QAction* receiveCoinsMenuAction = nullptr;
@@ -152,6 +155,7 @@ private:
     RPCConsole* rpcConsole = nullptr;
     HelpMessageDialog* helpMessageDialog = nullptr;
     ModalOverlay* modalOverlay = nullptr;
+    PSBTOperationsDialog* psbtOperationsDialog = nullptr;
 
     /** Keep track of previous number of blocks, to detect progress */
     int prevBlocks;
@@ -301,6 +305,12 @@ private Q_SLOTS:
     void toggleNetworkActive();
 
     void showModalOverlay();
+
+    /** Load PSBT from file */
+    void loadPSBTFromFile();
+
+    /** Load PSBT from clipboard */
+    void loadPSBTFromClipboard();
 };
 
 class UnitDisplayStatusBarControl : public QLabel
