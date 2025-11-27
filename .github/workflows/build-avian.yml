@@ -1,0 +1,131 @@
+name: Build Avian
+
+on:
+  push:
+    branches:
+      - master
+      - develop
+      - V4.2
+    tags:
+      - "v*"
+    paths-ignore:
+      - "doc/**"
+      - "**.md"
+  pull_request:
+    branches:
+      - master
+      - develop
+      - "release*"
+  workflow_dispatch:
+
+env:
+  SCRIPTS: ${{ github.workspace }}/.github/scripts
+
+jobs:
+  check-jobs:
+    runs-on: ubuntu-22.04
+    # Map a step output to a job output
+    outputs:
+      should_skip: ${{ steps.skip_check.outputs.should_skip }}
+    steps:
+      - id: skip_check
+        uses: fkirc/skip-duplicate-actions@master
+        with:
+          # All of these options are optional, so you can remove them if you are happy with the defaults
+          concurrent_skipping: "never"
+          skip_after_successful_duplicate: "true"
+          paths_ignore: >-
+            ["binaries/**","community/**","contrib/**","doc/**","roadmap/**",
+             "share/**","static-builds/**","whitepaper/**","**/*.md"]
+          do_not_skip: '["workflow_dispatch","schedule"]'
+
+  build:
+    needs: check-jobs
+    runs-on: ubuntu-22.04
+    strategy:
+      matrix:
+        OS: ["windows", "linux", "aarch64", "arm32v7", "osx"]
+      fail-fast: false
+      #  OS: [ 'windows', 'linux', 'linux-disable-wallet', 'arm32v7', 'arm32v7-disable-wallet', 'aarch64', 'aarch64-disable-wallet' ]
+
+    steps:
+      - if: ${{ needs.check-jobs.outputs.should_skip != 'true' }}
+        name: Checkout the Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # ensure full history so `git describe` can find tags
+          fetch-tags: true # fetch annotated/lightweight tags for BUILD_DESC
+
+      - if: ${{ needs.check-jobs.outputs.should_skip != 'true' }}
+        name: Normalize Git metadata (avoid false "-dirty")
+        run: |
+          git config core.filemode false
+          git update-index -q --refresh
+
+      - if: ${{ needs.check-jobs.outputs.should_skip != 'true' }}
+        name: Debug repository state after checkout
+        run: |
+          echo "HEAD: $(git rev-parse HEAD)"
+          echo "Short HEAD: $(git rev-parse --short HEAD)"
+          echo "Describe: $(git describe --tags --always --dirty 2>/dev/null || true)"
+          echo "Status (porcelain):"
+          git status --porcelain -uall || true
+          echo "Diff-index (excluding depends/):"
+          git diff-index --name-status HEAD -- . ":(exclude)depends/" || true
+
+      - if: ${{ needs.check-jobs.outputs.should_skip != 'true' }}
+        name: Make scripts executable
+        run: chmod +x ${SCRIPTS}/*.sh
+
+      - if: ${{ needs.check-jobs.outputs.should_skip != 'true' }}
+        name: Configure passwordless sudo
+        run: echo "$USER ALL=(ALL) NOPASSWD:ALL" | sudo tee /etc/sudoers.d/$USER
+
+      - if: ${{ needs.check-jobs.outputs.should_skip != 'true' }}
+        name: Install Build Tools
+        run: ${SCRIPTS}/00-install-deps.sh ${{ MATRIX.OS }}
+
+      - if: ${{ needs.check-jobs.outputs.should_skip != 'true' }}
+        name: Cache dependencies.
+        uses: actions/cache@v4
+        with:
+          path: |
+            ${{ GITHUB.WORKSPACE }}/depends/built
+            ${{ GITHUB.WORKSPACE }}/depends/sources
+            ${{ GITHUB.WORKSPACE }}/depends/work
+          key: ${{ MATRIX.OS }}
+
+      - if: ${{ needs.check-jobs.outputs.should_skip != 'true' }}
+        name: Build dependencies.
+        run: ${SCRIPTS}/02-copy-build-dependencies.sh ${{ MATRIX.OS }} ${{ GITHUB.WORKSPACE }} ${{ GITHUB.BASE_REF }} ${{ GITHUB.REF }}
+
+      - if: ${{ needs.check-jobs.outputs.should_skip != 'true' }}
+        name: Add Dependencies to the System PATH
+        run: ${SCRIPTS}/03-export-path.sh ${{ MATRIX.OS }} ${{ GITHUB.WORKSPACE }}
+
+      - if: ${{ needs.check-jobs.outputs.should_skip != 'true' }}
+        name: Build Config
+        run: cd ${{ GITHUB.WORKSPACE }} && ./autogen.sh
+
+      - if: ${{ needs.check-jobs.outputs.should_skip != 'true' }}
+        name: Configure Build
+        run: ${SCRIPTS}/04-configure-build.sh ${{ MATRIX.OS }} ${{ GITHUB.WORKSPACE }}
+
+      - if: ${{ needs.check-jobs.outputs.should_skip != 'true' }}
+        name: Build Avian
+        run: make -j2
+
+      - if: ${{ needs.check-jobs.outputs.should_skip != 'true' }}
+        name: Check Binary Security
+        run: ${SCRIPTS}/05-binary-checks.sh ${{ MATRIX.OS }} ${{ GITHUB.WORKSPACE }}
+
+      - if: ${{ needs.check-jobs.outputs.should_skip != 'true' }}
+        name: Package Up the Build
+        run: ${SCRIPTS}/06-package.sh ${{ MATRIX.OS }} ${{ GITHUB.WORKSPACE }} ${{ GITHUB.BASE_REF }} ${{ GITHUB.REF }}
+
+      - if: ${{ needs.check-jobs.outputs.should_skip != 'true' }}
+        name: Upload Artifacts to Job
+        uses: actions/upload-artifact@master
+        with:
+          name: ${{ MATRIX.OS }}
+          path: ${{ GITHUB.WORKSPACE }}/release

@@ -1,0 +1,13 @@
+Add limits include to generator.cpp for GCC 11+ compatibility on Ubuntu 22.04+ toolchains.
+
+diff --git a/qtbase/src/tools/moc/generator.cpp b/qtbase/src/tools/moc/generator.cpp
+--- a/qtbase/src/tools/moc/generator.cpp
++++ b/qtbase/src/tools/moc/generator.cpp
+@@ -40,6 +40,7 @@
+ #include <QtCore/qstringview.h>
+ 
+ #include <math.h>
++#include <limits>
+ #include <stdio.h>
+ 
+ #include <private/qmetaobject_p.h> //for the flags.

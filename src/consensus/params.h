@@ -8,22 +8,36 @@
 #ifndef AVIAN_CONSENSUS_PARAMS_H
 #define AVIAN_CONSENSUS_PARAMS_H
 
-#include "uint256.h"
 #include "founder_payment.h"
+#include "uint256.h"
 
 #include <cstdint>
 #include <map>
 #include <string>
 
-namespace Consensus {
-
-enum DeploymentPos
+namespace Consensus
 {
+/**
+ * BIP9 deployments
+ */
+enum DeploymentPos {
     DEPLOYMENT_TESTDUMMY,
     // DEPLOYMENT_CSV, // Deployment of BIP68, BIP112, and BIP113.
     // DEPLOYMENT_SEGWIT, // Deployment of BIP141, BIP143, and BIP147.
     // NOTE: Also add new deployments to VersionBitsDeploymentInfo in versionbits.cpp,
     MAX_VERSION_BITS_DEPLOYMENTS
+};
+
+/**
+ * Avian network upgrades using timestamps
+ */
+enum UpgradeIndex {
+    UPGRADE_X16RT_SWITCH,
+    UPGRADE_DUAL_ALGO,
+    UPGRADE_AVIAN_ASSETS,
+    UPGRADE_AVIAN_FLIGHT_PLANS,
+    UPGRADE_AVIAN_NAME_SYSTEM,
+    MAX_NETWORK_UPGRADES
 };
 
 /**
@@ -36,6 +50,13 @@ struct BIP9Deployment {
     int64_t nStartTime;
     /** Timeout/expiry MedianTime for the deployment attempt. */
     int64_t nTimeout;
+};
+
+/**
+ * Struct for each network upgrade using timestamp.
+ */
+struct NetworkUpgrade {
+    uint32_t nTimestamp;
 };
 
 /**
@@ -60,7 +81,13 @@ struct ConsensusParams {
      */
     uint32_t nRuleChangeActivationThreshold;
     uint32_t nMinerConfirmationWindow;
+
+    /** BIP9 deployments */
     BIP9Deployment vDeployments[MAX_VERSION_BITS_DEPLOYMENTS];
+
+    /** Avian network upgrades */
+    NetworkUpgrade vUpgrades[MAX_NETWORK_UPGRADES];
+
     /** Proof of work parameters */
     uint256 powLimit;
     bool fPowAllowMinDifficultyBlocks;
@@ -74,31 +101,15 @@ struct ConsensusParams {
     bool nCSVEnabled;
     uint32_t nX16rtTimestamp;
 
-    // Crow consensus fields
+    // Dual Algo consensus fields
     uint32_t powForkTime;
     int64_t diffRetargetFix;
     int64_t diffRetargetTake2;
     int64_t lwmaAveragingWindow;        // Averaging window size for LWMA diff adjust
     std::vector<uint256> powTypeLimits; // Limits for each pow type (with future-proofing space; can't pick up NUM_BLOCK_TYPES here)
 
-    // AVN Assets
-    uint32_t nAssetActivationTime;
-
-    // Messaging
-    uint32_t nMessagingActivationTime;
-
-    // Restricted
-    uint32_t nRestrictedActivationTime;
-
-    // AVN Flight Plans
-    uint32_t nFlightPlansActivationTime;
-
     // AVN Founder Payment
     FounderPayment nFounderPayment;
-
-    // Avian Name System (ANS)
-    uint32_t nAvianNameSystemTime;
-
 };
 } // namespace Consensus
 

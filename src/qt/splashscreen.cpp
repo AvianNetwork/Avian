@@ -13,8 +13,8 @@
 
 #include "clientversion.h"
 #include "init.h"
-#include "util.h"
 #include "ui_interface.h"
+#include "util.h"
 #include "version.h"
 
 #ifdef ENABLE_WALLET
@@ -31,9 +31,9 @@
 #include <QTextDocument>
 #include <QUrl>
 #else
+#include <QFontDatabase>
 #include <QUrlQuery>
 #include <tinyformat.h>
-#include <QFontDatabase>
 #endif
 
 #if QT_VERSION < QT_VERSION_CHECK(5, 11, 0)
@@ -51,27 +51,27 @@ SplashScreen::SplashScreen(const NetworkStyle* networkStyle)
     QFontDatabase::addApplicationFont(":/fonts/manrope-regular");
 
     // set reference point, paddings
-    int paddingRight            = 50;
-    int paddingTop              = 50;
-    int titleVersionVSpace      = 17;
-    int titleCopyrightVSpace    = 40;
+    int paddingRight = 50;
+    int paddingTop = 50;
+    int titleVersionVSpace = 17;
+    int titleCopyrightVSpace = 40;
 
-    float fontFactor            = 1.0;
-    float devicePixelRatio      = 1.0;
+    float fontFactor = 1.0;
+    float devicePixelRatio = 1.0;
 #if QT_VERSION > 0x050100
     devicePixelRatio = ((QGuiApplication*)QCoreApplication::instance())->devicePixelRatio();
 #endif
 
     // define text to place
-    QString titleText       = tr(PACKAGE_NAME);
-    QString versionText     = QString("Version %1").arg(QString::fromStdString(FormatFullVersion()));
-    QString copyrightText   = QString::fromUtf8(CopyrightHolders(strprintf("\xc2\xA9 %u-%u ", 2009, COPYRIGHT_YEAR)).c_str());
-    QString titleAddText    = networkStyle->getTitleAddText();
+    QString titleText = tr(PACKAGE_NAME);
+    QString versionText = QString("Version %1").arg(QString::fromStdString(FormatFullVersion()));
+    QString copyrightText = QString::fromUtf8(CopyrightHolders(strprintf("\xc2\xA9 %u-%u ", 2009, COPYRIGHT_YEAR)).c_str());
+    QString titleAddText = networkStyle->getTitleAddText();
 
-    QString font            = "Manrope";
+    QString font = "Manrope";
 
     // create a bitmap according to device pixelratio
-    QSize splashSize(480*devicePixelRatio,320*devicePixelRatio);
+    QSize splashSize(480 * devicePixelRatio, 320 * devicePixelRatio);
     pixmap = QPixmap(splashSize);
 
 #if QT_VERSION > 0x050100
@@ -90,14 +90,14 @@ SplashScreen::SplashScreen(const NetworkStyle* networkStyle)
         gradient.setColorAt(1, QColor(42, 115, 127));
         QRect rGradient(QPoint(0, 0), splashSize);
         pixPaint.fillRect(rGradient, gradient);
-    } else if(titleAddText == QT_TRANSLATE_NOOP("SplashScreen", "[testnet]")) {
+    } else if (titleAddText == QT_TRANSLATE_NOOP("SplashScreen", "[testnet]")) {
         // Testnet
         QRadialGradient gradient(QPoint(0, 0), splashSize.width() / devicePixelRatio);
         gradient.setColorAt(0, QColor(68, 73, 205));
         gradient.setColorAt(1, QColor(31, 22, 142));
         QRect rGradient(QPoint(0, 0), splashSize);
         pixPaint.fillRect(rGradient, gradient);
-    } else if(titleAddText == "[regtest]") {
+    } else if (titleAddText == "[regtest]") {
         // Regtest
         QRadialGradient gradient(QPoint(0, 0), splashSize.width() / devicePixelRatio);
         gradient.setColorAt(0, QColor(255, 41, 41));
@@ -107,71 +107,99 @@ SplashScreen::SplashScreen(const NetworkStyle* networkStyle)
     }
 
     // draw the avian icon, expected size of PNG: 1024x1024
-    QRect rectIcon(QPoint(-40,0), QSize(310,310));
+    QRect rectIcon(QPoint(-40, 0), QSize(310, 310));
 
-    const QSize requiredSize(1024,1024);
+    const QSize requiredSize(1024, 1024);
     QPixmap icon(":/icons/avianlogo");
 
     pixPaint.drawPixmap(rectIcon, icon);
 
     // check font size and drawing with
-    pixPaint.setFont(QFont(font, 33*fontFactor));
+    pixPaint.setFont(QFont(font, 33 * fontFactor));
     QFontMetrics fm = pixPaint.fontMetrics();
-    #ifndef QTversionPreFiveEleven
-    	int titleTextWidth = fm.horizontalAdvance(titleText);
-    #else
-    	int titleTextWidth = fm.width(titleText);
-    #endif
+#ifndef QTversionPreFiveEleven
+    int titleTextWidth = fm.horizontalAdvance(titleText);
+#else
+    int titleTextWidth = fm.width(titleText);
+#endif
     if (titleTextWidth > 176) {
         fontFactor = fontFactor * 176 / titleTextWidth;
     }
 
-    pixPaint.setFont(QFont(font, 33*fontFactor));
+    pixPaint.setFont(QFont(font, 33 * fontFactor));
     fm = pixPaint.fontMetrics();
-    #ifndef QTversionPreFiveEleven
-    	titleTextWidth  = fm.horizontalAdvance(titleText);
-    #else
-    	titleTextWidth  = fm.width(titleText);
-    #endif
-    pixPaint.drawText(pixmap.width()/devicePixelRatio-titleTextWidth-paddingRight,paddingTop,titleText);
+#ifndef QTversionPreFiveEleven
+    titleTextWidth = fm.horizontalAdvance(titleText);
+#else
+    titleTextWidth = fm.width(titleText);
+#endif
+    pixPaint.drawText(pixmap.width() / devicePixelRatio - titleTextWidth - paddingRight, paddingTop, titleText);
 
-    pixPaint.setFont(QFont(font, 15*fontFactor));
+    pixPaint.setFont(QFont(font, 15 * fontFactor));
 
     // if the version string is to long, reduce size
     fm = pixPaint.fontMetrics();
-    #ifndef QTversionPreFiveEleven
-    	int versionTextWidth  = fm.horizontalAdvance(versionText);
-    #else
-    	int versionTextWidth  = fm.width(versionText);
-    #endif
-    
-    if(versionTextWidth > titleTextWidth+paddingRight-10) {
-        pixPaint.setFont(QFont(font, 10*fontFactor));
+#ifndef QTversionPreFiveEleven
+    int versionTextWidth = fm.horizontalAdvance(versionText);
+#else
+    int versionTextWidth = fm.width(versionText);
+#endif
+
+    if (versionTextWidth > titleTextWidth + paddingRight - 10) {
+        pixPaint.setFont(QFont(font, 10 * fontFactor));
         titleVersionVSpace -= 5;
     }
-    pixPaint.drawText(pixmap.width()/devicePixelRatio-titleTextWidth-paddingRight+2,paddingTop+titleVersionVSpace,versionText);
+    pixPaint.drawText(pixmap.width() / devicePixelRatio - titleTextWidth - paddingRight + 2, paddingTop + titleVersionVSpace, versionText);
 
     // draw copyright stuff
     {
-        pixPaint.setFont(QFont(font, 10*fontFactor));
-        const int x = pixmap.width()/devicePixelRatio-titleTextWidth-paddingRight;
-        const int y = paddingTop+titleCopyrightVSpace;
+        pixPaint.setFont(QFont(font, 10 * fontFactor));
+        const int x = pixmap.width() / devicePixelRatio - titleTextWidth - paddingRight;
+        const int y = paddingTop + titleCopyrightVSpace;
         QRect copyrightRect(x, y, pixmap.width() - x - paddingRight, pixmap.height() - y);
         pixPaint.drawText(copyrightRect, Qt::AlignLeft | Qt::AlignTop | Qt::TextWordWrap, copyrightText);
     }
 
+// draw large RC version if this is a release candidate
+#ifdef CLIENT_VERSION_RC
+#if CLIENT_VERSION_RC > 0
+    {
+        QString rcText = QString("RC %1").arg(CLIENT_VERSION_RC);
+        QFont rcFont = QFont(font, 48 * fontFactor);
+        rcFont.setWeight(QFont::Bold);
+        pixPaint.setFont(rcFont);
+        pixPaint.setPen(QColor(255, 255, 255, 180)); // Semi-transparent white
+
+        QFontMetrics rcFm = pixPaint.fontMetrics();
+#ifndef QTversionPreFiveEleven
+        int rcTextWidth = rcFm.horizontalAdvance(rcText);
+#else
+        int rcTextWidth = rcFm.width(rcText);
+#endif
+
+        // Position RC text in the lower right area with some padding
+        const int rcX = pixmap.width() / devicePixelRatio - rcTextWidth - 30;
+        const int rcY = pixmap.height() / devicePixelRatio - 40;
+        pixPaint.drawText(rcX, rcY, rcText);
+
+        // Reset pen color for any subsequent drawing
+        pixPaint.setPen(QColor(250, 250, 250));
+    }
+#endif
+#endif
+
     // draw additional text if special network
-    if(!titleAddText.isEmpty()) {
-        QFont boldFont = QFont(font, 10*fontFactor);
+    if (!titleAddText.isEmpty()) {
+        QFont boldFont = QFont(font, 10 * fontFactor);
         boldFont.setWeight(QFont::Bold);
         pixPaint.setFont(boldFont);
         fm = pixPaint.fontMetrics();
-        #ifndef QTversionPreFiveEleven
-    		int titleAddTextWidth  = fm.horizontalAdvance(titleAddText);
-    	#else
-    		int titleAddTextWidth  = fm.width(titleAddText);
-    	#endif
-        pixPaint.drawText(pixmap.width()/devicePixelRatio-titleAddTextWidth-10,15,titleAddText);
+#ifndef QTversionPreFiveEleven
+        int titleAddTextWidth = fm.horizontalAdvance(titleAddText);
+#else
+        int titleAddTextWidth = fm.width(titleAddText);
+#endif
+        pixPaint.drawText(pixmap.width() / devicePixelRatio - titleAddTextWidth - 10, 15, titleAddText);
     }
 
     pixPaint.end();
@@ -180,7 +208,7 @@ SplashScreen::SplashScreen(const NetworkStyle* networkStyle)
     setWindowTitle(titleText + " " + titleAddText);
 
     // Resize window and move to center of desktop, disallow resizing
-    QRect r(QPoint(), QSize(pixmap.size().width()/devicePixelRatio,pixmap.size().height()/devicePixelRatio));
+    QRect r(QPoint(), QSize(pixmap.size().width() / devicePixelRatio, pixmap.size().height() / devicePixelRatio));
     resize(r.size());
     setFixedSize(r.size());
     move(QGuiApplication::primaryScreen()->geometry().center() - r.center());
@@ -194,17 +222,18 @@ SplashScreen::~SplashScreen()
     unsubscribeFromCoreSignals();
 }
 
-bool SplashScreen::eventFilter(QObject * obj, QEvent * ev) {
+bool SplashScreen::eventFilter(QObject* obj, QEvent* ev)
+{
     if (ev->type() == QEvent::KeyPress) {
-        QKeyEvent *keyEvent = static_cast<QKeyEvent *>(ev);
-        if(keyEvent->text()[0] == 'q') {
+        QKeyEvent* keyEvent = static_cast<QKeyEvent*>(ev);
+        if (keyEvent->text()[0] == 'q') {
             StartShutdown();
         }
     }
     return QObject::eventFilter(obj, ev);
 }
 
-void SplashScreen::slotFinish(QWidget *mainWin)
+void SplashScreen::slotFinish(QWidget* mainWin)
 {
     Q_UNUSED(mainWin);
 
@@ -216,21 +245,20 @@ void SplashScreen::slotFinish(QWidget *mainWin)
     deleteLater(); // No more need for this
 }
 
-static void InitMessage(SplashScreen *splash, const std::string &message)
+static void InitMessage(SplashScreen* splash, const std::string& message)
 {
     QMetaObject::invokeMethod(splash, "showMessage",
         Qt::QueuedConnection,
         Q_ARG(QString, QString::fromStdString(message)),
-        Q_ARG(int, Qt::AlignBottom|Qt::AlignHCenter),
+        Q_ARG(int, Qt::AlignBottom | Qt::AlignHCenter),
         Q_ARG(QColor, QColor(250, 250, 250)));
 }
 
-static void ShowProgress(SplashScreen *splash, const std::string &title, int nProgress, bool resume_possible)
+static void ShowProgress(SplashScreen* splash, const std::string& title, int nProgress, bool resume_possible)
 {
     InitMessage(splash, title + std::string("\n") +
-            (resume_possible ? _("(press q to shutdown and continue later)")
-                                : _("press q to shutdown")) +
-            strprintf("\n%d", nProgress) + "%");
+                            (resume_possible ? _("(press q to shutdown and continue later)") : _("press q to shutdown")) +
+                            strprintf("\n%d", nProgress) + "%");
 }
 
 #ifdef ENABLE_WALLET
@@ -257,13 +285,13 @@ void SplashScreen::unsubscribeFromCoreSignals()
     uiInterface.InitMessage.disconnect(boost::bind(InitMessage, this, _1));
     uiInterface.ShowProgress.disconnect(boost::bind(ShowProgress, this, _1, _2, _3));
 #ifdef ENABLE_WALLET
-    for (CWallet* const & pwallet : connectedWallets) {
+    for (CWallet* const& pwallet : connectedWallets) {
         pwallet->ShowProgress.disconnect(boost::bind(ShowProgress, this, _1, _2, false));
     }
 #endif
 }
 
-void SplashScreen::showMessage(const QString &message, int alignment, const QColor &color)
+void SplashScreen::showMessage(const QString& message, int alignment, const QColor& color)
 {
     curMessage = message;
     curAlignment = alignment;
@@ -271,7 +299,7 @@ void SplashScreen::showMessage(const QString &message, int alignment, const QCol
     update();
 }
 
-void SplashScreen::paintEvent(QPaintEvent *event)
+void SplashScreen::paintEvent(QPaintEvent* event)
 {
     QPainter painter(this);
     painter.drawPixmap(0, 0, pixmap);
@@ -280,7 +308,7 @@ void SplashScreen::paintEvent(QPaintEvent *event)
     painter.drawText(r, curAlignment, curMessage);
 }
 
-void SplashScreen::closeEvent(QCloseEvent *event)
+void SplashScreen::closeEvent(QCloseEvent* event)
 {
     StartShutdown(); // allows an "emergency" shutdown during startup
     event->ignore();

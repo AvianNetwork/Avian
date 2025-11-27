@@ -1,0 +1,17 @@
+--- a/src/xkbcomp/ast-build.c
++++ b/src/xkbcomp/ast-build.c
+@@ -1,6 +1,9 @@
+ /*
+  * Copyright © 2009 Dan Nicholson
+  */
++#pragma GCC diagnostic push
++#pragma GCC diagnostic ignored "-Warray-bounds"
++
+ #include "dix.h"
+ #include "ast-build.h"
+ 
+@@ -306,3 +309,4 @@ BoolVarCreate(const char *name, bool set)
+ 
+     return expr;
+ }
++#pragma GCC diagnostic pop

@@ -70,6 +70,12 @@ src/qt/test/moc*.cpp
 *.pb.cc
 *.pb.h
 
+# Build artifacts
+src/obj/
+depends/built/
+depends/sources/
+depends/work/
+
 *.log
 *.trs
 *.dmg

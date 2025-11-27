@@ -47,6 +47,36 @@ endif
 $(LIBSECP256K1): $(wildcard secp256k1/src/*) $(wildcard secp256k1/include/*)
 	$(AM_V_at)$(MAKE) $(AM_MAKEFLAGS) -C $(@D) $(@F)
 
+# Algorithm source files
+AVIAN_ALGO_SOURCES = \
+  algo/extra.c \
+  algo/x16r/groestl.c \
+  algo/x16r/blake.c \
+  algo/x16r/bmw.c \
+  algo/x16r/cubehash.c \
+  algo/x16r/echo.c \
+  algo/x16r/jh.c \
+  algo/x16r/keccak.c \
+  algo/x16r/luffa.c \
+  algo/x16r/shavite.c \
+  algo/x16r/simd.c \
+  algo/x16r/skein.c \
+  algo/x16r/hamsi.c \
+  algo/x16r/whirlpool.c \
+  algo/x16r/shabal.c \
+  algo/x16r/fugue.c \
+  algo/x16r/sha2.c \
+  algo/x16r/sph_sha2big.c \
+  algo/x16r/haval.c \
+  algo/x16r/tiger.cpp \
+  algo/x16r/lyra2.cpp \
+  algo/x16r/sponge.cpp \
+  algo/x16r/sph_sha2.c \
+  algo/x16r/gost_streebog.c \
+  algo/minotaurx/blake2s-ref.c \
+  algo/minotaurx/yespower/yespower.c \
+  algo/minotaurx/yespower/crypto/sha256.c
+
 # Make is not made aware of per-object dependencies to avoid limiting building parallelization
 # But to build the less dependent modules first, we manually select their order here:
 EXTRA_LIBRARIES += \
@@ -83,64 +113,37 @@ endif
 AVIAN_CORE_H = \
   addrdb.h \
   addressindex.h \
-  algo/sph_groestl.h \
-  algo/sph_types.h \
-  algo/sph_blake.h \
-  algo/sph_bmw.h \
-  algo/sph_jh.h \
-  algo/sph_keccak.h \
-  algo/sph_skein.h \
-  algo/sph_luffa.h \
-  algo/sph_cubehash.h \
-  algo/sph_simd.h \
-  algo/sph_echo.h \
-  algo/sph_shavite.h \
-  algo/sph_sha2.h \
-  algo/sph_haval.h \
-  algo/sph_tiger.h \
-  algo/lyra2.h \
-  algo/sponge.h \
-  algo/gost_streebog.h \
-  algo/groestl.c \
-  algo/blake.c \
-  algo/bmw.c \
-  algo/cubehash.c \
-  algo/echo.c \
-  algo/jh.c \
-  algo/keccak.c \
-  algo/luffa.c \
-  algo/shavite.c \
-  algo/simd.c \
-  algo/skein.c \
-  algo/hamsi.c \
-  algo/whirlpool.c \
-  algo/shabal.c \
-  algo/fugue.c \
-  algo/sha2.c \
-  algo/extra.c \
   algo/extra.h \
-  algo/sph_sha2big.c \
-  algo/haval.c \
-  algo/tiger.cpp \
-  algo/lyra2.cpp \
-  algo/sponge.cpp \
-  algo/sph_sha2.c \
-  algo/gost_streebog.c \
-  algo/crow/blake2.h \
-  algo/crow/blake2-impl.h \
-  algo/crow/blake2s-ref.c \
-  algo/crow/hashblake.h \
-  algo/crow/hashgroestl.h \
-  algo/crow/hashquark.h \
-  algo/crow/hashqubit.h \
-  algo/crow/hashskein.h \
-  algo/crow/hashx11.h \
-  algo/crow/hashx13.h \
-  algo/crow/hashx15.h \
-  algo/crow/hashx17.h \
-  algo/crow/minotaurx.h \
-  algo/crow/yespower/yespower.c \
-  algo/crow/yespower/crypto/sha256.c \
+  algo/x16r/sph_groestl.h \
+  algo/x16r/sph_types.h \
+  algo/x16r/sph_blake.h \
+  algo/x16r/sph_bmw.h \
+  algo/x16r/sph_jh.h \
+  algo/x16r/sph_keccak.h \
+  algo/x16r/sph_skein.h \
+  algo/x16r/sph_luffa.h \
+  algo/x16r/sph_cubehash.h \
+  algo/x16r/sph_simd.h \
+  algo/x16r/sph_echo.h \
+  algo/x16r/sph_shavite.h \
+  algo/x16r/sph_sha2.h \
+  algo/x16r/sph_haval.h \
+  algo/x16r/sph_tiger.h \
+  algo/x16r/lyra2.h \
+  algo/x16r/sponge.h \
+  algo/x16r/gost_streebog.h \
+  algo/minotaurx/blake2.h \
+  algo/minotaurx/blake2-impl.h \
+  algo/minotaurx/hashblake.h \
+  algo/minotaurx/hashgroestl.h \
+  algo/minotaurx/hashquark.h \
+  algo/minotaurx/hashqubit.h \
+  algo/minotaurx/hashskein.h \
+  algo/minotaurx/hashx11.h \
+  algo/minotaurx/hashx13.h \
+  algo/minotaurx/hashx15.h \
+  algo/minotaurx/hashx17.h \
+  algo/minotaurx/minotaurx.h \
   spentindex.h \
   timestampindex.h \
   addrman.h \
@@ -355,7 +358,7 @@ libavian_server_a_SOURCES = \
   validation.cpp \
   validationinterface.cpp \
   versionbits.cpp \
-  flightplans/avianlib.cpp \  
+  flightplans/avianlib.cpp \
   flightplans/flightplans.cpp \
   flightplans/json/strbuf.c \
   flightplans/json/fpconv.c \
@@ -392,6 +395,7 @@ libavian_server_a_SOURCES = \
   lua/lutf8lib.c \
   lua/lvm.c \
   lua/lzio.c \
+  $(AVIAN_ALGO_SOURCES) \
   $(AVIAN_CORE_H)
 
 if ENABLE_ZMQ
@@ -512,6 +516,7 @@ libavian_consensus_a_SOURCES = \
   version.h \
   LibBoolEE.cpp \
   LibBoolEE.h \
+  $(AVIAN_ALGO_SOURCES) \
   $(AVIAN_CORE_H)
 
 # common: shared between aviand, and avian-qt and non-server tools

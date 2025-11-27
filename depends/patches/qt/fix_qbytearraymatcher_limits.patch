@@ -1,0 +1,9 @@
+Add limits include to qbytearraymatcher.h for GCC 11+ compatibility on Ubuntu 22.04+ toolchains.
+
+diff --git a/qtbase/src/corelib/tools/qbytearraymatcher.h b/qtbase/src/corelib/tools/qbytearraymatcher.h
+--- a/qtbase/src/corelib/tools/qbytearraymatcher.h
++++ b/qtbase/src/corelib/tools/qbytearraymatcher.h
+@@ -43,3 +43,4 @@
+ #include <QtCore/qbytearray.h>
++#include <limits>
+ 

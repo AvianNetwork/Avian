@@ -3,5 +3,7 @@ host = https://www.transifex.com
 
 [avian.qt-translation-014x]
 file_filter = src/qt/locale/avian_<lang>.ts
+minimum_perc = 0
 source_file = src/qt/locale/avian_en.ts
 source_lang = en
+type = QT

@@ -3,25 +3,23 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
+#include "algo/x16r/x16r.h"
 #include <arith_uint256.h>
-#include "algo/hash_algos.h"
+#include <iostream>
 #include <stdio.h>
 #include <string.h>
 #include <utilstrencodings.h>
-#include <iostream>
 
-int main(int argc, char **argv)
+int main(int argc, char** argv)
 {
-    if (argc == 2)
-    {
+    if (argc == 2) {
         std::vector<unsigned char> rawHeader = ParseHex(argv[1]);
 
         std::vector<unsigned char> rawHashPrevBlock(rawHeader.begin() + 4, rawHeader.begin() + 36);
         uint256 hashPrevBlock(rawHashPrevBlock);
 
         std::cout << HashX16R(rawHeader.data(), rawHeader.data() + 80, hashPrevBlock).GetHex();
-    } else
-    {
+    } else {
         std::cerr << "Usage: test_avian_hash blockHex" << std::endl;
         return 1;
     }

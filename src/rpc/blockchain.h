@@ -6,9 +6,12 @@
 #ifndef AVIAN_RPC_BLOCKCHAIN_H
 #define AVIAN_RPC_BLOCKCHAIN_H
 
+#include <primitives/block.h>
+
 class CBlock;
 class CBlockIndex;
 class UniValue;
+class JSONRPCRequest;
 
 /**
  * Get the difficulty of the net wrt to the given block index, or the chain tip if
@@ -17,14 +20,14 @@ class UniValue;
  * @return A floating point number that is a multiple of the main net minimum
  * difficulty (4295032833 hashes).
  */
-//double GetDifficulty(const CBlockIndex* blockindex = nullptr, POW_TYPE powType = POW_TYPE_X16RT);
-//double GetDifficulty(const CBlockIndex* blockindex, POW_TYPE powType);
+// double GetDifficulty(const CBlockIndex* blockindex = nullptr, POW_TYPE powType = POW_TYPE_X16RT);
+// double GetDifficulty(const CBlockIndex* blockindex, POW_TYPE powType);
 
 double GetDifficulty(const CBlockIndex* blockindex);
 double GetDifficulty(POW_TYPE powType);
 
 /** Callback for when block tip changed. */
-void RPCNotifyBlockChange(bool ibd, const CBlockIndex *);
+void RPCNotifyBlockChange(bool ibd, const CBlockIndex*);
 
 /** Block description to JSON */
 UniValue blockToJSON(const CBlock& block, const CBlockIndex* blockindex, bool txDetails = false);
@@ -38,5 +41,7 @@ UniValue mempoolToJSON(bool fVerbose = false);
 /** Block header to JSON */
 UniValue blockheaderToJSON(const CBlockIndex* blockindex);
 
-#endif
+/** Block statistics to JSON */
+UniValue getblockstats(const JSONRPCRequest& request);
 
+#endif

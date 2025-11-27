@@ -5,7 +5,7 @@ $(package)_file_name=$(package)-$($(package)_version).tar.bz2
 $(package)_sha256_hash=2f9b6a580b94577b150a7d5617ad4643a4301a6616ff459307df3e225bcfbf40
 
 define $(package)_set_vars
-$(package)_config_opts=--disable-static --without-docbook
+$(package)_config_opts=--disable-static
 endef
 
 define $(package)_config_cmds

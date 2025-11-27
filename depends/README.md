@@ -28,14 +28,36 @@ Common `host-platform-triplets` for cross compilation are:
 
 No other options are needed, the paths are automatically configured.
 
-Dependency Options:
+### Install the required dependencies: Ubuntu & Debian
+
+#### For macOS cross compilation
+
+    sudo apt-get install curl librsvg2-bin libtiff-tools bsdmainutils cmake imagemagick libcap-dev libz-dev libbz2-dev python3-setuptools
+
+#### For Win32/Win64 cross compilation
+
+- see [build-windows.md](../doc/build-windows.md#cross-compilation-for-ubuntu-and-windows-subsystem-for-linux)
+
+#### For linux (including i386, ARM) cross compilation
+
+Common linux dependencies:
+
+    sudo apt-get install make automake cmake curl g++-multilib libtool binutils-gold bsdmainutils pkg-config python3 patch
+
+For linux ARM cross compilation:
+
+    sudo apt-get install g++-arm-linux-gnueabihf binutils-arm-linux-gnueabihf
+
+
+### Dependency Options
 The following can be set when running make: make FOO=bar
 
     SOURCES_PATH: downloaded sources will be placed here
     BASE_CACHE: built packages will be placed here
-    SDK_PATH: Path where sdk's can be found (used by OSX)
+    SDK_PATH: Path where sdk's can be found (used by macOS)
     FALLBACK_DOWNLOAD_PATH: If a source file can't be fetched, try here before giving up
     NO_QT: Don't download/build/cache qt and its dependencies
+    NO_ZMQ: Don't download/build/cache packages needed for enabling zeromq
     NO_WALLET: Don't download/build/cache libs needed to enable the wallet
     NO_UPNP: Don't download/build/cache packages needed for enabling upnp
     DEBUG: disable some optimizations and enable more runtime checking
@@ -43,12 +65,12 @@ The following can be set when running make: make FOO=bar
     BUILD_ID_SALT: Optional salt to use when generating build package ids
 
 If some packages are not built, for example `make NO_WALLET=1`, the appropriate
-options will be passed to raven's configure. In this case, `--disable-wallet`.
+options will be passed to avian's configure. In this case, `--disable-wallet`.
 
-Additional targets:
+### Additional targets
 
     download: run 'make download' to fetch all sources without building them
-    download-osx: run 'make download-osx' to fetch all sources needed for osx builds
+    download-osx: run 'make download-osx' to fetch all sources needed for macOS builds
     download-win: run 'make download-win' to fetch all sources needed for win builds
     download-linux: run 'make download-linux' to fetch all sources needed for linux builds
 

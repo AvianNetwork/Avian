@@ -25,8 +25,8 @@ public:
         this->startBlock = startBlock;
         this->rewardStructures = rewardStructures;
     }
-    ~FounderPayment(){};
-    CAmount getFounderPaymentAmount(int blockHeight, CAmount blockReward);
+    ~FounderPayment() {};
+    CAmount getFounderPaymentAmount(int blockHeight, CAmount blockReward) const;
     void FillFounderPayment(CMutableTransaction& txNew, int nBlockHeight, CAmount blockReward, CTxOut& txoutFounderRet);
     bool IsBlockPayeeValid(const CTransaction& txNew, const int height, const CAmount blockReward);
     int getStartBlock() { return this->startBlock; }

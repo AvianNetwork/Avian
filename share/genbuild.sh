@@ -4,6 +4,16 @@
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
+# Debug flag (set AVIAN_GENBUILD_DEBUG=1 to print diagnostic info to stderr)
+DEBUG="${AVIAN_GENBUILD_DEBUG:-0}"
+
+log() {
+    if [ "${DEBUG}" = "1" ]; then
+        # shellcheck disable=SC2068
+        echo "genbuild: $@" 1>&2
+    fi
+}
+
 if [ $# -gt 1 ]; then
     cd "$2"
 fi
@@ -26,17 +36,24 @@ DESC=""
 SUFFIX=""
 if [ "${AVIAN_GENBUILD_NO_GIT}" != "1" -a -e "$(which git 2>/dev/null)" -a "$(git rev-parse --is-inside-work-tree 2>/dev/null)" = "true" ] && git_check_in_repo share/genbuild.sh; then
     # clean 'dirty' status of touched files that haven't been modified
-    git diff >/dev/null 2>/dev/null 
+    git update-index -q --refresh
 
     # if latest commit is tagged and not dirty, then override using the tag name
     RAWDESC=$(git describe --abbrev=0 2>/dev/null)
     if [ "$(git rev-parse HEAD)" = "$(git rev-list -1 $RAWDESC 2>/dev/null)" ]; then
         git diff-index --quiet HEAD -- && DESC=$RAWDESC
     fi
+    log "HEAD=$(git rev-parse --short HEAD 2>/dev/null), RAWDESC=${RAWDESC:-<none>}, DESC=${DESC:-<unset>}"
 
     # otherwise generate suffix from git, i.e. string like "59887e8-dirty"
     SUFFIX=$(git rev-parse --short HEAD)
-    git diff-index --quiet HEAD -- || SUFFIX="$SUFFIX-dirty"
+    if git diff-index --quiet HEAD -- . ":(exclude)depends/"; then
+        log "Working tree clean (excluding depends/). SUFFIX=${SUFFIX}"
+    else
+        log "Dirty paths detected (excluding depends/):"
+        git diff-index --name-status HEAD -- . ":(exclude)depends/" 1>&2 || true
+        SUFFIX="$SUFFIX-dirty"
+    fi
 fi
 
 if [ -n "$DESC" ]; then
@@ -46,6 +63,8 @@ elif [ -n "$SUFFIX" ]; then
 else
     NEWINFO="// No build information available"
 fi
+
+log "NEWINFO computed: $(echo "$NEWINFO" | sed 's/\"/"/g')"
 
 # only update build.h if necessary
 if [ "$INFO" != "$NEWINFO" ]; then

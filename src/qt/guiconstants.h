@@ -45,7 +45,7 @@ static const bool DEFAULT_SPLASHSCREEN = true;
 #define COLOR_AVIAN_34E2D6 QColor("#34E2D6")
 
 
-#define COLOR_WALLETFRAME_SHADOW QColor(0,0,0,71)
+#define COLOR_WALLETFRAME_SHADOW QColor(0, 0, 0, 71)
 
 /* Color of labels */
 #define COLOR_LABELS QColor("#FFFFFF")
@@ -127,10 +127,10 @@ static const int MAX_URI_LENGTH = 255;
 #define QAPP_APP_NAME_TESTNET "Avian-Qt-testnet"
 
 /* Default third party browser urls */
-#define DEFAULT_THIRD_PARTY_BROWSERS "https://explorer-eu.avn.network/tx/%s|https://explorer-us.avn.network/tx/%s"
+#define DEFAULT_THIRD_PARTY_BROWSERS "https://cryptoscope.io/avian/tx/?txid=%s|https://blockexplorer.avn.network/tx/%s"
 
 /* Default IPFS viewer */
-#define DEFAULT_IPFS_VIEWER "https://ipfs.io/ipfs/%s"
+#define DEFAULT_IPFS_VIEWER "https://ipfs.avn.network/ipfs/%s"
 
 /* One gigabyte (GB) in bytes */
 static constexpr uint64_t GB_BYTES{1000000000};

@@ -1,8 +1,8 @@
 package=zeromq
-$(package)_version=4.3.4
+$(package)_version=4.3.5
 $(package)_download_path=https://github.com/zeromq/libzmq/releases/download/v$($(package)_version)/
 $(package)_file_name=$(package)-$($(package)_version).tar.gz
-$(package)_sha256_hash=c593001a89f5a85dd2ddf564805deb860e02471171b3f204944857336295c3e5
+$(package)_sha256_hash=6653ef5910f17954861fe72332e68b03ca6e4d9c7160eb3a8de5a5a913bfab43
 $(package)_patches=remove_libstd_link.patch
 
 define $(package)_set_vars
@@ -12,7 +12,7 @@ define $(package)_set_vars
   $(package)_config_opts += --disable-Werror --disable-drafts --enable-option-checking
   $(package)_config_opts_linux=--with-pic
   $(package)_config_opts_android=--with-pic
-  $(package)_cxxflags=-std=c++11
+  $(package)_cxxflags=-std=c++17
 endef
 
 define $(package)_preprocess_cmds

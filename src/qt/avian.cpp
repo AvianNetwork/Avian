@@ -45,17 +45,17 @@
 
 #include <QApplication>
 #include <QDebug>
+#include <QDir>
+#include <QFontDatabase>
 #include <QLibraryInfo>
 #include <QLocale>
 #include <QMessageBox>
 #include <QProcess>
 #include <QSettings>
+#include <QSslConfiguration>
 #include <QThread>
 #include <QTimer>
 #include <QTranslator>
-#include <QSslConfiguration>
-#include <QDir>
-#include <QFontDatabase>
 
 #if defined(QT_STATICPLUGIN)
 #include <QtPlugin>
@@ -77,6 +77,7 @@ Q_IMPORT_PLUGIN(QWindowsIntegrationPlugin);
 Q_IMPORT_PLUGIN(QWindowsPrinterSupportPlugin);
 #elif defined(QT_QPA_PLATFORM_COCOA)
 Q_IMPORT_PLUGIN(QCocoaIntegrationPlugin);
+Q_IMPORT_PLUGIN(QCocoaPrinterSupportPlugin);
 #endif
 #endif
 #endif
@@ -89,7 +90,7 @@ Q_IMPORT_PLUGIN(QCocoaIntegrationPlugin);
 Q_DECLARE_METATYPE(bool*)
 Q_DECLARE_METATYPE(CAmount)
 
-static void InitMessage(const std::string &message)
+static void InitMessage(const std::string& message)
 {
     LogPrintf("init message: %s\n", message);
 }
@@ -110,7 +111,7 @@ static QString GetLangTerritory()
     QString lang_territory = QLocale::system().name();
     // 2) Language from QSettings
     QString lang_territory_qsettings = settings.value("language", "").toString();
-    if(!lang_territory_qsettings.isEmpty())
+    if (!lang_territory_qsettings.isEmpty())
         lang_territory = lang_territory_qsettings;
     // 3) -lang command line argument
     lang_territory = QString::fromStdString(gArgs.GetArg("-lang", lang_territory.toStdString()));
@@ -118,7 +119,7 @@ static QString GetLangTerritory()
 }
 
 /** Set up translations */
-static void initTranslations(QTranslator &qtTranslatorBase, QTranslator &qtTranslator, QTranslator &translatorBase, QTranslator &translator)
+static void initTranslations(QTranslator& qtTranslatorBase, QTranslator& qtTranslator, QTranslator& translatorBase, QTranslator& translator)
 {
     // Remove old translators
     QApplication::removeTranslator(&qtTranslatorBase);
@@ -157,7 +158,7 @@ static void initTranslations(QTranslator &qtTranslatorBase, QTranslator &qtTrans
 
 /* qDebug() message handler --> debug.log */
 #if QT_VERSION < 0x050000
-void DebugMessageHandler(QtMsgType type, const char *msg)
+void DebugMessageHandler(QtMsgType type, const char* msg)
 {
     if (type == QtDebugMsg) {
         LogPrint(BCLog::QT, "GUI: %s\n", msg);
@@ -166,7 +167,7 @@ void DebugMessageHandler(QtMsgType type, const char *msg)
     }
 }
 #else
-void DebugMessageHandler(QtMsgType type, const QMessageLogContext& context, const QString &msg)
+void DebugMessageHandler(QtMsgType type, const QMessageLogContext& context, const QString& msg)
 {
     Q_UNUSED(context);
     if (type == QtDebugMsg) {
@@ -180,7 +181,7 @@ void DebugMessageHandler(QtMsgType type, const QMessageLogContext& context, cons
 /** Class encapsulating Avian Core startup and shutdown.
  * Allows running startup and shutdown in a different thread from the UI thread.
  */
-class AvianCore: public QObject
+class AvianCore : public QObject
 {
     Q_OBJECT
 public:
@@ -198,22 +199,22 @@ public Q_SLOTS:
 Q_SIGNALS:
     void initializeResult(bool success);
     void shutdownResult(bool success);
-    void runawayException(const QString &message);
+    void runawayException(const QString& message);
 
 private:
     boost::thread_group threadGroup;
     CScheduler scheduler;
 
     /// Pass fatal exception message to UI thread
-    void handleRunawayException(const std::exception *e);
+    void handleRunawayException(const std::exception* e);
 };
 
 /** Main Avian application object */
-class AvianApplication: public QApplication
+class AvianApplication : public QApplication
 {
     Q_OBJECT
 public:
-    explicit AvianApplication(int &argc, char **argv);
+    explicit AvianApplication(int& argc, char** argv);
     ~AvianApplication();
 
 #ifdef ENABLE_WALLET
@@ -225,9 +226,9 @@ public:
     /// Create options model
     void createOptionsModel(bool resetSettings);
     /// Create main window
-    void createWindow(const NetworkStyle *networkStyle);
+    void createWindow(const NetworkStyle* networkStyle);
     /// Create splash screen
-    void createSplashScreen(const NetworkStyle *networkStyle);
+    void createSplashScreen(const NetworkStyle* networkStyle);
 
     /// Request core initialization
     void requestInitialize();
@@ -246,27 +247,27 @@ public Q_SLOTS:
     void initializeResult(bool success);
     void shutdownResult(bool success);
     /// Handle runaway exceptions. Shows a message box with the problem and quits the program.
-    void handleRunawayException(const QString &message);
+    void handleRunawayException(const QString& message);
 
 Q_SIGNALS:
     void requestedInitialize();
     void requestedRestart(QStringList args);
     void requestedShutdown();
     void stopThread();
-    void splashFinished(QWidget *window);
+    void splashFinished(QWidget* window);
 
 private:
-    QThread *coreThread;
-    OptionsModel *optionsModel;
-    ClientModel *clientModel;
-    AvianGUI *window;
-    QTimer *pollShutdownTimer;
+    QThread* coreThread;
+    OptionsModel* optionsModel;
+    ClientModel* clientModel;
+    AvianGUI* window;
+    QTimer* pollShutdownTimer;
 #ifdef ENABLE_WALLET
     PaymentServer* paymentServer;
-    WalletModel *walletModel;
+    WalletModel* walletModel;
 #endif
     int returnValue;
-    const PlatformStyle *platformStyle;
+    const PlatformStyle* platformStyle;
     std::unique_ptr<QWidget> shutdownWindow;
 
     void startThread();
@@ -274,12 +275,19 @@ private:
 
 #include "avian.moc"
 
-AvianCore::AvianCore():
-    QObject()
+// Helper function to allow time-consuming operations to let the UI remain responsive
+static void processUIEvents()
+{
+    // Use WaitForMoreEvents to ensure we process paint events for the splash screen
+    QCoreApplication::processEvents(QEventLoop::ExcludeUserInputEvents);
+    QCoreApplication::processEvents(QEventLoop::WaitForMoreEvents);
+}
+
+AvianCore::AvianCore() : QObject()
 {
 }
 
-void AvianCore::handleRunawayException(const std::exception *e)
+void AvianCore::handleRunawayException(const std::exception* e)
 {
     PrintExceptionContinue(e, "Runaway exception");
     Q_EMIT runawayException(QString::fromStdString(GetWarnings("gui")));
@@ -287,20 +295,16 @@ void AvianCore::handleRunawayException(const std::exception *e)
 
 bool AvianCore::baseInitialize()
 {
-    if (!AppInitBasicSetup())
-    {
+    if (!AppInitBasicSetup()) {
         return false;
     }
-    if (!AppInitParameterInteraction())
-    {
+    if (!AppInitParameterInteraction()) {
         return false;
     }
-    if (!AppInitSanityChecks())
-    {
+    if (!AppInitSanityChecks()) {
         return false;
     }
-    if (!AppInitLockDataDirectory())
-    {
+    if (!AppInitLockDataDirectory()) {
         return false;
     }
     return true;
@@ -308,8 +312,7 @@ bool AvianCore::baseInitialize()
 
 void AvianCore::initialize()
 {
-    try
-    {
+    try {
         qDebug() << __func__ << ": Running initialization in thread";
         bool rv = AppInitMain(threadGroup, scheduler);
         Q_EMIT initializeResult(rv);
@@ -324,10 +327,9 @@ void AvianCore::restart(QStringList args)
 {
     static bool executing_restart{false};
 
-    if(!executing_restart) { // Only restart 1x, no matter how often a user clicks on a restart-button
+    if (!executing_restart) { // Only restart 1x, no matter how often a user clicks on a restart-button
         executing_restart = true;
-        try
-        {
+        try {
             qDebug() << __func__ << ": Running Restart in thread";
             Interrupt(threadGroup);
             threadGroup.join_all();
@@ -349,8 +351,7 @@ void AvianCore::restart(QStringList args)
 
 void AvianCore::shutdown()
 {
-    try
-    {
+    try {
         qDebug() << __func__ << ": Running Shutdown in thread";
         Interrupt(threadGroup);
         threadGroup.join_all();
@@ -364,18 +365,17 @@ void AvianCore::shutdown()
     }
 }
 
-AvianApplication::AvianApplication(int &argc, char **argv):
-    QApplication(argc, argv),
-    coreThread(0),
-    optionsModel(0),
-    clientModel(0),
-    window(0),
-    pollShutdownTimer(0),
+AvianApplication::AvianApplication(int& argc, char** argv) : QApplication(argc, argv),
+                                                             coreThread(0),
+                                                             optionsModel(0),
+                                                             clientModel(0),
+                                                             window(0),
+                                                             pollShutdownTimer(0),
 #ifdef ENABLE_WALLET
-    paymentServer(0),
-    walletModel(0),
+                                                             paymentServer(0),
+                                                             walletModel(0),
 #endif
-    returnValue(0)
+                                                             returnValue(0)
 {
     setQuitOnLastWindowClosed(false);
 
@@ -392,8 +392,7 @@ AvianApplication::AvianApplication(int &argc, char **argv):
 
 AvianApplication::~AvianApplication()
 {
-    if(coreThread)
-    {
+    if (coreThread) {
         qDebug() << __func__ << ": Stopping thread";
         Q_EMIT stopThread();
         coreThread->wait();
@@ -424,20 +423,24 @@ void AvianApplication::createOptionsModel(bool resetSettings)
     optionsModel = new OptionsModel(nullptr, resetSettings);
 }
 
-void AvianApplication::createWindow(const NetworkStyle *networkStyle)
+void AvianApplication::createWindow(const NetworkStyle* networkStyle)
 {
     window = new AvianGUI(platformStyle, networkStyle, 0);
-    window->setMinimumSize(1024,768);
-    window->setBaseSize(640,640);
+    window->setMinimumSize(1024, 768);
+    window->setBaseSize(640, 640);
 
     pollShutdownTimer = new QTimer(window);
     connect(pollShutdownTimer, SIGNAL(timeout()), window, SLOT(detectShutdown()));
     pollShutdownTimer->start(200);
+
+    // Process events to ensure the GUI window is created and splash screen
+    // begins rendering before initialization thread starts
+    processEvents();
 }
 
-void AvianApplication::createSplashScreen(const NetworkStyle *networkStyle)
+void AvianApplication::createSplashScreen(const NetworkStyle* networkStyle)
 {
-    SplashScreen *splash = new SplashScreen(networkStyle);
+    SplashScreen* splash = new SplashScreen(networkStyle);
     // We don't hold a direct pointer to the splash screen after creation, but the splash
     // screen will take care of deleting itself when slotFinish happens.
     splash->show();
@@ -447,10 +450,10 @@ void AvianApplication::createSplashScreen(const NetworkStyle *networkStyle)
 
 void AvianApplication::startThread()
 {
-    if(coreThread)
+    if (coreThread)
         return;
     coreThread = new QThread(this);
-    AvianCore *executor = new AvianCore();
+    AvianCore* executor = new AvianCore();
     executor->moveToThread(coreThread);
 
     /*  communication to and from thread */
@@ -512,52 +515,88 @@ void AvianApplication::initializeResult(bool success)
     qDebug() << __func__ << ": Initialization result: " << success;
     // Set exit result.
     returnValue = success ? EXIT_SUCCESS : EXIT_FAILURE;
-    if(success)
-    {
+    if (success) {
         // Log this only after AppInitMain finishes, as then logging setup is guaranteed complete
         qWarning() << "Platform customization:" << platformStyle->getName();
 #ifdef ENABLE_WALLET
+        // Process events frequently with paint events to keep splash screen responsive
+        uiInterface.InitMessage(_("Initializing payment server..."));
+        processUIEvents();
         PaymentServer::LoadRootCAs();
+        processUIEvents();
         paymentServer->setOptionsModel(optionsModel);
+        processUIEvents();
 #endif
 
+        // Process events to keep splash responsive while creating client model
+        uiInterface.InitMessage(_("Initializing client model..."));
+        processUIEvents();
         clientModel = new ClientModel(optionsModel);
+        processUIEvents();
+
+        uiInterface.InitMessage(_("Connecting to client model..."));
         window->setClientModel(clientModel);
+        processUIEvents();
 
 #ifdef ENABLE_WALLET
         // TODO: Expose secondary wallets
-        if (!vpwallets.empty())
-        {
+        // Load wallet model - keep splash screen visible during this expensive operation
+        if (!vpwallets.empty()) {
+            uiInterface.InitMessage(_("Loading wallet transactions..."));
+            processUIEvents();
+
             walletModel = new WalletModel(platformStyle, vpwallets[0], optionsModel);
 
-            window->addWallet(AvianGUI::DEFAULT_WALLET, walletModel);
-            window->setCurrentWallet(AvianGUI::DEFAULT_WALLET);
+            // Keep UI responsive during wallet model operations
+            for (int i = 0; i < 5; ++i) {
+                processUIEvents();
+                QThread::msleep(10);
+            }
 
-            connect(walletModel, SIGNAL(coinsSent(CWallet*,SendCoinsRecipient,QByteArray)),
-                             paymentServer, SLOT(fetchPaymentACK(CWallet*,const SendCoinsRecipient&,QByteArray)));
+            uiInterface.InitMessage(_("Finalizing wallet..."));
+            processUIEvents();
+
+            window->addWallet(AvianGUI::DEFAULT_WALLET, walletModel);
+            processUIEvents();
+
+            window->setCurrentWallet(AvianGUI::DEFAULT_WALLET);
+            processUIEvents();
+
+            connect(walletModel, SIGNAL(coinsSent(CWallet*, SendCoinsRecipient, QByteArray)),
+                paymentServer, SLOT(fetchPaymentACK(CWallet*, const SendCoinsRecipient&, QByteArray)));
+
+            processUIEvents();
         }
 #endif
 
+        uiInterface.InitMessage(_("Showing main window..."));
+        processUIEvents();
+
         // If -min option passed, start window minimized.
-        if(gArgs.GetBoolArg("-min", false))
-        {
+        if (gArgs.GetBoolArg("-min", false)) {
             window->showMinimized();
-        }
-        else
-        {
+        } else {
             window->show();
         }
+
+        // Ensure window is fully rendered before dismissing splash
+        for (int i = 0; i < 3; ++i) {
+            processUIEvents();
+            QThread::msleep(50);
+        }
+
+        // Dismiss splash screen now that everything is ready
         Q_EMIT splashFinished(window);
 
-#ifdef ENABLE_WALLET
         // Now that initialization/startup is done, process any command-line
         // avian: URIs or payment requests:
+#ifdef ENABLE_WALLET
         connect(paymentServer, SIGNAL(receivedPaymentRequest(SendCoinsRecipient)),
-                         window, SLOT(handlePaymentRequest(SendCoinsRecipient)));
+            window, SLOT(handlePaymentRequest(SendCoinsRecipient)));
         connect(window, SIGNAL(receivedURI(QString)),
-                         paymentServer, SLOT(handleURIOrFile(QString)));
-        connect(paymentServer, SIGNAL(message(QString,QString,unsigned int)),
-                         window, SLOT(message(QString,QString,unsigned int)));
+            paymentServer, SLOT(handleURIOrFile(QString)));
+        connect(paymentServer, SIGNAL(message(QString, QString, unsigned int)),
+            window, SLOT(message(QString, QString, unsigned int)));
         QTimer::singleShot(100, paymentServer, SLOT(uiReady()));
 #endif
     } else {
@@ -572,7 +611,7 @@ void AvianApplication::shutdownResult(bool success)
     quit(); // Exit main loop after shutdown finished
 }
 
-void AvianApplication::handleRunawayException(const QString &message)
+void AvianApplication::handleRunawayException(const QString& message)
 {
     QMessageBox::critical(0, "Runaway exception", AvianGUI::tr("A fatal error occurred. Avian can no longer continue safely and will quit.") + QString("\n\n") + message);
     ::exit(EXIT_FAILURE);
@@ -587,7 +626,7 @@ WId AvianApplication::getMainWinId() const
 }
 
 #ifndef AVIAN_QT_TEST
-int main(int argc, char *argv[])
+int main(int argc, char* argv[])
 {
     SetupEnvironment();
 
@@ -630,11 +669,11 @@ int main(int argc, char *argv[])
 #endif
 
     // Register meta types used for QMetaObject::invokeMethod
-    qRegisterMetaType< bool* >();
+    qRegisterMetaType<bool*>();
     //   Need to pass name here as CAmount is a typedef (see http://qt-project.org/doc/qt-5/qmetatype.html#qRegisterMetaType)
     //   IMPORTANT if it is no longer a typedef use the normal variant above
-    qRegisterMetaType< CAmount >("CAmount");
-    qRegisterMetaType< std::function<void(void)> >("std::function<void(void)>");
+    qRegisterMetaType<CAmount>("CAmount");
+    qRegisterMetaType<std::function<void(void)>>("std::function<void(void)>");
 
     /// 3. Application identification
     // must be set before OptionsModel is initialized or translations are loaded,
@@ -642,7 +681,7 @@ int main(int argc, char *argv[])
     QApplication::setOrganizationName(QAPP_ORG_NAME);
     QApplication::setOrganizationDomain(QAPP_ORG_DOMAIN);
     QApplication::setApplicationName(QAPP_APP_NAME_DEFAULT);
-    
+
     GUIUtil::SubstituteFonts(GetLangTerritory());
     QFontDatabase::addApplicationFont(":/fonts/manrope-regular");
     QFontDatabase::addApplicationFont(":/fonts/manrope-bold");
@@ -655,8 +694,7 @@ int main(int argc, char *argv[])
 
     // Show help message immediately after parsing command-line options (for "-lang") and setting locale,
     // but before showing splash screen.
-    if (gArgs.IsArgSet("-?") || gArgs.IsArgSet("-h") || gArgs.IsArgSet("-help") || gArgs.IsArgSet("-version"))
-    {
+    if (gArgs.IsArgSet("-?") || gArgs.IsArgSet("-h") || gArgs.IsArgSet("-help") || gArgs.IsArgSet("-version")) {
         HelpMessageDialog help(nullptr, gArgs.IsArgSet("-version"));
         help.showOrPrint();
         return EXIT_SUCCESS;
@@ -669,17 +707,16 @@ int main(int argc, char *argv[])
 
     /// 6. Determine availability of data directory and parse avian.conf
     /// - Do not call GetDataDir(true) before this step finishes
-    if (!fs::is_directory(GetDataDir(false)))
-    {
+    if (!fs::is_directory(GetDataDir(false))) {
         QMessageBox::critical(0, QObject::tr(PACKAGE_NAME),
-                              QObject::tr("Error: Specified data directory \"%1\" does not exist.").arg(QString::fromStdString(gArgs.GetArg("-datadir", ""))));
+            QObject::tr("Error: Specified data directory \"%1\" does not exist.").arg(QString::fromStdString(gArgs.GetArg("-datadir", ""))));
         return EXIT_FAILURE;
     }
     try {
         gArgs.ReadConfigFile(gArgs.GetArg("-conf", AVIAN_CONF_FILENAME));
     } catch (const std::exception& e) {
         QMessageBox::critical(0, QObject::tr(PACKAGE_NAME),
-                              QObject::tr("Error: Cannot parse configuration file: %1. Only use key=value syntax.").arg(e.what()));
+            QObject::tr("Error: Cannot parse configuration file: %1. Only use key=value syntax.").arg(e.what()));
         return EXIT_FAILURE;
     }
 
@@ -691,8 +728,8 @@ int main(int argc, char *argv[])
 
     // Check for -testnet or -regtest parameter (Params() calls are only valid after this clause)
     try {
-        SelectParams(ChainNameFromCommandLine(), true);
-    } catch(std::exception &e) {
+        SelectParams(ChainNameFromCommandLine());
+    } catch (std::exception& e) {
         QMessageBox::critical(0, QObject::tr(PACKAGE_NAME), QObject::tr("Error: %1").arg(e.what()));
         return EXIT_FAILURE;
     }
@@ -753,13 +790,14 @@ int main(int argc, char *argv[])
         app.createSplashScreen(networkStyle.data());
 
     int rv = EXIT_SUCCESS;
-    try
-    {
+    try {
         app.createWindow(networkStyle.data());
         // Perform base initialization before spinning up initialization/shutdown thread
         // This is acceptable because this function only contains steps that are quick to execute,
         // so the GUI thread won't be held up.
         if (AvianCore::baseInitialize()) {
+            // Process events to render splash screen before starting initialization
+            QApplication::processEvents();
             app.requestInitialize();
 #if defined(Q_OS_WIN) && QT_VERSION >= 0x050000
             WinShutdownMonitor::registerShutdownBlockReason(QObject::tr("%1 didn't yet exit safely...").arg(QObject::tr(PACKAGE_NAME)), (HWND)app.getMainWinId());
