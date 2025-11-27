@@ -37,7 +37,7 @@ jobs:
           paths_ignore: >-
             ["binaries/**","community/**","contrib/**","doc/**","roadmap/**",
              "share/**","static-builds/**","whitepaper/**","**/*.md"]
-          do_not_skip: '["workflow_dispatch","schedule","push_tag"]'
+          do_not_skip: '["workflow_dispatch","schedule"]'
 
   build:
     needs: check-jobs
