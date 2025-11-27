@@ -236,7 +236,7 @@ The Avian Core development team thanks all contributors, testers, and the commun
 ## Version Information
 
 - **Version**: 4.2.0
-- **Release Date**: [TBD]
+- **Release Date**: 2025-11-27
 - **Previous Release**: 4.1.0
 - **Network**: Mainnet
 
