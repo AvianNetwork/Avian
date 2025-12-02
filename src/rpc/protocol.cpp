@@ -13,8 +13,8 @@
 #include "utiltime.h"
 #include "version.h"
 
-#include <stdint.h>
 #include <fstream>
+#include <stdint.h>
 
 /**
  * JSON-RPC protocol.  Avian speaks version 1.0 for maximum compatibility,
@@ -68,23 +68,23 @@ static const std::string COOKIEAUTH_USER = "__cookie__";
 static const std::string COOKIEAUTH_FILE = ".cookie";
 
 /** Get name of RPC authentication cookie file */
-static fs::path GetAuthCookieFile(bool temp=false)
+static fs::path GetAuthCookieFile(bool temp = false)
 {
     std::string arg = gArgs.GetArg("-rpccookiefile", COOKIEAUTH_FILE);
     if (temp) {
         arg += ".tmp";
     }
     fs::path path(arg);
-    if (!path.is_complete()) path = GetDataDir() / path;
+    if (!path.is_absolute()) path = GetDataDir() / path;
     return path;
 }
 
-bool GenerateAuthCookie(std::string *cookie_out)
+bool GenerateAuthCookie(std::string* cookie_out)
 {
     const size_t COOKIE_SIZE = 32;
     unsigned char rand_pwd[COOKIE_SIZE];
     GetRandBytes(rand_pwd, COOKIE_SIZE);
-    std::string cookie = COOKIEAUTH_USER + ":" + HexStr(rand_pwd, rand_pwd+COOKIE_SIZE);
+    std::string cookie = COOKIEAUTH_USER + ":" + HexStr(rand_pwd, rand_pwd + COOKIE_SIZE);
 
     /** the umask determines what permissions are used to create this file -
      * these are set to 077 in init.cpp unless overridden with -sysperms.
@@ -111,7 +111,7 @@ bool GenerateAuthCookie(std::string *cookie_out)
     return true;
 }
 
-bool GetAuthCookie(std::string *cookie_out)
+bool GetAuthCookie(std::string* cookie_out)
 {
     std::ifstream file;
     std::string cookie;
@@ -136,14 +136,14 @@ void DeleteAuthCookie()
     }
 }
 
-std::vector<UniValue> JSONRPCProcessBatchReply(const UniValue &in, size_t num)
+std::vector<UniValue> JSONRPCProcessBatchReply(const UniValue& in, size_t num)
 {
     if (!in.isArray()) {
         throw std::runtime_error("Batch must be an array");
     }
     std::vector<UniValue> batch(num);
-    for (size_t i=0; i<in.size(); ++i) {
-        const UniValue &rec = in[i];
+    for (size_t i = 0; i < in.size(); ++i) {
+        const UniValue& rec = in[i];
         if (!rec.isObject()) {
             throw std::runtime_error("Batch member must be object");
         }

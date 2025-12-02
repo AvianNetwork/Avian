@@ -6,8 +6,11 @@
 #ifndef AVIAN_MESSAGES_H
 #define AVIAN_MESSAGES_H
 
-#include <uint256.h>
+#include "assets/assets.h"
+#include "primitives/transaction.h"
+#include "sync.h"
 #include <serialize.h>
+#include <uint256.h>
 
 class CMessage;
 class COutPoint;
@@ -30,27 +33,27 @@ extern std::set<std::string> setAddressAskedForFalse;
 extern CCriticalSection cs_messaging;
 
 size_t GetMessageDirtyCacheSize();
-bool IsChannelSubscribed(const std::string &name); // Is this channel marked as spamA
+bool IsChannelSubscribed(const std::string& name); // Is this channel marked as spamA
 
-bool GetMessage(const COutPoint &out, CMessage &message);
+bool GetMessage(const COutPoint& out, CMessage& message);
 
-void AddChannel(const std::string &name);
+void AddChannel(const std::string& name);
 
-void RemoveChannel(const std::string &name);
+void RemoveChannel(const std::string& name);
 
-void AddMessage(const CMessage &message);
+void AddMessage(const CMessage& message);
 
-void RemoveMessage(const CMessage &message);
-void RemoveMessage(const COutPoint &out);
+void RemoveMessage(const CMessage& message);
+void RemoveMessage(const COutPoint& out);
 
-void OrphanMessage(const CMessage &message);
-void OrphanMessage(const COutPoint &out);
+void OrphanMessage(const CMessage& message);
+void OrphanMessage(const COutPoint& out);
 
 #ifdef ENABLE_WALLET
 bool ScanForMessageChannels(std::string& strError);
 #endif
-bool IsAddressSeen(const std::string &address); // Has this address already been sent an asset before
-void AddAddressSeen(const std::string &address);
+bool IsAddressSeen(const std::string& address); // Has this address already been sent an asset before
+void AddAddressSeen(const std::string& address);
 
 enum class MessageStatus {
     READ = 0,
@@ -67,9 +70,9 @@ MessageStatus MessageStatusFromInt(int8_t nStatus);
 
 std::string MessageStatusToString(MessageStatus status);
 
-class CMessage {
+class CMessage
+{
 public:
-
     COutPoint out;
     std::string strName;
     std::string ipfsHash;
@@ -80,7 +83,8 @@ public:
 
     CMessage();
 
-    void SetNull() {
+    void SetNull()
+    {
         nExpiredTime = 0;
         out = COutPoint();
         strName = "";
@@ -90,22 +94,24 @@ public:
         nBlockHeight = 0;
     }
 
-    std::string ToString() const {
+    std::string ToString() const
+    {
         return strprintf("CMessage(%s, Name=%s, Message=%s, Expires=%u, Time=%u, BlockHeight=%u)", out.ToString(), strName,
-                         EncodeAssetData(ipfsHash), nExpiredTime, time, nBlockHeight);
+            EncodeAssetData(ipfsHash), nExpiredTime, time, nBlockHeight);
     }
 
-    CMessage(const COutPoint &out, const std::string &strName, const std::string &ipfsHash, const int64_t &nExpiredTime,
-             const int64_t &time);
+    CMessage(const COutPoint& out, const std::string& strName, const std::string& ipfsHash, const int64_t& nExpiredTime, const int64_t& time);
 
-    bool operator<(const CMessage &rhs) const {
+    bool operator<(const CMessage& rhs) const
+    {
         return out < rhs.out;
     }
 
     ADD_SERIALIZE_METHODS;
 
-    template<typename Stream, typename Operation>
-    inline void SerializationOp(Stream &s, Operation ser_action) {
+    template <typename Stream, typename Operation>
+    inline void SerializationOp(Stream& s, Operation ser_action)
+    {
         READWRITE(out);
         READWRITE(strName);
         READWRITE(ipfsHash);
@@ -123,14 +129,16 @@ public:
     }
 };
 
-class CZMQMessage {
+class CZMQMessage
+{
 public:
     int blockHeight;
     std::string assetName;
     std::string ipfsHash;
     int64_t nExpireTime;
 
-    CZMQMessage(const CMessage& message) {
+    CZMQMessage(const CMessage& message)
+    {
         this->blockHeight = message.nBlockHeight;
         this->assetName = message.strName;
         this->ipfsHash = message.ipfsHash;
@@ -140,4 +148,4 @@ public:
     std::string createJsonString();
 };
 
-#endif //AVIAN_MESSAGES_H
+#endif // AVIAN_MESSAGES_H
