@@ -656,7 +656,7 @@ if GLIBC_BACK_COMPAT
 endif
 
 libavianconsensus_la_LDFLAGS = $(AM_LDFLAGS) -no-undefined $(RELDFLAGS)
-libavianconsensus_la_LIBADD = $(LIBSECP256K1) $(BOOST_LIBS) $(SSL_LIBS) $(CRYPTO_LIBS) $(LIBAVIAN_UTIL) $(LIBAVIAN_COMMON)
+libavianconsensus_la_LIBADD = $(LIBSECP256K1) $(BOOST_LIBS) $(SSL_LIBS) $(CRYPTO_LIBS)
 libavianconsensus_la_CPPFLAGS = $(AM_CPPFLAGS) -I$(builddir)/obj -I$(srcdir)/secp256k1/include -DBUILD_AVIAN_INTERNAL
 libavianconsensus_la_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
 
