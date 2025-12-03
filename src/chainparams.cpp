@@ -266,8 +266,8 @@ public:
         nMinReorganizationPeers = 4;
         nMinReorganizationAge = 60 * 60 * 12; // 12 hours
 
-        // TODO: Assets, Messaging, Restricted
-        nAssetActivationHeight = std::numeric_limits<int>::max(); // Asset activated block height
+        // Assets, Messaging, Restricted
+        nAssetActivationHeight = 1160717; // Asset activated block height (2022-10-19 18:00:26 UTC)
         /** AVN End **/
     }
 };
