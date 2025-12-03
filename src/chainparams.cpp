@@ -16,6 +16,7 @@
 
 #include "chainparamsseeds.h"
 #include <assert.h>
+#include <limits>
 
 static CBlock CreateGenesisBlock(const char* pszTimestamp, const CScript& genesisOutputScript, uint32_t nTime, uint32_t nNonce, uint32_t nBits, int32_t nVersion, const CAmount& genesisReward)
 {
@@ -149,8 +150,8 @@ public:
         consensus.vUpgrades[Consensus::UPGRADE_X16RT_SWITCH].nTimestamp = 1638847406;
         consensus.vUpgrades[Consensus::UPGRADE_DUAL_ALGO].nTimestamp = 1638847407;
         consensus.vUpgrades[Consensus::UPGRADE_AVIAN_ASSETS].nTimestamp = 1666202400;
-        consensus.vUpgrades[Consensus::UPGRADE_AVIAN_FLIGHT_PLANS].nTimestamp = 999999999999ULL; // TODO
-        consensus.vUpgrades[Consensus::UPGRADE_AVIAN_NAME_SYSTEM].nTimestamp = 999999999999ULL;  // TODO
+        consensus.vUpgrades[Consensus::UPGRADE_AVIAN_FLIGHT_PLANS].nTimestamp = 0xFFFFFFFFUL; // TODO - max uint32_t
+        consensus.vUpgrades[Consensus::UPGRADE_AVIAN_NAME_SYSTEM].nTimestamp = 0xFFFFFFFFUL;  // TODO - max uint32_t
 
         // Minotaurx Algo consensus
         consensus.powForkTime = 1638847407;       // Time of PoW hash method change (Dec 06 2021)
@@ -266,7 +267,7 @@ public:
         nMinReorganizationAge = 60 * 60 * 12; // 12 hours
 
         // TODO: Assets, Messaging, Restricted
-        nAssetActivationHeight = 9999999999; // Asset activated block height
+        nAssetActivationHeight = std::numeric_limits<int>::max(); // Asset activated block height
         /** AVN End **/
     }
 };

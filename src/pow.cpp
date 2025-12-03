@@ -490,12 +490,12 @@ bool CheckProofOfWork(const CBlockHeader& blockheader, const Consensus::Consensu
     if (blockheader.GetBlockTime() > params.diffRetargetTake2) {
         if (cache)
             return CheckProofOfWorkDualAlgo(blockheader.GetHash(), blockheader.nBits, params, blockheader.GetPoWType());
-        else if (!cache)
+        else
             return CheckProofOfWorkDualAlgo(blockheader.GetHash(false), blockheader.nBits, params, blockheader.GetPoWType());
     } else {
         if (cache)
             return CheckProofOfWork(blockheader.GetHash(), blockheader.nBits, params);
-        else if (!cache)
+        else
             return CheckProofOfWork(blockheader.GetHash(false), blockheader.nBits, params);
     }
 }
