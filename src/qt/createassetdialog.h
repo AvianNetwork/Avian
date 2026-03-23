@@ -1,0 +1,159 @@
+// Copyright (c) 2011-2014 The Bitcoin Core developers
+// Copyright (c) 2017-2019 The Raven Core developers
+// Distributed under the MIT software license, see the accompanying
+// file COPYING or http://www.opensource.org/licenses/mit-license.php.
+
+#ifndef AVIAN_QT_CREATEASSETDIALOG_H
+#define AVIAN_QT_CREATEASSETDIALOG_H
+
+#include <qt/walletmodel.h>
+
+#include <QDialog>
+
+class PlatformStyle;
+class WalletModel;
+class ClientModel;
+
+namespace Ui {
+    class CreateAssetDialog;
+}
+
+QT_BEGIN_NAMESPACE
+class QModelIndex;
+class QStringListModel;
+class QSortFilterProxyModel;
+class QCompleter;
+QT_END_NAMESPACE
+
+/** Dialog showing transaction details. */
+class CreateAssetDialog : public QDialog
+{
+Q_OBJECT
+
+public:
+    explicit CreateAssetDialog(const PlatformStyle *platformStyle, QWidget *parent = nullptr);
+    ~CreateAssetDialog();
+
+    void setClientModel(ClientModel *clientModel);
+    void setModel(WalletModel *model);
+
+    int type;
+    QString format;
+
+
+    void setupCoinControlFrame(const PlatformStyle *platformStyle);
+    void setupAssetDataView(const PlatformStyle *platformStyle);
+    void setupFeeControl(const PlatformStyle *platformStyle);
+
+    void updateAssetList();
+    void updateAssetListForRestrictedIssuance();
+    void updateAssetListForSubQualifierIssuance();
+    void restrictedAssetSelected();
+    void restrictedAssetNotSelected();
+
+    void clear();
+    void selectTypeName(int type, QString name);
+
+    QStringListModel* stringModel;
+    QSortFilterProxyModel* proxy;
+    QCompleter* completer;
+
+private:
+    Ui::CreateAssetDialog *ui;
+    ClientModel *clientModel;
+    WalletModel *model;
+    bool fFeeMinimized;
+    const PlatformStyle *platformStyle;
+
+    bool checkedAvailablity = false;
+
+    void toggleIPFSText();
+    void toggleANSText();
+    void setUpValues();
+    void showMessage(QString string);
+    void showValidMessage(QString string);
+    void showInvalidVerifierStringMessage(QString string);
+    void hideInvalidVerifierStringMessage();
+    void hideMessage();
+    void disableCreateButton();
+    void enableCreateButton();
+    void CheckFormState();
+    void updatePresentedAssetName(QString name);
+    QString GetSpecialCharacter();
+    QString GetAssetName();
+    void UpdateAssetNameMaxSize();
+    void UpdateAssetNameToUpper();
+    void setUniqueSelected();
+    void setQualifierSelected();
+    void clearSelected();
+
+    // CoinControl
+    // Update the passed in CCoinControl with state from the GUI
+    void updateCoinControlState(wallet::CCoinControl& ctrl);
+
+    // Fee
+    void updateFeeMinimizedLabel();
+    void minimizeFeeSection(bool fMinimize);
+
+    // Validation
+    // Returns true if this is an IPFS-hash or TXID.
+    bool checkIPFSHash(QString hash);
+
+private Q_SLOTS:
+    void ipfsStateChanged();
+    void ansStateChanged();
+    void checkAvailabilityClicked();
+    void openIpfsBrowser();
+    void onNameChanged(QString name);
+    void onAddressNameChanged(QString address);
+    void onIPFSHashChanged(QString hash);
+    void onANSTypeChanged(int index);
+    void onANSDataChanged(QString data);
+    void onCreateAssetClicked();
+    void onUnitChanged(int value);
+    void onChangeAddressChanged(QString changeAddress);
+    void onAssetTypeActivated(int index);
+    void onAssetListActivated(int index);
+    void onClearButtonClicked();
+    void onVerifierStringChanged(QString verifier);
+
+    //CoinControl
+    void coinControlFeatureChanged(bool);
+    void coinControlButtonClicked();
+    void coinControlChangeChecked(int);
+    void coinControlChangeEdited(const QString &);
+    void coinControlClipboardQuantity();
+    void coinControlClipboardAmount();
+    void coinControlClipboardFee();
+    void coinControlClipboardAfterFee();
+    void coinControlClipboardBytes();
+    void coinControlClipboardLowOutput();
+    void coinControlClipboardChange();
+    void coinControlUpdateLabels();
+
+    //Fee
+    void on_buttonChooseFee_clicked();
+    void on_buttonMinimizeFee_clicked();
+    void setMinimumFee();
+    void updateFeeSectionControls();
+    void updateMinFeeLabel();
+    void updateSmartFeeLabel();
+    void feeControlFeatureChanged(bool);
+
+    void setBalance(const interfaces::WalletBalances& balances);
+    void updateDisplayUnit();
+
+public Q_SLOTS:
+    void focusSubAsset(const QModelIndex& index);
+    void focusUniqueAsset(const QModelIndex& index);
+
+protected:
+    bool eventFilter( QObject* sender, QEvent* event) override;
+
+
+Q_SIGNALS:
+    // Fired when a message should be reported to the user
+    void message(const QString &title, const QString &message, unsigned int style);
+};
+
+#endif // AVIAN_QT_CREATEASSETDIALOG_H

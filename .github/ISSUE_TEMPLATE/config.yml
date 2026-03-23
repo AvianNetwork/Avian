@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Avian Core Security Policy
+    url: https://github.com/AvianNetwork/Avian/blob/master/SECURITY.md
+    about: View security policy
+  - name: Avian Core Developers
+    url: https://avn.network
+    about: Avian Core homepage

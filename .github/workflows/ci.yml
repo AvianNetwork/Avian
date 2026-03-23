@@ -1,0 +1,174 @@
+# Copyright (c) 2023-present The Bitcoin Core developers
+# Distributed under the MIT software license, see the accompanying
+# file COPYING or https://opensource.org/license/mit.
+
+name: CI
+on:
+  # See: https://docs.github.com/en/actions/writing-workflows/choosing-when-your-workflow-runs/events-that-trigger-workflows#pull_request.
+  pull_request:
+  # See: https://docs.github.com/en/actions/writing-workflows/choosing-when-your-workflow-runs/events-that-trigger-workflows#push.
+  push:
+    branches:
+      - '**'
+    tags-ignore:
+      - '**'
+
+concurrency:
+  group: ${{ github.event_name != 'pull_request' && github.run_id || github.ref }}
+  cancel-in-progress: true
+
+env:
+  CI_FAILFAST_TEST_LEAVE_DANGLING: 1  # GHA does not care about dangling processes and setting this variable avoids killing the CI script itself on error
+
+defaults:
+  run:
+    # Enforce fail-fast behavior for all platforms.
+    # See: https://docs.github.com/en/actions/writing-workflows/workflow-syntax-for-github-actions#exit-codes-and-error-action-preference
+    shell: bash
+
+jobs:
+  linux-build:
+    name: 'Linux, build-only'
+    runs-on: ubuntu-24.04
+    if: ${{ vars.SKIP_BRANCH_PUSH != 'true' || github.event_name == 'pull_request' }}
+    timeout-minutes: 120
+
+    env:
+      DANGER_CI_ON_HOST_FOLDERS: 1
+      BITCOIN_GENBUILD_NO_GIT: 1
+      FILE_ENV: './ci/test/00_setup_env_native_build_only.sh'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event_name == 'pull_request' && github.ref || '' }}
+
+      - name: Configure environment
+        uses: ./.github/actions/configure-environment
+
+      - name: Restore caches
+        id: restore-cache
+        uses: ./.github/actions/restore-caches
+
+      - name: Configure Docker
+        uses: ./.github/actions/configure-docker
+        with:
+          cache-provider: gha
+
+      - name: CI script
+        run: ./ci/test_run_all.sh
+
+      - name: Collect Linux artifacts
+        if: always()
+        run: |
+          mkdir -p ${{ runner.temp }}/artifacts
+          for bin in avian aviand avian-cli avian-tx avian-util avian-wallet avian-qt; do
+            [ -f "${{ runner.temp }}/build/bin/${bin}" ] && cp "${{ runner.temp }}/build/bin/${bin}" "${{ runner.temp }}/artifacts/" || true
+          done
+
+      - name: Upload Linux artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: avian-linux-x86_64
+          path: ${{ runner.temp }}/artifacts/
+          if-no-files-found: warn
+
+      - name: Save caches
+        uses: ./.github/actions/save-caches
+
+  macos-cross-build:
+    name: 'macOS cross, build-only'
+    runs-on: ubuntu-24.04
+    if: ${{ vars.SKIP_BRANCH_PUSH != 'true' || github.event_name == 'pull_request' }}
+    timeout-minutes: 120
+
+    env:
+      DANGER_CI_ON_HOST_FOLDERS: 1
+      BITCOIN_GENBUILD_NO_GIT: 1
+      FILE_ENV: './ci/test/00_setup_env_mac_cross.sh'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event_name == 'pull_request' && github.ref || '' }}
+
+      - name: Configure environment
+        uses: ./.github/actions/configure-environment
+
+      - name: Restore caches
+        id: restore-cache
+        uses: ./.github/actions/restore-caches
+
+      - name: Configure Docker
+        uses: ./.github/actions/configure-docker
+        with:
+          cache-provider: gha
+
+      - name: CI script
+        run: ./ci/test_run_all.sh
+
+      - name: Upload macOS artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: avian-macos-x86_64
+          path: ${{ runner.temp }}/build/dist/
+          if-no-files-found: warn
+
+      - name: Save caches
+        uses: ./.github/actions/save-caches
+
+  windows-cross-build:
+    name: 'Windows cross, build-only'
+    runs-on: ubuntu-24.04
+    if: ${{ vars.SKIP_BRANCH_PUSH != 'true' || github.event_name == 'pull_request' }}
+    timeout-minutes: 120
+
+    env:
+      DANGER_CI_ON_HOST_FOLDERS: 1
+      BITCOIN_GENBUILD_NO_GIT: 1
+      FILE_ENV: './ci/test/00_setup_env_win64.sh'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event_name == 'pull_request' && github.ref || '' }}
+
+      - name: Configure environment
+        uses: ./.github/actions/configure-environment
+
+      - name: Restore caches
+        id: restore-cache
+        uses: ./.github/actions/restore-caches
+
+      - name: Configure Docker
+        uses: ./.github/actions/configure-docker
+        with:
+          cache-provider: gha
+
+      - name: CI script
+        run: ./ci/test_run_all.sh
+
+      - name: Collect Windows artifacts
+        if: always()
+        run: |
+          mkdir -p ${{ runner.temp }}/win-artifacts
+          cp "${{ runner.temp }}"/build/avian-*-win64-setup.exe "${{ runner.temp }}/win-artifacts/" 2>/dev/null || true
+          if [ -d "${{ runner.temp }}/build/release" ]; then
+            cp "${{ runner.temp }}/build/release/"*.exe "${{ runner.temp }}/win-artifacts/" 2>/dev/null || true
+          fi
+
+      - name: Upload Windows artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: avian-win64
+          path: ${{ runner.temp }}/win-artifacts/
+          if-no-files-found: warn
+
+      - name: Save caches
+        uses: ./.github/actions/save-caches
