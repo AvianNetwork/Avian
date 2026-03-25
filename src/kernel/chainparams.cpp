@@ -142,8 +142,8 @@ public:
         consensus.powTypeLimits.emplace_back(uint256{"00000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"}); // X16RT limit
         consensus.powTypeLimits.emplace_back(uint256{"000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"}); // MinotaurX limit
 
-        consensus.nMinimumChainWork = uint256{"00000000000000000000000000000000000000000000000029178e309cb56715"}; // Block 1072359
-        consensus.defaultAssumeValid = uint256{"00000000005ab90c287e481b1f2911228d26723ac07bcadd65031158ad733316"}; // Block 1072359
+        consensus.nMinimumChainWork = uint256{"000000000000000000000000000000000000000000000000465a271cdbe88c6e"};  // Block 4726352
+        consensus.defaultAssumeValid = uint256{"000000000c32edff3c1f1f09a7291d787acd748e13f1a71b9ed41bddd8d38de9"}; // Block 4726352
 
         // Founder payment
         consensus.founderAddress = "rPC7kPCNPAVnUvQs4fWEvnFwJ4yfKvArXM";
