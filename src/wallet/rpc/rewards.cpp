@@ -13,6 +13,7 @@
 #include <assets/assetsnapshotdb.h>
 #include <common/args.h>
 #include <key_io.h>
+#include <sync.h>
 #include <validation.h>
 
 #include <wallet/asset_tx.h>
@@ -88,7 +89,7 @@ RPCHelpMan distributereward()
             if (ownershipAssetType == AssetType::UNIQUE || ownershipAssetType == AssetType::OWNER || ownershipAssetType == AssetType::MSGCHANNEL)
                 throw JSONRPCError(RPC_INVALID_PARAMETER, std::string("Invalid asset_name: OWNER, UNIQUE, MSGCHANNEL assets are not allowed for this call"));
 
-            int nHeight = pwallet->GetLastBlockHeight();
+            const int nHeight = WITH_LOCK(pwallet->cs_wallet, return pwallet->GetLastBlockHeight());
 
             if (snapshot_height > nHeight)
                 throw JSONRPCError(RPC_INVALID_PARAMETER, std::string("Invalid snapshot_height: block height should be less than or equal to the current active chain height"));
