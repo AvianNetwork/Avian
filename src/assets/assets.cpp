@@ -4887,6 +4887,7 @@ bool ContextualCheckNewAsset(CAssetsCache* assetCache, const CNewAsset& asset, s
 
     // Check the mempool for a pending transaction that already creates this asset
     if (mempool) {
+        LOCK(mempool->cs);
         AssertLockHeld(mempool->cs);
         if (mempool->mapAssetToHash.count(asset.strName)) {
             strError = std::string(_("Invalid parameter: asset_name '")) + asset.strName + std::string(_("' is already being created in the mempool"));
