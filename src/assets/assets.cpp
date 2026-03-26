@@ -5211,21 +5211,27 @@ std::string GetUserErrorString(const ErrorReport& report)
 
 UniValue UnitValueFromAmount(const CAmount& amount, int8_t units)
 {
-    bool sign = amount < 0;
-    int64_t n_abs = (sign ? -amount : amount);
-    int64_t quotient = n_abs;
-    int64_t remainder = 0;
+    // Asset amounts are stored as CAmount in 1e-8 base units (like AVN).
+    // The asset's `units` field restricts the displayed/allowed decimal places.
+    // For example, an asset issued with amount 10 and units=0 is stored as
+    // 10 * COIN internally, but should be displayed as "10".
+    const bool sign{amount < 0};
+    const int64_t n_abs{sign ? -amount : amount};
 
-    if (units > 0) {
-        int64_t divisor = 1;
-        for (int i = 0; i < units; i++) divisor *= 10;
-        quotient = n_abs / divisor;
-        remainder = n_abs % divisor;
-    }
+    // Clamp units to the supported range.
+    if (units < 0) units = 0;
+    if (units > MAX_UNIT) units = MAX_UNIT;
+
+    const int64_t quotient{n_abs / COIN};
+    const int64_t remainder_full{n_abs % COIN};
 
     if (units == 0) {
         return UniValue(UniValue::VNUM, strprintf("%s%d", sign ? "-" : "", quotient));
     }
+
+    int64_t remainder_divisor{1};
+    for (int i = 0; i < (MAX_UNIT - units); ++i) remainder_divisor *= 10;
+    const int64_t remainder{remainder_full / remainder_divisor};
 
     return UniValue(UniValue::VNUM, strprintf("%s%d.%0*d", sign ? "-" : "", quotient, units, remainder));
 }
