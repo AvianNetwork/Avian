@@ -263,11 +263,14 @@ static bool GenerateBlock(ChainstateManager& chainman, CBlock&& block, uint64_t&
     return true;
 }
 
-static UniValue generateBlocks(ChainstateManager& chainman, Mining& miner, const CScript& coinbase_output_script, int nGenerate, uint64_t nMaxTries)
+static UniValue generateBlocks(ChainstateManager& chainman, Mining& miner, const CScript& coinbase_output_script, POW_TYPE pow_type, int nGenerate, uint64_t nMaxTries)
 {
     UniValue blockHashes(UniValue::VARR);
     while (nGenerate > 0 && !chainman.m_interrupt) {
-        std::unique_ptr<BlockTemplate> block_template(miner.createNewBlock({ .coinbase_output_script = coinbase_output_script }));
+        node::BlockCreateOptions create_options;
+        create_options.coinbase_output_script = coinbase_output_script;
+        create_options.pow_type = static_cast<int>(pow_type);
+        std::unique_ptr<BlockTemplate> block_template(miner.createNewBlock(create_options));
         CHECK_NONFATAL(block_template);
 
         std::shared_ptr<const CBlock> block_out;
@@ -327,6 +330,7 @@ static RPCHelpMan generatetodescriptor()
             {"num_blocks", RPCArg::Type::NUM, RPCArg::Optional::NO, "How many blocks are generated."},
             {"descriptor", RPCArg::Type::STR, RPCArg::Optional::NO, "The descriptor to send the newly generated AVN to."},
             {"maxtries", RPCArg::Type::NUM, RPCArg::Default{DEFAULT_MAX_TRIES}, "How many iterations to try."},
+            {"powalgo", RPCArg::Type::STR, RPCArg::Optional::OMITTED, "The pow algorithm: \"x16rt\" or \"minotaurx\". Uses -powalgo config value if omitted."},
         },
         RPCResult{
             RPCResult::Type::ARR, "", "hashes of blocks generated",
@@ -335,11 +339,28 @@ static RPCHelpMan generatetodescriptor()
             }
         },
         RPCExamples{
-            "\nGenerate 11 blocks to mydesc\n" + HelpExampleCli("generatetodescriptor", "11 \"mydesc\"")},
+            "\nGenerate 11 blocks to mydesc\n" + HelpExampleCli("generatetodescriptor", "11 \"mydesc\"")
+            + HelpExampleCli("-named generatetodescriptor", "num_blocks=11 descriptor=\"mydesc\" powalgo=\"x16rt\"")},
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
 {
     const auto num_blocks{self.Arg<int>("num_blocks")};
     const auto max_tries{self.Arg<uint64_t>("maxtries")};
+
+    const auto algo_arg{self.MaybeArg<std::string>("powalgo")};
+    const std::string str_algo{algo_arg ? *algo_arg : gArgs.GetArg("-powalgo", DEFAULT_POW_TYPE)};
+
+    POW_TYPE pow_type{POW_TYPE_X16RT};
+    {
+        bool algo_found{false};
+        for (unsigned int i = 0; i < NUM_BLOCK_TYPES; i++) {
+            if (str_algo == POW_TYPE_NAMES[i]) {
+                pow_type = static_cast<POW_TYPE>(i);
+                algo_found = true;
+                break;
+            }
+        }
+        if (!algo_found) throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid pow algorithm requested");
+    }
 
     CScript coinbase_output_script;
     std::string error;
@@ -351,7 +372,15 @@ static RPCHelpMan generatetodescriptor()
     Mining& miner = EnsureMining(node);
     ChainstateManager& chainman = EnsureChainman(node);
 
-    return generateBlocks(chainman, miner, coinbase_output_script, num_blocks, max_tries);
+    if (pow_type == POW_TYPE_MINOTAURX) {
+        LOCK(cs_main);
+        const CBlockIndex* tip = chainman.ActiveChain().Tip();
+        if (!tip || !IsDualAlgoEnabled(tip, chainman.GetConsensus())) {
+            throw JSONRPCError(RPC_INVALID_PARAMETER, "minotaurx is not available before dual-algo activation");
+        }
+    }
+
+    return generateBlocks(chainman, miner, coinbase_output_script, pow_type, num_blocks, max_tries);
 },
     };
 }
@@ -371,6 +400,7 @@ static RPCHelpMan generatetoaddress()
              {"nblocks", RPCArg::Type::NUM, RPCArg::Optional::NO, "How many blocks are generated."},
              {"address", RPCArg::Type::STR, RPCArg::Optional::NO, "The address to send the newly generated AVN to."},
              {"maxtries", RPCArg::Type::NUM, RPCArg::Default{DEFAULT_MAX_TRIES}, "How many iterations to try."},
+             {"powalgo", RPCArg::Type::STR, RPCArg::Optional::OMITTED, "The pow algorithm: \"x16rt\" or \"minotaurx\". Uses -powalgo config value if omitted."},
          },
          RPCResult{
              RPCResult::Type::ARR, "", "hashes of blocks generated",
@@ -380,15 +410,32 @@ static RPCHelpMan generatetoaddress()
          RPCExamples{
             "\nGenerate 11 blocks to myaddress\n"
             + HelpExampleCli("generatetoaddress", "11 \"myaddress\"")
+            + HelpExampleCli("-named generatetoaddress", "nblocks=11 address=\"myaddress\" powalgo=\"x16rt\"")
             + "If you are using the " CLIENT_NAME " wallet, you can get a new address to send the newly generated AVN to with:\n"
             + HelpExampleCli("getnewaddress", "")
                 },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
 {
-    const int num_blocks{request.params[0].getInt<int>()};
-    const uint64_t max_tries{request.params[2].isNull() ? DEFAULT_MAX_TRIES : request.params[2].getInt<int>()};
+    const int num_blocks{self.Arg<int>("nblocks")};
+    const uint64_t max_tries{self.Arg<uint64_t>("maxtries")};
 
-    CTxDestination destination = DecodeDestination(request.params[1].get_str());
+    const auto algo_arg{self.MaybeArg<std::string>("powalgo")};
+    const std::string str_algo{algo_arg ? *algo_arg : gArgs.GetArg("-powalgo", DEFAULT_POW_TYPE)};
+
+    POW_TYPE pow_type{POW_TYPE_X16RT};
+    {
+        bool algo_found{false};
+        for (unsigned int i = 0; i < NUM_BLOCK_TYPES; i++) {
+            if (str_algo == POW_TYPE_NAMES[i]) {
+                pow_type = static_cast<POW_TYPE>(i);
+                algo_found = true;
+                break;
+            }
+        }
+        if (!algo_found) throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid pow algorithm requested");
+    }
+
+    CTxDestination destination = DecodeDestination(self.Arg<std::string>("address"));
     if (!IsValidDestination(destination)) {
         throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Error: Invalid address");
     }
@@ -397,9 +444,17 @@ static RPCHelpMan generatetoaddress()
     Mining& miner = EnsureMining(node);
     ChainstateManager& chainman = EnsureChainman(node);
 
+    if (pow_type == POW_TYPE_MINOTAURX) {
+        LOCK(cs_main);
+        const CBlockIndex* tip = chainman.ActiveChain().Tip();
+        if (!tip || !IsDualAlgoEnabled(tip, chainman.GetConsensus())) {
+            throw JSONRPCError(RPC_INVALID_PARAMETER, "minotaurx is not available before dual-algo activation");
+        }
+    }
+
     CScript coinbase_output_script = GetScriptForDestination(destination);
 
-    return generateBlocks(chainman, miner, coinbase_output_script, num_blocks, max_tries);
+    return generateBlocks(chainman, miner, coinbase_output_script, pow_type, num_blocks, max_tries);
 },
     };
 }
