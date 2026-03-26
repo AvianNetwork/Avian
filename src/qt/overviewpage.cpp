@@ -147,6 +147,8 @@ class AssetViewDelegate : public QAbstractItemDelegate
 {
     Q_OBJECT
 public:
+    bool m_privacy{false};
+
     explicit AssetViewDelegate(const PlatformStyle* _platformStyle, QObject* parent = nullptr)
         : QAbstractItemDelegate(parent), platformStyle(_platformStyle)
     {
@@ -232,6 +234,14 @@ public:
         // Get data
         QString name = index.data(AssetTableModel::AssetNameRole).toString();
         QString amountText = index.data(AssetTableModel::FormattedAmountRole).toString();
+        if (m_privacy) {
+            for (int i = 0; i < name.size(); ++i) {
+                if (name[i].isLetterOrNumber()) name[i] = '#';
+            }
+            for (int i = 0; i < amountText.size(); ++i) {
+                if (amountText[i].isDigit()) amountText[i] = '#';
+            }
+        }
 
         // White text
         QColor textColor = COLOR_WHITE;
@@ -358,6 +368,9 @@ void OverviewPage::setPrivacy(bool privacy)
     }
 
     ui->listTransactions->setVisible(!m_privacy);
+
+    assetdelegate->m_privacy = m_privacy;
+    ui->listAssets->viewport()->update();
 
     const QString status_tip = m_privacy ? tr("Privacy mode activated for the Overview tab. To unmask the values, uncheck Settings->Mask values.") : "";
     setStatusTip(status_tip);
