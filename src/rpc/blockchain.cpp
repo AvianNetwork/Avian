@@ -3445,6 +3445,8 @@ const std::vector<RPCResult> RPCHelpForChainstate{
     {RPCResult::Type::STR_HEX, "bits", "nBits: compact representation of the block difficulty target"},
     {RPCResult::Type::STR_HEX, "target", "The difficulty target"},
     {RPCResult::Type::NUM, "difficulty", "difficulty of the tip"},
+    {RPCResult::Type::NUM, "difficulty_minotaurx", /*optional=*/true, "MinotaurX difficulty of the tip (only after dual-algo activation)"},
+    {RPCResult::Type::NUM, "difficulty_x16rt", /*optional=*/true, "X16RT difficulty of the tip (only after dual-algo activation)"},
     {RPCResult::Type::NUM, "verificationprogress", "progress towards the network tip"},
     {RPCResult::Type::STR_HEX, "snapshot_blockhash", /*optional=*/true, "the base block of the snapshot this chainstate is based on, if any"},
     {RPCResult::Type::NUM, "coins_db_cache_bytes", "size of the coinsdb cache"},
@@ -3489,6 +3491,10 @@ return RPCHelpMan{
         data.pushKV("bits", strprintf("%08x", tip->nBits));
         data.pushKV("target", GetTarget(*tip, chainman.GetConsensus().powLimit).GetHex());
         data.pushKV("difficulty", GetDifficulty(*tip));
+        if (IsDualAlgoEnabled(tip, chainman.GetConsensus())) {
+            data.pushKV("difficulty_minotaurx", GetDifficulty(POW_TYPE_MINOTAURX, chain));
+            data.pushKV("difficulty_x16rt", GetDifficulty(POW_TYPE_X16RT, chain));
+        }
         data.pushKV("verificationprogress", chainman.GuessVerificationProgress(tip));
         data.pushKV("coins_db_cache_bytes",  cs.m_coinsdb_cache_size_bytes);
         data.pushKV("coins_tip_cache_bytes", cs.m_coinstip_cache_size_bytes);
