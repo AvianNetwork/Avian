@@ -598,6 +598,8 @@ static RPCHelpMan getmininginfo()
                             {RPCResult::Type::NUM, "height", "The next height"},
                             {RPCResult::Type::STR_HEX, "bits", "The next target nBits"},
                             {RPCResult::Type::NUM, "difficulty", "The next difficulty"},
+                            {RPCResult::Type::NUM, "difficulty_minotaurx", /*optional=*/true, "MinotaurX difficulty for the next block (only after dual-algo activation)"},
+                            {RPCResult::Type::NUM, "difficulty_x16rt", /*optional=*/true, "X16RT difficulty for the next block (only after dual-algo activation)"},
                             {RPCResult::Type::STR_HEX, "target", "The next target"}
                         }},
                         (IsDeprecatedRPCEnabled("warnings") ?
@@ -651,6 +653,10 @@ static RPCHelpMan getmininginfo()
     next.pushKV("height", next_index.nHeight);
     next.pushKV("bits", strprintf("%08x", next_index.nBits));
     next.pushKV("difficulty", GetDifficulty(next_index));
+    if (IsDualAlgoEnabled(&tip, chainman.GetConsensus())) {
+        next.pushKV("difficulty_minotaurx", GetDifficulty(POW_TYPE_MINOTAURX, active_chain));
+        next.pushKV("difficulty_x16rt", GetDifficulty(POW_TYPE_X16RT, active_chain));
+    }
     next.pushKV("target", GetTarget(next_index, chainman.GetConsensus().powLimit).GetHex());
     obj.pushKV("next", next);
 
