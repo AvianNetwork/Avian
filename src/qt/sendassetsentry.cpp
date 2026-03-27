@@ -172,7 +172,7 @@ bool SendAssetsEntry::validate()
     if (recipient.paymentRequest.IsInitialized())
         return retval;
 
-    if (!model->validateAddress(ui->payTo->text()))
+    if (!model->validateLegacyAddress(ui->payTo->text()))
     {
         ui->payTo->setValid(false);
         retval = false;
