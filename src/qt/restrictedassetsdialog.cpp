@@ -17,6 +17,7 @@
 
 #include <assets/assets.h>
 #include <assets/assettypes.h>
+#include <addresstype.h>
 #include <key_io.h>
 #include <validation.h>
 #include <qt/guiconstants.h>
@@ -192,8 +193,8 @@ void RestrictedAssetsDialog::freezeAddressClicked()
     if (fui->checkBoxChangeAddress->isChecked() && !fui->lineEditChangeAddress->text().isEmpty()) {
         change_address = fui->lineEditChangeAddress->text().trimmed().toStdString();
         CTxDestination dest = DecodeDestination(change_address);
-        if (!IsValidDestination(dest)) {
-            QMessageBox::warning(this, tr("Error"), tr("Invalid change address."));
+        if (std::get_if<PKHash>(&dest) == nullptr) {
+            QMessageBox::warning(this, tr("Error"), tr("Change address must use legacy (P2PKH) format."));
             return;
         }
     }
@@ -240,8 +241,8 @@ void RestrictedAssetsDialog::freezeAddressClicked()
             return;
         }
         CTxDestination addr_dest = DecodeDestination(address);
-        if (!IsValidDestination(addr_dest)) {
-            QMessageBox::warning(this, tr("Error"), tr("Invalid address."));
+        if (std::get_if<PKHash>(&addr_dest) == nullptr) {
+            QMessageBox::warning(this, tr("Error"), tr("Address must use legacy (P2PKH) format. SegWit and bech32 addresses are not supported."));
             return;
         }
 
@@ -305,8 +306,8 @@ void RestrictedAssetsDialog::assignQualifierClicked()
         return;
     }
     CTxDestination to_dest = DecodeDestination(to_address);
-    if (!IsValidDestination(to_dest)) {
-        QMessageBox::warning(this, tr("Error"), tr("Invalid address."));
+    if (std::get_if<PKHash>(&to_dest) == nullptr) {
+        QMessageBox::warning(this, tr("Error"), tr("Address must use legacy (P2PKH) format. SegWit and bech32 addresses are not supported."));
         return;
     }
 
@@ -318,8 +319,8 @@ void RestrictedAssetsDialog::assignQualifierClicked()
     if (qui->checkBoxChangeAddress->isChecked() && !qui->lineEditChangeAddress->text().isEmpty()) {
         change_address = qui->lineEditChangeAddress->text().trimmed().toStdString();
         CTxDestination dest = DecodeDestination(change_address);
-        if (!IsValidDestination(dest)) {
-            QMessageBox::warning(this, tr("Error"), tr("Invalid change address."));
+        if (std::get_if<PKHash>(&dest) == nullptr) {
+            QMessageBox::warning(this, tr("Error"), tr("Change address must use legacy (P2PKH) format."));
             return;
         }
     }

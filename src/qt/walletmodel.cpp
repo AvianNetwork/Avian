@@ -17,6 +17,7 @@
 #include <qt/transactiontablemodel.h>
 
 #include <common/args.h>
+#include <addresstype.h>
 #include <interfaces/handler.h>
 #include <interfaces/node.h>
 #include <key_io.h>
@@ -148,6 +149,12 @@ void WalletModel::updateAddressBook(const QString &address, const QString &label
 bool WalletModel::validateAddress(const QString& address) const
 {
     return IsValidDestinationString(address.toStdString());
+}
+
+bool WalletModel::validateLegacyAddress(const QString& address) const
+{
+    CTxDestination dest = DecodeDestination(address.toStdString());
+    return std::get_if<PKHash>(&dest) != nullptr;
 }
 
 WalletModel::SendCoinsReturn WalletModel::prepareTransaction(WalletModelTransaction &transaction, const CCoinControl& coinControl)

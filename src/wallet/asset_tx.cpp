@@ -326,9 +326,17 @@ bool CreateTransferAssetTransaction(
         const std::string& asset_name = transfer.first.strName;
         CAmount nAmount = transfer.first.nAmount;
 
-        if (!IsValidDestinationString(address)) {
-            error = std::make_pair(RPC_INVALID_ADDRESS_OR_KEY, std::string("Invalid Avian address: ") + address);
-            return false;
+        {
+            CTxDestination dest = DecodeDestination(address);
+            if (!IsValidDestination(dest)) {
+                error = std::make_pair(RPC_INVALID_ADDRESS_OR_KEY, std::string("Invalid Avian address: ") + address);
+                return false;
+            }
+            if (!std::get_if<PKHash>(&dest)) {
+                error = std::make_pair(RPC_INVALID_ADDRESS_OR_KEY,
+                    "Asset addresses must use legacy (P2PKH) format. SegWit and bech32 addresses are not supported.");
+                return false;
+            }
         }
 
         if (!VerifyWalletHasAsset(wallet, asset_name, error))
@@ -519,9 +527,17 @@ bool CreateReissueAssetTransaction(
     IsAssetNameValid(asset_name, asset_type);
 
     // Validate destination address
-    if (!IsValidDestinationString(address)) {
-        error = std::make_pair(RPC_INVALID_ADDRESS_OR_KEY, std::string("Invalid Avian address: ") + address);
-        return false;
+    {
+        CTxDestination dest = DecodeDestination(address);
+        if (!IsValidDestination(dest)) {
+            error = std::make_pair(RPC_INVALID_ADDRESS_OR_KEY, std::string("Invalid Avian address: ") + address);
+            return false;
+        }
+        if (!std::get_if<PKHash>(&dest)) {
+            error = std::make_pair(RPC_INVALID_ADDRESS_OR_KEY,
+                "Asset addresses must use legacy (P2PKH) format. SegWit and bech32 addresses are not supported.");
+            return false;
+        }
     }
 
     // Build change address

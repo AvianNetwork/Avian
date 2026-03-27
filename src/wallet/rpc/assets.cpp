@@ -10,6 +10,7 @@
 #include <assets/assetdb.h>
 #include <assets/ans.h>
 #include <assets/messages.h>
+#include <addresstype.h>
 #include <core_io.h>
 #include <key_io.h>
 #include <util/moneystr.h>
@@ -279,6 +280,8 @@ RPCHelpMan issue()
                 CTxDestination destination = DecodeDestination(address);
                 if (!IsValidDestination(destination))
                     throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, std::string("Invalid Avian address: ") + address);
+                if (!std::get_if<PKHash>(&destination))
+                    throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Asset addresses must use legacy (P2PKH) format. SegWit and bech32 addresses are not supported.");
             } else {
                 auto op_dest = pwallet->GetNewDestination(OutputType::LEGACY, "");
                 if (!op_dest) throw JSONRPCError(RPC_WALLET_KEYPOOL_RAN_OUT, util::ErrorString(op_dest).original);
@@ -377,6 +380,8 @@ RPCHelpMan transfer()
             CTxDestination to_dest = DecodeDestination(to_address);
             if (!IsValidDestination(to_dest))
                 throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, std::string("Invalid Avian address: ") + to_address);
+            if (!std::get_if<PKHash>(&to_dest))
+                throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Asset addresses must use legacy (P2PKH) format. SegWit and bech32 addresses are not supported.");
 
             std::string message;
             if (!request.params[3].isNull())
@@ -407,6 +412,8 @@ RPCHelpMan transfer()
             CTxDestination asset_change_dest = DecodeDestination(asset_change_address);
             if (!asset_change_address.empty() && !IsValidDestination(asset_change_dest))
                 throw JSONRPCError(RPC_INVALID_PARAMETER, std::string("Asset change address must be a valid address. Invalid address: ") + asset_change_address);
+            if (!asset_change_address.empty() && !std::get_if<PKHash>(&asset_change_dest))
+                throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Asset change address must use legacy (P2PKH) format. SegWit and bech32 addresses are not supported.");
 
             std::vector<std::pair<CAssetTransfer, std::string>> vTransfers;
             CAssetTransfer assetTransfer(asset_name, nAmount, DecodeAssetData(message), expireTime);
@@ -544,6 +551,8 @@ static UniValue UpdateAddressTag(const JSONRPCRequest& request, const int8_t fla
     CTxDestination to_dest = DecodeDestination(to_address);
     if (!IsValidDestination(to_dest))
         throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, std::string("Invalid Avian address: ") + to_address);
+    if (!std::get_if<PKHash>(&to_dest))
+        throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Asset addresses must use legacy (P2PKH) format. SegWit and bech32 addresses are not supported.");
 
     std::string change_address;
     if (!request.params[2].isNull())
@@ -617,6 +626,8 @@ static UniValue UpdateAddressRestriction(const JSONRPCRequest& request, const in
     CTxDestination addr_dest = DecodeDestination(address);
     if (!IsValidDestination(addr_dest))
         throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, std::string("Invalid Avian address: ") + address);
+    if (!std::get_if<PKHash>(&addr_dest))
+        throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Asset addresses must use legacy (P2PKH) format. SegWit and bech32 addresses are not supported.");
 
     std::string change_address;
     if (!request.params[2].isNull())
@@ -799,6 +810,8 @@ RPCHelpMan issueunique()
                 CTxDestination destination = DecodeDestination(address);
                 if (!IsValidDestination(destination))
                     throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, std::string("Invalid Avian address: ") + address);
+                if (!std::get_if<PKHash>(&destination))
+                    throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Asset addresses must use legacy (P2PKH) format. SegWit and bech32 addresses are not supported.");
             } else {
                 auto op_dest = pwallet->GetNewDestination(OutputType::LEGACY, "");
                 if (!op_dest) throw JSONRPCError(RPC_WALLET_KEYPOOL_RAN_OUT, util::ErrorString(op_dest).original);
@@ -1161,6 +1174,8 @@ RPCHelpMan issuequalifierasset()
                 CTxDestination destination = DecodeDestination(address);
                 if (!IsValidDestination(destination))
                     throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, std::string("Invalid Avian address: ") + address);
+                if (!std::get_if<PKHash>(&destination))
+                    throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Asset addresses must use legacy (P2PKH) format. SegWit and bech32 addresses are not supported.");
             } else {
                 auto op_dest = pwallet->GetNewDestination(OutputType::LEGACY, "");
                 if (!op_dest) throw JSONRPCError(RPC_WALLET_KEYPOOL_RAN_OUT, util::ErrorString(op_dest).original);
@@ -1265,6 +1280,8 @@ RPCHelpMan issuerestrictedasset()
             CTxDestination destination = DecodeDestination(address);
             if (!IsValidDestination(destination))
                 throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, std::string("Invalid Avian address: ") + address);
+            if (!std::get_if<PKHash>(&destination))
+                throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Asset addresses must use legacy (P2PKH) format. SegWit and bech32 addresses are not supported.");
 
             // Validate the verifier string
             std::string strError;
@@ -1374,6 +1391,8 @@ RPCHelpMan reissuerestrictedasset()
             CTxDestination destination = DecodeDestination(address);
             if (!IsValidDestination(destination))
                 throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, std::string("Invalid Avian address: ") + address);
+            if (!std::get_if<PKHash>(&destination))
+                throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Asset addresses must use legacy (P2PKH) format. SegWit and bech32 addresses are not supported.");
 
             bool change_verifier = false;
             if (!request.params[3].isNull())

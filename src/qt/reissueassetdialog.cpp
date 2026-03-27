@@ -442,11 +442,11 @@ void ReissueAssetDialog::CheckFormState()
         return;
     }
 
-    // Check the destination address
+    // Check the destination address (must be legacy P2PKH)
     const CTxDestination dest = DecodeDestination(ui->addressText->text().toStdString());
     if (!ui->addressText->text().isEmpty()) {
-        if (!IsValidDestination(dest)) {
-            showMessage(tr("Invalid Avian Destination Address"));
+        if (std::get_if<PKHash>(&dest) == nullptr) {
+            showMessage(tr("Address must use legacy (P2PKH) format. SegWit and bech32 addresses are not supported."));
             return;
         }
     }
