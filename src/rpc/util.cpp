@@ -1412,8 +1412,21 @@ std::vector<RPCResult> ScriptPubKeyDoc() {
          };
 }
 
-uint256 GetTarget(const CBlockIndex& blockindex, const uint256 pow_limit)
+uint256 GetTarget(const CBlockIndex& blockindex, const Consensus::Params& params)
 {
-    arith_uint256 target{*CHECK_NONFATAL(DeriveTarget(blockindex.nBits, pow_limit))};
+    // Select the correct PoW limit based on algorithm: post-fork blocks encode
+    // the algorithm in nVersion bits [23:16], matching CheckProofOfWorkFromIndex.
+    uint256 limit;
+    if (params.powForkTime > 0 && blockindex.nTime > params.powForkTime) {
+        unsigned int powTypeIndex = (blockindex.nVersion >> 16) & 0xFF;
+        if (powTypeIndex < params.powTypeLimits.size()) {
+            limit = params.powTypeLimits[powTypeIndex];
+        } else {
+            limit = params.powLimit; // fallback for unrecognised algorithm
+        }
+    } else {
+        limit = params.powLimit;
+    }
+    arith_uint256 target{*CHECK_NONFATAL(DeriveTarget(blockindex.nBits, limit))};
     return ArithToUint256(target);
 }

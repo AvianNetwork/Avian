@@ -165,7 +165,7 @@ static const CBlockIndex* ParseHashOrHeight(const UniValue& param, ChainstateMan
     }
 }
 
-UniValue blockheaderToJSON(const CBlockIndex& tip, const CBlockIndex& blockindex, const uint256 pow_limit)
+UniValue blockheaderToJSON(const CBlockIndex& tip, const CBlockIndex& blockindex, const Consensus::Params& params)
 {
     // Serialize passed information without accessing chain state of the active chain!
     AssertLockNotHeld(cs_main); // For performance reasons
@@ -183,7 +183,7 @@ UniValue blockheaderToJSON(const CBlockIndex& tip, const CBlockIndex& blockindex
     result.pushKV("mediantime", blockindex.GetMedianTimePast());
     result.pushKV("nonce", blockindex.nNonce);
     result.pushKV("bits", strprintf("%08x", blockindex.nBits));
-    result.pushKV("target", GetTarget(blockindex, pow_limit).GetHex());
+    result.pushKV("target", GetTarget(blockindex, params).GetHex());
     result.pushKV("difficulty", GetDifficulty(blockindex));
     result.pushKV("chainwork", blockindex.nChainWork.GetHex());
     result.pushKV("nTx", blockindex.nTx);
@@ -195,9 +195,9 @@ UniValue blockheaderToJSON(const CBlockIndex& tip, const CBlockIndex& blockindex
     return result;
 }
 
-UniValue blockToJSON(BlockManager& blockman, const CBlock& block, const CBlockIndex& tip, const CBlockIndex& blockindex, TxVerbosity verbosity, const uint256 pow_limit)
+UniValue blockToJSON(BlockManager& blockman, const CBlock& block, const CBlockIndex& tip, const CBlockIndex& blockindex, TxVerbosity verbosity, const Consensus::Params& params)
 {
-    UniValue result = blockheaderToJSON(tip, blockindex, pow_limit);
+    UniValue result = blockheaderToJSON(tip, blockindex, params);
 
     result.pushKV("strippedsize", (int)::GetSerializeSize(TX_NO_WITNESS(block)));
     result.pushKV("size", (int)::GetSerializeSize(TX_WITH_WITNESS(block)));
@@ -680,7 +680,7 @@ static RPCHelpMan getblockheader()
         return strHex;
     }
 
-    return blockheaderToJSON(*tip, *pblockindex, chainman.GetConsensus().powLimit);
+    return blockheaderToJSON(*tip, *pblockindex, chainman.GetConsensus());
 },
     };
 }
@@ -888,7 +888,7 @@ static RPCHelpMan getblock()
         tx_verbosity = TxVerbosity::SHOW_DETAILS_AND_PREVOUT;
     }
 
-    return blockToJSON(chainman.m_blockman, block, *tip, *pblockindex, tx_verbosity, chainman.GetConsensus().powLimit);
+    return blockToJSON(chainman.m_blockman, block, *tip, *pblockindex, tx_verbosity, chainman.GetConsensus());
 },
     };
 }
@@ -1431,7 +1431,7 @@ RPCHelpMan getblockchaininfo()
     obj.pushKV("headers", chainman.m_best_header ? chainman.m_best_header->nHeight : -1);
     obj.pushKV("bestblockhash", tip.GetBlockHash().GetHex());
     obj.pushKV("bits", strprintf("%08x", tip.nBits));
-    obj.pushKV("target", GetTarget(tip, chainman.GetConsensus().powLimit).GetHex());
+    obj.pushKV("target", GetTarget(tip, chainman.GetConsensus()).GetHex());
     obj.pushKV("difficulty", GetDifficulty(tip));
     if (IsDualAlgoEnabled(&tip, chainman.GetConsensus())) {
         obj.pushKV("difficulty_minotaurx", GetDifficulty(POW_TYPE_MINOTAURX, active_chainstate.m_chain));
@@ -3489,7 +3489,7 @@ return RPCHelpMan{
         data.pushKV("blocks",                (int)chain.Height());
         data.pushKV("bestblockhash",         tip->GetBlockHash().GetHex());
         data.pushKV("bits", strprintf("%08x", tip->nBits));
-        data.pushKV("target", GetTarget(*tip, chainman.GetConsensus().powLimit).GetHex());
+        data.pushKV("target", GetTarget(*tip, chainman.GetConsensus()).GetHex());
         data.pushKV("difficulty", GetDifficulty(*tip));
         if (IsDualAlgoEnabled(tip, chainman.GetConsensus())) {
             data.pushKV("difficulty_minotaurx", GetDifficulty(POW_TYPE_MINOTAURX, chain));
