@@ -517,6 +517,12 @@ void CreateAssetDialog::CheckFormState()
         return;
     }
 
+    if (!ui->addressText->text().isEmpty() && IsValidDestination(dest) && std::get_if<PKHash>(&dest) == nullptr) {
+        ui->addressText->setStyleSheet(STYLE_INVALID);
+        showMessage(tr("Warning: Address must use legacy (P2PKH) format. SegWit and bech32 addresses are not supported for asset operations."));
+        return;
+    }
+
     if (type == IntFromAssetType(AssetType::RESTRICTED)) {
 
         QString qVerifier = ui->lineEditVerifierString->text();

@@ -165,6 +165,7 @@ void AssetsDialog::setModel(WalletModel *_model)
             if(entry)
             {
                 entry->setModel(_model);
+                entry->refreshAssetList();
             }
         }
 
