@@ -446,14 +446,19 @@ QDateTimeEdit::drop-down {
 QGroupBox {
   background-color: #2e2e2e;
   color: #f4f4f4;
-  padding-top: 20px;
+  border: 1px solid #555555;
+  border-radius: 4px;
+  margin-top: 20px;
+  padding-top: 6px;
   font: 12pt "Konnect";
 }
 
-QGroupBox:title {
+QGroupBox::title {
+  subcontrol-origin: margin;
+  subcontrol-position: top left;
   background-color: #2e2e2e;
-  margin-top: 5px;
-  margin-left: 7px;
+  padding: 0 4px;
+  left: 10px;
   font: 12pt "Konnect";
 }
 
