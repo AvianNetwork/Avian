@@ -175,6 +175,8 @@ bool SendAssetsEntry::validate()
     if (!model->validateLegacyAddress(ui->payTo->text()))
     {
         ui->payTo->setValid(false);
+        ui->messageTextLabel->show();
+        ui->messageTextLabel->setText(tr("Address must use legacy (P2PKH) format. SegWit and bech32 addresses are not supported for asset transfers."));
         retval = false;
     }
 
