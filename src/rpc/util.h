@@ -7,6 +7,7 @@
 
 #include <addresstype.h>
 #include <consensus/amount.h>
+#include <consensus/params.h>
 #include <node/transaction.h>
 #include <outputtype.h>
 #include <pubkey.h>
@@ -521,12 +522,13 @@ std::vector<RPCResult> ScriptPubKeyDoc();
 
 /***
  * Get the target for a given block index.
+ * Automatically selects the correct per-algorithm PoW limit for dual-algo blocks.
  *
  * @param[in] blockindex    the block
- * @param[in] pow_limit     PoW limit (consensus parameter)
+ * @param[in] params        consensus parameters
  *
  * @return  the target
  */
-uint256 GetTarget(const CBlockIndex& blockindex, const uint256 pow_limit);
+uint256 GetTarget(const CBlockIndex& blockindex, const Consensus::Params& params);
 
 #endif // BITCOIN_RPC_UTIL_H
