@@ -634,7 +634,7 @@ static RPCHelpMan getmininginfo()
         obj.pushKV("difficulty_minotaurx", GetDifficulty(POW_TYPE_MINOTAURX, active_chain));
         obj.pushKV("difficulty_x16rt", GetDifficulty(POW_TYPE_X16RT, active_chain));
     }
-    obj.pushKV("target", GetTarget(tip, chainman.GetConsensus().powLimit).GetHex());
+    obj.pushKV("target", GetTarget(tip, chainman.GetConsensus()).GetHex());
     obj.pushKV("networkhashps",    getnetworkhashps().HandleRequest(request));
     if (IsDualAlgoEnabled(&tip, chainman.GetConsensus())) {
         obj.pushKV("networkhashps_minotaurx", GetNetworkHashPS(120, -1, active_chain, POW_TYPE_MINOTAURX));
@@ -657,7 +657,7 @@ static RPCHelpMan getmininginfo()
         next.pushKV("difficulty_minotaurx", GetDifficulty(POW_TYPE_MINOTAURX, active_chain));
         next.pushKV("difficulty_x16rt", GetDifficulty(POW_TYPE_X16RT, active_chain));
     }
-    next.pushKV("target", GetTarget(next_index, chainman.GetConsensus().powLimit).GetHex());
+    next.pushKV("target", GetTarget(next_index, chainman.GetConsensus()).GetHex());
     obj.pushKV("next", next);
 
     if (chainman.GetParams().GetChainType() == ChainType::SIGNET) {
