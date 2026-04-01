@@ -149,10 +149,12 @@ static constexpr double BLOCK_DOWNLOAD_TIMEOUT_BASE = 1;
 static constexpr double BLOCK_DOWNLOAD_TIMEOUT_PER_PEER = 0.5;
 /** Maximum number of headers to announce when relaying blocks with headers message.*/
 static const unsigned int MAX_BLOCKS_TO_ANNOUNCE = 8;
-/** Minimum blocks required to signal NODE_NETWORK_LIMITED */
-static const unsigned int NODE_NETWORK_LIMITED_MIN_BLOCKS = 288;
-/** Window, in blocks, for connecting to NODE_NETWORK_LIMITED peers */
-static const unsigned int NODE_NETWORK_LIMITED_ALLOW_CONN_BLOCKS = 144;
+/** Minimum blocks required to signal NODE_NETWORK_LIMITED.
+ * Avian: 5760 blocks = ~2 days at 30-second block time (equivalent to Bitcoin's 288 blocks @ 10 min) */
+static const unsigned int NODE_NETWORK_LIMITED_MIN_BLOCKS = 5760;
+/** Window, in blocks, for connecting to NODE_NETWORK_LIMITED peers.
+ * Avian: 2880 blocks = ~1 day at 30-second block time (equivalent to Bitcoin's 144 blocks @ 10 min) */
+static const unsigned int NODE_NETWORK_LIMITED_ALLOW_CONN_BLOCKS = 2880;
 /** Average delay between local address broadcasts */
 static constexpr auto AVG_LOCAL_ADDRESS_BROADCAST_INTERVAL{24h};
 /** Average delay between peer address broadcasts */

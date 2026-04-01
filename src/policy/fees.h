@@ -157,15 +157,16 @@ private:
     /** Track confirm delays up to 1008 blocks for long horizon */
     static constexpr unsigned int LONG_BLOCK_PERIODS = 42;
     static constexpr unsigned int LONG_SCALE = 24;
-    /** Historical estimates that are older than this aren't valid */
-    static const unsigned int OLDEST_ESTIMATE_HISTORY = 6 * 1008;
+    /** Historical estimates that are older than this aren't valid.
+     * Avian: 120960 blocks = ~6 weeks at 30-second block time */
+    static const unsigned int OLDEST_ESTIMATE_HISTORY = 6 * 20160;
 
-    /** Decay of .962 is a half-life of 18 blocks or about 3 hours */
-    static constexpr double SHORT_DECAY = .962;
-    /** Decay of .9952 is a half-life of 144 blocks or about 1 day */
-    static constexpr double MED_DECAY = .9952;
-    /** Decay of .99931 is a half-life of 1008 blocks or about 1 week */
-    static constexpr double LONG_DECAY = .99931;
+    /** Decay of .9981 is a half-life of 360 blocks or about 3 hours (Avian: 30s blocks) */
+    static constexpr double SHORT_DECAY = .9981;
+    /** Decay of .99976 is a half-life of 2880 blocks or about 1 day (Avian: 30s blocks) */
+    static constexpr double MED_DECAY = .99976;
+    /** Decay of .999966 is a half-life of 20160 blocks or about 1 week (Avian: 30s blocks) */
+    static constexpr double LONG_DECAY = .999966;
 
     /** Require greater than 60% of X feerate transactions to be confirmed within Y/2 blocks*/
     static constexpr double HALF_SUCCESS_PCT = .6;
