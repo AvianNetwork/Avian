@@ -1,4 +1,5 @@
 // Copyright (c) The Bitcoin Core developers
+// Copyright (c) 2026 The Avian Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or https://opensource.org/license/mit/.
 
@@ -61,7 +62,7 @@ fn app() -> AppResult {
     }
 
     let build_dir = Path::new(build_dir);
-    let test_exe = build_dir.join("bin/test_bitcoin");
+    let test_exe = build_dir.join("bin/test_avian");
 
     sanity_check(&test_exe)?;
 

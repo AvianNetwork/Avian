@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # Copyright (c) 2014 Wladimir J. van der Laan
+# Copyright (c) 2026 The Avian Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 '''
@@ -41,7 +42,7 @@ MAX_VERSIONS = {
     lief.ELF.ARCH.RISCV:  (2,31),
 },
 'LIBATOMIC': (1,0),
-'V':         (0,5,0),  # xkb (bitcoin-qt only)
+'V':         (0,5,0),  # xkb (avian-qt only)
 }
 
 # Ignore symbols that are exported as part of every executable
@@ -91,7 +92,7 @@ ELF_ABIS: dict[lief.ELF.ARCH, dict[lief.Header.ENDIANNESS, list[int]]] = {
 
 # Allowed NEEDED libraries
 ELF_ALLOWED_LIBRARIES = {
-# bitcoind and bitcoin-qt
+# aviand and avian-qt
 'libgcc_s.so.1', # GCC base support
 'libc.so.6', # C library
 'libpthread.so.0', # threading
@@ -104,7 +105,7 @@ ELF_ALLOWED_LIBRARIES = {
 'ld64.so.1', # POWER64 ABIv1 dynamic linker
 'ld64.so.2', # POWER64 ABIv2 dynamic linker
 'ld-linux-riscv64-lp64d.so.1', # 64-bit RISC-V dynamic linker
-# bitcoin-qt only
+# avian-qt only
 'libxcb.so.1', # part of X11
 'libxkbcommon.so.0', # keyboard keymapping
 'libxkbcommon-x11.so.0', # keyboard keymapping
@@ -125,10 +126,10 @@ ELF_ALLOWED_LIBRARIES = {
 }
 
 MACHO_ALLOWED_LIBRARIES = {
-# bitcoind and bitcoin-qt
+# aviand and avian-qt
 'libc++.1.dylib', # C++ Standard Library
 'libSystem.B.dylib', # libc, libm, libpthread, libinfo
-# bitcoin-qt only
+# avian-qt only
 'AppKit', # user interface
 'ApplicationServices', # common application tasks.
 'Carbon', # deprecated c back-compat API
@@ -161,7 +162,7 @@ PE_ALLOWED_LIBRARIES = {
 'msvcrt.dll', # C standard library for MSVC
 'SHELL32.dll', # shell API
 'WS2_32.dll', # sockets
-# bitcoin-qt only
+# avian-qt only
 'api-ms-win-core-synch-l1-2-0.dll', # Synchronization Primitives API
 'api-ms-win-core-winrt-l1-1-0.dll', # Windows Runtime API
 'api-ms-win-core-winrt-string-l1-1-0.dll', # WinRT String API

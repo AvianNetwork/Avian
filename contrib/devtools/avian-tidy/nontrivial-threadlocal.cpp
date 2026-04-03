@@ -1,4 +1,5 @@
 // Copyright (c) 2023 Bitcoin Developers
+// Copyright (c) 2026 The Avian Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -16,7 +17,7 @@ AST_MATCHER(clang::CXXRecordDecl, hasNonTrivialDestructor) {
 }
 } // namespace
 
-namespace bitcoin {
+namespace avian {
 
 void NonTrivialThreadLocal::registerMatchers(clang::ast_matchers::MatchFinder* finder)
 {
@@ -41,4 +42,4 @@ void NonTrivialThreadLocal::check(const clang::ast_matchers::MatchFinder::MatchR
     }
 }
 
-} // namespace bitcoin
+} // namespace avian

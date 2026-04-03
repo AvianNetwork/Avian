@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # Copyright (c) 2022 Pieter Wuille
+# Copyright (c) 2026 The Avian Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -136,7 +137,7 @@ ATTACK_HEADERS = LIMIT_FRACTION * MINCHAINWORK_HEADERS
 
 
 def find_max_headers(when):
-    """Compute the maximum number of headers a valid Bitcoin chain can have at given time."""
+    """Compute the maximum number of headers a valid Avian chain can have at given time."""
     # When exploiting the timewarp attack, this can be up to 6 per second since genesis.
     return 6 * ((when - GENESIS_TIME) // timedelta(seconds=1))
 

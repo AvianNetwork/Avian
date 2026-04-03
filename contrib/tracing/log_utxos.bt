@@ -22,7 +22,7 @@ BEGIN
 /*
   Attaches to the 'utxocache:add' tracepoint and prints additions to the UTXO set cache.
 */
-usdt:./build/bin/bitcoind:utxocache:add
+usdt:./build/bin/aviand:utxocache:add
 {
   $txid = arg0;
   $index = (uint32)arg1;
@@ -44,7 +44,7 @@ usdt:./build/bin/bitcoind:utxocache:add
 /*
   Attaches to the 'utxocache:spent' tracepoint and prints spents from the UTXO set cache.
 */
-usdt:./build/bin/bitcoind:utxocache:spent
+usdt:./build/bin/aviand:utxocache:spent
 {
   $txid = arg0;
   $index = (uint32)arg1;
@@ -66,7 +66,7 @@ usdt:./build/bin/bitcoind:utxocache:spent
 /*
   Attaches to the 'utxocache:uncache' tracepoint and uncache UTXOs from the UTXO set cache.
 */
-usdt:./build/bin/bitcoind:utxocache:uncache
+usdt:./build/bin/aviand:utxocache:uncache
 {
   $txid = arg0;
   $index = (uint32)arg1;
