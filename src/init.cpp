@@ -1887,7 +1887,9 @@ bool AppInitMain(NodeContext& node, interfaces::BlockAndHeaderTipInfo* tip_info)
         delete pSnapshotRequestDb; delete pAssetSnapshotDb; delete pDistributeSnapshotDb;
 
         // Core asset databases
-        passetsdb = new CAssetsDB(args.GetDataDirNet(), nAssetDBCache, false, do_reindex || do_reindex_assets);
+        // Note: -reindexassets does NOT wipe the DB here; ReindexAssets() selectively
+        // erases only the address-balance keys ('B'/'C') while preserving asset metadata ('A' keys).
+        passetsdb = new CAssetsDB(args.GetDataDirNet(), nAssetDBCache, false, do_reindex /* wipe only on full -reindex */);
         passets = new CAssetsCache();
         passetsCache = new CLRUCache<std::string, CDatabasedAssetData>(MAX_CACHE_ASSETS_SIZE);
 
@@ -1902,7 +1904,7 @@ bool AppInitMain(NodeContext& node, interfaces::BlockAndHeaderTipInfo* tip_info)
         pmyrestricteddb = new CMyRestrictedDB(args.GetDataDirNet(), nAssetDBCache, false, false);
 
         // Restricted asset caches
-        prestricteddb = new CRestrictedDB(args.GetDataDirNet(), nAssetDBCache, false, do_reindex || do_reindex_assets);
+        prestricteddb = new CRestrictedDB(args.GetDataDirNet(), nAssetDBCache, false, do_reindex /* wipe only on full -reindex */);
         passetsVerifierCache = new CLRUCache<std::string, CNullAssetTxVerifierString>(MAX_CACHE_ASSETS_SIZE);
         passetsQualifierCache = new CLRUCache<std::string, int8_t>(MAX_CACHE_ASSETS_SIZE);
         passetsRestrictionCache = new CLRUCache<std::string, int8_t>(MAX_CACHE_ASSETS_SIZE);

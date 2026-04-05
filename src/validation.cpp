@@ -7289,100 +7289,217 @@ bool ReindexAssets(ChainstateManager& chainman)
         return true;
     }
 
-    LogPrintf("ReindexAssets: Rebuilding asset address balances from UTXO set...\n");
-
-    // Clear the asset address-quantity DB entries so we start fresh.
-    // We do NOT wipe the asset metadata (name/supply/etc) — only the address balances.
+    // Erase only the address-balance keys ('B'/'C'). Asset metadata ('A' keys)
+    // is preserved if present, and rebuilt in Phase 1 below if missing.
     if (passetsdb) {
         passetsdb->EraseAllAddressQuantities();
     }
 
-    // Reset the in-memory passets cache (address balances only — metadata reloaded below).
+    // Reset in-memory caches so we start from a known-clean state.
     delete passets;
     passets = new CAssetsCache();
     if (passetsCache) {
         passetsCache->Clear();
     }
 
-    // Build address->balance map by scanning the live UTXO set.
-    // This is the only correct approach: replaying transactions block-by-block
-    // would require tracking input spending which needs a full UTXO view.
-    // Scanning unspent outputs directly gives exact current balances.
+    // -----------------------------------------------------------------------
+    // Phase 1: Replay blocks to rebuild asset metadata ('A' keys).
+    //
+    // We only process asset creation/reissue transactions here — no transfers,
+    // no input spending. This is safe because metadata (name, supply, units,
+    // etc.) is determined entirely by the issuance/reissue outputs, which are
+    // append-only from the chain's perspective. Transfers don't affect metadata.
+    // -----------------------------------------------------------------------
+    LogPrintf("ReindexAssets: Phase 1 — rebuilding asset metadata from %d blocks...\n", tip_height);
+
+    const int metadata_log_interval = 10000;
+    int blocks_processed = 0;
+
+    for (int height = 1; height <= tip_height; height++) {
+        if (chainman.m_interrupt) {
+            LogPrintf("ReindexAssets: Interrupted at height %d during metadata pass\n", height);
+            return false;
+        }
+
+        const CBlockIndex* pindex = active_chain[height];
+        if (!pindex) continue;
+
+        CBlock block;
+        if (!active_chainstate.m_blockman.ReadBlock(block, *pindex)) {
+            LogError("ReindexAssets: Failed to read block at height %d\n", height);
+            continue;
+        }
+
+        if (!AreAssetsDeployed()) continue;
+
+        CAssetsCache assetCache;
+
+        for (const auto& ptx : block.vtx) {
+            const CTransaction& tx = *ptx;
+            if (tx.IsCoinBase()) continue;
+
+            if (IsNewAsset(tx)) {
+                CNewAsset asset;
+                std::string strAddress;
+                if (AssetFromTransaction(tx, asset, strAddress)) {
+                    assetCache.AddNewAsset(asset, strAddress, pindex->nHeight, pindex->GetBlockHash());
+                    std::string ownerName, ownerAddress;
+                    OwnerFromTransaction(tx, ownerName, ownerAddress);
+                    assetCache.AddOwnerAsset(ownerName, ownerAddress);
+                }
+            } else if (IsReissueAsset(tx)) {
+                CReissueAsset reissue;
+                std::string strAddress;
+                if (ReissueAssetFromTransaction(tx, reissue, strAddress)) {
+                    int reissueIndex = -1;
+                    for (int j = (int)tx.vout.size() - 1; j >= 0; j--) {
+                        int nType = 0; bool fIsOwner = false;
+                        if (tx.vout[j].scriptPubKey.IsAssetScript(nType, fIsOwner) && nType == TX_REISSUE_ASSET) {
+                            reissueIndex = j;
+                            break;
+                        }
+                    }
+                    if (reissueIndex >= 0)
+                        assetCache.AddReissueAsset(reissue, strAddress, COutPoint(tx.GetHash(), reissueIndex));
+                }
+            } else if (IsNewUniqueAsset(tx)) {
+                for (int j = 0; j < (int)tx.vout.size(); j++) {
+                    if (IsScriptNewUniqueAsset(tx.vout[j].scriptPubKey)) {
+                        CNewAsset asset;
+                        std::string strAddress;
+                        if (AssetFromScript(tx.vout[j].scriptPubKey, asset, strAddress))
+                            assetCache.AddNewAsset(asset, strAddress, pindex->nHeight, pindex->GetBlockHash());
+                    }
+                }
+            } else if (IsNewMsgChannelAsset(tx)) {
+                CNewAsset asset;
+                std::string strAddress;
+                if (MsgChannelAssetFromTransaction(tx, asset, strAddress)) {
+                    assetCache.AddNewAsset(asset, strAddress, pindex->nHeight, pindex->GetBlockHash());
+                    std::string ownerName, ownerAddress;
+                    OwnerFromTransaction(tx, ownerName, ownerAddress);
+                    assetCache.AddOwnerAsset(ownerName, ownerAddress);
+                }
+            } else if (IsNewQualifierAsset(tx)) {
+                CNewAsset asset;
+                std::string strAddress;
+                if (QualifierAssetFromTransaction(tx, asset, strAddress)) {
+                    assetCache.AddNewAsset(asset, strAddress, pindex->nHeight, pindex->GetBlockHash());
+                    std::string ownerName, ownerAddress;
+                    OwnerFromTransaction(tx, ownerName, ownerAddress);
+                    assetCache.AddOwnerAsset(ownerName, ownerAddress);
+                }
+            } else if (IsNewRestrictedAsset(tx)) {
+                CNewAsset asset;
+                std::string strAddress;
+                if (RestrictedAssetFromTransaction(tx, asset, strAddress)) {
+                    assetCache.AddNewAsset(asset, strAddress, pindex->nHeight, pindex->GetBlockHash());
+                    std::string ownerName, ownerAddress;
+                    OwnerFromTransaction(tx, ownerName, ownerAddress);
+                    assetCache.AddOwnerAsset(ownerName, ownerAddress);
+                    CNullAssetTxVerifierString verifier;
+                    std::string strError;
+                    if (GetVerifierStringFromTx(tx, verifier, strError))
+                        assetCache.AddRestrictedVerifier(asset.strName, verifier.verifier_string);
+                }
+            }
+        }
+
+        assetCache.Flush();
+        blocks_processed++;
+
+        if (blocks_processed % metadata_log_interval == 0) {
+            LogPrintf("ReindexAssets: Phase 1 — processed %d/%d blocks (%.1f%%)\n",
+                      height, tip_height, 100.0 * height / tip_height);
+            // Periodically flush metadata to DB to bound memory usage.
+            if (!passets->DumpCacheToDatabase()) {
+                LogError("ReindexAssets: Failed to flush metadata at height %d\n", height);
+                return false;
+            }
+        }
+    }
+
+    // Final metadata flush.
+    if (!passets->DumpCacheToDatabase()) {
+        LogError("ReindexAssets: Failed to write asset metadata to database\n");
+        return false;
+    }
+
+    // Reload metadata into the LRU cache for use by Phase 2 and by RPCs.
+    if (!passetsdb->LoadAssets(*passetsCache, nullptr, false)) {
+        LogError("ReindexAssets: Failed to reload asset metadata after phase 1\n");
+        return false;
+    }
+
+    LogPrintf("ReindexAssets: Phase 1 complete — %d blocks processed.\n", blocks_processed);
+
+    // -----------------------------------------------------------------------
+    // Phase 2: Scan the live UTXO set to build correct address balances.
+    //
+    // Replaying transactions for balances is fundamentally broken without a
+    // UTXO view (inputs can't be credited). The UTXO set contains exactly the
+    // unspent outputs, so scanning it gives correct current balances directly.
+    // -----------------------------------------------------------------------
+    LogPrintf("ReindexAssets: Phase 2 — rebuilding address balances from UTXO set...\n");
+
     std::unique_ptr<CCoinsViewCursor> pcursor(active_chainstate.CoinsDB().Cursor());
     if (!pcursor) {
         LogError("ReindexAssets: Failed to open UTXO cursor\n");
         return false;
     }
 
-    // assetName -> address -> accumulated amount
     std::map<std::pair<std::string, std::string>, CAmount> mapBalances;
-
     int64_t utxos_scanned = 0;
-    const int64_t log_interval = 500000;
+    const int64_t utxo_log_interval = 500000;
 
-    COutPoint key;
-    Coin coin;
+    COutPoint utxoKey;
+    Coin utxoCoin;
     while (pcursor->Valid()) {
         if (chainman.m_interrupt) {
-            LogPrintf("ReindexAssets: Interrupted after %d UTXOs\n", utxos_scanned);
+            LogPrintf("ReindexAssets: Interrupted after %d UTXOs during balance pass\n", utxos_scanned);
             return false;
         }
 
-        if (pcursor->GetKey(key) && pcursor->GetValue(coin)) {
-            const CScript& script = coin.out.scriptPubKey;
+        if (pcursor->GetKey(utxoKey) && pcursor->GetValue(utxoCoin)) {
+            const CScript& script = utxoCoin.out.scriptPubKey;
             int nType = 0;
             bool fIsOwner = false;
             if (script.IsAssetScript(nType, fIsOwner)) {
                 CAssetOutputEntry assetData;
                 if (GetAssetData(script, assetData)) {
                     std::string address = EncodeDestination(assetData.destination);
-                    auto pair = std::make_pair(assetData.assetName, address);
-                    mapBalances[pair] += assetData.nAmount;
+                    mapBalances[std::make_pair(assetData.assetName, address)] += assetData.nAmount;
                 }
             }
             utxos_scanned++;
-            if (utxos_scanned % log_interval == 0) {
-                LogPrintf("ReindexAssets: Scanned %d UTXOs...\n", utxos_scanned);
-            }
+            if (utxos_scanned % utxo_log_interval == 0)
+                LogPrintf("ReindexAssets: Phase 2 — scanned %d UTXOs...\n", utxos_scanned);
         }
         pcursor->Next();
     }
 
-    LogPrintf("ReindexAssets: Scanned %d UTXOs, writing %d address balances to database...\n",
-              utxos_scanned, (int)mapBalances.size());
+    LogPrintf("ReindexAssets: Phase 2 — writing %d address balances to database...\n", (int)mapBalances.size());
 
-    // Write all balances atomically to the asset DB
     for (const auto& [pair, amount] : mapBalances) {
         if (amount <= 0) continue;
         if (!passetsdb->WriteAssetAddressQuantity(pair.first, pair.second, amount)) {
-            LogError("ReindexAssets: Failed to write balance for %s -> %s\n",
-                     pair.first, pair.second);
+            LogError("ReindexAssets: Failed to write balance for %s -> %s\n", pair.first, pair.second);
             return false;
         }
         if (!passetsdb->WriteAddressAssetQuantity(pair.second, pair.first, amount)) {
-            LogError("ReindexAssets: Failed to write address-asset entry for %s -> %s\n",
-                     pair.second, pair.first);
+            LogError("ReindexAssets: Failed to write address-asset entry for %s -> %s\n", pair.second, pair.first);
             return false;
         }
-        // Populate the in-memory cache too
         passets->mapAssetsAddressAmount[pair] = amount;
     }
 
-    // Reload asset metadata from DB into the LRU cache
-    if (!passetsdb->LoadAssets(*passetsCache, nullptr, false)) {
-        LogError("ReindexAssets: Failed to reload asset metadata after reindex\n");
-        return false;
-    }
-
-    // Record best block so the startup consistency check passes
+    // Record best block so the startup consistency check passes.
     if (passetsdb) {
         const CBlockIndex* pTip = active_chain.Tip();
-        if (pTip) {
-            passetsdb->WriteBestBlock(pTip->GetBlockHash());
-        }
+        if (pTip) passetsdb->WriteBestBlock(pTip->GetBlockHash());
     }
 
-    LogPrintf("ReindexAssets: Successfully rebuilt asset address index from UTXO set (%d entries).\n",
+    LogPrintf("ReindexAssets: Complete — metadata rebuilt from blocks, %d address balances from UTXO set.\n",
               (int)mapBalances.size());
     return true;
 }
