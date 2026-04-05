@@ -577,6 +577,7 @@ void SetupServerArgs(ArgsManager& argsman, bool can_listen_ipc)
     argsman.AddArg("-shutdownnotify=<cmd>", "Execute command immediately before beginning shutdown. The need for shutdown may be urgent, so be careful not to delay it long (if the command doesn't require interaction with the server, consider having it fork into the background).", ArgsManager::ALLOW_ANY, OptionsCategory::OPTIONS);
 #endif
     argsman.AddArg("-txindex", strprintf("Maintain a full transaction index, used by the getrawtransaction rpc call (default: %u)", DEFAULT_TXINDEX), ArgsManager::ALLOW_ANY, OptionsCategory::OPTIONS);
+    argsman.AddArg("-assetindex", "Maintain a full asset index, used to query asset balances by address (default: 0)", ArgsManager::ALLOW_ANY, OptionsCategory::OPTIONS);
     argsman.AddArg("-addressindex", "Maintain a full address index, used to query for the balance, txids and unspent outputs for addresses (default: 0)", ArgsManager::ALLOW_ANY, OptionsCategory::OPTIONS);
     argsman.AddArg("-timestampindex", "Maintain a timestamp index for block hashes, used to query blocks within a time range (default: 0)", ArgsManager::ALLOW_ANY, OptionsCategory::OPTIONS);
     argsman.AddArg("-spentindex", "Maintain a full spent index, used to query the spending txid and input index for an outpoint (default: 0)", ArgsManager::ALLOW_ANY, OptionsCategory::OPTIONS);
@@ -1820,6 +1821,7 @@ bool AppInitMain(NodeContext& node, interfaces::BlockAndHeaderTipInfo* tip_info)
     bool do_reindex{args.GetBoolArg("-reindex", false)};
     const bool do_reindex_chainstate{args.GetBoolArg("-reindex-chainstate", false)};
     bool do_reindex_assets{args.GetBoolArg("-reindexassets", false)};
+    fAssetIndex = args.GetBoolArg("-assetindex", false);
 
     // Chainstate initialization and loading may be retried once with reindexing by GUI users
     auto [status, error] = InitAndLoadChainstate(
