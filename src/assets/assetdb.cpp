@@ -126,6 +126,39 @@ bool CAssetsDB::ReadReissuedMempoolState(std::map<std::string, uint256>& mapReis
     return rv;
 }
 
+bool CAssetsDB::EraseAllAddressQuantities()
+{
+    // Erase all ASSET_ADDRESS_QUANTITY_FLAG ('B') and ADDRESS_ASSET_QUANTITY_FLAG ('C') entries.
+    std::unique_ptr<CDBIterator> pcursor(NewIterator());
+
+    // Erase 'B' keys: <assetName, address> -> amount
+    pcursor->Seek(std::make_pair(ASSET_ADDRESS_QUANTITY_FLAG, std::make_pair(std::string(), std::string())));
+    while (pcursor->Valid()) {
+        std::pair<uint8_t, std::pair<std::string, std::string>> key;
+        if (pcursor->GetKey(key) && key.first == ASSET_ADDRESS_QUANTITY_FLAG) {
+            Erase(std::make_pair(ASSET_ADDRESS_QUANTITY_FLAG, key.second));
+            pcursor->Next();
+        } else {
+            break;
+        }
+    }
+
+    // Erase 'C' keys: <address, assetName> -> amount
+    std::unique_ptr<CDBIterator> pcursor2(NewIterator());
+    pcursor2->Seek(std::make_pair(ADDRESS_ASSET_QUANTITY_FLAG, std::make_pair(std::string(), std::string())));
+    while (pcursor2->Valid()) {
+        std::pair<uint8_t, std::pair<std::string, std::string>> key;
+        if (pcursor2->GetKey(key) && key.first == ADDRESS_ASSET_QUANTITY_FLAG) {
+            Erase(std::make_pair(ADDRESS_ASSET_QUANTITY_FLAG, key.second));
+            pcursor2->Next();
+        } else {
+            break;
+        }
+    }
+
+    return true;
+}
+
 bool CAssetsDB::LoadAssets(CLRUCache<std::string, CDatabasedAssetData>& cache,
                            std::map<std::pair<std::string, std::string>, CAmount>* pMapAssetsAddressAmount,
                            bool fAssetIndex)
