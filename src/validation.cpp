@@ -2459,6 +2459,9 @@ DisconnectResult Chainstate::DisconnectBlock(const CBlock& block, const CBlockIn
                 const CScript &outScript = tx.vout[o].scriptPubKey;
                 uint160 hashBytes;
                 unsigned int addressType = 0;
+                std::string assetName;
+                CAmount assetAmount{0};
+                bool isAsset{false};
 
                 if (outScript.IsPayToScriptHash()) {
                     addressType = 2;
@@ -2473,27 +2476,37 @@ DisconnectResult Chainstate::DisconnectBlock(const CBlock& block, const CBlockIn
                     int nType = 0;
                     bool fIsOwner = false;
                     if (outScript.IsAssetScript(nType, fIsOwner)) {
-                        CAssetTransfer transfer;
-                        std::string addr;
-                        if (TransferAssetFromScript(outScript, transfer, addr)) {
-                            CTxDestination dest = DecodeDestination(addr);
-                            if (auto *keyID = std::get_if<PKHash>(&dest)) {
+                        CAssetOutputEntry assetData;
+                        if (GetAssetData(outScript, assetData)) {
+                            if (auto *keyID = std::get_if<PKHash>(&assetData.destination)) {
                                 addressType = 1;
                                 hashBytes = ToKeyID(*keyID);
+                                assetName = assetData.assetName;
+                                assetAmount = assetData.nAmount;
+                                isAsset = true;
                             }
                         }
                     }
                 }
 
                 if (addressType > 0) {
-                    // These entries will be erased from the address index
-                    addressIndex.push_back(std::make_pair(
-                        CAddressIndexKey(addressType, hashBytes, pindex->nHeight, i, hash.ToUint256(), o, false),
-                        tx.vout[o].nValue));
-                    // Remove the unspent entry
-                    addressUnspentIndex.push_back(std::make_pair(
-                        CAddressUnspentKey(addressType, hashBytes, hash.ToUint256(), o),
-                        CAddressUnspentValue()));
+                    if (isAsset) {
+                        // Erase asset address index and unspent entries (must use asset-qualified keys)
+                        addressIndex.push_back(std::make_pair(
+                            CAddressIndexKey(addressType, hashBytes, assetName, pindex->nHeight, i, hash.ToUint256(), o, false),
+                            assetAmount));
+                        addressUnspentIndex.push_back(std::make_pair(
+                            CAddressUnspentKey(addressType, hashBytes, assetName, hash.ToUint256(), o),
+                            CAddressUnspentValue()));
+                    } else {
+                        // Erase AVN address index and unspent entries
+                        addressIndex.push_back(std::make_pair(
+                            CAddressIndexKey(addressType, hashBytes, pindex->nHeight, i, hash.ToUint256(), o, false),
+                            tx.vout[o].nValue));
+                        addressUnspentIndex.push_back(std::make_pair(
+                            CAddressUnspentKey(addressType, hashBytes, hash.ToUint256(), o),
+                            CAddressUnspentValue()));
+                    }
                 }
             }
         }
@@ -2540,6 +2553,9 @@ DisconnectResult Chainstate::DisconnectBlock(const CBlock& block, const CBlockIn
                     const CScript &prevScript = indexPrevOut.scriptPubKey;
                     uint160 hashBytes;
                     unsigned int addressType = 0;
+                    std::string assetName;
+                    CAmount assetValue{indexPrevOut.nValue};
+                    bool isAsset{false};
 
                     if (prevScript.IsPayToScriptHash()) {
                         addressType = 2;
@@ -2550,6 +2566,22 @@ DisconnectResult Chainstate::DisconnectBlock(const CBlock& block, const CBlockIn
                     } else if ((prevScript.size() == 35 || prevScript.size() == 67) && prevScript[prevScript.size()-1] == OP_CHECKSIG) {
                         addressType = 1;
                         hashBytes = Hash160(std::vector<unsigned char>(prevScript.begin()+1, prevScript.end()-1));
+                    } else {
+                        // Check for asset scripts (all types: new, transfer, reissue, owner)
+                        int nType = 0;
+                        bool fIsOwner = false;
+                        if (prevScript.IsAssetScript(nType, fIsOwner)) {
+                            CAssetOutputEntry assetData;
+                            if (GetAssetData(prevScript, assetData)) {
+                                if (auto *keyID = std::get_if<PKHash>(&assetData.destination)) {
+                                    addressType = 1;
+                                    hashBytes = ToKeyID(*keyID);
+                                    assetName = assetData.assetName;
+                                    assetValue = assetData.nAmount;
+                                    isAsset = true;
+                                }
+                            }
+                        }
                     }
 
                     if (fSpentIndex && addressType > 0) {
@@ -2562,9 +2594,15 @@ DisconnectResult Chainstate::DisconnectBlock(const CBlock& block, const CBlockIn
                     if (fAddressIndex && addressType > 0) {
                         // The spending entry in addressIndex is erased via EraseAddressIndex below
                         // Restore the original unspent entry
-                        addressUnspentIndex.push_back(std::make_pair(
-                            CAddressUnspentKey(addressType, hashBytes, out.hash.ToUint256(), out.n),
-                            CAddressUnspentValue(indexPrevOut.nValue, prevScript, indexPrevHeight)));
+                        if (isAsset) {
+                            addressUnspentIndex.push_back(std::make_pair(
+                                CAddressUnspentKey(addressType, hashBytes, assetName, out.hash.ToUint256(), out.n),
+                                CAddressUnspentValue(assetValue, prevScript, indexPrevHeight)));
+                        } else {
+                            addressUnspentIndex.push_back(std::make_pair(
+                                CAddressUnspentKey(addressType, hashBytes, out.hash.ToUint256(), out.n),
+                                CAddressUnspentValue(indexPrevOut.nValue, prevScript, indexPrevHeight)));
+                        }
                     }
                 }
             }
@@ -3169,21 +3207,17 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
                         addressType = 1;
                         hashBytes = Hash160(std::vector<unsigned char>(prevScript.begin()+1, prevScript.end()-1));
                     } else {
-                        // Check for asset scripts
+                        // Check for asset scripts (all types: new, transfer, reissue, owner)
                         int nType = 0;
                         bool fIsOwner = false;
                         if (prevScript.IsAssetScript(nType, fIsOwner)) {
-                            // Extract the underlying P2PKH/P2SH address from before the OP_AVN_ASSET
-                            CScript strippedScript;
-                            CAssetTransfer transfer;
-                            std::string addr;
-                            if (TransferAssetFromScript(prevScript, transfer, addr)) {
-                                CTxDestination dest = DecodeDestination(addr);
-                                if (auto *keyID = std::get_if<PKHash>(&dest)) {
+                            CAssetOutputEntry assetData;
+                            if (GetAssetData(prevScript, assetData)) {
+                                if (auto *keyID = std::get_if<PKHash>(&assetData.destination)) {
                                     addressType = 1;
                                     hashBytes = ToKeyID(*keyID);
-                                    assetName = transfer.strName;
-                                    nValue = transfer.nAmount;
+                                    assetName = assetData.assetName;
+                                    nValue = assetData.nAmount;
                                     isAsset = true;
                                 }
                             }
@@ -3243,15 +3277,13 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
                     int nType = 0;
                     bool fIsOwner = false;
                     if (outScript.IsAssetScript(nType, fIsOwner)) {
-                        CAssetTransfer transfer;
-                        std::string addr;
-                        if (TransferAssetFromScript(outScript, transfer, addr)) {
-                            CTxDestination dest = DecodeDestination(addr);
-                            if (auto *keyID = std::get_if<PKHash>(&dest)) {
+                        CAssetOutputEntry assetData;
+                        if (GetAssetData(outScript, assetData)) {
+                            if (auto *keyID = std::get_if<PKHash>(&assetData.destination)) {
                                 addressType = 1;
                                 hashBytes = ToKeyID(*keyID);
-                                assetName = transfer.strName;
-                                nValue = transfer.nAmount;
+                                assetName = assetData.assetName;
+                                nValue = assetData.nAmount;
                                 isAsset = true;
                             }
                         }
