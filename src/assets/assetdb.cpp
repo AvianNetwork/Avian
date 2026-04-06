@@ -126,6 +126,25 @@ bool CAssetsDB::ReadReissuedMempoolState(std::map<std::string, uint256>& mapReis
     return rv;
 }
 
+bool CAssetsDB::EraseAllAssets()
+{
+    // Erase all ASSET_FLAG ('A') entries (asset metadata).
+    std::unique_ptr<CDBIterator> pcursor(NewIterator());
+
+    pcursor->Seek(std::make_pair(ASSET_FLAG, std::string()));
+    while (pcursor->Valid()) {
+        std::pair<uint8_t, std::string> key;
+        if (pcursor->GetKey(key) && key.first == ASSET_FLAG) {
+            Erase(std::make_pair(ASSET_FLAG, key.second));
+            pcursor->Next();
+        } else {
+            break;
+        }
+    }
+
+    return true;
+}
+
 bool CAssetsDB::EraseAllAddressQuantities()
 {
     // Erase all ASSET_ADDRESS_QUANTITY_FLAG ('B') and ADDRESS_ASSET_QUANTITY_FLAG ('C') entries.
