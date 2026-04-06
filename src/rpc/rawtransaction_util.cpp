@@ -5,6 +5,7 @@
 
 #include <rpc/rawtransaction_util.h>
 
+#include <assets/assettypes.h>
 #include <coins.h>
 #include <consensus/amount.h>
 #include <core_io.h>
@@ -116,15 +117,32 @@ std::vector<std::pair<CTxDestination, CAmount>> ParseOutputs(const UniValue& out
             parsed_outputs.emplace_back(destination, amount);
         } else {
             CTxDestination destination{DecodeDestination(name_)};
-            CAmount amount{AmountFromValue(outputs[name_])};
             if (!IsValidDestination(destination)) {
                 throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, std::string("Invalid Avian address: ") + name_);
             }
-
             if (!destinations.insert(destination).second) {
                 throw JSONRPCError(RPC_INVALID_PARAMETER, std::string("Invalid parameter, duplicated address: ") + name_);
             }
-            parsed_outputs.emplace_back(destination, amount);
+
+            const UniValue& val = outputs[name_];
+            if (val.isObject() && val.exists("transfer")) {
+                // Asset transfer output: {"ADDRESS": {"transfer": {"ASSET_NAME": amount}}}
+                const UniValue& transferObj = val["transfer"];
+                if (transferObj.getKeys().size() != 1)
+                    throw JSONRPCError(RPC_INVALID_PARAMETER, "transfer must specify exactly one asset");
+
+                const std::string& assetName = transferObj.getKeys()[0];
+                CAmount assetAmount = AmountFromValue(transferObj[assetName]);
+
+                CScript assetScript = GetScriptForDestination(destination);
+                CAssetTransfer assetTransfer(assetName, assetAmount);
+                assetTransfer.ConstructTransaction(assetScript);
+
+                parsed_outputs.emplace_back(CNoDestination{assetScript}, 0);
+            } else {
+                CAmount amount{AmountFromValue(val)};
+                parsed_outputs.emplace_back(destination, amount);
+            }
         }
     }
     return parsed_outputs;
