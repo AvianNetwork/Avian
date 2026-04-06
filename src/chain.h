@@ -45,10 +45,11 @@ static constexpr int64_t TIMESTAMP_WINDOW = MAX_FUTURE_BLOCK_TIME;
 /**
  * Maximum gap between node time and block time used
  * for the "Catching up..." mode in GUI.
+ * Avian: 9 blocks at 30-second block time = 270 seconds (vs Bitcoin's 90 minutes).
  *
  * Ref: https://github.com/bitcoin/bitcoin/pull/1026
  */
-static constexpr int64_t MAX_BLOCK_TIME_GAP = 90 * 60;
+static constexpr int64_t MAX_BLOCK_TIME_GAP = 9 * 30;
 
 class CBlockFileInfo
 {
