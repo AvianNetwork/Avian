@@ -2466,7 +2466,7 @@ DisconnectResult Chainstate::DisconnectBlock(const CBlock& block, const CBlockIn
                 if (outScript.IsPayToScriptHash()) {
                     addressType = 2;
                     hashBytes = uint160(std::vector<unsigned char>(outScript.begin()+2, outScript.begin()+22));
-                } else if (outScript.size() == 25 && outScript[0] == OP_DUP && outScript[1] == OP_HASH160 && outScript[2] == 20 && outScript[22] == OP_EQUALVERIFY && outScript[24] == OP_CHECKSIG) {
+                } else if (outScript.size() == 25 && outScript[0] == OP_DUP && outScript[1] == OP_HASH160 && outScript[2] == 20 && outScript[23] == OP_EQUALVERIFY && outScript[24] == OP_CHECKSIG) {
                     addressType = 1;
                     hashBytes = uint160(std::vector<unsigned char>(outScript.begin()+3, outScript.begin()+23));
                 } else if ((outScript.size() == 35 || outScript.size() == 67) && outScript[outScript.size()-1] == OP_CHECKSIG) {
@@ -2560,7 +2560,7 @@ DisconnectResult Chainstate::DisconnectBlock(const CBlock& block, const CBlockIn
                     if (prevScript.IsPayToScriptHash()) {
                         addressType = 2;
                         hashBytes = uint160(std::vector<unsigned char>(prevScript.begin()+2, prevScript.begin()+22));
-                    } else if (prevScript.size() == 25 && prevScript[0] == OP_DUP && prevScript[1] == OP_HASH160 && prevScript[2] == 20 && prevScript[22] == OP_EQUALVERIFY && prevScript[24] == OP_CHECKSIG) {
+                    } else if (prevScript.size() == 25 && prevScript[0] == OP_DUP && prevScript[1] == OP_HASH160 && prevScript[2] == 20 && prevScript[23] == OP_EQUALVERIFY && prevScript[24] == OP_CHECKSIG) {
                         addressType = 1;
                         hashBytes = uint160(std::vector<unsigned char>(prevScript.begin()+3, prevScript.begin()+23));
                     } else if ((prevScript.size() == 35 || prevScript.size() == 67) && prevScript[prevScript.size()-1] == OP_CHECKSIG) {
@@ -3200,7 +3200,7 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
                     if (prevScript.IsPayToScriptHash()) {
                         addressType = 2;
                         hashBytes = uint160(std::vector<unsigned char>(prevScript.begin()+2, prevScript.begin()+22));
-                    } else if (prevScript.size() == 25 && prevScript[0] == OP_DUP && prevScript[1] == OP_HASH160 && prevScript[2] == 20 && prevScript[22] == OP_EQUALVERIFY && prevScript[24] == OP_CHECKSIG) {
+                    } else if (prevScript.size() == 25 && prevScript[0] == OP_DUP && prevScript[1] == OP_HASH160 && prevScript[2] == 20 && prevScript[23] == OP_EQUALVERIFY && prevScript[24] == OP_CHECKSIG) {
                         addressType = 1;
                         hashBytes = uint160(std::vector<unsigned char>(prevScript.begin()+3, prevScript.begin()+23));
                     } else if ((prevScript.size() == 35 || prevScript.size() == 67) && prevScript[prevScript.size()-1] == OP_CHECKSIG) {
@@ -3267,7 +3267,7 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
                 if (outScript.IsPayToScriptHash()) {
                     addressType = 2;
                     hashBytes = uint160(std::vector<unsigned char>(outScript.begin()+2, outScript.begin()+22));
-                } else if (outScript.size() == 25 && outScript[0] == OP_DUP && outScript[1] == OP_HASH160 && outScript[2] == 20 && outScript[22] == OP_EQUALVERIFY && outScript[24] == OP_CHECKSIG) {
+                } else if (outScript.size() == 25 && outScript[0] == OP_DUP && outScript[1] == OP_HASH160 && outScript[2] == 20 && outScript[23] == OP_EQUALVERIFY && outScript[24] == OP_CHECKSIG) {
                     addressType = 1;
                     hashBytes = uint160(std::vector<unsigned char>(outScript.begin()+3, outScript.begin()+23));
                 } else if ((outScript.size() == 35 || outScript.size() == 67) && outScript[outScript.size()-1] == OP_CHECKSIG) {

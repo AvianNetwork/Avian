@@ -555,7 +555,7 @@ void CTxMemPool::addAddressIndex(const CTxMemPoolEntry &entry, const CCoinsViewC
             CMempoolAddressDelta delta(entryTime, prevout.nValue * -1, input.prevout.hash.ToUint256(), input.prevout.n);
             mapAddress.insert(std::make_pair(key, delta));
             inserted.push_back(key);
-        } else if (prevScript.size() == 25 && prevScript[0] == OP_DUP && prevScript[1] == OP_HASH160 && prevScript[2] == 20 && prevScript[22] == OP_EQUALVERIFY && prevScript[24] == OP_CHECKSIG) {
+        } else if (prevScript.size() == 25 && prevScript[0] == OP_DUP && prevScript[1] == OP_HASH160 && prevScript[2] == 20 && prevScript[23] == OP_EQUALVERIFY && prevScript[24] == OP_CHECKSIG) {
             std::vector<unsigned char> hashBytes(prevScript.begin()+3, prevScript.begin()+23);
             CMempoolAddressDeltaKey key(1, uint160(hashBytes), AVN, txhash, j, 1);
             CMempoolAddressDelta delta(entryTime, prevout.nValue * -1, input.prevout.hash.ToUint256(), input.prevout.n);
@@ -591,7 +591,7 @@ void CTxMemPool::addAddressIndex(const CTxMemPoolEntry &entry, const CCoinsViewC
             CMempoolAddressDeltaKey key(2, uint160(hashBytes), AVN, txhash, k, 0);
             mapAddress.insert(std::make_pair(key, CMempoolAddressDelta(entryTime, out.nValue)));
             inserted.push_back(key);
-        } else if (outScript.size() == 25 && outScript[0] == OP_DUP && outScript[1] == OP_HASH160 && outScript[2] == 20 && outScript[22] == OP_EQUALVERIFY && outScript[24] == OP_CHECKSIG) {
+        } else if (outScript.size() == 25 && outScript[0] == OP_DUP && outScript[1] == OP_HASH160 && outScript[2] == 20 && outScript[23] == OP_EQUALVERIFY && outScript[24] == OP_CHECKSIG) {
             std::vector<unsigned char> hashBytes(outScript.begin()+3, outScript.begin()+23);
             CMempoolAddressDeltaKey key(1, uint160(hashBytes), AVN, txhash, k, 0);
             mapAddress.insert(std::make_pair(key, CMempoolAddressDelta(entryTime, out.nValue)));
@@ -677,7 +677,7 @@ void CTxMemPool::addSpentIndex(const CTxMemPoolEntry &entry, const CCoinsViewCac
         if (prevScript.IsPayToScriptHash()) {
             addressHash = uint160(std::vector<unsigned char>(prevScript.begin()+2, prevScript.begin()+22));
             addressType = 2;
-        } else if (prevScript.size() == 25 && prevScript[0] == OP_DUP && prevScript[1] == OP_HASH160 && prevScript[2] == 20 && prevScript[22] == OP_EQUALVERIFY && prevScript[24] == OP_CHECKSIG) {
+        } else if (prevScript.size() == 25 && prevScript[0] == OP_DUP && prevScript[1] == OP_HASH160 && prevScript[2] == 20 && prevScript[23] == OP_EQUALVERIFY && prevScript[24] == OP_CHECKSIG) {
             addressHash = uint160(std::vector<unsigned char>(prevScript.begin()+3, prevScript.begin()+23));
             addressType = 1;
         } else if ((prevScript.size() == 35 || prevScript.size() == 67) && prevScript[prevScript.size()-1] == OP_CHECKSIG) {
