@@ -233,7 +233,7 @@ static RPCHelpMan getaddressutxos()
                 throw JSONRPCError(RPC_MISC_ERROR, "Address index not enabled");
 
             bool includeChainInfo = false;
-            std::string assetName = AVN;
+            std::string assetName = "*";  // default: return all UTXOs (native coin + assets)
             int limit = 0;
             int offset = 0;
 
@@ -243,7 +243,7 @@ static RPCHelpMan getaddressutxos()
 
                 const UniValue& assetNameParam = request.params[0]["assetName"];
                 if (assetNameParam.isStr()) {
-                    if (!AreAssetsDeployed())
+                    if (assetNameParam.get_str() != "*" && !AreAssetsDeployed())
                         throw JSONRPCError(RPC_INVALID_PARAMETER, "Assets aren't active.");
                     assetName = assetNameParam.get_str();
                 }
@@ -368,10 +368,10 @@ static RPCHelpMan getaddressdeltas()
             const UniValue& chainInfo = request.params[0]["chainInfo"];
             if (chainInfo.isBool()) includeChainInfo = chainInfo.get_bool();
 
-            std::string assetName = AVN;
+            std::string assetName = "*";  // default: return all deltas (native coin + assets)
             const UniValue& assetNameParam = request.params[0]["assetName"];
             if (assetNameParam.isStr()) {
-                if (!AreAssetsDeployed())
+                if (assetNameParam.get_str() != "*" && !AreAssetsDeployed())
                     throw JSONRPCError(RPC_INVALID_PARAMETER, "Assets aren't active.");
                 assetName = assetNameParam.get_str();
             }
@@ -398,12 +398,22 @@ static RPCHelpMan getaddressdeltas()
 
             std::vector<std::pair<CAddressIndexKey, CAmount>> addressIndex;
             for (const auto& [addrHash, addrType] : addresses) {
-                if (start > 0 && end > 0) {
-                    if (!GetAddressIndex(addrHash, addrType, assetName, addressIndex, start, end))
-                        throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "No information available for address");
+                if (assetName == "*") {
+                    if (start > 0 && end > 0) {
+                        if (!GetAddressIndex(addrHash, addrType, addressIndex, start, end))
+                            throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "No information available for address");
+                    } else {
+                        if (!GetAddressIndex(addrHash, addrType, addressIndex))
+                            throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "No information available for address");
+                    }
                 } else {
-                    if (!GetAddressIndex(addrHash, addrType, assetName, addressIndex))
-                        throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "No information available for address");
+                    if (start > 0 && end > 0) {
+                        if (!GetAddressIndex(addrHash, addrType, assetName, addressIndex, start, end))
+                            throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "No information available for address");
+                    } else {
+                        if (!GetAddressIndex(addrHash, addrType, assetName, addressIndex))
+                            throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "No information available for address");
+                    }
                 }
             }
 
