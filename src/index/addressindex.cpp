@@ -105,7 +105,7 @@ public:
 
     bool ReadAddressIndex(uint160 addressHash, int type, std::string assetName,
                           std::vector<std::pair<CAddressIndexKey, CAmount>>& addressIndex,
-                          int start, int end) const
+                          int start, int end)
     {
         std::unique_ptr<CDBIterator> pcursor(NewIterator());
 
@@ -139,7 +139,7 @@ public:
     }
 
     bool ReadAddressUnspentIndex(uint160 addressHash, int type, std::string assetName,
-                                 std::vector<std::pair<CAddressUnspentKey, CAddressUnspentValue>>& vect) const
+                                 std::vector<std::pair<CAddressUnspentKey, CAddressUnspentValue>>& vect)
     {
         std::unique_ptr<CDBIterator> pcursor(NewIterator());
 
@@ -355,26 +355,26 @@ BaseIndex::DB& AddressIndex::GetDB() const { return *m_db; }
 
 bool AddressIndex::ReadAddressIndex(uint160 addressHash, int type, std::string assetName,
                                     std::vector<std::pair<CAddressIndexKey, CAmount>>& addressIndex,
-                                    int start, int end) const
+                                    int start, int end)
 {
     return m_db->ReadAddressIndex(addressHash, type, assetName, addressIndex, start, end);
 }
 
 bool AddressIndex::ReadAddressIndex(uint160 addressHash, int type,
                                     std::vector<std::pair<CAddressIndexKey, CAmount>>& addressIndex,
-                                    int start, int end) const
+                                    int start, int end)
 {
     return m_db->ReadAddressIndex(addressHash, type, "", addressIndex, start, end);
 }
 
 bool AddressIndex::ReadAddressUnspentIndex(uint160 addressHash, int type, std::string assetName,
-                                           std::vector<std::pair<CAddressUnspentKey, CAddressUnspentValue>>& unspentOutputs) const
+                                           std::vector<std::pair<CAddressUnspentKey, CAddressUnspentValue>>& unspentOutputs)
 {
     return m_db->ReadAddressUnspentIndex(addressHash, type, assetName, unspentOutputs);
 }
 
 bool AddressIndex::ReadAddressUnspentIndex(uint160 addressHash, int type,
-                                           std::vector<std::pair<CAddressUnspentKey, CAddressUnspentValue>>& unspentOutputs) const
+                                           std::vector<std::pair<CAddressUnspentKey, CAddressUnspentValue>>& unspentOutputs)
 {
     return m_db->ReadAddressUnspentIndex(addressHash, type, "", unspentOutputs);
 }
