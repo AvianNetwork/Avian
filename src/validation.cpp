@@ -7321,9 +7321,11 @@ bool ReindexAssets(ChainstateManager& chainman)
         return true;
     }
 
-    // Erase only the address-balance keys ('B'/'C'). Asset metadata ('A' keys)
-    // is preserved if present, and rebuilt in Phase 1 below if missing.
+    // Erase all asset DB keys so both phases start from a known-clean state:
+    // Phase 1 rebuilds 'A' (metadata) from blocks; Phase 2 rebuilds 'B'/'C'
+    // (address balances) from the UTXO set.
     if (passetsdb) {
+        passetsdb->EraseAllAssets();
         passetsdb->EraseAllAddressQuantities();
     }
 
@@ -7343,6 +7345,7 @@ bool ReindexAssets(ChainstateManager& chainman)
     // append-only from the chain's perspective. Transfers don't affect metadata.
     // -----------------------------------------------------------------------
     LogPrintf("ReindexAssets: Phase 1 — rebuilding asset metadata from %d blocks...\n", tip_height);
+    chainman.GetNotifications().progress(_("Rebuilding asset database (step 1/2)…"), 0, false);
 
     const int metadata_log_interval = 10000;
     int blocks_processed = 0;
@@ -7350,6 +7353,7 @@ bool ReindexAssets(ChainstateManager& chainman)
     for (int height = 1; height <= tip_height; height++) {
         if (chainman.m_interrupt) {
             LogPrintf("ReindexAssets: Interrupted at height %d during metadata pass\n", height);
+            chainman.GetNotifications().progress(bilingual_str{}, 100, false);
             return false;
         }
 
@@ -7441,11 +7445,14 @@ bool ReindexAssets(ChainstateManager& chainman)
         blocks_processed++;
 
         if (blocks_processed % metadata_log_interval == 0) {
+            int pct = (int)(50.0 * height / tip_height); // phase 1 = 0..50%
             LogPrintf("ReindexAssets: Phase 1 — processed %d/%d blocks (%.1f%%)\n",
                       height, tip_height, 100.0 * height / tip_height);
+            chainman.GetNotifications().progress(_("Rebuilding asset database (step 1/2)…"), pct, false);
             // Periodically flush metadata to DB to bound memory usage.
             if (!passets->DumpCacheToDatabase()) {
                 LogError("ReindexAssets: Failed to flush metadata at height %d\n", height);
+                chainman.GetNotifications().progress(bilingual_str{}, 100, false);
                 return false;
             }
         }
@@ -7473,6 +7480,13 @@ bool ReindexAssets(ChainstateManager& chainman)
     // unspent outputs, so scanning it gives correct current balances directly.
     // -----------------------------------------------------------------------
     LogPrintf("ReindexAssets: Phase 2 — rebuilding address balances from UTXO set...\n");
+    chainman.GetNotifications().progress(_("Rebuilding asset database (step 2/2)…"), 50, false);
+
+    // Flush the in-memory UTXO tip cache to disk so the cursor below sees
+    // the complete UTXO set. Without this, UTXOs written since the last
+    // periodic flush (e.g. at the end of ImportBlocks) would be invisible
+    // to CoinsDB().Cursor(), producing empty or partial balances.
+    active_chainstate.ForceFlushStateToDisk();
 
     std::unique_ptr<CCoinsViewCursor> pcursor(active_chainstate.CoinsDB().Cursor());
     if (!pcursor) {
@@ -7531,6 +7545,7 @@ bool ReindexAssets(ChainstateManager& chainman)
         if (pTip) passetsdb->WriteBestBlock(pTip->GetBlockHash());
     }
 
+    chainman.GetNotifications().progress(bilingual_str{}, 100, false);
     LogPrintf("ReindexAssets: Complete — metadata rebuilt from blocks, %d address balances from UTXO set.\n",
               (int)mapBalances.size());
     return true;

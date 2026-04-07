@@ -107,6 +107,7 @@ public:
     bool EraseAssetAddressQuantity(const std::string &assetName, const std::string &address);
     bool EraseAddressAssetQuantity(const std::string &address, const std::string &assetName);
     bool EraseAllAddressQuantities();
+    bool EraseAllAssets();
 
     // Helper functions
     bool LoadAssets(class CLRUCache<std::string, CDatabasedAssetData>& cache,
