@@ -40,7 +40,7 @@ public:
     }
 
     bool ReadTimestampIndex(unsigned int high, unsigned int low,
-                            std::vector<std::pair<uint256, unsigned int>>& hashes) const
+                            std::vector<std::pair<uint256, unsigned int>>& hashes)
     {
         std::unique_ptr<CDBIterator> pcursor(NewIterator());
         pcursor->Seek(std::make_pair(DB_TIMESTAMPINDEX, CTimestampIndexIteratorKey(low)));
@@ -105,7 +105,7 @@ bool TimestampIndex::CustomAppend(const interfaces::BlockInfo& block)
 BaseIndex::DB& TimestampIndex::GetDB() const { return *m_db; }
 
 bool TimestampIndex::ReadTimestampIndex(unsigned int high, unsigned int low,
-                                        std::vector<std::pair<uint256, unsigned int>>& hashes) const
+                                        std::vector<std::pair<uint256, unsigned int>>& hashes)
 {
     return m_db->ReadTimestampIndex(high, low, hashes);
 }

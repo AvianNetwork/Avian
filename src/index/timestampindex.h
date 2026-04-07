@@ -40,7 +40,7 @@ public:
 
     /// Read block hashes within a timestamp range [low, high).
     bool ReadTimestampIndex(unsigned int high, unsigned int low,
-                            std::vector<std::pair<uint256, unsigned int>>& hashes) const;
+                            std::vector<std::pair<uint256, unsigned int>>& hashes);
 
     /// Read the logical timestamp for a specific block hash.
     bool ReadTimestampBlockIndex(const uint256& hash, unsigned int& logicalTS) const;

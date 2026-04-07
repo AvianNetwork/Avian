@@ -114,7 +114,6 @@ bool SpentIndex::CustomRemove(const interfaces::BlockInfo& block)
     std::vector<std::pair<CSpentIndexKey, CSpentIndexValue>> spentIndex;
 
     const CBlock& blk = *block.data;
-    const CBlockUndo& blockUndo = *block.undo_data;
 
     for (int i = 1; i < (int)blk.vtx.size(); i++) { // skip coinbase
         const CTransaction& tx = *blk.vtx[i];
