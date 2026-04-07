@@ -47,6 +47,14 @@ static ScriptAddressInfo DecodeScript(const CScript& script, CAmount fallbackVal
         info.addressType = 1;
         info.hashBytes = Hash160(std::vector<unsigned char>(script.begin() + 1, script.end() - 1));
     } else {
+        int witVersion;
+        std::vector<unsigned char> witProgram;
+        if (script.IsWitnessProgram(witVersion, witProgram) && witVersion == 0 && witProgram.size() == 20) {
+            // P2WPKH (bech32 native segwit v0)
+            info.addressType = 3;
+            info.hashBytes = uint160(witProgram);
+            return info;
+        }
         int nType = 0;
         bool fIsOwner = false;
         if (script.IsAssetScript(nType, fIsOwner)) {

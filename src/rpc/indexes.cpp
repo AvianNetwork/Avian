@@ -29,6 +29,8 @@ static bool getAddressFromIndex(const int& type, const uint160& hash, std::strin
         address = EncodeDestination(ScriptHash(hash));
     } else if (type == 1) {
         address = EncodeDestination(PKHash(hash));
+    } else if (type == 3) {
+        address = EncodeDestination(WitnessV0KeyHash(hash));
     } else {
         return false;
     }
@@ -51,6 +53,9 @@ static bool getAddressesFromParams(const UniValue& params, std::vector<std::pair
             CScriptID sid = ToScriptID(*scriptID);
             std::memcpy(hashBytes.data(), sid.data(), 20);
             type = 2;
+        } else if (auto* witnessKeyHash = std::get_if<WitnessV0KeyHash>(&dest)) {
+            hashBytes = ToKeyID(*witnessKeyHash);
+            type = 3;
         } else {
             throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Unsupported address type");
         }
@@ -75,6 +80,9 @@ static bool getAddressesFromParams(const UniValue& params, std::vector<std::pair
                 CScriptID sid = ToScriptID(*scriptID);
                 std::memcpy(hashBytes.data(), sid.data(), 20);
                 type = 2;
+            } else if (auto* witnessKeyHash = std::get_if<WitnessV0KeyHash>(&dest)) {
+                hashBytes = ToKeyID(*witnessKeyHash);
+                type = 3;
             } else {
                 throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Unsupported address type");
             }
