@@ -6,7 +6,7 @@
 
 #include <assets/assets.h>
 #include <common/args.h>
-#include <crypto/hash.h>
+#include <hash.h>
 #include <interfaces/chain.h>
 #include <logging.h>
 #include <script/script.h>
