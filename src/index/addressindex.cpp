@@ -12,7 +12,6 @@
 #include <logging.h>
 #include <node/blockstorage.h>
 #include <script/script.h>
-#include <script/standard.h>
 #include <undo.h>
 
 constexpr uint8_t DB_ADDRESSINDEX{'a'};

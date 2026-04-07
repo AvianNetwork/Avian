@@ -10,7 +10,6 @@
 #include <interfaces/chain.h>
 #include <logging.h>
 #include <script/script.h>
-#include <script/standard.h>
 #include <undo.h>
 
 constexpr uint8_t DB_SPENTINDEX{'p'};
