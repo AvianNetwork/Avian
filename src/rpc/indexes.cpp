@@ -158,9 +158,9 @@ static RPCHelpMan getaddressmempool()
             {
                 LOCK(mempool.cs);
                 if (includeAssets) {
-                    mempool.g_addressindex->ReadAddressIndex(addresses, indexes);
+                    mempool.getAddressIndex(addresses, indexes);
                 } else {
-                    mempool.g_addressindex->ReadAddressIndex(addresses, AVN, indexes);
+                    mempool.getAddressIndex(addresses, AVN, indexes);
                 }
             }
 
