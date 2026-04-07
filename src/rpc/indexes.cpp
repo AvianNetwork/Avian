@@ -12,6 +12,8 @@
 #include <assets/assets.h>
 #include <chain.h>
 #include <core_io.h>
+#include <index/addressindex.h>
+#include <index/spentindex.h>
 #include <key_io.h>
 #include <node/context.h>
 #include <txmempool.h>
@@ -134,7 +136,7 @@ static RPCHelpMan getaddressmempool()
         },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
         {
-            if (!fAddressIndex)
+            if (!g_addressindex)
                 throw JSONRPCError(RPC_MISC_ERROR, "Address index not enabled");
 
             std::vector<std::pair<uint160, int>> addresses;
@@ -156,9 +158,9 @@ static RPCHelpMan getaddressmempool()
             {
                 LOCK(mempool.cs);
                 if (includeAssets) {
-                    mempool.getAddressIndex(addresses, indexes);
+                    mempool.g_addressindex->ReadAddressIndex(addresses, indexes);
                 } else {
-                    mempool.getAddressIndex(addresses, AVN, indexes);
+                    mempool.g_addressindex->ReadAddressIndex(addresses, AVN, indexes);
                 }
             }
 
@@ -229,7 +231,7 @@ static RPCHelpMan getaddressutxos()
         },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
         {
-            if (!fAddressIndex)
+            if (!g_addressindex)
                 throw JSONRPCError(RPC_MISC_ERROR, "Address index not enabled");
 
             bool includeChainInfo = false;
@@ -263,10 +265,10 @@ static RPCHelpMan getaddressutxos()
             std::vector<std::pair<CAddressUnspentKey, CAddressUnspentValue>> unspentOutputs;
             for (const auto& [addrHash, addrType] : addresses) {
                 if (assetName == "*") {
-                    if (!GetAddressUnspent(addrHash, addrType, unspentOutputs))
+                    if (!g_addressindex->ReadAddressUnspentIndex(addrHash, addrType, unspentOutputs))
                         throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "No information available for address");
                 } else {
-                    if (!GetAddressUnspent(addrHash, addrType, assetName, unspentOutputs))
+                    if (!g_addressindex->ReadAddressUnspentIndex(addrHash, addrType, assetName, unspentOutputs))
                         throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "No information available for address");
                 }
             }
@@ -355,7 +357,7 @@ static RPCHelpMan getaddressdeltas()
         },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
         {
-            if (!fAddressIndex)
+            if (!g_addressindex)
                 throw JSONRPCError(RPC_MISC_ERROR, "Address index not enabled");
 
             if (!request.params[0].isObject())
@@ -400,18 +402,18 @@ static RPCHelpMan getaddressdeltas()
             for (const auto& [addrHash, addrType] : addresses) {
                 if (assetName == "*") {
                     if (start > 0 && end > 0) {
-                        if (!GetAddressIndex(addrHash, addrType, addressIndex, start, end))
+                        if (!g_addressindex->ReadAddressIndex(addrHash, addrType, addressIndex, start, end))
                             throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "No information available for address");
                     } else {
-                        if (!GetAddressIndex(addrHash, addrType, addressIndex))
+                        if (!g_addressindex->ReadAddressIndex(addrHash, addrType, addressIndex))
                             throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "No information available for address");
                     }
                 } else {
                     if (start > 0 && end > 0) {
-                        if (!GetAddressIndex(addrHash, addrType, assetName, addressIndex, start, end))
+                        if (!g_addressindex->ReadAddressIndex(addrHash, addrType, assetName, addressIndex, start, end))
                             throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "No information available for address");
                     } else {
-                        if (!GetAddressIndex(addrHash, addrType, assetName, addressIndex))
+                        if (!g_addressindex->ReadAddressIndex(addrHash, addrType, assetName, addressIndex))
                             throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "No information available for address");
                     }
                 }
@@ -496,7 +498,7 @@ static RPCHelpMan getaddressbalance()
         },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
         {
-            if (!fAddressIndex)
+            if (!g_addressindex)
                 throw JSONRPCError(RPC_MISC_ERROR, "Address index not enabled");
 
             std::vector<std::pair<uint160, int>> addresses;
@@ -513,7 +515,7 @@ static RPCHelpMan getaddressbalance()
             if (includeAssets) {
                 std::vector<std::pair<CAddressIndexKey, CAmount>> addressIndex;
                 for (const auto& [addrHash, addrType] : addresses) {
-                    if (!GetAddressIndex(addrHash, addrType, addressIndex))
+                    if (!g_addressindex->ReadAddressIndex(addrHash, addrType, addressIndex))
                         throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "No information available for address");
                 }
 
@@ -536,7 +538,7 @@ static RPCHelpMan getaddressbalance()
             } else {
                 std::vector<std::pair<CAddressIndexKey, CAmount>> addressIndex;
                 for (const auto& [addrHash, addrType] : addresses) {
-                    if (!GetAddressIndex(addrHash, addrType, AVN, addressIndex))
+                    if (!g_addressindex->ReadAddressIndex(addrHash, addrType, AVN, addressIndex))
                         throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "No information available for address");
                 }
 
@@ -586,7 +588,7 @@ static RPCHelpMan getaddresstxids()
         },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
         {
-            if (!fAddressIndex)
+            if (!g_addressindex)
                 throw JSONRPCError(RPC_MISC_ERROR, "Address index not enabled");
 
             std::vector<std::pair<uint160, int>> addresses;
@@ -618,18 +620,18 @@ static RPCHelpMan getaddresstxids()
             for (const auto& [addrHash, addrType] : addresses) {
                 if (includeAssets) {
                     if (start > 0 && end > 0) {
-                        if (!GetAddressIndex(addrHash, addrType, addressIndex, start, end))
+                        if (!g_addressindex->ReadAddressIndex(addrHash, addrType, addressIndex, start, end))
                             throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "No information available for address");
                     } else {
-                        if (!GetAddressIndex(addrHash, addrType, addressIndex))
+                        if (!g_addressindex->ReadAddressIndex(addrHash, addrType, addressIndex))
                             throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "No information available for address");
                     }
                 } else {
                     if (start > 0 && end > 0) {
-                        if (!GetAddressIndex(addrHash, addrType, AVN, addressIndex, start, end))
+                        if (!g_addressindex->ReadAddressIndex(addrHash, addrType, AVN, addressIndex, start, end))
                             throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "No information available for address");
                     } else {
-                        if (!GetAddressIndex(addrHash, addrType, AVN, addressIndex))
+                        if (!g_addressindex->ReadAddressIndex(addrHash, addrType, AVN, addressIndex))
                             throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "No information available for address");
                     }
                 }
@@ -692,7 +694,7 @@ static RPCHelpMan getspentinfo()
         },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
         {
-            if (!fSpentIndex)
+            if (!g_spentindex)
                 throw JSONRPCError(RPC_MISC_ERROR, "Spent index not enabled");
 
             const UniValue& txidValue = request.params[0]["txid"];
@@ -711,7 +713,7 @@ static RPCHelpMan getspentinfo()
             CSpentIndexKey key(txid, outputIndex);
             CSpentIndexValue value;
 
-            if (!GetSpentIndex(key, value))
+            if (!g_spentindex->ReadSpentIndex(key, value))
                 throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Unable to get spent info");
 
             UniValue obj(UniValue::VOBJ);

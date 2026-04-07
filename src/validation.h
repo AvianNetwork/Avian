@@ -94,34 +94,10 @@ enum class SynchronizationState {
 /** Documentation for argument 'checklevel'. */
 extern const std::vector<std::string> CHECKLEVEL_DOC;
 
-// AVN: Optional address/spent/timestamp indexes
+// AVN: Optional index flags — set by init.cpp when -addressindex/-spentindex/-timestampindex are enabled
 extern bool fAddressIndex;
 extern bool fSpentIndex;
 extern bool fTimestampIndex;
-
-namespace kernel { class BlockTreeDB; }
-extern kernel::BlockTreeDB* g_block_tree_db;
-
-// AVN: Index helper functions for RPC access
-struct CAddressIndexKey;
-struct CAddressUnspentKey;
-struct CAddressUnspentValue;
-struct CSpentIndexKey;
-struct CSpentIndexValue;
-
-bool GetTimestampIndex(const unsigned int &high, const unsigned int &low, const bool fActiveOnly,
-                       std::vector<std::pair<uint256, unsigned int>> &hashes);
-bool GetSpentIndex(CSpentIndexKey &key, CSpentIndexValue &value);
-bool GetAddressIndex(uint160 addressHash, int type,
-                     std::vector<std::pair<CAddressIndexKey, CAmount>> &addressIndex,
-                     int start = 0, int end = 0);
-bool GetAddressIndex(uint160 addressHash, int type, std::string assetName,
-                     std::vector<std::pair<CAddressIndexKey, CAmount>> &addressIndex,
-                     int start = 0, int end = 0);
-bool GetAddressUnspent(uint160 addressHash, int type,
-                       std::vector<std::pair<CAddressUnspentKey, CAddressUnspentValue>> &unspentOutputs);
-bool GetAddressUnspent(uint160 addressHash, int type, std::string assetName,
-                       std::vector<std::pair<CAddressUnspentKey, CAddressUnspentValue>> &unspentOutputs);
 
 /** Check if FORKID UAHF has activated based on median time past. */
 bool IsForkIDUAHFenabled(const CBlockIndex* pindexPrev);
