@@ -30,6 +30,7 @@ protected:
     interfaces::Chain::NotifyOptions CustomOptions() override
     {
         return {.connect_undo_data    = true,
+                .disconnect_data      = true,
                 .disconnect_undo_data = true};
     }
 
