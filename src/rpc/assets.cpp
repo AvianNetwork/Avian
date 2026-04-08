@@ -358,9 +358,17 @@ static RPCHelpMan listaddressesbyasset()
             UniValue result(UniValue::VOBJ);
 
             // Check if asset exists
-            CNewAsset asset;
-            if (!passets->GetAssetMetaDataIfExists(assetName, asset))
-                throw JSONRPCError(RPC_INVALID_PARAMETER, "Asset not found: " + assetName);
+            // Owner tokens (ending with '!') have no CNewAsset metadata entry; verify via the base asset instead
+            if (IsAssetNameAnOwner(assetName)) {
+                std::string baseName = assetName.substr(0, assetName.size() - 1);
+                CNewAsset baseAsset;
+                if (!passets->GetAssetMetaDataIfExists(baseName, baseAsset))
+                    throw JSONRPCError(RPC_INVALID_PARAMETER, "Asset not found: " + assetName);
+            } else {
+                CNewAsset asset;
+                if (!passets->GetAssetMetaDataIfExists(assetName, asset))
+                    throw JSONRPCError(RPC_INVALID_PARAMETER, "Asset not found: " + assetName);
+            }
 
             if (onlytotal) {
                 int count = 0;
