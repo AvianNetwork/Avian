@@ -26,10 +26,6 @@
 #include <assets/assetdb.h>
 #include <assets/assettypes.h>
 #include <assets/messages.h>
-// AVN: Address/Spent/Timestamp indexes
-#include <addressindex.h>
-#include <spentindex.h>
-#include <timestampindex.h>
 #include <key_io.h>
 #include <hash.h>
 #include <kernel/chain.h>
@@ -119,91 +115,10 @@ const std::vector<std::string> CHECKLEVEL_DOC {
     "each level includes the checks of the previous levels",
 };
 
-// AVN: Optional index flags (default off)
+// AVN: Optional index flags — set by init.cpp according to -addressindex/-spentindex/-timestampindex args
 bool fAddressIndex = false;
 bool fSpentIndex = false;
 bool fTimestampIndex = false;
-kernel::BlockTreeDB* g_block_tree_db = nullptr;
-
-// AVN: Index helper functions for RPC access
-bool GetTimestampIndex(const unsigned int &high, const unsigned int &low, const bool fActiveOnly,
-                       std::vector<std::pair<uint256, unsigned int>> &hashes)
-{
-    if (!fTimestampIndex)
-        return false;
-
-    LOCK(cs_main);
-    if (!g_block_tree_db || !g_block_tree_db->ReadTimestampIndex(high, low, fActiveOnly, hashes))
-        return false;
-
-    return true;
-}
-
-bool GetSpentIndex(CSpentIndexKey &key, CSpentIndexValue &value)
-{
-    if (!fSpentIndex)
-        return false;
-
-    LOCK(cs_main);
-    if (!g_block_tree_db || !g_block_tree_db->ReadSpentIndex(key, value))
-        return false;
-
-    return true;
-}
-
-bool GetAddressIndex(uint160 addressHash, int type,
-                     std::vector<std::pair<CAddressIndexKey, CAmount>> &addressIndex,
-                     int start, int end)
-{
-    if (!fAddressIndex)
-        return false;
-
-    LOCK(cs_main);
-    if (!g_block_tree_db || !g_block_tree_db->ReadAddressIndex(addressHash, type, addressIndex, start, end))
-        return false;
-
-    return true;
-}
-
-bool GetAddressIndex(uint160 addressHash, int type, std::string assetName,
-                     std::vector<std::pair<CAddressIndexKey, CAmount>> &addressIndex,
-                     int start, int end)
-{
-    if (!fAddressIndex)
-        return false;
-
-    LOCK(cs_main);
-    if (!g_block_tree_db || !g_block_tree_db->ReadAddressIndex(addressHash, type, assetName, addressIndex, start, end))
-        return false;
-
-    return true;
-}
-
-bool GetAddressUnspent(uint160 addressHash, int type,
-                       std::vector<std::pair<CAddressUnspentKey, CAddressUnspentValue>> &unspentOutputs)
-{
-    if (!fAddressIndex)
-        return false;
-
-    LOCK(cs_main);
-    if (!g_block_tree_db || !g_block_tree_db->ReadAddressUnspentIndex(addressHash, type, unspentOutputs))
-        return false;
-
-    return true;
-}
-
-bool GetAddressUnspent(uint160 addressHash, int type, std::string assetName,
-                       std::vector<std::pair<CAddressUnspentKey, CAddressUnspentValue>> &unspentOutputs)
-{
-    if (!fAddressIndex)
-        return false;
-
-    LOCK(cs_main);
-    if (!g_block_tree_db || !g_block_tree_db->ReadAddressUnspentIndex(addressHash, type, assetName, unspentOutputs))
-        return false;
-
-    return true;
-}
 
 /** FORKID UAHF (replay protection from RVN) */
 static bool IsForkIDUAHFenabled(int64_t nMedianTimePast)
@@ -1484,7 +1399,25 @@ void MemPoolAccept::FinalizeSubpackage(const ATMPArgs& args)
         );
         m_subpackage.m_replaced_transactions.push_back(it->GetSharedTx());
     }
+    // Collect added transaction hashes before Apply() clears the changeset's entry vector.
+    std::vector<Txid> added_txids;
+    if (fAddressIndex || fSpentIndex) {
+        added_txids.reserve(m_subpackage.m_changeset->GetTxCount());
+        for (size_t i = 0; i < m_subpackage.m_changeset->GetTxCount(); ++i) {
+            added_txids.push_back(m_subpackage.m_changeset->GetAddedTxn(i).GetHash());
+        }
+    }
     m_subpackage.m_changeset->Apply();
+    // Populate in-memory mempool address/spent indexes for newly accepted transactions.
+    if (fAddressIndex || fSpentIndex) {
+        for (const Txid& txid : added_txids) {
+            std::optional<CTxMemPool::txiter> it{m_pool.GetIter(txid)};
+            if (it.has_value()) {
+                if (fAddressIndex) m_pool.addAddressIndex(**it, m_view);
+                if (fSpentIndex) m_pool.addSpentIndex(**it, m_view);
+            }
+        }
+    }
     m_subpackage.m_changeset.reset();
 }
 
@@ -2419,11 +2352,6 @@ DisconnectResult Chainstate::DisconnectBlock(const CBlock& block, const CBlockIn
         passetsdb->ReadBlockUndoAssetData(pindex->GetBlockHash(), vUndoAssetData);
     }
 
-    // AVN: Index undo vectors
-    std::vector<std::pair<CAddressIndexKey, CAmount>> addressIndex;
-    std::vector<std::pair<CAddressUnspentKey, CAddressUnspentValue>> addressUnspentIndex;
-    std::vector<std::pair<CSpentIndexKey, CSpentIndexValue>> spentIndex;
-
     // Ignore blocks that contain transactions which are 'overwritten' by later transactions,
     // unless those are already completely spent.
     // See https://github.com/bitcoin/bitcoin/issues/22596 for additional information.
@@ -2454,61 +2382,6 @@ DisconnectResult Chainstate::DisconnectBlock(const CBlock& block, const CBlockIn
                 }
             }
 
-            // AVN: Undo address index receiving entries for this output
-            if (fAddressIndex) {
-                const CScript &outScript = tx.vout[o].scriptPubKey;
-                uint160 hashBytes;
-                unsigned int addressType = 0;
-                std::string assetName;
-                CAmount assetAmount{0};
-                bool isAsset{false};
-
-                if (outScript.IsPayToScriptHash()) {
-                    addressType = 2;
-                    hashBytes = uint160(std::vector<unsigned char>(outScript.begin()+2, outScript.begin()+22));
-                } else if (outScript.size() == 25 && outScript[0] == OP_DUP && outScript[1] == OP_HASH160 && outScript[2] == 20 && outScript[23] == OP_EQUALVERIFY && outScript[24] == OP_CHECKSIG) {
-                    addressType = 1;
-                    hashBytes = uint160(std::vector<unsigned char>(outScript.begin()+3, outScript.begin()+23));
-                } else if ((outScript.size() == 35 || outScript.size() == 67) && outScript[outScript.size()-1] == OP_CHECKSIG) {
-                    addressType = 1;
-                    hashBytes = Hash160(std::vector<unsigned char>(outScript.begin()+1, outScript.end()-1));
-                } else {
-                    int nType = 0;
-                    bool fIsOwner = false;
-                    if (outScript.IsAssetScript(nType, fIsOwner)) {
-                        CAssetOutputEntry assetData;
-                        if (GetAssetData(outScript, assetData)) {
-                            if (auto *keyID = std::get_if<PKHash>(&assetData.destination)) {
-                                addressType = 1;
-                                hashBytes = ToKeyID(*keyID);
-                                assetName = assetData.assetName;
-                                assetAmount = assetData.nAmount;
-                                isAsset = true;
-                            }
-                        }
-                    }
-                }
-
-                if (addressType > 0) {
-                    if (isAsset) {
-                        // Erase asset address index and unspent entries (must use asset-qualified keys)
-                        addressIndex.push_back(std::make_pair(
-                            CAddressIndexKey(addressType, hashBytes, assetName, pindex->nHeight, i, hash.ToUint256(), o, false),
-                            assetAmount));
-                        addressUnspentIndex.push_back(std::make_pair(
-                            CAddressUnspentKey(addressType, hashBytes, assetName, hash.ToUint256(), o),
-                            CAddressUnspentValue()));
-                    } else {
-                        // Erase AVN address index and unspent entries
-                        addressIndex.push_back(std::make_pair(
-                            CAddressIndexKey(addressType, hashBytes, pindex->nHeight, i, hash.ToUint256(), o, false),
-                            tx.vout[o].nValue));
-                        addressUnspentIndex.push_back(std::make_pair(
-                            CAddressUnspentKey(addressType, hashBytes, hash.ToUint256(), o),
-                            CAddressUnspentValue()));
-                    }
-                }
-            }
         }
 
         // restore inputs
@@ -2530,14 +2403,6 @@ DisconnectResult Chainstate::DisconnectBlock(const CBlock& block, const CBlockIn
                     isAssetCoin = true;
                 }
 
-                // AVN: Save prevout data for index undo before the move
-                CTxOut indexPrevOut;
-                int indexPrevHeight = 0;
-                if (fAddressIndex || fSpentIndex) {
-                    indexPrevOut = txundo.vprevout[j].out;
-                    indexPrevHeight = txundo.vprevout[j].nHeight;
-                }
-
                 int res = ApplyTxInUndo(std::move(txundo.vprevout[j]), view, out);
                 if (res == DISCONNECT_FAILED) return DISCONNECT_FAILED;
                 fClean = fClean && res != DISCONNECT_UNCLEAN;
@@ -2548,63 +2413,6 @@ DisconnectResult Chainstate::DisconnectBlock(const CBlock& block, const CBlockIn
                         fClean = false;
                 }
 
-                // AVN: Undo address/spent index entries for this input
-                if (fAddressIndex || fSpentIndex) {
-                    const CScript &prevScript = indexPrevOut.scriptPubKey;
-                    uint160 hashBytes;
-                    unsigned int addressType = 0;
-                    std::string assetName;
-                    CAmount assetValue{indexPrevOut.nValue};
-                    bool isAsset{false};
-
-                    if (prevScript.IsPayToScriptHash()) {
-                        addressType = 2;
-                        hashBytes = uint160(std::vector<unsigned char>(prevScript.begin()+2, prevScript.begin()+22));
-                    } else if (prevScript.size() == 25 && prevScript[0] == OP_DUP && prevScript[1] == OP_HASH160 && prevScript[2] == 20 && prevScript[23] == OP_EQUALVERIFY && prevScript[24] == OP_CHECKSIG) {
-                        addressType = 1;
-                        hashBytes = uint160(std::vector<unsigned char>(prevScript.begin()+3, prevScript.begin()+23));
-                    } else if ((prevScript.size() == 35 || prevScript.size() == 67) && prevScript[prevScript.size()-1] == OP_CHECKSIG) {
-                        addressType = 1;
-                        hashBytes = Hash160(std::vector<unsigned char>(prevScript.begin()+1, prevScript.end()-1));
-                    } else {
-                        // Check for asset scripts (all types: new, transfer, reissue, owner)
-                        int nType = 0;
-                        bool fIsOwner = false;
-                        if (prevScript.IsAssetScript(nType, fIsOwner)) {
-                            CAssetOutputEntry assetData;
-                            if (GetAssetData(prevScript, assetData)) {
-                                if (auto *keyID = std::get_if<PKHash>(&assetData.destination)) {
-                                    addressType = 1;
-                                    hashBytes = ToKeyID(*keyID);
-                                    assetName = assetData.assetName;
-                                    assetValue = assetData.nAmount;
-                                    isAsset = true;
-                                }
-                            }
-                        }
-                    }
-
-                    if (fSpentIndex && addressType > 0) {
-                        // Erase the spent index entry
-                        spentIndex.push_back(std::make_pair(
-                            CSpentIndexKey(out.hash.ToUint256(), out.n),
-                            CSpentIndexValue()));
-                    }
-
-                    if (fAddressIndex && addressType > 0) {
-                        // The spending entry in addressIndex is erased via EraseAddressIndex below
-                        // Restore the original unspent entry
-                        if (isAsset) {
-                            addressUnspentIndex.push_back(std::make_pair(
-                                CAddressUnspentKey(addressType, hashBytes, assetName, out.hash.ToUint256(), out.n),
-                                CAddressUnspentValue(assetValue, prevScript, indexPrevHeight)));
-                        } else {
-                            addressUnspentIndex.push_back(std::make_pair(
-                                CAddressUnspentKey(addressType, hashBytes, out.hash.ToUint256(), out.n),
-                                CAddressUnspentValue(indexPrevOut.nValue, prevScript, indexPrevHeight)));
-                        }
-                    }
-                }
             }
             // At this point, all of txundo.vprevout should have been moved out.
         }
@@ -2773,25 +2581,6 @@ DisconnectResult Chainstate::DisconnectBlock(const CBlock& block, const CBlockIn
                     }
                 }
             }
-        }
-    }
-
-    // AVN: Write address/spent index undo data
-    if (fAddressIndex) {
-        if (!m_blockman.m_block_tree_db->EraseAddressIndex(addressIndex)) {
-            LogError("DisconnectBlock: Failed to erase address index");
-            return DISCONNECT_FAILED;
-        }
-        if (!m_blockman.m_block_tree_db->UpdateAddressUnspentIndex(addressUnspentIndex)) {
-            LogError("DisconnectBlock: Failed to update address unspent index");
-            return DISCONNECT_FAILED;
-        }
-    }
-
-    if (fSpentIndex) {
-        if (!m_blockman.m_block_tree_db->UpdateSpentIndex(spentIndex)) {
-            LogError("DisconnectBlock: Failed to update spent index");
-            return DISCONNECT_FAILED;
         }
     }
 
@@ -3070,11 +2859,6 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
     std::set<CMessage> setMessages;
     std::vector<std::pair<std::string, CNullAssetTxData>> myNullAssetData;
 
-    // AVN: Index data vectors (populated during tx processing, committed after)
-    std::vector<std::pair<CAddressIndexKey, CAmount>> addressIndex;
-    std::vector<std::pair<CAddressUnspentKey, CAddressUnspentValue>> addressUnspentIndex;
-    std::vector<std::pair<CSpentIndexKey, CSpentIndexValue>> spentIndex;
-
     blockundo.vtxundo.reserve(block.vtx.size() - 1);
     for (unsigned int i = 0; i < block.vtx.size(); i++)
     {
@@ -3180,135 +2964,6 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
             blockundo.vtxundo.emplace_back();
         }
         UpdateCoins(tx, view, i == 0 ? undoDummy : blockundo.vtxundo.back(), pindex->nHeight);
-
-        // AVN: Populate address and spent indexes from this transaction
-        if (fAddressIndex || fSpentIndex) {
-            const CTxUndo& txundo_ref = (i == 0) ? undoDummy : blockundo.vtxundo.back();
-
-            // Process inputs (spending side)
-            if (!tx.IsCoinBase()) {
-                for (unsigned int j = 0; j < tx.vin.size(); j++) {
-                    const CTxOut &prevout = txundo_ref.vprevout[j].out;
-                    const CScript &prevScript = prevout.scriptPubKey;
-                    uint160 hashBytes;
-                    unsigned int addressType = 0;
-                    CAmount nValue = prevout.nValue;
-                    std::string assetName;
-                    bool isAsset = false;
-
-                    // Determine address type and hash from script
-                    if (prevScript.IsPayToScriptHash()) {
-                        addressType = 2;
-                        hashBytes = uint160(std::vector<unsigned char>(prevScript.begin()+2, prevScript.begin()+22));
-                    } else if (prevScript.size() == 25 && prevScript[0] == OP_DUP && prevScript[1] == OP_HASH160 && prevScript[2] == 20 && prevScript[23] == OP_EQUALVERIFY && prevScript[24] == OP_CHECKSIG) {
-                        addressType = 1;
-                        hashBytes = uint160(std::vector<unsigned char>(prevScript.begin()+3, prevScript.begin()+23));
-                    } else if ((prevScript.size() == 35 || prevScript.size() == 67) && prevScript[prevScript.size()-1] == OP_CHECKSIG) {
-                        addressType = 1;
-                        hashBytes = Hash160(std::vector<unsigned char>(prevScript.begin()+1, prevScript.end()-1));
-                    } else {
-                        // Check for asset scripts (all types: new, transfer, reissue, owner)
-                        int nType = 0;
-                        bool fIsOwner = false;
-                        if (prevScript.IsAssetScript(nType, fIsOwner)) {
-                            CAssetOutputEntry assetData;
-                            if (GetAssetData(prevScript, assetData)) {
-                                if (auto *keyID = std::get_if<PKHash>(&assetData.destination)) {
-                                    addressType = 1;
-                                    hashBytes = ToKeyID(*keyID);
-                                    assetName = assetData.assetName;
-                                    nValue = assetData.nAmount;
-                                    isAsset = true;
-                                }
-                            }
-                        }
-                    }
-
-                    if (fAddressIndex && addressType > 0) {
-                        if (isAsset) {
-                            // Asset spending entry (negative amount)
-                            addressIndex.push_back(std::make_pair(
-                                CAddressIndexKey(addressType, hashBytes, assetName, pindex->nHeight, i, tx.GetHash().ToUint256(), j, true),
-                                nValue * -1));
-                            // Mark asset unspent entry as spent
-                            addressUnspentIndex.push_back(std::make_pair(
-                                CAddressUnspentKey(addressType, hashBytes, assetName, tx.vin[j].prevout.hash.ToUint256(), tx.vin[j].prevout.n),
-                                CAddressUnspentValue()));
-                        } else {
-                            // AVN spending entry (negative amount)
-                            addressIndex.push_back(std::make_pair(
-                                CAddressIndexKey(addressType, hashBytes, pindex->nHeight, i, tx.GetHash().ToUint256(), j, true),
-                                prevout.nValue * -1));
-                            // Mark unspent entry as spent
-                            addressUnspentIndex.push_back(std::make_pair(
-                                CAddressUnspentKey(addressType, hashBytes, tx.vin[j].prevout.hash.ToUint256(), tx.vin[j].prevout.n),
-                                CAddressUnspentValue()));
-                        }
-                    }
-
-                    if (fSpentIndex && addressType > 0) {
-                        spentIndex.push_back(std::make_pair(
-                            CSpentIndexKey(tx.vin[j].prevout.hash.ToUint256(), tx.vin[j].prevout.n),
-                            CSpentIndexValue(tx.GetHash().ToUint256(), j, pindex->nHeight, prevout.nValue, addressType, hashBytes)));
-                    }
-                }
-            }
-
-            // Process outputs (receiving side)
-            for (unsigned int k = 0; k < tx.vout.size(); k++) {
-                const CTxOut &out = tx.vout[k];
-                const CScript &outScript = out.scriptPubKey;
-                uint160 hashBytes;
-                unsigned int addressType = 0;
-                CAmount nValue = out.nValue;
-                std::string assetName;
-                bool isAsset = false;
-
-                if (outScript.IsPayToScriptHash()) {
-                    addressType = 2;
-                    hashBytes = uint160(std::vector<unsigned char>(outScript.begin()+2, outScript.begin()+22));
-                } else if (outScript.size() == 25 && outScript[0] == OP_DUP && outScript[1] == OP_HASH160 && outScript[2] == 20 && outScript[23] == OP_EQUALVERIFY && outScript[24] == OP_CHECKSIG) {
-                    addressType = 1;
-                    hashBytes = uint160(std::vector<unsigned char>(outScript.begin()+3, outScript.begin()+23));
-                } else if ((outScript.size() == 35 || outScript.size() == 67) && outScript[outScript.size()-1] == OP_CHECKSIG) {
-                    addressType = 1;
-                    hashBytes = Hash160(std::vector<unsigned char>(outScript.begin()+1, outScript.end()-1));
-                } else {
-                    int nType = 0;
-                    bool fIsOwner = false;
-                    if (outScript.IsAssetScript(nType, fIsOwner)) {
-                        CAssetOutputEntry assetData;
-                        if (GetAssetData(outScript, assetData)) {
-                            if (auto *keyID = std::get_if<PKHash>(&assetData.destination)) {
-                                addressType = 1;
-                                hashBytes = ToKeyID(*keyID);
-                                assetName = assetData.assetName;
-                                nValue = assetData.nAmount;
-                                isAsset = true;
-                            }
-                        }
-                    }
-                }
-
-                if (fAddressIndex && addressType > 0) {
-                    if (isAsset) {
-                        addressIndex.push_back(std::make_pair(
-                            CAddressIndexKey(addressType, hashBytes, assetName, pindex->nHeight, i, tx.GetHash().ToUint256(), k, false),
-                            nValue));
-                        addressUnspentIndex.push_back(std::make_pair(
-                            CAddressUnspentKey(addressType, hashBytes, assetName, tx.GetHash().ToUint256(), k),
-                            CAddressUnspentValue(nValue, outScript, pindex->nHeight)));
-                    } else {
-                        addressIndex.push_back(std::make_pair(
-                            CAddressIndexKey(addressType, hashBytes, pindex->nHeight, i, tx.GetHash().ToUint256(), k, false),
-                            out.nValue));
-                        addressUnspentIndex.push_back(std::make_pair(
-                            CAddressUnspentKey(addressType, hashBytes, tx.GetHash().ToUint256(), k),
-                            CAddressUnspentValue(out.nValue, outScript, pindex->nHeight)));
-                    }
-                }
-            }
-        }
 
         // AVN: Process asset state changes after UTXO update
         if (assetsCache && AreAssetsDeployed()) {
@@ -3559,44 +3214,6 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
         if (!passetsdb->WriteBlockUndoAssetData(pindex->GetBlockHash(), vUndoAssetData)) {
             LogError("ConnectBlock: Failed to write asset undo data for block %s", pindex->GetBlockHash().ToString());
             return false;
-        }
-    }
-
-    // AVN: Write address/spent/timestamp index data
-    if (fAddressIndex) {
-        if (!m_blockman.m_block_tree_db->WriteAddressIndex(addressIndex)) {
-            LogError("ConnectBlock: Failed to write address index");
-            return FatalError(m_chainman.GetNotifications(), state, _("Failed writing address index"));
-        }
-        if (!m_blockman.m_block_tree_db->UpdateAddressUnspentIndex(addressUnspentIndex)) {
-            LogError("ConnectBlock: Failed to update address unspent index");
-            return FatalError(m_chainman.GetNotifications(), state, _("Failed writing address unspent index"));
-        }
-    }
-
-    if (fSpentIndex) {
-        if (!m_blockman.m_block_tree_db->UpdateSpentIndex(spentIndex)) {
-            LogError("ConnectBlock: Failed to update spent index");
-            return FatalError(m_chainman.GetNotifications(), state, _("Failed writing spent index"));
-        }
-    }
-
-    if (fTimestampIndex) {
-        unsigned int logicalTS = pindex->nTime;
-        unsigned int prevLogicalTS = 0;
-        if (pindex->pprev)
-            m_blockman.m_block_tree_db->ReadTimestampBlockIndex(pindex->pprev->GetBlockHash(), prevLogicalTS);
-        if (logicalTS <= prevLogicalTS)
-            logicalTS = prevLogicalTS + 1;
-        if (!m_blockman.m_block_tree_db->WriteTimestampIndex(CTimestampIndexKey(logicalTS, pindex->GetBlockHash()))) {
-            LogError("ConnectBlock: Failed to write timestamp index");
-            return FatalError(m_chainman.GetNotifications(), state, _("Failed writing timestamp index"));
-        }
-        if (!m_blockman.m_block_tree_db->WriteTimestampBlockIndex(
-                CTimestampBlockIndexKey(pindex->GetBlockHash()),
-                CTimestampBlockIndexValue(logicalTS))) {
-            LogError("ConnectBlock: Failed to write timestamp block index");
-            return FatalError(m_chainman.GetNotifications(), state, _("Failed writing timestamp block index"));
         }
     }
 

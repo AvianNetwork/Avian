@@ -19,6 +19,7 @@
 #include <key_io.h>
 
 #include <univalue.h>
+#include <limits>
 
 extern CAssetSnapshotDB* pAssetSnapshotDb;
 extern CSnapshotRequestDB* pSnapshotRequestDb;
@@ -275,25 +276,38 @@ static RPCHelpMan listassetbalancesbyaddress()
 
             UniValue result(UniValue::VOBJ);
 
+            // Build combined map from DB + unsaved in-memory dirty entries.
+            std::map<std::string, CAmount> combined;
+            if (passetsdb) {
+                std::vector<std::pair<std::string, CAmount>> vecDB;
+                int dbTotal = 0;
+                if (!passetsdb->AddressDir(vecDB, dbTotal, false, address, std::numeric_limits<size_t>::max(), 0))
+                    throw JSONRPCError(RPC_INTERNAL_ERROR, "Failed to query address asset database");
+                for (const auto& [assetName, amt] : vecDB)
+                    combined[assetName] = amt;
+            }
+            // Overlay unsaved in-memory dirty entries
+            for (const auto& [pair, amount] : passets->mapAssetsAddressAmount) {
+                if (pair.second == address)
+                    combined[pair.first] = amount;
+            }
+
             if (onlytotal) {
-                // Just count the number of assets at this address
-                int count = 0;
-                for (const auto& [pair, amount] : passets->mapAssetsAddressAmount) {
-                    if (pair.second == address && amount > 0) {
-                        count++;
-                    }
+                int nTotal = 0;
+                for (const auto& [assetName, amt] : combined) {
+                    if (amt > 0) nTotal++;
                 }
-                result.pushKV("total", count);
+                result.pushKV("total", nTotal);
             } else {
                 size_t found = 0;
                 long skipped = 0;
-                for (const auto& [pair, amount] : passets->mapAssetsAddressAmount) {
-                    if (pair.second == address && amount > 0) {
+                for (const auto& [assetName, amt] : combined) {
+                    if (amt > 0) {
                         if (skipped < start) {
                             skipped++;
                             continue;
                         }
-                        result.pushKV(pair.first, AssetUnitValueFromAmount(amount, pair.first));
+                        result.pushKV(assetName, AssetUnitValueFromAmount(amt, assetName));
                         found++;
                         if (found >= count)
                             break;
@@ -358,28 +372,51 @@ static RPCHelpMan listaddressesbyasset()
             UniValue result(UniValue::VOBJ);
 
             // Check if asset exists
-            CNewAsset asset;
-            if (!passets->GetAssetMetaDataIfExists(assetName, asset))
-                throw JSONRPCError(RPC_INVALID_PARAMETER, "Asset not found: " + assetName);
+            // Owner tokens (ending with '!') have no CNewAsset metadata entry; verify via the base asset instead
+            if (IsAssetNameAnOwner(assetName)) {
+                std::string baseName = assetName.substr(0, assetName.size() - 1);
+                CNewAsset baseAsset;
+                if (!passets->GetAssetMetaDataIfExists(baseName, baseAsset))
+                    throw JSONRPCError(RPC_INVALID_PARAMETER, "Asset not found: " + assetName);
+            } else {
+                CNewAsset asset;
+                if (!passets->GetAssetMetaDataIfExists(assetName, asset))
+                    throw JSONRPCError(RPC_INVALID_PARAMETER, "Asset not found: " + assetName);
+            }
+
+            // Build the complete address->amount map by combining persisted DB data with any
+            // unsaved in-memory changes.
+            std::map<std::string, CAmount> combined;
+            if (passetsdb) {
+                std::vector<std::pair<std::string, CAmount>> vecDB;
+                int dbTotal = 0;
+                if (!passetsdb->AssetAddressDir(vecDB, dbTotal, false, assetName, std::numeric_limits<size_t>::max(), 0))
+                    throw JSONRPCError(RPC_INTERNAL_ERROR, "Failed to query asset address database");
+                for (const auto& [addr, amt] : vecDB)
+                    combined[addr] = amt;
+            }
+            // Overlay unsaved in-memory dirty entries (may add new addresses or update balances)
+            for (const auto& [pair, amount] : passets->mapAssetsAddressAmount) {
+                if (pair.first == assetName)
+                    combined[pair.second] = amount;
+            }
 
             if (onlytotal) {
-                int count = 0;
-                for (const auto& [pair, amount] : passets->mapAssetsAddressAmount) {
-                    if (pair.first == assetName && amount > 0) {
-                        count++;
-                    }
+                int nTotal = 0;
+                for (const auto& [addr, amt] : combined) {
+                    if (amt > 0) nTotal++;
                 }
-                result.pushKV("total", count);
+                result.pushKV("total", nTotal);
             } else {
                 size_t found = 0;
                 long skipped = 0;
-                for (const auto& [pair, amount] : passets->mapAssetsAddressAmount) {
-                    if (pair.first == assetName && amount > 0) {
+                for (const auto& [addr, amt] : combined) {
+                    if (amt > 0) {
                         if (skipped < start) {
                             skipped++;
                             continue;
                         }
-                        result.pushKV(pair.second, AssetUnitValueFromAmount(amount, assetName));
+                        result.pushKV(addr, AssetUnitValueFromAmount(amt, assetName));
                         found++;
                         if (found >= count)
                             break;

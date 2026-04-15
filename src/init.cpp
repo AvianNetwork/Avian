@@ -25,7 +25,10 @@
 #include <httprpc.h>
 #include <httpserver.h>
 #include <index/blockfilterindex.h>
+#include <index/addressindex.h>
 #include <index/coinstatsindex.h>
+#include <index/spentindex.h>
+#include <index/timestampindex.h>
 #include <index/txindex.h>
 #include <init/common.h>
 #include <interfaces/chain.h>
@@ -386,6 +389,9 @@ void Shutdown(NodeContext& node)
     for (auto* index : node.indexes) index->Stop();
     if (g_txindex) g_txindex.reset();
     if (g_coin_stats_index) g_coin_stats_index.reset();
+    if (g_addressindex) g_addressindex.reset();
+    if (g_spentindex) g_spentindex.reset();
+    if (g_timestampindex) g_timestampindex.reset();
     DestroyAllBlockFilterIndexes();
     node.indexes.clear(); // all instances are nullptr now
 
@@ -1988,43 +1994,25 @@ bool AppInitMain(NodeContext& node, interfaces::BlockAndHeaderTipInfo* tip_info)
 
     // ********************************************************* Step 8: start indexers
 
-    // AVN: Load address/timestamp/spent index flags from block tree DB
-    {
-        LOCK(cs_main);
-        auto& block_tree_db = *chainman.m_blockman.m_block_tree_db;
+    if (args.GetBoolArg("-addressindex", false)) {
+        g_addressindex = std::make_unique<AddressIndex>(interfaces::MakeChain(node), /*cache_size=*/0, false, do_reindex);
+        node.indexes.emplace_back(g_addressindex.get());
+        fAddressIndex = true;
+        LogPrintf("Address index enabled\n");
+    }
 
-        // Read flags from the block tree DB, or set defaults from command line args
-        bool flagValue;
-        if (!block_tree_db.ReadFlag("addressindex", flagValue)) {
-            // Not yet stored: use command-line arg (default: false)
-            fAddressIndex = args.GetBoolArg("-addressindex", false);
-        } else {
-            fAddressIndex = flagValue;
-        }
+    if (args.GetBoolArg("-timestampindex", false)) {
+        g_timestampindex = std::make_unique<TimestampIndex>(interfaces::MakeChain(node), /*cache_size=*/0, false, do_reindex);
+        node.indexes.emplace_back(g_timestampindex.get());
+        fTimestampIndex = true;
+        LogPrintf("Timestamp index enabled\n");
+    }
 
-        if (!block_tree_db.ReadFlag("timestampindex", flagValue)) {
-            fTimestampIndex = args.GetBoolArg("-timestampindex", false);
-        } else {
-            fTimestampIndex = flagValue;
-        }
-
-        if (!block_tree_db.ReadFlag("spentindex", flagValue)) {
-            fSpentIndex = args.GetBoolArg("-spentindex", false);
-        } else {
-            fSpentIndex = flagValue;
-        }
-
-        // Write flags to DB (persists the state for future runs)
-        block_tree_db.WriteFlag("addressindex", fAddressIndex);
-        block_tree_db.WriteFlag("timestampindex", fTimestampIndex);
-        block_tree_db.WriteFlag("spentindex", fSpentIndex);
-
-        if (fAddressIndex) LogPrintf("Address index enabled\n");
-        if (fTimestampIndex) LogPrintf("Timestamp index enabled\n");
-        if (fSpentIndex) LogPrintf("Spent index enabled\n");
-
-        // Set global pointer for RPC helper functions in validation.cpp
-        g_block_tree_db = &block_tree_db;
+    if (args.GetBoolArg("-spentindex", false)) {
+        g_spentindex = std::make_unique<SpentIndex>(interfaces::MakeChain(node), /*cache_size=*/0, false, do_reindex);
+        node.indexes.emplace_back(g_spentindex.get());
+        fSpentIndex = true;
+        LogPrintf("Spent index enabled\n");
     }
 
     if (args.GetBoolArg("-txindex", DEFAULT_TXINDEX)) {

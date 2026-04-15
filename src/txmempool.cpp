@@ -568,7 +568,14 @@ void CTxMemPool::addAddressIndex(const CTxMemPoolEntry &entry, const CCoinsViewC
             mapAddress.insert(std::make_pair(key, delta));
             inserted.push_back(key);
         } else {
-            if (AreAssetsDeployed()) {
+            int witVersion;
+            std::vector<unsigned char> witProgram;
+            if (prevScript.IsWitnessProgram(witVersion, witProgram) && witVersion == 0 && witProgram.size() == 20) {
+                CMempoolAddressDeltaKey key(3, uint160(witProgram), AVN, txhash, j, 1);
+                CMempoolAddressDelta delta(entryTime, prevout.nValue * -1, input.prevout.hash.ToUint256(), input.prevout.n);
+                mapAddress.insert(std::make_pair(key, delta));
+                inserted.push_back(key);
+            } else if (AreAssetsDeployed()) {
                 uint160 hashBytes;
                 std::string assetName;
                 CAmount assetAmount;
@@ -602,7 +609,13 @@ void CTxMemPool::addAddressIndex(const CTxMemPoolEntry &entry, const CCoinsViewC
             mapAddress.insert(std::make_pair(key, CMempoolAddressDelta(entryTime, out.nValue)));
             inserted.push_back(key);
         } else {
-            if (AreAssetsDeployed()) {
+            int witVersion;
+            std::vector<unsigned char> witProgram;
+            if (outScript.IsWitnessProgram(witVersion, witProgram) && witVersion == 0 && witProgram.size() == 20) {
+                CMempoolAddressDeltaKey key(3, uint160(witProgram), AVN, txhash, k, 0);
+                mapAddress.insert(std::make_pair(key, CMempoolAddressDelta(entryTime, out.nValue)));
+                inserted.push_back(key);
+            } else if (AreAssetsDeployed()) {
                 uint160 hashBytes;
                 std::string assetName;
                 CAmount assetAmount;
@@ -684,8 +697,15 @@ void CTxMemPool::addSpentIndex(const CTxMemPoolEntry &entry, const CCoinsViewCac
             addressHash = Hash160(std::vector<unsigned char>(prevScript.begin()+1, prevScript.end()-1));
             addressType = 1;
         } else {
-            addressHash.SetNull();
-            addressType = 0;
+            int witVersion;
+            std::vector<unsigned char> witProgram;
+            if (prevScript.IsWitnessProgram(witVersion, witProgram) && witVersion == 0 && witProgram.size() == 20) {
+                addressHash = uint160(witProgram);
+                addressType = 3;
+            } else {
+                addressHash.SetNull();
+                addressType = 0;
+            }
         }
 
         CSpentIndexKey key(input.prevout.hash.ToUint256(), input.prevout.n);

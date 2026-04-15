@@ -247,6 +247,9 @@ add_library(bitcoin_node STATIC EXCLUDE_FROM_ALL
   index/blockfilterindex.cpp
   index/coinstatsindex.cpp
   index/txindex.cpp
+  index/addressindex.cpp
+  index/spentindex.cpp
+  index/timestampindex.cpp
   init.cpp
   kernel/chain.cpp
   kernel/checks.cpp
