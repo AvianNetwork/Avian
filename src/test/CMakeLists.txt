@@ -9,6 +9,17 @@ add_executable(test_bitcoin
   addrman_tests.cpp
   allocator_tests.cpp
   amount_tests.cpp
+  assets/asset_tests.cpp
+  assets/asset_tx_tests.cpp
+  assets/asset_reissue_tests.cpp
+  assets/cache_tests.cpp
+  assets/messaging_tests.cpp
+  assets/null_asset_data_tests.cpp
+  assets/qualifier_tests.cpp
+  assets/restricted_tests.cpp
+  assets/serialization_tests.cpp
+  assets/unique_tests.cpp
+  assets/verifier_string_tests.cpp
   assets_amount_tests.cpp
   argsman_tests.cpp
   arith_uint256_tests.cpp
