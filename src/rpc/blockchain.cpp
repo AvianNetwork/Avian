@@ -199,6 +199,14 @@ UniValue blockToJSON(BlockManager& blockman, const CBlock& block, const CBlockIn
 {
     UniValue result = blockheaderToJSON(tip, blockindex, params);
 
+    result.pushKV("powtype", blockindex.GetBlockHeader().GetPoWTypeName());
+    if (IsDualAlgoEnabled(&tip, params)) {
+        const CBlockIndex* pMinotaurx = GetLastBlockIndex4Algo(&tip, POW_TYPE_MINOTAURX);
+        const CBlockIndex* pX16rt = GetLastBlockIndex4Algo(&tip, POW_TYPE_X16RT);
+        result.pushKV("difficulty_minotaurx", pMinotaurx ? GetDifficulty(*pMinotaurx) : 1.0);
+        result.pushKV("difficulty_x16rt", pX16rt ? GetDifficulty(*pX16rt) : 1.0);
+    }
+
     result.pushKV("strippedsize", (int)::GetSerializeSize(TX_NO_WITNESS(block)));
     result.pushKV("size", (int)::GetSerializeSize(TX_WITH_WITNESS(block)));
     result.pushKV("weight", (int)::GetBlockWeight(block));
@@ -815,6 +823,9 @@ static RPCHelpMan getblock()
                     {RPCResult::Type::STR_HEX, "bits", "nBits: compact representation of the block difficulty target"},
                     {RPCResult::Type::STR_HEX, "target", "The difficulty target"},
                     {RPCResult::Type::NUM, "difficulty", "The difficulty"},
+                    {RPCResult::Type::STR, "powtype", "The proof-of-work algorithm used for this block"},
+                    {RPCResult::Type::NUM, "difficulty_minotaurx", /*optional=*/true, "The MinotaurX difficulty (only when dual-algo is active)"},
+                    {RPCResult::Type::NUM, "difficulty_x16rt", /*optional=*/true, "The X16RT difficulty (only when dual-algo is active)"},
                     {RPCResult::Type::STR_HEX, "chainwork", "Expected number of hashes required to produce the chain up to this block (in hex)"},
                     {RPCResult::Type::NUM, "nTx", "The number of transactions in the block"},
                     {RPCResult::Type::STR_HEX, "previousblockhash", /*optional=*/true, "The hash of the previous block (if available)"},
