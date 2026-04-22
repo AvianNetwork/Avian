@@ -22,8 +22,11 @@
 #include <hash.h>
 #include <index/blockfilterindex.h>
 #include <index/coinstatsindex.h>
+#include <index/spentindex.h>
+#include <index/timestampindex.h>
 #include <interfaces/mining.h>
 #include <kernel/coinstats.h>
+#include <key_io.h>
 #include <logging/timer.h>
 #include <net.h>
 #include <net_processing.h>
@@ -37,6 +40,7 @@
 #include <rpc/server.h>
 #include <rpc/server_util.h>
 #include <rpc/util.h>
+#include <addresstype.h>
 #include <script/descriptor.h>
 #include <serialize.h>
 #include <streams.h>
@@ -125,6 +129,118 @@ double GetDifficulty(POW_TYPE powType, const CChain& active_chain)
     const CBlockIndex* pindex = GetLastBlockIndex4Algo(active_chain.Tip(), powType);
     if (!pindex) return 1.0;
     return GetDifficulty(*pindex);
+}
+
+static bool GetAddressFromSpentIndex(const CSpentIndexValue& spent_info, std::string& address)
+{
+    if (spent_info.addressType == 1) {
+        address = EncodeDestination(PKHash(spent_info.addressHash));
+        return true;
+    }
+    if (spent_info.addressType == 2) {
+        address = EncodeDestination(ScriptHash(spent_info.addressHash));
+        return true;
+    }
+    if (spent_info.addressType == 3) {
+        address = EncodeDestination(WitnessV0KeyHash(spent_info.addressHash));
+        return true;
+    }
+    return false;
+}
+
+static UniValue blockToDeltasJSON(const CBlock& block, const CBlockIndex& tip, const CBlockIndex& blockindex, const Consensus::Params& params)
+{
+    UniValue result(UniValue::VOBJ);
+    result.pushKV("hash", block.GetHash().GetHex());
+
+    const CBlockIndex* pnext;
+    const int confirmations = ComputeNextBlockAndDepth(tip, blockindex, pnext);
+    if (confirmations < 0) {
+        throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Block is an orphan");
+    }
+
+    result.pushKV("confirmations", confirmations);
+    result.pushKV("size", (int)::GetSerializeSize(TX_WITH_WITNESS(block)));
+    result.pushKV("height", blockindex.nHeight);
+    result.pushKV("version", block.nVersion);
+    result.pushKV("merkleroot", block.hashMerkleRoot.GetHex());
+
+    UniValue deltas(UniValue::VARR);
+    for (unsigned int i = 0; i < block.vtx.size(); ++i) {
+        const CTransaction& tx = *block.vtx[i];
+
+        UniValue entry(UniValue::VOBJ);
+        entry.pushKV("txid", tx.GetHash().GetHex());
+        entry.pushKV("index", (int)i);
+
+        UniValue inputs(UniValue::VARR);
+        if (!tx.IsCoinBase()) {
+            if (!g_spentindex) {
+                throw JSONRPCError(RPC_MISC_ERROR, "Spent index not enabled");
+            }
+
+            for (size_t j = 0; j < tx.vin.size(); ++j) {
+                const CTxIn& input = tx.vin[j];
+                CSpentIndexKey spent_key(input.prevout.hash.ToUint256(), input.prevout.n);
+                CSpentIndexValue spent_info;
+
+                if (!g_spentindex->ReadSpentIndex(spent_key, spent_info)) {
+                    throw JSONRPCError(RPC_INTERNAL_ERROR, "Spent information not available");
+                }
+
+                std::string address;
+                if (!GetAddressFromSpentIndex(spent_info, address)) {
+                    continue;
+                }
+
+                UniValue delta(UniValue::VOBJ);
+                delta.pushKV("address", address);
+                delta.pushKV("satoshis", -spent_info.satoshis);
+                delta.pushKV("index", (int)j);
+                delta.pushKV("prevtxid", input.prevout.hash.GetHex());
+                delta.pushKV("prevout", (int)input.prevout.n);
+                inputs.push_back(std::move(delta));
+            }
+        }
+        entry.pushKV("inputs", std::move(inputs));
+
+        UniValue outputs(UniValue::VARR);
+        for (unsigned int k = 0; k < tx.vout.size(); ++k) {
+            const CTxOut& out = tx.vout[k];
+            CTxDestination dest;
+            if (!ExtractDestination(out.scriptPubKey, dest)) {
+                continue;
+            }
+
+            UniValue delta(UniValue::VOBJ);
+            delta.pushKV("address", EncodeDestination(dest));
+            delta.pushKV("satoshis", out.nValue);
+            delta.pushKV("index", (int)k);
+            outputs.push_back(std::move(delta));
+        }
+        entry.pushKV("outputs", std::move(outputs));
+
+        deltas.push_back(std::move(entry));
+    }
+
+    result.pushKV("deltas", std::move(deltas));
+    result.pushKV("time", block.GetBlockTime());
+    result.pushKV("mediantime", blockindex.GetMedianTimePast());
+    result.pushKV("nonce", block.nNonce);
+    result.pushKV("bits", strprintf("%08x", block.nBits));
+    result.pushKV("difficulty", GetDifficulty(blockindex));
+    if (IsDualAlgoEnabled(&tip, params)) {
+        const CBlockIndex* p_minotaurx = GetLastBlockIndex4Algo(&tip, POW_TYPE_MINOTAURX);
+        const CBlockIndex* p_x16rt = GetLastBlockIndex4Algo(&tip, POW_TYPE_X16RT);
+        result.pushKV("difficulty_minotaurx", p_minotaurx ? GetDifficulty(*p_minotaurx) : 1.0);
+        result.pushKV("difficulty_x16rt", p_x16rt ? GetDifficulty(*p_x16rt) : 1.0);
+    }
+    result.pushKV("chainwork", blockindex.nChainWork.GetHex());
+
+    if (blockindex.pprev) result.pushKV("previousblockhash", blockindex.pprev->GetBlockHash().GetHex());
+    if (pnext) result.pushKV("nextblockhash", pnext->GetBlockHash().GetHex());
+
+    return result;
 }
 
 static int ComputeNextBlockAndDepth(const CBlockIndex& tip, const CBlockIndex& blockindex, const CBlockIndex*& next)
@@ -617,6 +733,175 @@ static RPCHelpMan getblockhash()
 
     const CBlockIndex* pblockindex = active_chain[nHeight];
     return pblockindex->GetBlockHash().GetHex();
+},
+    };
+}
+
+static RPCHelpMan getblockdeltas()
+{
+    return RPCHelpMan{
+        "getblockdeltas",
+        "Returns detailed input/output address deltas for each transaction in a block.\n"
+                "Requires -spentindex to be enabled.\n",
+                {
+                    {"blockhash", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "The block hash"},
+                },
+                RPCResult{
+                    RPCResult::Type::OBJ, "", "",
+                    {
+                        {RPCResult::Type::STR_HEX, "hash", "The block hash"},
+                        {RPCResult::Type::NUM, "confirmations", "The number of confirmations"},
+                        {RPCResult::Type::NUM, "size", "The block size"},
+                        {RPCResult::Type::NUM, "height", "The block height"},
+                        {RPCResult::Type::NUM, "version", "The block version"},
+                        {RPCResult::Type::STR_HEX, "merkleroot", "The Merkle root"},
+                        {RPCResult::Type::ARR, "deltas", "Transaction-level deltas", {
+                            {RPCResult::Type::OBJ, "", "", {
+                                {RPCResult::Type::STR_HEX, "txid", "Transaction id"},
+                                {RPCResult::Type::NUM, "index", "Transaction index in block"},
+                                {RPCResult::Type::ARR, "inputs", "Input deltas", {
+                                    {RPCResult::Type::OBJ, "", "", {
+                                        {RPCResult::Type::STR, "address", "Input address"},
+                                        {RPCResult::Type::NUM, "satoshis", "Negative value spent"},
+                                        {RPCResult::Type::NUM, "index", "Input index"},
+                                        {RPCResult::Type::STR_HEX, "prevtxid", "Previous txid"},
+                                        {RPCResult::Type::NUM, "prevout", "Previous output index"},
+                                    }},
+                                }},
+                                {RPCResult::Type::ARR, "outputs", "Output deltas", {
+                                    {RPCResult::Type::OBJ, "", "", {
+                                        {RPCResult::Type::STR, "address", "Output address"},
+                                        {RPCResult::Type::NUM, "satoshis", "Value created"},
+                                        {RPCResult::Type::NUM, "index", "Output index"},
+                                    }},
+                                }},
+                            }},
+                        }},
+                        {RPCResult::Type::NUM_TIME, "time", "Block time"},
+                        {RPCResult::Type::NUM_TIME, "mediantime", "Median past time"},
+                        {RPCResult::Type::NUM, "nonce", "Nonce"},
+                        {RPCResult::Type::STR_HEX, "bits", "Compact difficulty representation"},
+                        {RPCResult::Type::NUM, "difficulty", "Difficulty"},
+                        {RPCResult::Type::NUM, "difficulty_minotaurx", /*optional=*/true, "MinotaurX difficulty when dual algo is active"},
+                        {RPCResult::Type::NUM, "difficulty_x16rt", /*optional=*/true, "X16RT difficulty when dual algo is active"},
+                        {RPCResult::Type::STR_HEX, "chainwork", "Chain work"},
+                        {RPCResult::Type::STR_HEX, "previousblockhash", /*optional=*/true, "Previous block hash"},
+                        {RPCResult::Type::STR_HEX, "nextblockhash", /*optional=*/true, "Next block hash"},
+                    }},
+                RPCExamples{
+                    HelpExampleCli("getblockdeltas", "\"000000003a7e4493372082e6bc01ede6743f5f58c18e9eea6aa4db7be7b185bb\"")
+            + HelpExampleRpc("getblockdeltas", "\"000000003a7e4493372082e6bc01ede6743f5f58c18e9eea6aa4db7be7b185bb\"")
+                },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+{
+    ChainstateManager& chainman = EnsureAnyChainman(request.context);
+    const uint256 hash{ParseHashV(request.params[0], "blockhash")};
+
+    const CBlockIndex* pblockindex;
+    const CBlockIndex* tip;
+    {
+        LOCK(cs_main);
+        pblockindex = chainman.m_blockman.LookupBlockIndex(hash);
+        tip = chainman.ActiveChain().Tip();
+    }
+
+    if (!pblockindex) {
+        throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Block not found");
+    }
+    if (!tip) {
+        throw JSONRPCError(RPC_MISC_ERROR, "No active chain tip");
+    }
+
+    const CBlock block{GetBlockChecked(chainman.m_blockman, *pblockindex)};
+    return blockToDeltasJSON(block, *tip, *pblockindex, chainman.GetConsensus());
+},
+    };
+}
+
+static RPCHelpMan getblockhashes()
+{
+    return RPCHelpMan{
+        "getblockhashes",
+        "Returns array of hashes of blocks within the timestamp range provided.\n",
+                {
+                    {"high", RPCArg::Type::NUM, RPCArg::Optional::NO, "The newer block timestamp"},
+                    {"low", RPCArg::Type::NUM, RPCArg::Optional::NO, "The older block timestamp"},
+                    {"options", RPCArg::Type::OBJ, RPCArg::Default{UniValue(UniValue::VOBJ)}, "Options object",
+                        {
+                            {"noOrphans", RPCArg::Type::BOOL, RPCArg::Default{false}, "Only include blocks on the active chain"},
+                            {"logicalTimes", RPCArg::Type::BOOL, RPCArg::Default{false}, "Include logical timestamps with hashes"},
+                        },
+                    },
+                },
+                RPCResult{
+                    RPCResult::Type::ARR, "", "",
+                    {
+                        {RPCResult::Type::STR_HEX, "hash", "The block hash"},
+                    }},
+                RPCExamples{
+                    HelpExampleCli("getblockhashes", "1231614698 1231024505")
+            + HelpExampleRpc("getblockhashes", "1231614698, 1231024505")
+            + HelpExampleCli("getblockhashes", "1231614698 1231024505 '{\"noOrphans\":false, \"logicalTimes\":true}'")
+                },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+{
+    if (!g_timestampindex) {
+        throw JSONRPCError(RPC_MISC_ERROR, "Timestamp index not enabled");
+    }
+
+    const unsigned int high = request.params[0].getInt<unsigned int>();
+    const unsigned int low = request.params[1].getInt<unsigned int>();
+
+    bool active_only = false;
+    bool include_logical_times = false;
+    if (!request.params[2].isNull()) {
+        const UniValue& options = request.params[2].get_obj();
+        const UniValue& no_orphans = options["noOrphans"];
+        const UniValue& logical_times = options["logicalTimes"];
+        if (no_orphans.isBool()) active_only = no_orphans.get_bool();
+        if (logical_times.isBool()) include_logical_times = logical_times.get_bool();
+    }
+
+    std::vector<std::pair<uint256, unsigned int>> block_hashes;
+    g_timestampindex->ReadTimestampIndex(high, low, block_hashes);
+    if (block_hashes.empty()) {
+        throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "No information available for block hashes");
+    }
+
+    UniValue result(UniValue::VARR);
+    if (active_only) {
+        ChainstateManager& chainman = EnsureAnyChainman(request.context);
+        LOCK(cs_main);
+        const CChain& active_chain = chainman.ActiveChain();
+
+        for (const auto& [block_hash, logical_ts] : block_hashes) {
+            const CBlockIndex* pindex = chainman.m_blockman.LookupBlockIndex(block_hash);
+            if (!pindex || !active_chain.Contains(pindex)) {
+                continue;
+            }
+            if (include_logical_times) {
+                UniValue item(UniValue::VOBJ);
+                item.pushKV("blockhash", block_hash.GetHex());
+                item.pushKV("logicalts", logical_ts);
+                result.push_back(std::move(item));
+            } else {
+                result.push_back(block_hash.GetHex());
+            }
+        }
+    } else {
+        for (const auto& [block_hash, logical_ts] : block_hashes) {
+            if (include_logical_times) {
+                UniValue item(UniValue::VOBJ);
+                item.pushKV("blockhash", block_hash.GetHex());
+                item.pushKV("logicalts", logical_ts);
+                result.push_back(std::move(item));
+            } else {
+                result.push_back(block_hash.GetHex());
+            }
+        }
+    }
+
+    return result;
 },
     };
 }
@@ -3539,7 +3824,9 @@ void RegisterBlockchainRPCCommands(CRPCTable& t)
         {"blockchain", &getbestblockhash},
         {"blockchain", &getblockcount},
         {"blockchain", &getblock},
+        {"blockchain", &getblockdeltas},
         {"blockchain", &getblockfrompeer},
+        {"blockchain", &getblockhashes},
         {"blockchain", &getblockhash},
         {"blockchain", &getblockheader},
         {"blockchain", &getchaintips},
