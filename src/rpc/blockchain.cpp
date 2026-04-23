@@ -131,6 +131,9 @@ double GetDifficulty(POW_TYPE powType, const CChain& active_chain)
     return GetDifficulty(*pindex);
 }
 
+static int ComputeNextBlockAndDepth(const CBlockIndex& tip, const CBlockIndex& blockindex, const CBlockIndex*& next);
+static CBlock GetBlockChecked(BlockManager& blockman, const CBlockIndex& blockindex);
+
 static bool GetAddressFromSpentIndex(const CSpentIndexValue& spent_info, std::string& address)
 {
     if (spent_info.addressType == 1) {
@@ -812,7 +815,7 @@ static RPCHelpMan getblockdeltas()
         throw JSONRPCError(RPC_MISC_ERROR, "No active chain tip");
     }
 
-    const CBlock block{GetBlockChecked(chainman.m_blockman, *pblockindex)};
+    const CBlock block = GetBlockChecked(chainman.m_blockman, *pblockindex);
     return blockToDeltasJSON(block, *tip, *pblockindex, chainman.GetConsensus());
 },
     };
