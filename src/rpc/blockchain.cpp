@@ -42,7 +42,6 @@
 #include <rpc/util.h>
 #include <addresstype.h>
 #include <script/descriptor.h>
-#include <script/standard.h>
 #include <serialize.h>
 #include <streams.h>
 #include <sync.h>
