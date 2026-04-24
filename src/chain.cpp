@@ -199,16 +199,16 @@ arith_uint256 GetNormalizedBlockProof(const CBlockIndex& block, const Consensus:
     // observed in any individual fork depends on current per-algo targets.
     // Integer division is lossless when the ratio is a power-of-two.
     if (algoLimit > minLimit) {
-        // If the limits are not an exact multiple the ratio would be truncated,
-        // yielding a smaller normalization factor than intended. Return 0 so the
-        // misconfiguration is immediately visible rather than silently applying an
-        // unintended chainwork scale.
-        if (algoLimit % minLimit != 0) return 0;
-
         const arith_uint256 ratio = algoLimit / minLimit;
         // ratio can never be 0 here (algoLimit > minLimit >= 1), but guard
         // explicitly so a future refactor cannot introduce a divide-by-zero.
         if (ratio == 0) return 0;
+
+        // Verify exact divisibility (ratio * minLimit == algoLimit).
+        // A truncated ratio would yield a different proof per node.
+        // Returns 0 rather than silently diverging; never reached for
+        // current Avian parameters where the ratio is an exact power-of-two.
+        if (ratio * minLimit != algoLimit) return 0;
 
         bnTarget = bnTarget / ratio;
     }
