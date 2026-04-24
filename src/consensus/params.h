@@ -181,6 +181,18 @@ struct Params {
     int64_t lwmaAveragingWindow{45};             // Averaging window size for LWMA
     std::vector<uint256> powTypeLimits;          // Per-algorithm difficulty limits
 
+    /**
+     * Block height at which chainwork normalization activates (future hard fork).
+     * Before this height, chainwork is accumulated using raw block proof (legacy).
+     * At and after this height, the target used in the proof formula is scaled down
+     * by (algoLimit / minLimit) so that a block at 1× relative difficulty contributes
+     * equal proof regardless of algorithm, eliminating the bias that caused
+     * MinotaurX blocks to systematically lose chain-tip selection against competing X16RT blocks.
+     * Set to INT_MAX to disable (default for mainnet until activation height is chosen).
+     * Set to 0 to always enable (testnet/regtest).
+     */
+    int chainworkNormalizationForkHeight{std::numeric_limits<int>::max()};
+
     /** Avian Founder Payment */
     std::string founderAddress;
     int founderStartBlock{0};

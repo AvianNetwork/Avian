@@ -353,6 +353,14 @@ protected:
 arith_uint256 GetBlockProof(const CBlockIndex& block);
 /** Avian: Per-algorithm block proof — returns 0 for blocks not matching powType. */
 arith_uint256 GetBlockProof(const CBlockIndex& block, POW_TYPE powType);
+/**
+ * Avian hard fork: normalized block proof for fair dual-algo chain-tip selection.
+ * At and after chainworkNormalizationForkHeight the bnTarget used in the proof formula is
+ * scaled down by (algoLimit / minLimit), which scales the resulting proof up by the same
+ * ratio, so that every algorithm contributes equal work at equal relative difficulty.
+ * Before the fork, falls back to GetBlockProof(block) to preserve historical chainwork.
+ */
+arith_uint256 GetNormalizedBlockProof(const CBlockIndex& block, const Consensus::Params& params);
 /** Return the time it would take to redo the work difference between from and to, assuming the current hashrate corresponds to the difficulty at tip, in seconds. */
 int64_t GetBlockProofEquivalentTime(const CBlockIndex& to, const CBlockIndex& from, const CBlockIndex& tip, const Consensus::Params&);
 /** Find the forking point between two chain tips. */

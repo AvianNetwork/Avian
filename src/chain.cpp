@@ -157,6 +157,66 @@ arith_uint256 GetBlockProof(const CBlockIndex& block, POW_TYPE powType)
     return (~bnTarget / (bnTarget + 1)) + 1;
 }
 
+arith_uint256 GetNormalizedBlockProof(const CBlockIndex& block, const Consensus::Params& params)
+{
+    // Pre-fork or single-algo chain: fall back to the legacy formula so that
+    // historical chainwork is preserved exactly.
+    if (params.powTypeLimits.size() < 2 ||
+            block.nHeight < params.chainworkNormalizationForkHeight) {
+        return GetBlockProof(block);
+    }
+
+    arith_uint256 bnTarget;
+    bool fNegative;
+    bool fOverflow;
+    bnTarget.SetCompact(block.nBits, &fNegative, &fOverflow);
+    if (fNegative || fOverflow || bnTarget == 0)
+        return 0;
+
+    // Determine which algorithm mined this block.
+    const POW_TYPE powType = block.GetBlockHeader().GetPoWType();
+    if (static_cast<size_t>(powType) >= params.powTypeLimits.size()) {
+        // Unknown PoW type post-fork: return 0 so this block contributes no
+        // chainwork and will not win chain-tip selection.  A valid block must
+        // always have a recognised algorithm, so this should never be reached.
+        return 0;
+    }
+
+    // Find the tightest (smallest numeric value = hardest) per-algo limit.
+    arith_uint256 minLimit = UintToArith256(params.powTypeLimits[0]);
+    for (size_t i = 1; i < params.powTypeLimits.size(); ++i) {
+        arith_uint256 v = UintToArith256(params.powTypeLimits[i]);
+        if (v < minLimit) minLimit = v;
+    }
+    const arith_uint256 algoLimit = UintToArith256(params.powTypeLimits[static_cast<size_t>(powType)]);
+
+    // Scale the target down by (algoLimit / minLimit).  A smaller target
+    // produces a larger proof ((~bnTarget / (bnTarget + 1)) + 1), so dividing the
+    // target by the ratio scales the proof up by roughly that ratio.
+    // At equal relative difficulty this brings all algorithms to the same
+    // chainwork contribution.  For mainnet the baseline ratio is 256×
+    // (X16RT limit is 256× tighter than MinotaurX limit); the actual ratio
+    // observed in any individual fork depends on current per-algo targets.
+    // Integer division is lossless when the ratio is a power-of-two.
+    if (algoLimit > minLimit) {
+        // If the limits are not an exact multiple the ratio would be truncated,
+        // yielding a smaller normalization factor than intended. Return 0 so the
+        // misconfiguration is immediately visible rather than silently applying an
+        // unintended chainwork scale.
+        if (algoLimit % minLimit != 0) return 0;
+
+        const arith_uint256 ratio = algoLimit / minLimit;
+        // ratio can never be 0 here (algoLimit > minLimit >= 1), but guard
+        // explicitly so a future refactor cannot introduce a divide-by-zero.
+        if (ratio == 0) return 0;
+
+        bnTarget = bnTarget / ratio;
+    }
+    if (bnTarget == 0) return 0;
+
+    return (~bnTarget / (bnTarget + 1)) + 1;
+}
+
 int64_t GetBlockProofEquivalentTime(const CBlockIndex& to, const CBlockIndex& from, const CBlockIndex& tip, const Consensus::Params& params)
 {
     arith_uint256 r;

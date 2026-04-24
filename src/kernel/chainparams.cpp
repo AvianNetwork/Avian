@@ -142,6 +142,11 @@ public:
         consensus.powTypeLimits.emplace_back(uint256{"00000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"}); // X16RT limit
         consensus.powTypeLimits.emplace_back(uint256{"000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"}); // MinotaurX limit
 
+        // Chainwork normalization hard fork: equalises per-block work contribution
+        // across algorithms.  Set to a chosen block height before release; INT_MAX = disabled.
+        // TODO: set mainnet activation height before release.
+        consensus.chainworkNormalizationForkHeight = std::numeric_limits<int>::max();
+
         consensus.nMinimumChainWork = uint256{"000000000000000000000000000000000000000000000000465a271cdbe88c6e"};  // Block 4726352
         consensus.defaultAssumeValid = uint256{"000000000c32edff3c1f1f09a7291d787acd748e13f1a71b9ed41bddd8d38de9"}; // Block 4726352
 
@@ -260,6 +265,9 @@ public:
         // Per-algorithm difficulty limits
         consensus.powTypeLimits.emplace_back(uint256{"00000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"}); // X16RT limit
         consensus.powTypeLimits.emplace_back(uint256{"000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"}); // MinotaurX limit
+
+        // Chainwork normalization hard fork: always active on testnet.
+        consensus.chainworkNormalizationForkHeight = 0;
 
         consensus.nMinimumChainWork = uint256{"0000000000000000000000000000000000000000000000000000000000000002"};
         consensus.defaultAssumeValid = uint256{"00016603365e3252687eeb7a309d9d6b903b81239d9bce670286a7a9d26131b9"};
@@ -568,6 +576,10 @@ public:
         // Per-algorithm difficulty limits (minimal for regtest)
         consensus.powTypeLimits.emplace_back(uint256{"7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"}); // X16RT limit
         consensus.powTypeLimits.emplace_back(uint256{"7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"}); // MinotaurX limit
+
+        // Chainwork normalization hard fork: always active on regtest.
+        // Note: regtest uses equal limits for both algos so normalization is a no-op.
+        consensus.chainworkNormalizationForkHeight = 0;
 
         consensus.nMinimumChainWork = uint256{};
         consensus.defaultAssumeValid = uint256{};
