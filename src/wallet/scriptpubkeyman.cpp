@@ -1,4 +1,5 @@
 // Copyright (c) 2019-present The Bitcoin Core developers
+// Portions Copyright (c) 2026 ALENOC <https://github.com/ALENOC> (Ravencoin RIP-25)
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -95,6 +96,7 @@ IsMineResult LegacyWalletIsMineInnerDONOTUSE(const LegacyDataSPKM& keystore, con
     case TxoutType::WITNESS_UNKNOWN:
     case TxoutType::WITNESS_V1_TAPROOT:
     case TxoutType::ANCHOR:
+    case TxoutType::WITNESS_V2_MLDSA44:
     case TxoutType::NEW_ASSET:
     case TxoutType::REISSUE_ASSET:
     case TxoutType::TRANSFER_ASSET:
@@ -300,6 +302,28 @@ bool LegacyDataSPKM::LoadCScript(const CScript& redeemScript)
     }
 
     return FillableSigningProvider::AddCScript(redeemScript);
+}
+
+bool LegacyDataSPKM::LoadPQKey(CPQKey&& key)
+{
+    return FillableSigningProvider::AddPQKey(std::move(key));
+}
+
+util::Result<CTxDestination> LegacyDataSPKM::GenerateNewPQAddress(WalletBatch& batch)
+{
+    CPQKey pq_key;
+    if (!pq_key.MakeNewKey()) {
+        return util::Error{Untranslated("Failed to generate ML-DSA-44 key")};
+    }
+    CPQPubKey pq_pubkey = pq_key.GetPubKey();
+    if (!batch.WritePQKey(pq_pubkey, pq_key.GetData())) {
+        return util::Error{Untranslated("Failed to write PQ key to wallet database")};
+    }
+    if (!FillableSigningProvider::AddPQKey(std::move(pq_key))) {
+        return util::Error{Untranslated("Failed to add PQ key to signing provider")};
+    }
+    uint256 program = pq_pubkey.GetWitnessProgram();
+    return CTxDestination{WitnessV2MLDsa44{program}};
 }
 
 void LegacyDataSPKM::LoadKeyMetadata(const CKeyID& keyID, const CKeyMetadata& meta)

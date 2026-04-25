@@ -1,4 +1,5 @@
 // Copyright (c) 2016-2021 The Bitcoin Core developers
+// Portions Copyright (c) 2026 ALENOC <https://github.com/ALENOC> (Ravencoin RIP-25)
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -15,6 +16,10 @@ const std::array<VBDeploymentInfo,Consensus::MAX_VERSION_BITS_DEPLOYMENTS> Versi
     },
     VBDeploymentInfo{
         .name = "taproot",
+        .gbt_optional_rule = true,
+    },
+    VBDeploymentInfo{
+        .name = "mldsa44",   // RIP-25: ML-DSA-44 post-quantum signatures
         .gbt_optional_rule = true,
     },
 };

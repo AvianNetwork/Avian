@@ -1,5 +1,6 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
 // Copyright (c) 2009-present The Bitcoin Core developers
+// Portions Copyright (c) 2026 ALENOC <https://github.com/ALENOC> (Ravencoin RIP-25)
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -9,6 +10,7 @@
 #include <addresstype.h>
 #include <attributes.h>
 #include <key.h>
+#include <pqkey.h>
 #include <pubkey.h>
 #include <script/keyorigin.h>
 #include <script/script.h>
@@ -163,6 +165,13 @@ public:
     virtual bool GetTaprootBuilder(const XOnlyPubKey& output_key, TaprootBuilder& builder) const { return false; }
     virtual std::vector<CPubKey> GetMuSig2ParticipantPubkeys(const CPubKey& pubkey) const { return {}; }
 
+    // RIP-25: ML-DSA-44 post-quantum key access.
+    /** Retrieve a PQ public key by its 32-byte witness program (SHA256(pk)). */
+    virtual bool GetPQPubKey(const uint256& program, CPQPubKey& pubkey) const { return false; }
+    /** Retrieve a PQ secret key by its 32-byte witness program (SHA256(pk)). */
+    virtual bool GetPQKey(const uint256& program, CPQKey& key) const { return false; }
+    virtual bool HavePQKey(const uint256& program) const { return false; }
+
     bool GetKeyByXOnly(const XOnlyPubKey& pubkey, CKey& key) const
     {
         for (const auto& id : pubkey.GetKeyIDs()) {
@@ -206,6 +215,8 @@ public:
     bool GetTaprootSpendData(const XOnlyPubKey& output_key, TaprootSpendData& spenddata) const override;
     bool GetTaprootBuilder(const XOnlyPubKey& output_key, TaprootBuilder& builder) const override;
     std::vector<CPubKey> GetMuSig2ParticipantPubkeys(const CPubKey& pubkey) const override;
+    bool GetPQKey(const uint256& program, CPQKey& key) const override;
+    bool HavePQKey(const uint256& program) const override;
 };
 
 struct FlatSigningProvider final : public SigningProvider
@@ -216,6 +227,7 @@ struct FlatSigningProvider final : public SigningProvider
     std::map<CKeyID, CKey> keys;
     std::map<XOnlyPubKey, TaprootBuilder> tr_trees; /** Map from output key to Taproot tree (which can then make the TaprootSpendData */
     std::map<CPubKey, std::vector<CPubKey>> aggregate_pubkeys; /** MuSig2 aggregate pubkeys */
+    std::map<uint256, std::shared_ptr<CPQKey>> pq_keys; /** RIP-25: ML-DSA-44 keys keyed by witness program (SHA256(pk)) */
 
     bool GetCScript(const CScriptID& scriptid, CScript& script) const override;
     bool GetPubKey(const CKeyID& keyid, CPubKey& pubkey) const override;
@@ -225,6 +237,8 @@ struct FlatSigningProvider final : public SigningProvider
     bool GetTaprootSpendData(const XOnlyPubKey& output_key, TaprootSpendData& spenddata) const override;
     bool GetTaprootBuilder(const XOnlyPubKey& output_key, TaprootBuilder& builder) const override;
     std::vector<CPubKey> GetMuSig2ParticipantPubkeys(const CPubKey& pubkey) const override;
+    bool GetPQKey(const uint256& program, CPQKey& key) const override;
+    bool HavePQKey(const uint256& program) const override;
 
     FlatSigningProvider& Merge(FlatSigningProvider&& b) LIFETIMEBOUND;
 };
@@ -235,6 +249,8 @@ class FillableSigningProvider : public SigningProvider
 protected:
     using KeyMap = std::map<CKeyID, CKey>;
     using ScriptMap = std::map<CScriptID, CScript>;
+    using PQKeyMap = std::map<uint256, CPQKey>;
+    using PQPubKeyMap = std::map<uint256, CPQPubKey>;
 
     /**
      * Map of key id to unencrypted private keys known by the signing provider.
@@ -285,6 +301,10 @@ protected:
      */
     ScriptMap mapScripts GUARDED_BY(cs_KeyStore);
 
+    // RIP-25: ML-DSA-44 post-quantum key storage.
+    PQKeyMap mapPQKeys GUARDED_BY(cs_KeyStore);
+    PQPubKeyMap mapPQPubKeys GUARDED_BY(cs_KeyStore);
+
     void ImplicitlyLearnRelatedKeyScripts(const CPubKey& pubkey) EXCLUSIVE_LOCKS_REQUIRED(cs_KeyStore);
 
 public:
@@ -300,6 +320,12 @@ public:
     virtual bool HaveCScript(const CScriptID &hash) const override;
     virtual std::set<CScriptID> GetCScripts() const;
     virtual bool GetCScript(const CScriptID &hash, CScript& redeemScriptOut) const override;
+
+    // RIP-25: ML-DSA-44 post-quantum key management.
+    virtual bool AddPQKey(CPQKey&& key);
+    virtual bool HavePQKey(const uint256& program) const override;
+    virtual bool GetPQKey(const uint256& program, CPQKey& key) const override;
+    virtual bool GetPQPubKey(const uint256& program, CPQPubKey& pubkey) const override;
 };
 
 /** Return the CKeyID of the key involved in a script (if there is a unique one). */

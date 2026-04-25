@@ -1,5 +1,6 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
 // Copyright (c) 2009-present The Bitcoin Core developers
+// Portions Copyright (c) 2026 ALENOC <https://github.com/ALENOC> (Ravencoin RIP-25)
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -78,10 +79,14 @@ extern const std::string SETTINGS;
 extern const std::string TX;
 extern const std::string VERSION;
 extern const std::string WALLETDESCRIPTOR;
+extern const std::string WALLETDESCRIPTORCACHE;
+extern const std::string WALLETDESCRIPTORLHCACHE;
 extern const std::string WALLETDESCRIPTORCKEY;
 extern const std::string WALLETDESCRIPTORKEY;
+extern const std::string WALLETDESCRIPTORPQCACHE; // RIP-25: ML-DSA-44 witness program cache
 extern const std::string WATCHMETA;
 extern const std::string WATCHS;
+extern const std::string PQKEY; // RIP-25: ML-DSA-44 post-quantum key
 
 // Keys in this set pertain only to the legacy wallet (LegacyScriptPubKeyMan) and are removed during migration from legacy to descriptors.
 extern const std::unordered_set<std::string> LEGACY_TYPES;
@@ -236,6 +241,10 @@ public:
     bool WriteKeyMetadata(const CKeyMetadata& meta, const CPubKey& pubkey, const bool overwrite);
     bool WriteKey(const CPubKey& vchPubKey, const CPrivKey& vchPrivKey, const CKeyMetadata &keyMeta);
     bool WriteCryptedKey(const CPubKey& vchPubKey, const std::vector<unsigned char>& vchCryptedSecret, const CKeyMetadata &keyMeta);
+
+    // RIP-25: ML-DSA-44 post-quantum key persistence.
+    bool WritePQKey(const CPQPubKey& pubkey, std::span<const uint8_t, CPQKey::SIZE> secret_key);
+    bool ErasePQKey(const uint256& program);
     bool WriteMasterKey(unsigned int nID, const CMasterKey& kMasterKey);
     bool EraseMasterKey(unsigned int id);
 
@@ -256,6 +265,7 @@ public:
     bool WriteDescriptorDerivedCache(const CExtPubKey& xpub, const uint256& desc_id, uint32_t key_exp_index, uint32_t der_index);
     bool WriteDescriptorParentCache(const CExtPubKey& xpub, const uint256& desc_id, uint32_t key_exp_index);
     bool WriteDescriptorLastHardenedCache(const CExtPubKey& xpub, const uint256& desc_id, uint32_t key_exp_index);
+    bool WriteDescriptorPQCacheItem(const uint256& wp, const uint256& desc_id, uint32_t der_index); // RIP-25
     bool WriteDescriptorCacheItems(const uint256& desc_id, const DescriptorCache& cache);
 
     bool WriteLockedUTXO(const COutPoint& output);

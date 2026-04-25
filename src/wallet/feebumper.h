@@ -93,6 +93,13 @@ public:
         case SigVersion::TAPROOT:
         case SigVersion::TAPSCRIPT:
             assert(false);
+            break;
+        case SigVersion::WITNESS_V2_MLDSA44:
+            // RIP-25: ML-DSA-44 signatures are not bumped via feebumper weight
+            // estimation; treat as witness-scale (weight 1 per byte).
+            m_sigs_weight += weight;
+            m_sigs_count++;
+            break;
         }
     }
 

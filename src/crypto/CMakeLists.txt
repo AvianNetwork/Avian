@@ -27,6 +27,22 @@ target_link_libraries(bitcoin_crypto
     core_interface
 )
 
+# mldsa.cpp is always compiled — it provides real implementations when
+# HAVE_LIBOQS is defined, and stub implementations (returning false) otherwise.
+# This ensures the mldsa:: symbols are always present at link time even on
+# systems that do not have liboqs installed (e.g. Linux/macOS native builds
+# without the depends system).
+target_sources(bitcoin_crypto PRIVATE mldsa.cpp)
+if(WITH_LIBOQS AND LIBOQS_FOUND)
+  target_link_libraries(bitcoin_crypto PUBLIC ${LIBOQS_TARGET})
+  # Belt-and-suspenders: explicitly add include dirs in case the imported target
+  # has empty INTERFACE_INCLUDE_DIRECTORIES (e.g. from a pkg-config hit with
+  # no Cflags). LIBOQS_INCLUDE_DIRS is set by the find_path fallback path.
+  if(LIBOQS_INCLUDE_DIRS)
+    target_include_directories(bitcoin_crypto PRIVATE ${LIBOQS_INCLUDE_DIRS})
+  endif()
+endif()
+
 if(HAVE_SSE41)
   target_compile_definitions(bitcoin_crypto PRIVATE ENABLE_SSE41)
   target_sources(bitcoin_crypto PRIVATE sha256_sse41.cpp)

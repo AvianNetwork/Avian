@@ -763,6 +763,13 @@ public:
     {
         return chainman().IsInitialBlockDownload();
     }
+    bool isDeploymentActive(Consensus::DeploymentPos deployment) override
+    {
+        LOCK(::cs_main);
+        const CBlockIndex* tip = chainman().ActiveChain().Tip();
+        if (!tip) return false;
+        return DeploymentActiveAfter(tip, chainman(), deployment);
+    }
     bool shutdownRequested() override { return ShutdownRequested(m_node); }
     void initMessage(const std::string& message) override { ::uiInterface.InitMessage(message); }
     void initWarning(const bilingual_str& message) override { InitWarning(message); }

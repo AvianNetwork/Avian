@@ -550,6 +550,7 @@ static RPCHelpMan decodescript()
         case TxoutType::SCRIPTHASH:
         case TxoutType::WITNESS_UNKNOWN:
         case TxoutType::WITNESS_V1_TAPROOT:
+        case TxoutType::WITNESS_V2_MLDSA44:
         case TxoutType::ANCHOR:
         case TxoutType::NEW_ASSET:
         case TxoutType::REISSUE_ASSET:
@@ -597,6 +598,7 @@ static RPCHelpMan decodescript()
             case TxoutType::WITNESS_V0_KEYHASH:
             case TxoutType::WITNESS_V0_SCRIPTHASH:
             case TxoutType::WITNESS_V1_TAPROOT:
+            case TxoutType::WITNESS_V2_MLDSA44:
             case TxoutType::ANCHOR:
             case TxoutType::NEW_ASSET:
             case TxoutType::REISSUE_ASSET:

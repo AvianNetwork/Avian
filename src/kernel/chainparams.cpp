@@ -1,5 +1,6 @@
 // Copyright (c) 2010 Satoshi Nakamoto
 // Copyright (c) 2009-present The Bitcoin Core developers
+// Portions Copyright (c) 2026 ALENOC <https://github.com/ALENOC> (Ravencoin RIP-25)
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -126,6 +127,16 @@ public:
         consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT].threshold = 1815; // 90%
         consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT].period = 2016;
 
+        // RIP-25: ML-DSA-44 post-quantum signatures - not deployed on Avian mainnet yet.
+        // period=40320 equals Bitcoin's 2-week signalling window scaled to Avian's 30s blocks
+        // (2016 * 10min / 30sec = 40320). threshold=36288 is 90% of that period.
+        consensus.vDeployments[Consensus::DEPLOYMENT_MLDSA44].bit = 11;
+        consensus.vDeployments[Consensus::DEPLOYMENT_MLDSA44].nStartTime = Consensus::BIP9Deployment::NEVER_ACTIVE;
+        consensus.vDeployments[Consensus::DEPLOYMENT_MLDSA44].nTimeout = Consensus::BIP9Deployment::NO_TIMEOUT;
+        consensus.vDeployments[Consensus::DEPLOYMENT_MLDSA44].min_activation_height = 0;
+        consensus.vDeployments[Consensus::DEPLOYMENT_MLDSA44].threshold = 36288; // 90% of 40320
+        consensus.vDeployments[Consensus::DEPLOYMENT_MLDSA44].period = 40320;    // ~2 weeks at 30s blocks
+
         // Avian network upgrades (hardforks)
         consensus.vUpgrades[Consensus::UPGRADE_X16RT_SWITCH].nTimestamp = 1638847406;
         consensus.vUpgrades[Consensus::UPGRADE_DUAL_ALGO].nTimestamp = 1638847407;
@@ -244,6 +255,14 @@ public:
         consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT].threshold = 1512; // 75%
         consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT].period = 2016;
 
+        // RIP-25: ML-DSA-44 post-quantum signatures - always active on testnet for testing
+        consensus.vDeployments[Consensus::DEPLOYMENT_MLDSA44].bit = 11;
+        consensus.vDeployments[Consensus::DEPLOYMENT_MLDSA44].nStartTime = Consensus::BIP9Deployment::ALWAYS_ACTIVE;
+        consensus.vDeployments[Consensus::DEPLOYMENT_MLDSA44].nTimeout = Consensus::BIP9Deployment::NO_TIMEOUT;
+        consensus.vDeployments[Consensus::DEPLOYMENT_MLDSA44].min_activation_height = 0;
+        consensus.vDeployments[Consensus::DEPLOYMENT_MLDSA44].threshold = 1512;
+        consensus.vDeployments[Consensus::DEPLOYMENT_MLDSA44].period = 2016;
+
         // Avian network upgrades (hardforks)
         consensus.vUpgrades[Consensus::UPGRADE_X16RT_SWITCH].nTimestamp = 1634101200; // Oct 13, 2021
         consensus.vUpgrades[Consensus::UPGRADE_DUAL_ALGO].nTimestamp = 1639005225;
@@ -354,6 +373,14 @@ public:
         consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT].min_activation_height = 0;
         consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT].threshold = 1512;
         consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT].period = 2016;
+
+        // RIP-25: ML-DSA-44 post-quantum signatures - always active on regtest
+        consensus.vDeployments[Consensus::DEPLOYMENT_MLDSA44].bit = 11;
+        consensus.vDeployments[Consensus::DEPLOYMENT_MLDSA44].nStartTime = Consensus::BIP9Deployment::ALWAYS_ACTIVE;
+        consensus.vDeployments[Consensus::DEPLOYMENT_MLDSA44].nTimeout = Consensus::BIP9Deployment::NO_TIMEOUT;
+        consensus.vDeployments[Consensus::DEPLOYMENT_MLDSA44].min_activation_height = 0;
+        consensus.vDeployments[Consensus::DEPLOYMENT_MLDSA44].threshold = 1512;
+        consensus.vDeployments[Consensus::DEPLOYMENT_MLDSA44].period = 2016;
 
         consensus.nMinimumChainWork = uint256{};
         consensus.defaultAssumeValid = uint256{};

@@ -1,5 +1,6 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
 // Copyright (c) 2009-2022 The Bitcoin Core developers
+// Portions Copyright (c) 2026 ALENOC <https://github.com/ALENOC> (Ravencoin RIP-25)
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -11,6 +12,7 @@
 #include <key_io.h>
 #include <primitives/transaction_identifier.h>
 #include <protocol.h>
+#include <pqkey.h>
 #include <script/script.h>
 #include <serialize.h>
 #include <sync.h>
@@ -58,8 +60,10 @@ const std::string WALLETDESCRIPTORCACHE{"walletdescriptorcache"};
 const std::string WALLETDESCRIPTORLHCACHE{"walletdescriptorlhcache"};
 const std::string WALLETDESCRIPTORCKEY{"walletdescriptorckey"};
 const std::string WALLETDESCRIPTORKEY{"walletdescriptorkey"};
+const std::string WALLETDESCRIPTORPQCACHE{"walletdescriptorpqcache"}; // RIP-25: ML-DSA-44 witness program cache
 const std::string WATCHMETA{"watchmeta"};
 const std::string WATCHS{"watchs"};
+const std::string PQKEY{"pqkey"}; // RIP-25: ML-DSA-44 post-quantum key
 const std::unordered_set<std::string> LEGACY_TYPES{CRYPTED_KEY, CSCRIPT, DEFAULTKEY, HDCHAIN, KEYMETA, KEY, OLD_KEY, POOL, WATCHMETA, WATCHS};
 } // namespace DBKeys
 
@@ -148,6 +152,20 @@ bool WalletBatch::WriteCryptedKey(const CPubKey& vchPubKey,
 bool WalletBatch::WriteMasterKey(unsigned int nID, const CMasterKey& kMasterKey)
 {
     return WriteIC(std::make_pair(DBKeys::MASTER_KEY, nID), kMasterKey, true);
+}
+
+bool WalletBatch::WritePQKey(const CPQPubKey& pubkey, std::span<const uint8_t, CPQKey::SIZE> secret_key)
+{
+    uint256 program = pubkey.GetWitnessProgram();
+    auto pk_data = pubkey.GetData();
+    std::vector<uint8_t> pk_vec(pk_data.begin(), pk_data.end());
+    std::vector<uint8_t> sk_vec(secret_key.begin(), secret_key.end());
+    return WriteIC(std::make_pair(DBKeys::PQKEY, program), std::make_pair(pk_vec, sk_vec), false);
+}
+
+bool WalletBatch::ErasePQKey(const uint256& program)
+{
+    return EraseIC(std::make_pair(DBKeys::PQKEY, program));
 }
 
 bool WalletBatch::EraseMasterKey(unsigned int id)
@@ -257,6 +275,11 @@ bool WalletBatch::WriteDescriptorLastHardenedCache(const CExtPubKey& xpub, const
     return WriteIC(std::make_pair(std::make_pair(DBKeys::WALLETDESCRIPTORLHCACHE, desc_id), key_exp_index), ser_xpub);
 }
 
+bool WalletBatch::WriteDescriptorPQCacheItem(const uint256& wp, const uint256& desc_id, uint32_t der_index)
+{
+    return WriteIC(std::make_pair(std::make_pair(DBKeys::WALLETDESCRIPTORPQCACHE, desc_id), der_index), wp);
+}
+
 bool WalletBatch::WriteDescriptorCacheItems(const uint256& desc_id, const DescriptorCache& cache)
 {
     for (const auto& parent_xpub_pair : cache.GetCachedParentExtPubKeys()) {
@@ -273,6 +296,11 @@ bool WalletBatch::WriteDescriptorCacheItems(const uint256& desc_id, const Descri
     }
     for (const auto& lh_xpub_pair : cache.GetCachedLastHardenedExtPubKeys()) {
         if (!WriteDescriptorLastHardenedCache(lh_xpub_pair.second, desc_id, lh_xpub_pair.first)) {
+            return false;
+        }
+    }
+    for (const auto& mldsa_pair : cache.GetCachedMlDsaWitnessPrograms()) {
+        if (!WriteDescriptorPQCacheItem(mldsa_pair.second, desc_id, mldsa_pair.first)) {
             return false;
         }
     }
@@ -587,6 +615,28 @@ static DBErrors LoadLegacyWalletRecords(CWallet* pwallet, DatabaseBatch& batch, 
     });
     result = std::max(result, script_res.m_result);
 
+    // Load ML-DSA-44 PQ keys (RIP-25)
+    LoadResult pqkey_res = LoadRecords(pwallet, batch, DBKeys::PQKEY,
+        [] (CWallet* pwallet, DataStream& key, DataStream& value, std::string& strErr) {
+        uint256 program;
+        key >> program;
+        std::vector<uint8_t> pk_vec, sk_vec;
+        value >> pk_vec >> sk_vec;
+        if (pk_vec.size() != CPQPubKey::SIZE || sk_vec.size() != CPQKey::SIZE) {
+            strErr = "Error reading wallet database: invalid PQ key size";
+            return DBErrors::CORRUPT;
+        }
+        CPQPubKey pq_pubkey{std::span<const uint8_t, CPQPubKey::SIZE>(pk_vec.data(), CPQPubKey::SIZE)};
+        CPQKey pq_key;
+        pq_key.SetKeyData(std::span<const uint8_t, CPQKey::SIZE>(sk_vec.data(), CPQKey::SIZE), pq_pubkey);
+        if (!pwallet->GetOrCreateLegacyDataSPKM()->LoadPQKey(std::move(pq_key))) {
+            strErr = "Error reading wallet database: LegacyDataSPKM::LoadPQKey failed";
+            return DBErrors::NONCRITICAL_ERROR;
+        }
+        return DBErrors::LOAD_OK;
+    });
+    result = std::max(result, pqkey_res.m_result);
+
     // Check whether rewrite is needed
     if (ckey_res.m_records > 0) {
         // Rewrite encrypted wallets of versions 0.4.0 and 0.5.0rc:
@@ -850,6 +900,23 @@ static DBErrors LoadDescriptorWalletRecords(CWallet* pwallet, DatabaseBatch& bat
             return DBErrors::LOAD_OK;
         });
         result = std::max(result, lh_cache_res.m_result);
+
+        // Get ML-DSA-44 witness program cache for this descriptor (RIP-25)
+        prefix = PrefixStream(DBKeys::WALLETDESCRIPTORPQCACHE, id);
+        LoadResult pq_cache_res = LoadRecords(pwallet, batch, DBKeys::WALLETDESCRIPTORPQCACHE, prefix,
+            [&id, &cache] (CWallet* pwallet, DataStream& key, DataStream& value, std::string& err) {
+            uint256 desc_id;
+            uint32_t der_index;
+            key >> desc_id;
+            assert(desc_id == id);
+            key >> der_index;
+
+            uint256 wp;
+            value >> wp;
+            cache.CacheMlDsaWitnessProgram(der_index, wp);
+            return DBErrors::LOAD_OK;
+        });
+        result = std::max(result, pq_cache_res.m_result);
 
         // Set the cache for this descriptor
         auto spk_man = (DescriptorScriptPubKeyMan*)pwallet->GetScriptPubKeyMan(id);

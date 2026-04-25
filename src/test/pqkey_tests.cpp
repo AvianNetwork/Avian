@@ -1,0 +1,148 @@
+// Copyright (c) 2026 ALENOC <https://github.com/ALENOC> (Ravencoin RIP-25)
+// Copyright (c) 2024-present The Avian Core developers
+// Distributed under the MIT software license, see the accompanying
+// file COPYING or https://opensource.org/license/mit/.
+
+// RIP-25: Unit tests for ML-DSA-44 (FIPS 204) post-quantum keys.
+// Ported from Ravencoin RIP-25 <https://github.com/RavenProject/Ravencoin/pull/1281>
+
+#include <crypto/mldsa.h>
+#include <pqkey.h>
+#include <uint256.h>
+
+#include <boost/test/unit_test.hpp>
+
+#include <array>
+#include <cstdint>
+#include <vector>
+
+BOOST_AUTO_TEST_SUITE(pqkey_tests)
+
+BOOST_AUTO_TEST_CASE(keygen_roundtrip)
+{
+    // Generate a key pair
+    CPQKey key;
+    BOOST_REQUIRE(key.MakeNewKey());
+    BOOST_CHECK(key.IsValid());
+
+    CPQPubKey pubkey = key.GetPubKey();
+    BOOST_CHECK(pubkey.IsValid());
+
+    // GetData returns the right sizes
+    BOOST_CHECK_EQUAL(key.GetData().size(), mldsa::SECRETKEY_SIZE);
+    BOOST_CHECK_EQUAL(pubkey.GetData().size(), mldsa::PUBKEY_SIZE);
+
+    // Witness program is SHA256(pubkey), 32 bytes
+    uint256 program = pubkey.GetWitnessProgram();
+    BOOST_CHECK(!program.IsNull());
+}
+
+BOOST_AUTO_TEST_CASE(deterministic_keygen_from_seed)
+{
+    std::array<uint8_t, mldsa::SEED_SIZE> seed{};
+    // Fill seed with known bytes
+    for (size_t i = 0; i < seed.size(); ++i) seed[i] = static_cast<uint8_t>(i);
+
+    CPQKey key1, key2;
+    BOOST_REQUIRE(key1.SetSeed(std::span<const uint8_t, mldsa::SEED_SIZE>(seed)));
+    BOOST_REQUIRE(key2.SetSeed(std::span<const uint8_t, mldsa::SEED_SIZE>(seed)));
+
+    // Same seed → same pubkey
+    BOOST_CHECK(key1.GetPubKey() == key2.GetPubKey());
+    // Same seed → same witness program
+    BOOST_CHECK(key1.GetPubKey().GetWitnessProgram() == key2.GetPubKey().GetWitnessProgram());
+}
+
+BOOST_AUTO_TEST_CASE(sign_and_verify)
+{
+    CPQKey key;
+    BOOST_REQUIRE(key.MakeNewKey());
+    CPQPubKey pubkey = key.GetPubKey();
+
+    std::array<uint8_t, 32> msg{};
+    for (size_t i = 0; i < msg.size(); ++i) msg[i] = static_cast<uint8_t>(i + 1);
+
+    std::array<uint8_t, mldsa::SIG_SIZE> sig{};
+    BOOST_REQUIRE(key.Sign(std::span<uint8_t, mldsa::SIG_SIZE>(sig), std::span<const uint8_t>(msg)));
+
+    // Correct signature verifies
+    BOOST_CHECK(pubkey.Verify(std::span<const uint8_t>(sig), std::span<const uint8_t>(msg)));
+}
+
+BOOST_AUTO_TEST_CASE(verify_wrong_message_fails)
+{
+    CPQKey key;
+    BOOST_REQUIRE(key.MakeNewKey());
+    CPQPubKey pubkey = key.GetPubKey();
+
+    std::array<uint8_t, 32> msg{};
+    std::fill(msg.begin(), msg.end(), 0xAB);
+
+    std::array<uint8_t, mldsa::SIG_SIZE> sig{};
+    BOOST_REQUIRE(key.Sign(std::span<uint8_t, mldsa::SIG_SIZE>(sig), std::span<const uint8_t>(msg)));
+
+    // Tamper with message
+    std::array<uint8_t, 32> bad_msg{};
+    std::fill(bad_msg.begin(), bad_msg.end(), 0xCD);
+    BOOST_CHECK(!pubkey.Verify(std::span<const uint8_t>(sig), std::span<const uint8_t>(bad_msg)));
+}
+
+BOOST_AUTO_TEST_CASE(verify_wrong_key_fails)
+{
+    CPQKey key1, key2;
+    BOOST_REQUIRE(key1.MakeNewKey());
+    BOOST_REQUIRE(key2.MakeNewKey());
+
+    CPQPubKey pubkey2 = key2.GetPubKey();
+
+    std::array<uint8_t, 32> msg{};
+    std::fill(msg.begin(), msg.end(), 0x77);
+
+    std::array<uint8_t, mldsa::SIG_SIZE> sig{};
+    BOOST_REQUIRE(key1.Sign(std::span<uint8_t, mldsa::SIG_SIZE>(sig), std::span<const uint8_t>(msg)));
+
+    // Signature from key1 should not verify under key2's pubkey
+    BOOST_CHECK(!pubkey2.Verify(std::span<const uint8_t>(sig), std::span<const uint8_t>(msg)));
+}
+
+BOOST_AUTO_TEST_CASE(verify_tampered_signature_fails)
+{
+    CPQKey key;
+    BOOST_REQUIRE(key.MakeNewKey());
+    CPQPubKey pubkey = key.GetPubKey();
+
+    std::array<uint8_t, 32> msg{};
+    std::fill(msg.begin(), msg.end(), 0x55);
+
+    std::array<uint8_t, mldsa::SIG_SIZE> sig{};
+    BOOST_REQUIRE(key.Sign(std::span<uint8_t, mldsa::SIG_SIZE>(sig), std::span<const uint8_t>(msg)));
+
+    // Flip a byte in the signature
+    sig[42] ^= 0xFF;
+    BOOST_CHECK(!pubkey.Verify(std::span<const uint8_t>(sig), std::span<const uint8_t>(msg)));
+}
+
+BOOST_AUTO_TEST_CASE(setkey_data_roundtrip)
+{
+    // Generate key, extract data, reconstruct via SetKeyData, verify signing still works
+    CPQKey key;
+    BOOST_REQUIRE(key.MakeNewKey());
+    CPQPubKey pubkey = key.GetPubKey();
+
+    // Copy raw key data
+    auto sk_span = key.GetData();
+    std::vector<uint8_t> sk_bytes(sk_span.begin(), sk_span.end());
+
+    CPQKey key2;
+    key2.SetKeyData(std::span<const uint8_t, CPQKey::SIZE>(sk_bytes.data(), CPQKey::SIZE), pubkey);
+
+    std::array<uint8_t, 32> msg{};
+    std::fill(msg.begin(), msg.end(), 0xDE);
+
+    std::array<uint8_t, mldsa::SIG_SIZE> sig{};
+    BOOST_REQUIRE(key2.Sign(std::span<uint8_t, mldsa::SIG_SIZE>(sig), std::span<const uint8_t>(msg)));
+
+    BOOST_CHECK(pubkey.Verify(std::span<const uint8_t>(sig), std::span<const uint8_t>(msg)));
+}
+
+BOOST_AUTO_TEST_SUITE_END()

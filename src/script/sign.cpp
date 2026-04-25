@@ -1,14 +1,17 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
 // Copyright (c) 2009-present The Bitcoin Core developers
+// Portions Copyright (c) 2026 ALENOC <https://github.com/ALENOC> (Ravencoin RIP-25)
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include <script/sign.h>
 
 #include <consensus/amount.h>
+#include <crypto/mldsa.h>
 #include <key.h>
 #include <policy/policy.h>
 #include <primitives/transaction.h>
+#include <pqkey.h>
 #include <script/keyorigin.h>
 #include <script/miniscript.h>
 #include <script/script.h>
@@ -89,6 +92,31 @@ bool MutableTransactionSignatureCreator::CreateSchnorrSig(const SigningProvider&
     // Use uint256{} as aux_rnd for now.
     if (!key.SignSchnorr(hash, sig, merkle_root, {})) return false;
     if (nHashType) sig.push_back(nHashType);
+    return true;
+}
+
+bool MutableTransactionSignatureCreator::CreateMLDsa44Sig(const SigningProvider& provider, std::vector<unsigned char>& sig_out, std::vector<unsigned char>& pubkey_out, const uint256& program) const
+{
+    CPQKey pq_key;
+    if (!provider.GetPQKey(program, pq_key)) return false;
+
+    CPQPubKey pq_pubkey = pq_key.GetPubKey();
+
+    // Compute scriptCode = OP_2 <32-byte-program> for sighash
+    CScript scriptCode;
+    scriptCode << OP_2 << std::vector<unsigned char>(program.begin(), program.end());
+
+    constexpr int32_t nHashType = 0x41; // SIGHASH_ALL | SIGHASH_FORKID
+    uint256 sighash = SignatureHash(scriptCode, m_txto, nIn, nHashType, amount, SigVersion::WITNESS_V0, m_txdata);
+
+    sig_out.resize(mldsa::SIG_SIZE);
+    if (!pq_key.Sign(sig_out,
+                     std::span<const uint8_t>(sighash.begin(), 32))) {
+        return false;
+    }
+
+    auto pk_data = pq_pubkey.GetData();
+    pubkey_out.assign(pk_data.begin(), pk_data.end());
     return true;
 }
 
@@ -485,6 +513,19 @@ static bool SignStep(const SigningProvider& provider, const BaseSignatureCreator
     case TxoutType::WITNESS_V1_TAPROOT:
         return SignTaproot(provider, creator, WitnessV1Taproot(XOnlyPubKey{vSolutions[0]}), sigdata, ret);
 
+    case TxoutType::WITNESS_V2_MLDSA44: {
+        // vSolutions[0] is the 32-byte witness program = SHA256(mldsa_pubkey)
+        uint256 program(vSolutions[0]);
+        const auto* mtxcreator = dynamic_cast<const MutableTransactionSignatureCreator*>(&creator);
+        if (!mtxcreator) return false;
+        std::vector<unsigned char> sig, pubkey;
+        if (!mtxcreator->CreateMLDsa44Sig(provider, sig, pubkey, program)) return false;
+        // Witness stack: [sig, pubkey] (sig pushed first so it's item 0 at stack top after pubkey)
+        ret.push_back(std::move(sig));
+        ret.push_back(std::move(pubkey));
+        return true;
+    }
+
     case TxoutType::ANCHOR:
         return true;
     } // no default case, so the compiler can warn about missing cases
@@ -566,6 +607,11 @@ bool ProduceSignature(const SigningProvider& provider, const BaseSignatureCreato
         if (solved) {
             sigdata.scriptWitness.stack = std::move(result);
         }
+        result.clear();
+    } else if (solved && whichType == TxoutType::WITNESS_V2_MLDSA44 && !P2SH) {
+        // RIP-25: ML-DSA-44 witness v2 — stack: [sig, pubkey]
+        sigdata.witness = true;
+        sigdata.scriptWitness.stack = std::move(result);
         result.clear();
     } else if (solved && whichType == TxoutType::WITNESS_UNKNOWN) {
         sigdata.witness = true;

@@ -1,5 +1,6 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
 // Copyright (c) 2009-present The Bitcoin Core developers
+// Portions Copyright (c) 2026 ALENOC <https://github.com/ALENOC> (Ravencoin RIP-25)
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -8,6 +9,7 @@
 #include <script/signingprovider.h>
 
 #include <logging.h>
+#include <pqkey.h>
 
 const SigningProvider& DUMMY_SIGNING_PROVIDER = SigningProvider();
 
@@ -58,6 +60,18 @@ std::vector<CPubKey> HidingSigningProvider::GetMuSig2ParticipantPubkeys(const CP
     return m_provider->GetMuSig2ParticipantPubkeys(pubkey);
 }
 
+bool HidingSigningProvider::GetPQKey(const uint256& program, CPQKey& key) const
+{
+    if (m_hide_secret) return false;
+    return m_provider->GetPQKey(program, key);
+}
+
+bool HidingSigningProvider::HavePQKey(const uint256& program) const
+{
+    // HavePQKey is not secret — forward regardless of m_hide_secret.
+    return m_provider->HavePQKey(program);
+}
+
 bool FlatSigningProvider::GetCScript(const CScriptID& scriptid, CScript& script) const { return LookupHelper(scripts, scriptid, script); }
 bool FlatSigningProvider::GetPubKey(const CKeyID& keyid, CPubKey& pubkey) const { return LookupHelper(pubkeys, keyid, pubkey); }
 bool FlatSigningProvider::GetKeyOrigin(const CKeyID& keyid, KeyOriginInfo& info) const
@@ -102,7 +116,29 @@ FlatSigningProvider& FlatSigningProvider::Merge(FlatSigningProvider&& b)
     origins.merge(b.origins);
     tr_trees.merge(b.tr_trees);
     aggregate_pubkeys.merge(b.aggregate_pubkeys);
+    for (auto& [k, v] : b.pq_keys) {
+        if (v) {
+            // Real key overwrites any sentinel (nullptr) already present.
+            pq_keys.insert_or_assign(k, std::move(v));
+        } else {
+            // Sentinel: only insert if no entry exists yet.
+            pq_keys.emplace(k, nullptr);
+        }
+    }
     return *this;
+}
+
+bool FlatSigningProvider::GetPQKey(const uint256& program, CPQKey& key) const
+{
+    auto it = pq_keys.find(program);
+    if (it == pq_keys.end() || !it->second) return false;
+    key.SetKeyData(it->second->GetData(), it->second->GetPubKey());
+    return true;
+}
+
+bool FlatSigningProvider::HavePQKey(const uint256& program) const
+{
+    return pq_keys.count(program) > 0;
 }
 
 void FillableSigningProvider::ImplicitlyLearnRelatedKeyScripts(const CPubKey& pubkey)
@@ -211,6 +247,44 @@ bool FillableSigningProvider::GetCScript(const CScriptID &hash, CScript& redeemS
         return true;
     }
     return false;
+}
+
+// RIP-25: ML-DSA-44 post-quantum key methods
+bool FillableSigningProvider::AddPQKey(CPQKey&& key)
+{
+    CPQPubKey pubkey = key.GetPubKey();
+    uint256 program = pubkey.GetWitnessProgram();
+    LOCK(cs_KeyStore);
+    mapPQPubKeys[program] = pubkey;
+    mapPQKeys[program] = std::move(key);
+    return true;
+}
+
+bool FillableSigningProvider::HavePQKey(const uint256& program) const
+{
+    LOCK(cs_KeyStore);
+    return mapPQKeys.count(program) > 0;
+}
+
+bool FillableSigningProvider::GetPQKey(const uint256& program, CPQKey& key) const
+{
+    LOCK(cs_KeyStore);
+    auto it = mapPQKeys.find(program);
+    if (it == mapPQKeys.end()) return false;
+    CPQPubKey pubkey;
+    auto pit = mapPQPubKeys.find(program);
+    if (pit != mapPQPubKeys.end()) pubkey = pit->second;
+    key.SetKeyData(it->second.GetData(), pubkey);
+    return true;
+}
+
+bool FillableSigningProvider::GetPQPubKey(const uint256& program, CPQPubKey& pubkey) const
+{
+    LOCK(cs_KeyStore);
+    auto it = mapPQPubKeys.find(program);
+    if (it == mapPQPubKeys.end()) return false;
+    pubkey = it->second;
+    return true;
 }
 
 CKeyID GetKeyForDestination(const SigningProvider& store, const CTxDestination& dest)
