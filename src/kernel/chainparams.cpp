@@ -374,7 +374,7 @@ public:
         consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT].threshold = 1512;
         consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT].period = 2016;
 
-        // RIP-25: ML-DSA-44 post-quantum signatures - always active on regtest
+        // RIP-25: ML-DSA-44 post-quantum signatures - always active on testnet4 for testing
         consensus.vDeployments[Consensus::DEPLOYMENT_MLDSA44].bit = 11;
         consensus.vDeployments[Consensus::DEPLOYMENT_MLDSA44].nStartTime = Consensus::BIP9Deployment::ALWAYS_ACTIVE;
         consensus.vDeployments[Consensus::DEPLOYMENT_MLDSA44].nTimeout = Consensus::BIP9Deployment::NO_TIMEOUT;
@@ -578,6 +578,14 @@ public:
         consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT].min_activation_height = 0;
         consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT].threshold = 108; // 75%
         consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT].period = 144;
+
+        // RIP-25: ML-DSA-44 post-quantum signatures - always active on regtest
+        consensus.vDeployments[Consensus::DEPLOYMENT_MLDSA44].bit = 11;
+        consensus.vDeployments[Consensus::DEPLOYMENT_MLDSA44].nStartTime = Consensus::BIP9Deployment::ALWAYS_ACTIVE;
+        consensus.vDeployments[Consensus::DEPLOYMENT_MLDSA44].nTimeout = Consensus::BIP9Deployment::NO_TIMEOUT;
+        consensus.vDeployments[Consensus::DEPLOYMENT_MLDSA44].min_activation_height = 0;
+        consensus.vDeployments[Consensus::DEPLOYMENT_MLDSA44].threshold = 108; // 75%
+        consensus.vDeployments[Consensus::DEPLOYMENT_MLDSA44].period = 144;
 
         // Avian network upgrades — all active at genesis+1 timestamp for regtest
         consensus.vUpgrades[Consensus::UPGRADE_X16RT_SWITCH].nTimestamp = 1629951212;       // genesis+1

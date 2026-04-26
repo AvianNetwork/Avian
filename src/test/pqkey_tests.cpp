@@ -62,8 +62,8 @@ BOOST_AUTO_TEST_CASE(sign_and_verify)
     std::array<uint8_t, 32> msg{};
     for (size_t i = 0; i < msg.size(); ++i) msg[i] = static_cast<uint8_t>(i + 1);
 
-    std::array<uint8_t, mldsa::SIG_SIZE> sig{};
-    BOOST_REQUIRE(key.Sign(std::span<uint8_t, mldsa::SIG_SIZE>(sig), std::span<const uint8_t>(msg)));
+    std::vector<uint8_t> sig;
+    BOOST_REQUIRE(key.Sign(sig, std::span<const uint8_t>(msg)));
 
     // Correct signature verifies
     BOOST_CHECK(pubkey.Verify(std::span<const uint8_t>(sig), std::span<const uint8_t>(msg)));
@@ -78,8 +78,8 @@ BOOST_AUTO_TEST_CASE(verify_wrong_message_fails)
     std::array<uint8_t, 32> msg{};
     std::fill(msg.begin(), msg.end(), 0xAB);
 
-    std::array<uint8_t, mldsa::SIG_SIZE> sig{};
-    BOOST_REQUIRE(key.Sign(std::span<uint8_t, mldsa::SIG_SIZE>(sig), std::span<const uint8_t>(msg)));
+    std::vector<uint8_t> sig;
+    BOOST_REQUIRE(key.Sign(sig, std::span<const uint8_t>(msg)));
 
     // Tamper with message
     std::array<uint8_t, 32> bad_msg{};
@@ -98,8 +98,8 @@ BOOST_AUTO_TEST_CASE(verify_wrong_key_fails)
     std::array<uint8_t, 32> msg{};
     std::fill(msg.begin(), msg.end(), 0x77);
 
-    std::array<uint8_t, mldsa::SIG_SIZE> sig{};
-    BOOST_REQUIRE(key1.Sign(std::span<uint8_t, mldsa::SIG_SIZE>(sig), std::span<const uint8_t>(msg)));
+    std::vector<uint8_t> sig;
+    BOOST_REQUIRE(key1.Sign(sig, std::span<const uint8_t>(msg)));
 
     // Signature from key1 should not verify under key2's pubkey
     BOOST_CHECK(!pubkey2.Verify(std::span<const uint8_t>(sig), std::span<const uint8_t>(msg)));
@@ -114,8 +114,8 @@ BOOST_AUTO_TEST_CASE(verify_tampered_signature_fails)
     std::array<uint8_t, 32> msg{};
     std::fill(msg.begin(), msg.end(), 0x55);
 
-    std::array<uint8_t, mldsa::SIG_SIZE> sig{};
-    BOOST_REQUIRE(key.Sign(std::span<uint8_t, mldsa::SIG_SIZE>(sig), std::span<const uint8_t>(msg)));
+    std::vector<uint8_t> sig;
+    BOOST_REQUIRE(key.Sign(sig, std::span<const uint8_t>(msg)));
 
     // Flip a byte in the signature
     sig[42] ^= 0xFF;
@@ -139,8 +139,8 @@ BOOST_AUTO_TEST_CASE(setkey_data_roundtrip)
     std::array<uint8_t, 32> msg{};
     std::fill(msg.begin(), msg.end(), 0xDE);
 
-    std::array<uint8_t, mldsa::SIG_SIZE> sig{};
-    BOOST_REQUIRE(key2.Sign(std::span<uint8_t, mldsa::SIG_SIZE>(sig), std::span<const uint8_t>(msg)));
+    std::vector<uint8_t> sig;
+    BOOST_REQUIRE(key2.Sign(sig, std::span<const uint8_t>(msg)));
 
     BOOST_CHECK(pubkey.Verify(std::span<const uint8_t>(sig), std::span<const uint8_t>(msg)));
 }

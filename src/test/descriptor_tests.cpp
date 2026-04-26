@@ -1258,4 +1258,158 @@ BOOST_AUTO_TEST_CASE(descriptor_test)
     CheckUnparsable("tr(musig(tuus(oldepk(gg)ggggfgg)<,z(((((((((((((((((((((st)", "tr(musig(tuus(oldepk(gg)ggggfgg)<,z(((((((((((((((((((((st)","tr(): Too many ')' in musig() expression");
 }
 
+// RIP-25: Tests for the mldsa44() descriptor (ML-DSA-44 post-quantum witness-v2 output).
+// Does NOT use the DoCheck() harness because that harness checks the standard BIP32 key
+// caches (CacheDerivedExtPubKey / CacheParentExtPubKey), but mldsa44 uses its own PQ-specific
+// cache (CacheMlDsaWitnessProgram).  We therefore test all relevant properties manually.
+BOOST_AUTO_TEST_CASE(descriptor_mldsa44_test)
+{
+    // Use a well-known BIP32 xprv/xpub pair that appears elsewhere in this test file.
+    const std::string xprv{"xprvA1RpRA33e1JQ7ifknakTFpgNXPmW2YvmhqLQYMmrj4xJXXWYpDPS3xz7iAxn8L39njGVyuoseXzU6rcxFLJ8HFsTjSyQbLYnMpCqE2VbFWc"};
+    const std::string xpub{"xpub6ERApfZwUNrhLCkDtcHTcxd75RbzS1ed54G1LkBUHQVHQKqhMkhgbmJbZRkrgZw4koxb5JaHWkY4ALHY2grBGRjaDMzQLcgJvLJuZZvRcEL"};
+
+    // Canonical descriptors (apostrophe style, RIP-25 path m/25'/921'/0'/0'/*').
+    const std::string prv_desc{"mldsa44(" + xprv + "/25'/921'/0'/0'/*')"};
+    const std::string pub_desc{"mldsa44(" + xpub + "/25'/921'/0'/0'/*')"};
+
+    // -----------------------------------------------------------------------
+    // Parse the private descriptor
+    // -----------------------------------------------------------------------
+    FlatSigningProvider keys_priv;
+    std::string error;
+    auto prv_descs = Parse(prv_desc, keys_priv, error);
+    BOOST_REQUIRE_MESSAGE(!prv_descs.empty(), "Failed to parse prv_desc: " + error);
+    BOOST_REQUIRE_EQUAL(prv_descs.size(), 1U);
+    const auto& prv = prv_descs[0];
+
+    // Verify descriptor properties.
+    BOOST_CHECK(prv->IsRange());
+    BOOST_CHECK(prv->IsSolvable());
+    BOOST_CHECK(prv->IsSingleType());
+    BOOST_CHECK(prv->GetOutputType() == std::optional<OutputType>{OutputType::PQ});
+    BOOST_CHECK(prv->ScriptSize()    == std::optional<int64_t>{34});
+
+    // Parsing the xprv stores the root private key in keys_priv.
+    BOOST_CHECK(!keys_priv.keys.empty());
+
+    // -----------------------------------------------------------------------
+    // Expand at position 0: must produce OP_2 <32-byte witness program>
+    // -----------------------------------------------------------------------
+    std::vector<CScript> spks0;
+    FlatSigningProvider out0;
+    BOOST_CHECK(prv->Expand(0, keys_priv, spks0, out0));
+    BOOST_REQUIRE_EQUAL(spks0.size(), 1U);
+    BOOST_CHECK_EQUAL(spks0[0].size(), 34U);
+    BOOST_CHECK_EQUAL(static_cast<unsigned char>(spks0[0][0]), 0x52U); // OP_2
+    BOOST_CHECK_EQUAL(static_cast<unsigned char>(spks0[0][1]), 0x20U); // PUSH 32 bytes
+    // PQ key material is populated in the signing provider output.
+    BOOST_CHECK(!out0.pq_keys.empty());
+
+    // -----------------------------------------------------------------------
+    // Different positions produce different scripts (distinct ML-DSA keypairs)
+    // -----------------------------------------------------------------------
+    std::vector<CScript> spks1;
+    FlatSigningProvider out1;
+    BOOST_CHECK(prv->Expand(1, keys_priv, spks1, out1));
+    BOOST_REQUIRE_EQUAL(spks1.size(), 1U);
+    BOOST_CHECK(spks0[0] != spks1[0]);
+
+    // -----------------------------------------------------------------------
+    // Derivation is deterministic: same position → same script
+    // -----------------------------------------------------------------------
+    std::vector<CScript> spks0b;
+    FlatSigningProvider out0b;
+    BOOST_CHECK(prv->Expand(0, keys_priv, spks0b, out0b));
+    BOOST_REQUIRE_EQUAL(spks0b.size(), 1U);
+    BOOST_CHECK(spks0[0] == spks0b[0]);
+
+    // -----------------------------------------------------------------------
+    // Serialization round-trips
+    // -----------------------------------------------------------------------
+    // ToString() (public form) equals pub_desc.
+    BOOST_CHECK(EqualDescriptor(prv->ToString(), pub_desc));
+
+    // ToPrivateString() round-trips to prv_desc.
+    std::string prv_str;
+    BOOST_CHECK(prv->ToPrivateString(keys_priv, prv_str));
+    BOOST_CHECK(EqualDescriptor(prv_str, prv_desc));
+
+    // -----------------------------------------------------------------------
+    // ExpandFromCache: fill cache on first expand, verify cache reuse
+    // -----------------------------------------------------------------------
+    {
+        DescriptorCache cache;
+        std::vector<CScript> spks_fill;
+        FlatSigningProvider out_fill;
+        BOOST_CHECK(prv->Expand(2, keys_priv, spks_fill, out_fill, &cache));
+        BOOST_REQUIRE_EQUAL(spks_fill.size(), 1U);
+
+        std::vector<CScript> spks_cached;
+        FlatSigningProvider out_cached;
+        BOOST_CHECK(prv->ExpandFromCache(2, cache, spks_cached, out_cached));
+        BOOST_REQUIRE_EQUAL(spks_cached.size(), 1U);
+        BOOST_CHECK(spks_fill[0] == spks_cached[0]);
+    }
+
+    // -----------------------------------------------------------------------
+    // Public descriptor: parse, verify properties, expand with private keys
+    // -----------------------------------------------------------------------
+    {
+        FlatSigningProvider keys_pub;
+        auto pub_descs = Parse(pub_desc, keys_pub, error);
+        BOOST_REQUIRE_MESSAGE(!pub_descs.empty(), "Failed to parse pub_desc: " + error);
+        BOOST_REQUIRE_EQUAL(pub_descs.size(), 1U);
+        const auto& pub = pub_descs[0];
+
+        BOOST_CHECK(pub->IsRange());
+        BOOST_CHECK(pub->GetOutputType() == std::optional<OutputType>{OutputType::PQ});
+        BOOST_CHECK(EqualDescriptor(pub->ToString(), pub_desc));
+
+        // Expand the public descriptor using the private signing provider — produces
+        // the same script as the private descriptor.
+        std::vector<CScript> spks_pub;
+        FlatSigningProvider out_pub;
+        BOOST_CHECK(pub->Expand(0, keys_priv, spks_pub, out_pub));
+        BOOST_REQUIRE_EQUAL(spks_pub.size(), 1U);
+        BOOST_CHECK(spks0[0] == spks_pub[0]);
+    }
+
+    // -----------------------------------------------------------------------
+    // 'h' notation is equivalent to apostrophe notation
+    // -----------------------------------------------------------------------
+    {
+        const std::string prv_h{"mldsa44(" + xprv + "/25h/921h/0h/0h/*h)"};
+        FlatSigningProvider keys_h;
+        auto descs_h = Parse(prv_h, keys_h, error);
+        BOOST_REQUIRE_MESSAGE(!descs_h.empty(), "Failed to parse h-notation: " + error);
+        std::vector<CScript> spks_h;
+        FlatSigningProvider out_h;
+        BOOST_CHECK(descs_h[0]->Expand(0, keys_h, spks_h, out_h));
+        BOOST_REQUIRE_EQUAL(spks_h.size(), 1U);
+        // 'h' and '\'' denote the same hardened derivation — scripts must match.
+        BOOST_CHECK(spks0[0] == spks_h[0]);
+    }
+
+    // -----------------------------------------------------------------------
+    // Negative tests
+    // -----------------------------------------------------------------------
+    // mldsa44 is only allowed at the top level — cannot be nested.
+    CheckUnparsable(
+        "sh(mldsa44(" + xprv + "/25'/921'/0'/0'/*'))",
+        "sh(mldsa44(" + xpub + "/25'/921'/0'/0'/*'))",
+        "Can only have mldsa44 at top level");
+
+    // The final derivation step must be hardened (/*h or /*').
+    CheckUnparsable(
+        "mldsa44(" + xprv + "/25'/921'/0'/0'/*)",
+        "mldsa44(" + xpub + "/25'/921'/0'/0'/*)",
+        "mldsa44(): final derivation step must be /*h or /*'");
+
+    // A fixed path (at least one hardened step before /*h) is required.
+    CheckUnparsable(
+        "mldsa44(" + xprv + "/*')",
+        "mldsa44(" + xpub + "/*')",
+        "mldsa44(): path must not be empty");
+}
+
 BOOST_AUTO_TEST_SUITE_END()

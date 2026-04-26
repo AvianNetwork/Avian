@@ -4,6 +4,7 @@
 
 #include <assets/assets.h>
 #include <consensus/amount.h>
+#include <univalue.h>
 
 #include <boost/test/unit_test.hpp>
 
