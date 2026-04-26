@@ -398,6 +398,7 @@ RPCHelpMan getaddressinfo()
                         {RPCResult::Type::BOOL, "isscript", /*optional=*/true, "If the key is a script."},
                         {RPCResult::Type::BOOL, "ischange", "If the address was used for change output."},
                         {RPCResult::Type::BOOL, "iswitness", "If the address is a witness address."},
+                        {RPCResult::Type::BOOL, "ispostquantum", "If the address is a post-quantum ML-DSA-44 (RIP-25) address."},
                         {RPCResult::Type::NUM, "witness_version", /*optional=*/true, "The version number of the witness program."},
                         {RPCResult::Type::STR_HEX, "witness_program", /*optional=*/true, "The hex value of the witness program."},
                         {RPCResult::Type::STR, "script", /*optional=*/true, "The output script type. Only if isscript is true and the redeemscript is known. Possible\n"
@@ -487,6 +488,7 @@ RPCHelpMan getaddressinfo()
     }
 
     ret.pushKV("iswatchonly", false);
+    ret.pushKV("ispostquantum", std::holds_alternative<WitnessV2MLDsa44>(dest));
 
     UniValue detail = DescribeWalletAddress(*pwallet, dest);
     ret.pushKVs(std::move(detail));
