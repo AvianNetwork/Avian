@@ -2,7 +2,7 @@
 
 **Updated for FreeBSD [14.3](https://www.freebsd.org/releases/14.3R/announce/)**
 
-This guide describes how to build bitcoind, command-line utilities, and GUI on FreeBSD.
+This guide describes how to build aviand, command-line utilities, and GUI on FreeBSD.
 
 ## Preparation
 

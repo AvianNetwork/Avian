@@ -11,10 +11,10 @@ When using a hardware wallet, consult the manufacturer website for (alternative)
 Start Bitcoin Core:
 
 ```sh
-$ bitcoind -signer=../HWI/hwi.py
+$ aviand -signer=../HWI/hwi.py
 ```
 
-`bitcoin node` can also be substituted for `bitcoind`.
+`avian node` can also be substituted for `aviand`.
 
 ### Device setup
 
@@ -25,7 +25,7 @@ Follow the hardware manufacturers instructions for the initial device setup, as 
 Get a list of signing devices / services:
 
 ```
-$ bitcoin-cli enumeratesigners
+$ avian-cli enumeratesigners
 {
   "signers": [
     {
@@ -39,18 +39,18 @@ The master key fingerprint is used to identify a device.
 Create a wallet, this automatically imports the public keys:
 
 ```sh
-$ bitcoin-cli createwallet "hww" true true "" true true true
+$ avian-cli createwallet "hww" true true "" true true true
 ```
 
-`bitcoin rpc` can also be substituted for `bitcoin-cli`.
+`avian rpc` can also be substituted for `avian-cli`.
 
 ### Verify an address
 
 Display an address on the device:
 
 ```sh
-$ bitcoin-cli -rpcwallet=<wallet> getnewaddress
-$ bitcoin-cli -rpcwallet=<wallet> walletdisplayaddress <address>
+$ avian-cli -rpcwallet=<wallet> getnewaddress
+$ avian-cli -rpcwallet=<wallet> walletdisplayaddress <address>
 ```
 
 Replace `<address>` with the result of `getnewaddress`.
@@ -60,7 +60,7 @@ Replace `<address>` with the result of `getnewaddress`.
 Under the hood this uses a [Partially Signed Bitcoin Transaction](psbt.md).
 
 ```sh
-$ bitcoin-cli -rpcwallet=<wallet> sendtoaddress <address> <amount>
+$ avian-cli -rpcwallet=<wallet> sendtoaddress <address> <amount>
 ```
 
 This prompts your hardware wallet to sign, and fail if it's not connected. If successful

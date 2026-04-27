@@ -1,7 +1,7 @@
 # JSON-RPC Interface
 
-The headless daemon `bitcoind` has the JSON-RPC API enabled by default, the GUI
-`bitcoin-qt` has it disabled by default. This can be changed with the `-server`
+The headless daemon `aviand` has the JSON-RPC API enabled by default, the GUI
+`avian-qt` has it disabled by default. This can be changed with the `-server`
 option. In the GUI it is possible to execute RPC methods in the Debug Console
 Dialog.
 
@@ -24,7 +24,7 @@ This endpoint is only activated when the wallet component has been compiled in.
 It can service both wallet and non-wallet requests.
 It MUST be used for wallet requests when two or more wallets are loaded.
 
-This is the endpoint used by bitcoin-cli when a `-rpcwallet=` parameter is passed in.
+This is the endpoint used by avian-cli when a `-rpcwallet=` parameter is passed in.
 
 Best practice would dictate using the `/wallet/<walletname>/` endpoint for ALL
 requests when multiple wallets are in use.
@@ -53,16 +53,16 @@ Examples:
 
 ```sh
 # "params": ["mywallet", false, false, "", false, false, true]
-bitcoin-cli createwallet mywallet false false "" false false true
+avian-cli createwallet mywallet false false "" false false true
 
 # "params": {"wallet_name": "mywallet", "load_on_startup": true}
-bitcoin-cli -named createwallet wallet_name=mywallet load_on_startup=true
+avian-cli -named createwallet wallet_name=mywallet load_on_startup=true
 
 # "params": {"args": ["mywallet"], "load_on_startup": true}
-bitcoin-cli -named createwallet mywallet load_on_startup=true
+avian-cli -named createwallet mywallet load_on_startup=true
 ```
 
-`bitcoin rpc` can also be substituted for `bitcoin-cli -named`, and is a newer alternative.
+`avian rpc` can also be substituted for `avian-cli -named`, and is a newer alternative.
 
 ## Versioning
 
@@ -137,7 +137,7 @@ RPC interface will be abused.
   withstand arbitrary Internet traffic, so changing the above settings
   to expose it to the Internet (even using something like a Tor onion
   service) could expose you to unconsidered vulnerabilities.  See
-  `bitcoind -help` for more information about these settings and other
+  `aviand -help` for more information about these settings and other
   settings described in this document.
 
     Related, if you use Bitcoin Core inside a Docker container, you may
