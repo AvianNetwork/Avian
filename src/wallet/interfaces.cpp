@@ -493,6 +493,10 @@ public:
     bool taprootEnabled() override {
         return false; // Taproot is not deployed on Avian
     }
+    bool pqEnabled() override {
+        return m_wallet->chain().isDeploymentActive(Consensus::DEPLOYMENT_MLDSA44) &&
+               m_wallet->GetScriptPubKeyMan(OutputType::PQ, /*internal=*/false) != nullptr;
+    }
     OutputType getDefaultAddressType() override { return m_wallet->m_default_address_type; }
     CAmount getDefaultMaxTxFee() override { return m_wallet->m_default_max_tx_fee; }
     void remove() override

@@ -99,6 +99,9 @@ void ReceiveCoinsDialog::setModel(WalletModel *_model)
         if (model->wallet().taprootEnabled()) {
             add_address_type(OutputType::BECH32M, tr("Bech32m (Taproot)"), tr("Bech32m (BIP-350) is an upgrade to Bech32, wallet support is still limited."));
         }
+        if (model->wallet().pqEnabled()) {
+            add_address_type(OutputType::PQ, tr("ML-DSA-44 (Post-Quantum)"), tr("RIP-25: Post-quantum address using ML-DSA-44 (FIPS 204). Requires HD wallet."));
+        }
 
         // Set the button to be enabled or disabled based on whether the wallet can give out new addresses.
         ui->receiveButton->setEnabled(model->wallet().canGetAddresses());
