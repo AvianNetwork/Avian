@@ -65,6 +65,29 @@ The entire codebase has been rebased onto Bitcoin Core v30.2, bringing:
 - SIGHASH_FORKID (UAHF) replay protection maintained
 - Max reorg depth enforcement preserved
 
+### Post-Quantum Addresses (RIP-25)
+
+Avian v5.0.0 introduces support for ML-DSA-44 (FIPS 204) post-quantum signature
+addresses as specified in RIP-25.
+
+- New `pq` address type using witness version 2 (`avn1p…` bech32 addresses)
+- Keypairs are derived deterministically from a 32-byte HD seed using the
+  ML-DSA-44 lattice-based signature scheme (NIST FIPS 204 / liboqs 0.12.0)
+- `getnewaddress "" "pq"` generates a post-quantum address
+- `getaddressinfo` returns `"ispostquantum": true` for PQ addresses
+- Qt receive dialog includes a "Post-Quantum (ML-DSA-44)" address type option
+- `DEPLOYMENT_MLDSA44` BIP9 deployment (bit 11): **`NEVER_ACTIVE` on mainnet**,
+  `ALWAYS_ACTIVE` on testnet, testnet4, and regtest
+- Post-quantum addresses carry larger transactions than secp256k1: public keys
+  are 1312 bytes and signatures are 2420 bytes — this is an inherent tradeoff
+  of lattice-based post-quantum security
+- liboqs is built by default. To build without post-quantum support, pass
+  `-DWITH_LIBOQS=OFF` to cmake. Without liboqs all other functionality is
+  unaffected.
+
+Mainnet activation is intentionally deferred pending community signalling via
+the BIP9 mechanism.
+
 ### Wallet
 
 - BIP44 coin type 921 for Avian HD wallet derivation paths
@@ -89,6 +112,7 @@ The entire codebase has been rebased onto Bitcoin Core v30.2, bringing:
   - `riscv64-linux-gnu`, `powerpc64-linux-gnu`
   - `x86_64-w64-mingw32` (Windows)
   - `x86_64-apple-darwin` (macOS)
+- All Guix release builds include post-quantum (ML-DSA-44) support via liboqs
 - CI pipeline for Linux, macOS, and Windows
 - CUPS dependency for Qt print support (paper wallets)
 - Translation system rebranded and integrated with Weblate

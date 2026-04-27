@@ -70,6 +70,18 @@ ZMQ-enabled binaries are compiled with `-DWITH_ZMQ=ON` and require the following
 
     sudo apt-get install libzmq3-dev
 
+Post-quantum signature support (ML-DSA-44) is enabled by default via the `depends`
+system. To disable it:
+
+    cmake -B build -DWITH_LIBOQS=OFF
+
+To build liboqs manually (if not using `depends`):
+
+    git clone https://github.com/open-quantum-safe/liboqs.git
+    cmake -S liboqs -B liboqs/build -DOQS_ALGS_ENABLED=ML-DSA -DBUILD_SHARED_LIBS=OFF
+    cmake --build liboqs/build -j$(nproc)
+    sudo cmake --install liboqs/build
+
 User-Space, Statically Defined Tracing (USDT) dependencies:
 
     sudo apt install systemtap-sdt-dev
