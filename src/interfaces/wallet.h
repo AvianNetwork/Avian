@@ -265,6 +265,9 @@ public:
     // Return whether the wallet contains a Taproot scriptPubKeyMan
     virtual bool taprootEnabled() = 0;
 
+    // Return whether the ML-DSA-44 post-quantum deployment is active.
+    virtual bool pqEnabled() = 0;
+
     // Return whether wallet uses an external signer.
     virtual bool hasExternalSigner() = 0;
 

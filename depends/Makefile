@@ -154,6 +154,8 @@ boost_packages_$(NO_BOOST) = $(boost_packages)
 
 libevent_packages_$(NO_LIBEVENT) = $(libevent_packages)
 
+liboqs_packages_$(NO_LIBOQS) = $(liboqs_packages)
+
 qrencode_packages_$(NO_QR) = $(qrencode_$(host_os)_packages)
 
 qt_packages_$(NO_QT) = $(qt_packages) $(qt_$(host_os)_packages) $(qt_$(host_arch)_$(host_os)_packages) $(qrencode_packages_)
@@ -165,7 +167,7 @@ zmq_packages_$(NO_ZMQ) = $(zmq_packages)
 ipc_packages_$(NO_IPC) = $(ipc_packages)
 usdt_packages_$(NO_USDT) = $(usdt_$(host_os)_packages)
 
-packages += $($(host_arch)_$(host_os)_packages) $($(host_os)_packages) $(boost_packages_) $(libevent_packages_) $(qt_packages_) $(wallet_packages_) $(usdt_packages_)
+packages += $($(host_arch)_$(host_os)_packages) $($(host_os)_packages) $(boost_packages_) $(libevent_packages_) $(liboqs_packages_) $(qt_packages_) $(wallet_packages_) $(usdt_packages_)
 native_packages += $($(host_arch)_$(host_os)_native_packages) $($(host_os)_native_packages) $(qt_native_packages_)
 
 ifneq ($(zmq_packages_),)

@@ -1,4 +1,5 @@
 // Copyright (c) 2023 The Bitcoin Core developers
+// Portions Copyright (c) 2026 ALENOC <https://github.com/ALENOC> (Ravencoin RIP-25)
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or https://www.opensource.org/licenses/mit-license.php.
 
@@ -128,6 +129,21 @@ struct PayToAnchor : public WitnessUnknown
 };
 
 /**
+ * RIP-25: Witness v2 ML-DSA-44 post-quantum address type.
+ * The 32-byte witness program is SHA256(mldsa_pubkey).
+ * scriptPubKey: OP_2 <32-byte-program>
+ * At spend time the witness stack must contain: [sig (2420B), pubkey (1312B)]
+ */
+struct WitnessV2MLDsa44 : public BaseHash<uint256>
+{
+    WitnessV2MLDsa44() : BaseHash() {}
+    explicit WitnessV2MLDsa44(const uint256& program) : BaseHash(program) {}
+    // Static size so callers can use WitnessV2MLDsa44::size() without an object,
+    // mirroring the WitnessV1Taproot (XOnlyPubKey) pattern used in key_io.cpp.
+    static constexpr size_t size() { return sizeof(uint256); }
+};
+
+/**
  * A txout script categorized into standard templates.
  *  * CNoDestination: Optionally a script, no corresponding address.
  *  * PubKeyDestination: TxoutType::PUBKEY (P2PK), no corresponding address
@@ -137,10 +153,11 @@ struct PayToAnchor : public WitnessUnknown
  *  * WitnessV0KeyHash: TxoutType::WITNESS_V0_KEYHASH destination (P2WPKH address)
  *  * WitnessV1Taproot: TxoutType::WITNESS_V1_TAPROOT destination (P2TR address)
  *  * PayToAnchor: TxoutType::ANCHOR destination (P2A address)
+ *  * WitnessV2MLDsa44: TxoutType::WITNESS_V2_MLDSA44 destination (RIP-25 P2PQ address)
  *  * WitnessUnknown: TxoutType::WITNESS_UNKNOWN destination (P2W??? address)
  *  A CTxDestination is the internal data type encoded in a bitcoin address
  */
-using CTxDestination = std::variant<CNoDestination, PubKeyDestination, PKHash, ScriptHash, WitnessV0ScriptHash, WitnessV0KeyHash, WitnessV1Taproot, PayToAnchor, WitnessUnknown>;
+using CTxDestination = std::variant<CNoDestination, PubKeyDestination, PKHash, ScriptHash, WitnessV0ScriptHash, WitnessV0KeyHash, WitnessV1Taproot, PayToAnchor, WitnessV2MLDsa44, WitnessUnknown>;
 
 /** Check whether a CTxDestination corresponds to one with an address. */
 bool IsValidDestination(const CTxDestination& dest);

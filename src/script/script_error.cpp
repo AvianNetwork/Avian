@@ -1,5 +1,6 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
 // Copyright (c) 2009-2020 The Bitcoin Core developers
+// Portions Copyright (c) 2026 ALENOC <https://github.com/ALENOC> (Ravencoin RIP-25)
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -119,6 +120,14 @@ std::string ScriptErrorString(const ScriptError serror)
             return "Illegal use of SIGHASH_FORKID";
         case SCRIPT_ERR_MUST_USE_FORKID:
             return "Signature must use SIGHASH_FORKID";
+        case SCRIPT_ERR_PQ_WITNESS_PROGRAM_MISMATCH:
+            return "ML-DSA-44 witness program hash mismatch";
+        case SCRIPT_ERR_PQ_PUBKEY_SIZE:
+            return "Invalid ML-DSA-44 public key size in witness";
+        case SCRIPT_ERR_PQ_SIGNATURE_SIZE:
+            return "Invalid ML-DSA-44 signature size in witness";
+        case SCRIPT_ERR_PQ_SIGNATURE_VERIFY_FAILED:
+            return "ML-DSA-44 signature verification failed";
         case SCRIPT_ERR_UNKNOWN_ERROR:
         case SCRIPT_ERR_ERROR_COUNT:
         default: break;

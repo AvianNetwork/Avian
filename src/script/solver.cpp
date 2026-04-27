@@ -1,5 +1,6 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
 // Copyright (c) 2009-present The Bitcoin Core developers
+// Portions Copyright (c) 2026 ALENOC <https://github.com/ALENOC> (Ravencoin RIP-25)
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -28,6 +29,7 @@ std::string GetTxnOutputType(TxoutType t)
     case TxoutType::WITNESS_V0_KEYHASH: return "witness_v0_keyhash";
     case TxoutType::WITNESS_V0_SCRIPTHASH: return "witness_v0_scripthash";
     case TxoutType::WITNESS_V1_TAPROOT: return "witness_v1_taproot";
+    case TxoutType::WITNESS_V2_MLDSA44: return "witness_v2_mldsa44";
     case TxoutType::WITNESS_UNKNOWN: return "witness_unknown";
     case TxoutType::NEW_ASSET: return "new_asset";
     case TxoutType::REISSUE_ASSET: return "reissue_asset";
@@ -172,6 +174,11 @@ TxoutType Solver(const CScript& scriptPubKey, std::vector<std::vector<unsigned c
         }
         if (scriptPubKey.IsPayToAnchor()) {
             return TxoutType::ANCHOR;
+        }
+        // RIP-25: witness version 2 with 32-byte program is ML-DSA-44 output.
+        if (witnessversion == 2 && witnessprogram.size() == 32) {
+            vSolutionsRet.push_back(std::move(witnessprogram));
+            return TxoutType::WITNESS_V2_MLDSA44;
         }
         if (witnessversion != 0) {
             vSolutionsRet.push_back(std::vector<unsigned char>{(unsigned char)witnessversion});

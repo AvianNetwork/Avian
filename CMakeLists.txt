@@ -424,6 +424,8 @@ endif()
 
 include(cmake/introspection.cmake)
 
+include(cmake/liboqs.cmake)
+
 include(cmake/ccache.cmake)
 
 add_library(warn_interface INTERFACE)

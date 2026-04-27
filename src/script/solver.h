@@ -1,5 +1,6 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
 // Copyright (c) 2009-present The Bitcoin Core developers
+// Portions Copyright (c) 2026 ALENOC <https://github.com/ALENOC> (Ravencoin RIP-25)
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -31,6 +32,7 @@ enum class TxoutType {
     WITNESS_V0_SCRIPTHASH,
     WITNESS_V0_KEYHASH,
     WITNESS_V1_TAPROOT,
+    WITNESS_V2_MLDSA44, //!< RIP-25: witness v2 ML-DSA-44 post-quantum signature output
     WITNESS_UNKNOWN, //!< Only for Witness versions not already defined above
     // Avian asset transaction types:
     NEW_ASSET,

@@ -8,6 +8,7 @@
 #include <common/args.h>
 #include <key_io.h>
 #include <logging.h>
+#include <tinyformat.h>
 
 namespace wallet {
 fs::path GetWalletDir()
@@ -58,6 +59,19 @@ WalletDescriptor GenerateWalletDescriptor(const CExtPubKey& master_key, const Ou
     case OutputType::BECH32M: {
         desc_prefix = "tr(" + xpub + "/86h";
         break;
+    }
+    case OutputType::PQ: {
+        // RIP-25: ML-DSA-44 descriptor — mldsa44(xpub/25h/921h/0h/<change>h/*h)
+        // Coin type 921 = Avian (SLIP-44).  Purpose 25 = RIP-25.
+        std::string change = internal ? "/1h" : "/0h";
+        std::string desc_str_pq = "mldsa44(" + xpub + "/25h/921h/0h" + change + "/*h)";
+        FlatSigningProvider keys_pq;
+        std::string error_pq;
+        std::vector<std::unique_ptr<Descriptor>> desc_pq = Parse(desc_str_pq, keys_pq, error_pq, false);
+        if (desc_pq.empty()) {
+            throw std::runtime_error(strprintf("GenerateWalletDescriptor: failed to parse PQ descriptor: %s", error_pq));
+        }
+        return WalletDescriptor(std::move(desc_pq.at(0)), creation_time, 0, 0, 0);
     }
     case OutputType::UNKNOWN: {
         // We should never have a DescriptorScriptPubKeyMan for an UNKNOWN OutputType,

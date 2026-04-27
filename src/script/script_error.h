@@ -1,5 +1,6 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
 // Copyright (c) 2009-2020 The Bitcoin Core developers
+// Portions Copyright (c) 2026 ALENOC <https://github.com/ALENOC> (Ravencoin RIP-25)
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -85,6 +86,12 @@ typedef enum ScriptError_t
     /* SIGHASH_FORKID replay protection */
     SCRIPT_ERR_ILLEGAL_FORKID,
     SCRIPT_ERR_MUST_USE_FORKID,
+
+    /* RIP-25: ML-DSA-44 post-quantum signatures (witness v2) */
+    SCRIPT_ERR_PQ_WITNESS_PROGRAM_MISMATCH,
+    SCRIPT_ERR_PQ_PUBKEY_SIZE,
+    SCRIPT_ERR_PQ_SIGNATURE_SIZE,
+    SCRIPT_ERR_PQ_SIGNATURE_VERIFY_FAILED,
 
     SCRIPT_ERR_ERROR_COUNT
 } ScriptError;

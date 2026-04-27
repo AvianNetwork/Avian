@@ -1,5 +1,6 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
 // Copyright (c) 2009-present The Bitcoin Core developers
+// Portions Copyright (c) 2026 ALENOC <https://github.com/ALENOC> (Ravencoin RIP-25)
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -2652,6 +2653,11 @@ static unsigned int GetBlockScriptFlags(const CBlockIndex& block_index, const Ch
     if (IsForkIDUAHFenabled(&block_index)) {
         flags |= SCRIPT_VERIFY_STRICTENC;
         flags |= SCRIPT_ENABLE_SIGHASH_FORKID;
+    }
+
+    // RIP-25: Enforce ML-DSA-44 post-quantum signing rules after DEPLOYMENT_MLDSA44 activation
+    if (DeploymentActiveAt(block_index, chainman, Consensus::DEPLOYMENT_MLDSA44)) {
+        flags |= SCRIPT_VERIFY_PQ_HYBRID;
     }
 
     return flags;

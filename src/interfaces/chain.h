@@ -7,6 +7,7 @@
 
 #include <blockfilter.h>
 #include <common/settings.h>
+#include <consensus/params.h>
 #include <primitives/transaction.h>
 #include <util/result.h>
 
@@ -291,6 +292,9 @@ public:
 
     //! Check if in IBD.
     virtual bool isInitialBlockDownload() = 0;
+
+    //! Check if a BIP9 deployment is active at the current chain tip.
+    virtual bool isDeploymentActive(Consensus::DeploymentPos deployment) = 0;
 
     //! Check if shutdown requested.
     virtual bool shutdownRequested() = 0;

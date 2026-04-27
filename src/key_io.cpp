@@ -1,4 +1,5 @@
 // Copyright (c) 2014-present The Bitcoin Core developers
+// Portions Copyright (c) 2026 ALENOC <https://github.com/ALENOC> (Ravencoin RIP-25)
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -62,6 +63,15 @@ public:
         std::vector<unsigned char> data = {1};
         data.reserve(53);
         ConvertBits<8, 5, true>([&](unsigned char c) { data.push_back(c); }, tap.begin(), tap.end());
+        return bech32::Encode(bech32::Encoding::BECH32M, m_params.Bech32HRP(), data);
+    }
+
+    std::string operator()(const WitnessV2MLDsa44& pq) const
+    {
+        // RIP-25: witness version 2, bech32m, 32-byte program = SHA256(mldsa_pubkey)
+        std::vector<unsigned char> data = {2};
+        data.reserve(53);
+        ConvertBits<8, 5, true>([&](unsigned char c) { data.push_back(c); }, pq.begin(), pq.end());
         return bech32::Encode(bech32::Encoding::BECH32M, m_params.Bech32HRP(), data);
     }
 
@@ -183,6 +193,13 @@ CTxDestination DecodeDestination(const std::string& str, const CChainParams& par
 
             if (CScript::IsPayToAnchor(version, data)) {
                 return PayToAnchor();
+            }
+
+            // RIP-25: witness version 2 with 32-byte program is an ML-DSA-44 address.
+            if (version == 2 && data.size() == WitnessV2MLDsa44::size()) {
+                WitnessV2MLDsa44 pq;
+                std::copy(data.begin(), data.end(), pq.begin());
+                return pq;
             }
 
             if (version > 16) {

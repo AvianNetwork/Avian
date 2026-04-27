@@ -8,6 +8,7 @@
 #include <key_io.h>
 #include <pubkey.h>
 #include <musig.h>
+#include <pqkey.h>
 #include <script/miniscript.h>
 #include <script/parsing.h>
 #include <script/script.h>
@@ -1020,6 +1021,28 @@ public:
     std::unique_ptr<DescriptorImpl> Clone() const override
     {
         return std::make_unique<AddressDescriptor>(m_destination);
+    }
+};
+
+/** A parsed raw(H) descriptor. */
+/** A parsed addr(X) descriptor for a ML-DSA-44 (witness v2) output that the wallet controls.
+ * Unlike AddressDescriptor, IsSolvable() returns true because we have the private key. */
+class MLDsaAddressDescriptor final : public DescriptorImpl
+{
+    const CTxDestination m_destination;
+protected:
+    std::string ToStringExtra() const override { return EncodeDestination(m_destination); }
+    std::vector<CScript> MakeScripts(const std::vector<CPubKey>&, std::span<const CScript>, FlatSigningProvider&) const override { return Vector(GetScriptForDestination(m_destination)); }
+public:
+    MLDsaAddressDescriptor(CTxDestination destination) : DescriptorImpl({}, "addr"), m_destination(std::move(destination)) {}
+    bool IsSolvable() const final { return true; }
+    std::optional<OutputType> GetOutputType() const override { return OutputType::PQ; }
+    bool IsSingleType() const final { return true; }
+    bool ToPrivateString(const SigningProvider& arg, std::string& out) const final { return false; }
+    std::optional<int64_t> ScriptSize() const override { return GetScriptForDestination(m_destination).size(); }
+    std::unique_ptr<DescriptorImpl> Clone() const override
+    {
+        return std::make_unique<MLDsaAddressDescriptor>(m_destination);
     }
 };
 
@@ -2128,6 +2151,216 @@ struct KeyParser {
     }
 };
 
+/** RIP-25: PubkeyProvider that does BIP32 → ML-DSA-44 derivation.
+ *
+ * GetPubKey derives the leaf key, generates the ML-DSA keypair, stores the PQ
+ * secret key in out.pq_keys, and returns a "fake" 33-byte compressed-pubkey
+ * whose bytes 1-32 carry the 32-byte witness program (SHA256(ml-dsa pubkey)).
+ * MLDsa44Descriptor::MakeScripts unpacks those bytes to build OP_2 <wp>.
+ */
+class MLDsaKeyProvider final : public PubkeyProvider
+{
+    CExtPubKey m_root_extpub;
+    KeyPath     m_path;        // fixed hardened path down to change level
+    bool        m_apostrophe;  // use ' or h in serialization
+
+    static constexpr uint32_t HARDENED = 0x80000000U;
+
+    bool GetLeafExtKey(int pos, const SigningProvider& provider, CExtKey& leaf_out) const
+    {
+        CKey root_key;
+        if (!provider.GetKey(m_root_extpub.pubkey.GetID(), root_key)) return false;
+        CExtKey xprv;
+        xprv.nDepth = m_root_extpub.nDepth;
+        std::copy(m_root_extpub.vchFingerprint, m_root_extpub.vchFingerprint + 4, xprv.vchFingerprint);
+        xprv.nChild = m_root_extpub.nChild;
+        xprv.chaincode = m_root_extpub.chaincode;
+        xprv.key = root_key;
+        for (uint32_t step : m_path) {
+            if (!xprv.Derive(xprv, step)) return false;
+        }
+        return xprv.Derive(leaf_out, (uint32_t)pos | HARDENED);
+    }
+
+    // Pack 32-byte witness program into a fake 33-byte "compressed pubkey"
+    static CPubKey WPToPubKey(const uint256& wp)
+    {
+        std::array<unsigned char, 33> buf;
+        buf[0] = 0x02;
+        std::memcpy(buf.data() + 1, wp.begin(), 32);
+        return CPubKey(buf.begin(), buf.end());
+    }
+
+    std::string PathStr() const
+    {
+        std::string s;
+        for (uint32_t step : m_path) {
+            s += '/';
+            s += std::to_string(step & ~HARDENED);
+            if (step >> 31) s += (m_apostrophe ? '\'' : 'h');
+        }
+        s += (m_apostrophe ? "/*'" : "/*h");
+        return s;
+    }
+
+public:
+    MLDsaKeyProvider(CExtPubKey root, KeyPath path, bool apostrophe, uint32_t exp_index = 0)
+        : PubkeyProvider(exp_index), m_root_extpub(root),
+          m_path(std::move(path)), m_apostrophe(apostrophe) {}
+
+    // Expose members for Clone / GetPubKeys
+    const CExtPubKey& RootExtPub() const { return m_root_extpub; }
+    const KeyPath&    Path()       const { return m_path; }
+    bool              Apostrophe() const { return m_apostrophe; }
+
+    std::optional<CPubKey> GetPubKey(int pos, const SigningProvider& arg,
+                                     FlatSigningProvider& out,
+                                     const DescriptorCache* read_cache = nullptr,
+                                     DescriptorCache* write_cache = nullptr) const override
+    {
+        // Cache hit: just return the fake pubkey encoding the witness program
+        if (read_cache) {
+            uint256 wp;
+            if (read_cache->GetCachedMlDsaWitnessProgram((uint32_t)pos, wp)) {
+                // Emit a sentinel so HavePQKey() returns true for solvability checks
+                // even though we don't have the full key in the non-private path.
+                out.pq_keys.emplace(wp, nullptr);
+                return WPToPubKey(wp);
+            }
+        }
+        // Derive leaf and generate keypair
+        CExtKey leaf;
+        if (!GetLeafExtKey(pos, arg, leaf)) return std::nullopt;
+        std::array<uint8_t, mldsa::SEED_SIZE> seed;
+        std::memcpy(seed.data(), leaf.key.begin(), mldsa::SEED_SIZE);
+        std::array<uint8_t, mldsa::PUBKEY_SIZE> pubkey_buf;
+        std::array<uint8_t, mldsa::SECRETKEY_SIZE> seckey_buf;
+        if (!mldsa::KeyGenFromSeed(pubkey_buf, seckey_buf, seed)) return std::nullopt;
+
+        uint256 wp;
+        CSHA256().Write(pubkey_buf.data(), pubkey_buf.size()).Finalize(wp.begin());
+
+        // Store PQ secret key in signing provider
+        CPQKey pq_key;
+        CPQPubKey pq_pubkey{std::span<const uint8_t, mldsa::PUBKEY_SIZE>{pubkey_buf}};
+        if (pq_key.SetKeyData(std::span<const uint8_t, mldsa::SECRETKEY_SIZE>{seckey_buf}, pq_pubkey)) {
+            out.pq_keys.insert_or_assign(wp, std::make_shared<CPQKey>(std::move(pq_key)));
+        }
+        if (write_cache) {
+            write_cache->CacheMlDsaWitnessProgram((uint32_t)pos, wp);
+        }
+        return WPToPubKey(wp);
+    }
+
+    void GetPrivKey(int pos, const SigningProvider& arg, FlatSigningProvider& out) const override
+    {
+        CExtKey leaf;
+        if (!GetLeafExtKey(pos, arg, leaf)) return;
+        std::array<uint8_t, mldsa::SEED_SIZE> seed;
+        std::memcpy(seed.data(), leaf.key.begin(), mldsa::SEED_SIZE);
+        std::array<uint8_t, mldsa::PUBKEY_SIZE> pubkey_buf;
+        std::array<uint8_t, mldsa::SECRETKEY_SIZE> seckey_buf;
+        if (!mldsa::KeyGenFromSeed(pubkey_buf, seckey_buf, seed)) return;
+
+        uint256 wp;
+        CSHA256().Write(pubkey_buf.data(), pubkey_buf.size()).Finalize(wp.begin());
+
+        CPQKey pq_key;
+        CPQPubKey pq_pubkey{std::span<const uint8_t, mldsa::PUBKEY_SIZE>{pubkey_buf}};
+        if (pq_key.SetKeyData(std::span<const uint8_t, mldsa::SECRETKEY_SIZE>{seckey_buf}, pq_pubkey)) {
+            // Use insert_or_assign so a real key overwrites any nullptr sentinel
+            // that may have been placed by GetPubKey's cache-hit path.
+            out.pq_keys.insert_or_assign(wp, std::make_shared<CPQKey>(std::move(pq_key)));
+        }
+    }
+
+    bool IsRange() const override { return true; }
+    size_t GetSize() const override { return 33; }
+
+    std::string ToString(StringType /*type*/) const override
+    {
+        return EncodeExtPubKey(m_root_extpub) + PathStr();
+    }
+
+    bool ToPrivateString(const SigningProvider& arg, std::string& out) const override
+    {
+        CKey key;
+        if (!arg.GetKey(m_root_extpub.pubkey.GetID(), key)) return false;
+        CExtKey xprv;
+        xprv.nDepth = m_root_extpub.nDepth;
+        std::copy(m_root_extpub.vchFingerprint, m_root_extpub.vchFingerprint + 4, xprv.vchFingerprint);
+        xprv.nChild = m_root_extpub.nChild;
+        xprv.chaincode = m_root_extpub.chaincode;
+        xprv.key = key;
+        out = EncodeExtKey(xprv) + PathStr();
+        return true;
+    }
+
+    bool ToNormalizedString(const SigningProvider& /*arg*/, std::string& out,
+                            const DescriptorCache* /*cache*/ = nullptr) const override
+    {
+        out = EncodeExtPubKey(m_root_extpub) + PathStr();
+        return true;
+    }
+
+    std::optional<CPubKey>    GetRootPubKey()    const override { return std::nullopt; }
+    std::optional<CExtPubKey> GetRootExtPubKey() const override { return m_root_extpub; }
+    bool IsBIP32() const override { return true; }
+
+    std::unique_ptr<PubkeyProvider> Clone() const override
+    {
+        return std::make_unique<MLDsaKeyProvider>(m_root_extpub, m_path, m_apostrophe, m_expr_index);
+    }
+};
+
+/** RIP-25: A parsed mldsa44(xpub/path/\*h) descriptor.
+ *
+ * Derives an ML-DSA-44 key pair from BIP32 extended key material using hardened
+ * derivation: root/path/<pos>h.  The resulting scriptPubKey is
+ * OP_2 <32-byte SHA256(ml-dsa pubkey)>.
+ *
+ * Inherits from DescriptorImpl so it fits into ParseScript's return type.
+ * All expand/sign logic lives in MLDsaKeyProvider above.
+ */
+class MLDsa44Descriptor final : public DescriptorImpl
+{
+protected:
+    // MakeScripts receives the 33-byte "fake pubkey" from MLDsaKeyProvider
+    // whose bytes [1..32] are the 32-byte witness program.
+    std::vector<CScript> MakeScripts(const std::vector<CPubKey>& keys,
+                                     std::span<const CScript>,
+                                     FlatSigningProvider&) const override
+    {
+        if (keys.empty() || keys[0].size() != 33) return {};
+        CScript spk;
+        spk << OP_2 << std::vector<unsigned char>(keys[0].begin() + 1, keys[0].end());
+        return Vector(std::move(spk));
+    }
+
+public:
+    MLDsa44Descriptor(CExtPubKey root, KeyPath path, bool apostrophe)
+        : DescriptorImpl(Vector(std::unique_ptr<PubkeyProvider>(
+              std::make_unique<MLDsaKeyProvider>(root, std::move(path), apostrophe))),
+                         std::string{"mldsa44"}) {}
+
+    bool IsSingleType() const override { return true; }
+    std::optional<OutputType> GetOutputType() const override { return OutputType::PQ; }
+    std::optional<int64_t> ScriptSize() const override { return 34; }
+
+    std::optional<int64_t> MaxSatisfactionWeight(bool) const override
+    {
+        constexpr int64_t WITNESS_SCALE = 4;
+        return ((mldsa::SIG_SIZE + 1) + (mldsa::PUBKEY_SIZE + 1)) * WITNESS_SCALE;
+    }
+    std::optional<int64_t> MaxSatisfactionElems() const override { return 2; }
+
+    std::unique_ptr<DescriptorImpl> Clone() const override
+    {
+        const auto* kp = static_cast<const MLDsaKeyProvider*>(m_pubkey_args[0].get());
+        return std::make_unique<MLDsa44Descriptor>(kp->RootExtPub(), kp->Path(), kp->Apostrophe());
+    }
+};
+
 /** Parse a script in a particular context. */
 // NOLINTNEXTLINE(misc-no-recursion)
 std::vector<std::unique_ptr<DescriptorImpl>> ParseScript(uint32_t& key_exp_index, std::span<const char>& sp, ParseScriptContext ctx, FlatSigningProvider& out, std::string& error)
@@ -2442,6 +2675,47 @@ std::vector<std::unique_ptr<DescriptorImpl>> ParseScript(uint32_t& key_exp_index
         error = "Can only have rawtr at top level";
         return {};
     }
+    // RIP-25: mldsa44(xpub/path/*h) descriptor
+    if (ctx == ParseScriptContext::TOP && Func("mldsa44", expr)) {
+        auto slash_split = Split(expr, '/');
+        if (slash_split.empty()) {
+            error = "mldsa44(): empty argument";
+            return {};
+        }
+        std::string key_str(slash_split[0].begin(), slash_split[0].end());
+        CExtKey extkey = DecodeExtKey(key_str);
+        CExtPubKey extpubkey = DecodeExtPubKey(key_str);
+        if (!extkey.key.IsValid() && !extpubkey.pubkey.IsValid()) {
+            error = strprintf("mldsa44(): invalid key '%s'", key_str);
+            return {};
+        }
+        if (extkey.key.IsValid()) {
+            out.keys.emplace(extkey.Neuter().pubkey.GetID(), extkey.key);
+            extpubkey = extkey.Neuter();
+        }
+        bool apostrophe = false;
+        DeriveType dtype = ParseDeriveType(slash_split, apostrophe);
+        if (dtype != DeriveType::HARDENED) {
+            error = "mldsa44(): final derivation step must be /*h or /*'";
+            return {};
+        }
+        // Parse fixed path (everything between root key and /*h)
+        std::vector<KeyPath> paths;
+        bool has_hardened = false;
+        if (!ParseKeyPath(slash_split, paths, apostrophe, error, /*allow_multipath=*/false, has_hardened)) {
+            error = "mldsa44(): " + error;
+            return {};
+        }
+        if (paths.empty() || paths[0].empty()) {
+            error = "mldsa44(): path must not be empty";
+            return {};
+        }
+        ret.emplace_back(std::make_unique<MLDsa44Descriptor>(extpubkey, std::move(paths[0]), apostrophe));
+        return ret;
+    } else if (Func("mldsa44", expr)) {
+        error = "Can only have mldsa44 at top level";
+        return {};
+    }
     if (ctx == ParseScriptContext::TOP && Func("raw", expr)) {
         std::string str(expr.begin(), expr.end());
         if (!IsHex(str)) {
@@ -2688,6 +2962,22 @@ std::unique_ptr<DescriptorImpl> InferScript(const CScript& script, ParseScriptCo
     // So if we are not at the top level, return early.
     if (ctx != ParseScriptContext::TOP) return nullptr;
 
+    // RIP-25: ML-DSA-44 witness v2 outputs — infer as addr(). If the provider has the
+    // private key we report IsSolvable=true so getaddressinfo shows solvable:true.
+    if (txntype == TxoutType::WITNESS_V2_MLDSA44) {
+        CTxDestination dest;
+        if (ExtractDestination(script, dest)) {
+            const auto* pq_dest = std::get_if<WitnessV2MLDsa44>(&dest);
+            if (pq_dest) {
+                uint256 wp(std::span<const unsigned char>{pq_dest->begin(), 32});
+                if (provider.HavePQKey(wp)) {
+                    return std::make_unique<MLDsaAddressDescriptor>(dest);
+                }
+            }
+            return std::make_unique<AddressDescriptor>(std::move(dest));
+        }
+    }
+
     CTxDestination dest;
     if (ExtractDestination(script, dest)) {
         if (GetScriptForDestination(dest) == script) {
@@ -2697,7 +2987,6 @@ std::unique_ptr<DescriptorImpl> InferScript(const CScript& script, ParseScriptCo
 
     return std::make_unique<RawDescriptor>(script);
 }
-
 
 } // namespace
 
@@ -2854,6 +3143,17 @@ DescriptorCache DescriptorCache::MergeAndDiff(const DescriptorCache& other)
         CacheLastHardenedExtPubKey(lh_xpub_pair.first, lh_xpub_pair.second);
         diff.CacheLastHardenedExtPubKey(lh_xpub_pair.first, lh_xpub_pair.second);
     }
+    for (const auto& mldsa_pair : other.GetCachedMlDsaWitnessPrograms()) {
+        uint256 wp;
+        if (GetCachedMlDsaWitnessProgram(mldsa_pair.first, wp)) {
+            if (wp != mldsa_pair.second) {
+                throw std::runtime_error(std::string(__func__) + ": New cached ML-DSA witness program does not match already cached witness program");
+            }
+            continue;
+        }
+        CacheMlDsaWitnessProgram(mldsa_pair.first, mldsa_pair.second);
+        diff.CacheMlDsaWitnessProgram(mldsa_pair.first, mldsa_pair.second);
+    }
     return diff;
 }
 
@@ -2870,4 +3170,22 @@ std::unordered_map<uint32_t, ExtPubKeyMap> DescriptorCache::GetCachedDerivedExtP
 ExtPubKeyMap DescriptorCache::GetCachedLastHardenedExtPubKeys() const
 {
     return m_last_hardened_xpubs;
+}
+
+void DescriptorCache::CacheMlDsaWitnessProgram(uint32_t der_index, const uint256& wp)
+{
+    m_mldsa_witness_programs[der_index] = wp;
+}
+
+bool DescriptorCache::GetCachedMlDsaWitnessProgram(uint32_t der_index, uint256& wp) const
+{
+    const auto& it = m_mldsa_witness_programs.find(der_index);
+    if (it == m_mldsa_witness_programs.end()) return false;
+    wp = it->second;
+    return true;
+}
+
+std::map<uint32_t, uint256> DescriptorCache::GetCachedMlDsaWitnessPrograms() const
+{
+    return m_mldsa_witness_programs;
 }
