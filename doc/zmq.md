@@ -81,17 +81,17 @@ The high water mark value must be an integer greater than or equal to 0.
 
 For instance:
 
-    $ bitcoind -zmqpubhashtx=tcp://127.0.0.1:28332 \
+    $ aviand -zmqpubhashtx=tcp://127.0.0.1:28332 \
                -zmqpubhashtx=tcp://192.168.1.2:28332 \
                -zmqpubhashblock="tcp://[::1]:28333" \
-               -zmqpubrawtx=unix:/tmp/bitcoind.tx.raw \
+               -zmqpubrawtx=unix:/tmp/aviand.tx.raw \
                -zmqpubhashtxhwm=10000
 
-`bitcoin node` or `bitcoin gui` can also be substituted for `bitcoind`.
+`avian node` or `avian gui` can also be substituted for `aviand`.
 
 Notification types correspond to message topics (details in next section). For instance,
 for the notification `-zmqpubhashtx` the topic is `hashtx`. These options can also be
-provided in bitcoin.conf.
+provided in avian.conf.
 
 ### Message format
 
@@ -180,9 +180,9 @@ hosts as well. If needed, this option has to be set on the client side too.
 
 ## Remarks
 
-From the perspective of bitcoind, the ZeroMQ socket is write-only; PUB
+From the perspective of aviand, the ZeroMQ socket is write-only; PUB
 sockets don't even have a read function. Thus, there is no state
-introduced into bitcoind directly. Furthermore, no information is
+introduced into aviand directly. Furthermore, no information is
 broadcast that wasn't already received from the public P2P network.
 
 No authentication or authorization is done on connecting clients; it
@@ -199,7 +199,7 @@ disconnections.
 
 There are several possibilities that ZMQ notification can get lost
 during transmission depending on the communication type you are
-using. Bitcoind appends an up-counting sequence number to each
+using. aviand appends an up-counting sequence number to each
 notification which allows listeners to detect lost notifications.
 
 The `sequence` topic refers specifically to the mempool sequence
