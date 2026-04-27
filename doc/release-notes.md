@@ -127,7 +127,10 @@ Credits
 =======
 
 Thanks to The Bitcoin Core developers for the upstream codebase, the original
-Ravencoin developers, and AltcoinBaggins for the original Avian implementation.
+Ravencoin developers, and the Avian Core team for the Avian implementation.
+
+Special thanks to [ALENOC](https://github.com/ALENOC) for the RIP-25 ML-DSA-44
+post-quantum signature implementation.
 
 As well as to everyone that helped with translations on
 [Weblate](https://weblate.avn.network/).
