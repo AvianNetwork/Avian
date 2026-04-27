@@ -19,6 +19,7 @@ define $(package)_set_vars
   $(package)_config_opts+=-DOQS_USE_OPENSSL=OFF
   $(package)_config_opts+=-DBUILD_SHARED_LIBS=OFF
   $(package)_config_opts+=-DOQS_DIST_BUILD=ON
+  $(package)_config_opts+=-DOQS_PERMIT_UNSUPPORTED_ARCHITECTURE=ON
   $(package)_config_opts+=-DCMAKE_SYSTEM_PROCESSOR=$(host_arch)
   $(package)_config_opts_darwin+=-DOQS_DIST_BUILD=OFF
   $(package)_config_opts_darwin+=-DOQS_USE_AVX2_INSTRUCTIONS=OFF
