@@ -138,7 +138,7 @@ This table describes the files installed by Bitcoin Core across different platfo
 | **Path**                                                   | **Description**                                                             |
 |------------------------------------------------------------|-----------------------------------------------------------------------------|
 | [README.md](README.md) or [readme.txt](README_windows.txt) | Project information and instructions                                        |
-| bitcoin.conf                                               | [Generated](../contrib/devtools/gen-bitcoin-conf.sh) configuration file     |
+| bitcoin.conf                                               | [Generated](../contrib/devtools/gen-avian-conf.sh) configuration file     |
 | bin/bitcoin                                                | Command-line tool for interacting with Bitcoin. Calls other binaries below. |
 | bin/bitcoin-cli                                            | Tool for making node and wallet RPC calls.                                  |
 | bin/bitcoin-qt                                             | Bitcoin node and wallet GUI                                                 |

@@ -46,7 +46,7 @@ This allows for running bitcoind without having to do any manual configuration.
 relative to the data directory. `wallet` *only* supports relative paths.
 
 To generate an example configuration file that describes the configuration settings,
-see [contrib/devtools/README.md](../contrib/devtools/README.md#gen-bitcoin-confsh).
+see [contrib/devtools/README.md](../contrib/devtools/README.md#gen-avian-confsh).
 
 Paths
 ---------------------------------

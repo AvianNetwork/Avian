@@ -1,4 +1,4 @@
-# Bitcoin Tidy
+# Avian Tidy
 
 Example Usage:
 
@@ -7,5 +7,5 @@ cmake -S . -B build -DLLVM_DIR=$(llvm-config --cmakedir) -DCMAKE_BUILD_TYPE=Rele
 
 cmake --build build -j$(nproc)
 
-cmake --build build --target bitcoin-tidy-tests -j$(nproc)
+cmake --build build --target avian-tidy-tests -j$(nproc)
 ```
