@@ -69,7 +69,7 @@ The Avian repo's [root README](/README.md) contains relevant information on the 
 
 ### Miscellaneous
 - [Assets Attribution](assets-attribution.md)
-- [avian.conf Configuration File](bitcoin-conf.md)
+- [avian.conf Configuration File](avian-conf.md)
 - [CJDNS Support](cjdns.md)
 - [Files](files.md)
 - [Fuzz-testing](fuzzing.md)
