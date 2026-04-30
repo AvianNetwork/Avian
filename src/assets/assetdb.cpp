@@ -20,7 +20,7 @@ static const uint8_t ASSET_BEST_BLOCK_FLAG = 'T'; // Tip tracking
 
 CAssetsDB::CAssetsDB(const fs::path& datadir, size_t nCacheSize, bool fMemory, bool fWipe)
     : CDBWrapper(DBParams{
-          .path = datadir / "assets",
+          .path = datadir / "indexes" / "assets",
           .cache_bytes = nCacheSize,
           .memory_only = fMemory,
           .wipe_data = fWipe})

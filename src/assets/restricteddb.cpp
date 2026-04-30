@@ -15,7 +15,7 @@ static const uint8_t GLOBAL_RESTRICTION_FLAG = 'G';
 
 CRestrictedDB::CRestrictedDB(const fs::path& datadir, size_t nCacheSize, bool fMemory, bool fWipe)
     : CDBWrapper(DBParams{
-          .path = datadir / "assets" / "restricted",
+          .path = datadir / "indexes" / "assets" / "restricted",
           .cache_bytes = nCacheSize,
           .memory_only = fMemory,
           .wipe_data = fWipe})

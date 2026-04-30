@@ -61,10 +61,11 @@ Subdirectory       | File(s)               | Description
 `indexes/addressindex/` | LevelDB database      | Address index (balances, txids, UTXOs per address); *optional*, used if `-addressindex=1`
 `indexes/spentindex/`   | LevelDB database      | Spent index (spending txid and input index for outpoints); *optional*, used if `-spentindex=1`
 `indexes/timestampindex/` | LevelDB database    | Timestamp index (block hashes by time range); *optional*, used if `-timestampindex=1`
-`assets/`           |                       | Asset index database; used if `-assetindex=1` (default: enabled)
-`messages/`         |                       | On-chain message channel data
-`rewards/`          |                       | Asset reward/distribution data
-`myrestricted/`     |                       | Local restricted asset tracking data
+`indexes/assets/`       |                       | Asset index database; used if `-assetindex=1` (default: enabled)
+`indexes/assets/restricted/` |                  | Restricted asset verifier strings and address restrictions
+`indexes/assets/messages/` |                    | On-chain message channel data
+`indexes/assets/rewards/` |                     | Asset snapshot and reward/distribution data
+`indexes/assets/myrestricted/` |                | Local restricted asset tracking data (tagged/restricted addresses)
 `wallets/`         |                       | [Contains wallets](#multi-wallet-environment); can be specified by `-walletdir` option; if `wallets/` subdirectory does not exist, wallets reside in the [data directory](#data-directory-location)
 `./`               | `anchors.dat`         | Anchor IP address database, created on shutdown and deleted at startup. Anchors are last known outgoing block-relay-only peers that are tried to re-connect to on startup
 `./`               | `banlist.json`        | Stores the addresses/subnets of banned nodes.

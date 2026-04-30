@@ -32,7 +32,7 @@ CSnapshotRequestDBEntry::CSnapshotRequestDBEntry(
 CSnapshotRequestDB::CSnapshotRequestDB(
     const fs::path& datadir, size_t nCacheSize, bool fMemory, bool fWipe)
     : CDBWrapper(DBParams{
-          .path = datadir / "rewards" / "snapshotrequest",
+          .path = datadir / "indexes" / "assets" / "rewards" / "snapshotrequest",
           .cache_bytes = nCacheSize,
           .memory_only = fMemory,
           .wipe_data = fWipe})
@@ -163,7 +163,7 @@ bool CSnapshotRequestDB::RetrieveSnapshotRequestsForHeight(
 CDistributeSnapshotRequestDB::CDistributeSnapshotRequestDB(
         const fs::path& datadir, size_t nCacheSize, bool fMemory, bool fWipe)
         : CDBWrapper(DBParams{
-              .path = datadir / "rewards" / "distributerequests",
+              .path = datadir / "indexes" / "assets" / "rewards" / "distributerequests",
               .cache_bytes = nCacheSize,
               .memory_only = fMemory,
               .wipe_data = fWipe})

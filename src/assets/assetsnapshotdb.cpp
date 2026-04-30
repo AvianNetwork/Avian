@@ -33,7 +33,7 @@ CAssetSnapshotDBEntry::CAssetSnapshotDBEntry(
 
 CAssetSnapshotDB::CAssetSnapshotDB(const fs::path& datadir, size_t nCacheSize, bool fMemory, bool fWipe)
     : CDBWrapper(DBParams{
-          .path = datadir / "rewards" / "assetsnapshot",
+          .path = datadir / "indexes" / "assets" / "rewards" / "assetsnapshot",
           .cache_bytes = nCacheSize,
           .memory_only = fMemory,
           .wipe_data = fWipe})

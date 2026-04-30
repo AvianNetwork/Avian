@@ -20,7 +20,7 @@ static const uint8_t MY_RESTRICTED_ADDRESSES = 'R'; // Addresses that have been 
 
 CMessageDB::CMessageDB(const fs::path& datadir, size_t nCacheSize, bool fMemory, bool fWipe)
     : CDBWrapper(DBParams{
-          .path = datadir / "messages" / "messages",
+          .path = datadir / "indexes" / "assets" / "messages" / "messages",
           .cache_bytes = nCacheSize,
           .memory_only = fMemory,
           .wipe_data = fWipe})
@@ -132,7 +132,7 @@ bool CMessageDB::Flush() {
 
 CMessageChannelDB::CMessageChannelDB(const fs::path& datadir, size_t nCacheSize, bool fMemory, bool fWipe)
     : CDBWrapper(DBParams{
-          .path = datadir / "messages" / "channels",
+          .path = datadir / "indexes" / "assets" / "messages" / "channels",
           .cache_bytes = nCacheSize,
           .memory_only = fMemory,
           .wipe_data = fWipe})
@@ -253,7 +253,7 @@ bool CMessageChannelDB::Flush() {
 
 CMyRestrictedDB::CMyRestrictedDB(const fs::path& datadir, size_t nCacheSize, bool fMemory, bool fWipe)
     : CDBWrapper(DBParams{
-          .path = datadir / "myrestricted",
+          .path = datadir / "indexes" / "assets" / "myrestricted",
           .cache_bytes = nCacheSize,
           .memory_only = fMemory,
           .wipe_data = fWipe})
