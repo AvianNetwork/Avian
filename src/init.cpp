@@ -1827,7 +1827,7 @@ bool AppInitMain(NodeContext& node, interfaces::BlockAndHeaderTipInfo* tip_info)
     bool do_reindex{args.GetBoolArg("-reindex", false)};
     const bool do_reindex_chainstate{args.GetBoolArg("-reindex-chainstate", false)};
     bool do_reindex_assets{args.GetBoolArg("-reindexassets", false)};
-    fAssetIndex = args.GetBoolArg("-assetindex", false);
+    fAssetIndex = args.GetBoolArg("-assetindex", true);
 
     // Chainstate initialization and loading may be retried once with reindexing by GUI users
     auto [status, error] = InitAndLoadChainstate(
