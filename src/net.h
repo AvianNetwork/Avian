@@ -87,7 +87,7 @@ static const int NUM_FDS_MESSAGE_CAPTURE = 1;
 /** Interval for ASMap Health Check **/
 static constexpr std::chrono::hours ASMAP_HEALTH_CHECK_INTERVAL{24};
 
-static constexpr bool DEFAULT_FORCEDNSSEED{false};
+static constexpr bool DEFAULT_FORCEDNSSEED{true};
 static constexpr bool DEFAULT_DNSSEED{true};
 static constexpr bool DEFAULT_FIXEDSEEDS{true};
 static const size_t DEFAULT_MAXRECEIVEBUFFER = 5 * 1000;
