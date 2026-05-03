@@ -525,6 +525,9 @@ static RPCHelpMan getansdata()
         },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
         {
+            if (!IsAvianNameSystemDeployed())
+                throw JSONRPCError(RPC_MISC_ERROR, "Avian Name System is not active on this network.");
+
             std::string asset_name = request.params[0].get_str();
 
             LOCK(cs_main);
