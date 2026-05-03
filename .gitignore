@@ -8,6 +8,9 @@
 !/build-aux
 !/build_msvc
 
+# VS Code CMake Tools output directory
+/out/
+
 # Claude Code temp files
 tmpclaude-*
 
