@@ -168,6 +168,7 @@ private:
     QAction* createAssetAction = nullptr;
     QAction* manageAssetAction = nullptr;
     QAction* restrictedAssetAction = nullptr;
+    QAction* vaultAction = nullptr;
     QAction* m_consolidate_utxos_action = nullptr;
     QAction* m_paper_wallet_action = nullptr;
     /** AVN END */
@@ -308,6 +309,8 @@ public Q_SLOTS:
     void gotoCreateAssetsPage();
     void gotoManageAssetsPage();
     void gotoRestrictedAssetsPage();
+    /** Switch to vault page */
+    void gotoVaultPage();
     /** Print paper wallets */
     void gotoPaperWallet();
     /** AVN END */

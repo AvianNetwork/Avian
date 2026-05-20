@@ -95,7 +95,8 @@ std::optional<OutputType> OutputTypeFromDestination(const CTxDestination& dest) 
         std::holds_alternative<WitnessUnknown>(dest)) {
         return OutputType::BECH32M;
     }
-    if (std::holds_alternative<WitnessV2MLDsa44>(dest)) {
+    if (std::holds_alternative<WitnessV2MLDsa44>(dest) ||
+        std::holds_alternative<WitnessV2MLDsa44CLTV>(dest)) {
         return OutputType::PQ;
     }
     return std::nullopt;

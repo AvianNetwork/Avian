@@ -144,6 +144,29 @@ struct WitnessV2MLDsa44 : public BaseHash<uint256>
 };
 
 /**
+ * RIP-25: Witness v2 ML-DSA-44 post-quantum address type with CLTV locktime.
+ * The 40-byte witness program is: SHA256(mldsa_pubkey)[32] || int64_LE(locktime)[8]
+ * scriptPubKey: OP_2 <40-byte-program>
+ * At spend time the witness stack must contain: [sig (2420B), pubkey (1312B)]
+ * and the transaction nLockTime must be >= locktime.
+ */
+struct WitnessV2MLDsa44CLTV {
+    uint256 pqHash;      //!< SHA256(mldsa_pubkey) — 32 bytes
+    int64_t locktime{0}; //!< Required locktime embedded in the witness program — 8 bytes LE
+
+    WitnessV2MLDsa44CLTV() = default;
+    WitnessV2MLDsa44CLTV(const uint256& hash, int64_t lt) : pqHash(hash), locktime(lt) {}
+
+    bool operator==(const WitnessV2MLDsa44CLTV& o) const {
+        return pqHash == o.pqHash && locktime == o.locktime;
+    }
+    bool operator<(const WitnessV2MLDsa44CLTV& o) const {
+        if (pqHash != o.pqHash) return pqHash < o.pqHash;
+        return locktime < o.locktime;
+    }
+};
+
+/**
  * A txout script categorized into standard templates.
  *  * CNoDestination: Optionally a script, no corresponding address.
  *  * PubKeyDestination: TxoutType::PUBKEY (P2PK), no corresponding address
@@ -154,10 +177,11 @@ struct WitnessV2MLDsa44 : public BaseHash<uint256>
  *  * WitnessV1Taproot: TxoutType::WITNESS_V1_TAPROOT destination (P2TR address)
  *  * PayToAnchor: TxoutType::ANCHOR destination (P2A address)
  *  * WitnessV2MLDsa44: TxoutType::WITNESS_V2_MLDSA44 destination (RIP-25 P2PQ address)
+ *  * WitnessV2MLDsa44CLTV: TxoutType::WITNESS_V2_MLDSA44_CLTV destination (RIP-25 P2PQ+CLTV vault address)
  *  * WitnessUnknown: TxoutType::WITNESS_UNKNOWN destination (P2W??? address)
  *  A CTxDestination is the internal data type encoded in a bitcoin address
  */
-using CTxDestination = std::variant<CNoDestination, PubKeyDestination, PKHash, ScriptHash, WitnessV0ScriptHash, WitnessV0KeyHash, WitnessV1Taproot, PayToAnchor, WitnessV2MLDsa44, WitnessUnknown>;
+using CTxDestination = std::variant<CNoDestination, PubKeyDestination, PKHash, ScriptHash, WitnessV0ScriptHash, WitnessV0KeyHash, WitnessV1Taproot, PayToAnchor, WitnessV2MLDsa44, WitnessV2MLDsa44CLTV, WitnessUnknown>;
 
 /** Check whether a CTxDestination corresponds to one with an address. */
 bool IsValidDestination(const CTxDestination& dest);

@@ -54,6 +54,9 @@ public:
     bool CreateSchnorrSig(const SigningProvider& provider, std::vector<unsigned char>& sig, const XOnlyPubKey& pubkey, const uint256* leaf_hash, const uint256* merkle_root, SigVersion sigversion) const override;
     /** RIP-25: Create an ML-DSA-44 signature over sighash(scriptCode). Returns {sig, pubkey}. */
     bool CreateMLDsa44Sig(const SigningProvider& provider, std::vector<unsigned char>& sig_out, std::vector<unsigned char>& pubkey_out, const uint256& program) const;
+    /** RIP-25 CLTV: Create an ML-DSA-44 signature using the full witness program bytes (40 bytes for CLTV).
+     *  First 32 bytes of full_program identify the key; all bytes form the sighash scriptCode. */
+    bool CreateMLDsa44SigWithProgram(const SigningProvider& provider, std::vector<unsigned char>& sig_out, std::vector<unsigned char>& pubkey_out, const std::vector<unsigned char>& full_program) const;
 };
 
 /** A signature checker that accepts all signatures */

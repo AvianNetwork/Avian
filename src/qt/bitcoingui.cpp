@@ -377,6 +377,14 @@ void BitcoinGUI::createActions()
     restrictedAssetAction->setShortcut(QKeySequence(QStringLiteral("Alt+8")));
     restrictedAssetAction->setFont(navFont);
     tabGroup->addAction(restrictedAssetAction);
+
+    vaultAction = new QAction(platformStyle->SingleColorIconOnOff(":/icons/vault_selected", ":/icons/vault"), tr("&Vault"), this);
+    vaultAction->setStatusTip(tr("Create and manage time-locked AVN vaults"));
+    vaultAction->setToolTip(vaultAction->statusTip());
+    vaultAction->setCheckable(true);
+    vaultAction->setShortcut(QKeySequence(QStringLiteral("Alt+9")));
+    vaultAction->setFont(navFont);
+    tabGroup->addAction(vaultAction);
     /** AVN END */
 
 #ifdef ENABLE_WALLET
@@ -400,6 +408,8 @@ void BitcoinGUI::createActions()
     connect(manageAssetAction, &QAction::triggered, this, &BitcoinGUI::gotoManageAssetsPage);
     connect(restrictedAssetAction, &QAction::triggered, [this]{ showNormalIfMinimized(); });
     connect(restrictedAssetAction, &QAction::triggered, this, &BitcoinGUI::gotoRestrictedAssetsPage);
+    connect(vaultAction, &QAction::triggered, [this]{ showNormalIfMinimized(); });
+    connect(vaultAction, &QAction::triggered, this, &BitcoinGUI::gotoVaultPage);
     /** AVN END */
 #endif // ENABLE_WALLET
 
@@ -754,6 +764,7 @@ void BitcoinGUI::createToolBars()
         toolbar->addAction(transferAssetAction);
         toolbar->addAction(manageAssetAction);
         toolbar->addAction(restrictedAssetAction);
+        toolbar->addAction(vaultAction);
 
         // Style toolbar buttons: transparent bg, colored text states
         QString tbStyleSheet = ".QToolBar {background-color: transparent; border-color: transparent;} "
@@ -1036,6 +1047,7 @@ void BitcoinGUI::setWalletActionsEnabled(bool enabled)
     createAssetAction->setEnabled(enabled);
     manageAssetAction->setEnabled(enabled);
     restrictedAssetAction->setEnabled(enabled);
+    vaultAction->setEnabled(enabled);
     /** AVN END */
 }
 
@@ -1237,6 +1249,12 @@ void BitcoinGUI::gotoRestrictedAssetsPage()
 {
     restrictedAssetAction->setChecked(true);
     if (walletFrame) walletFrame->gotoRestrictedAssetsPage();
+}
+
+void BitcoinGUI::gotoVaultPage()
+{
+    vaultAction->setChecked(true);
+    if (walletFrame) walletFrame->gotoVaultPage();
 }
 
 void BitcoinGUI::gotoPaperWallet()
@@ -1539,6 +1557,7 @@ void BitcoinGUI::changeEvent(QEvent *e)
         sendCoinsAction->setIcon(platformStyle->SingleColorIconOnOff(QStringLiteral(":/icons/send_selected"), QStringLiteral(":/icons/send")));
         receiveCoinsAction->setIcon(platformStyle->SingleColorIconOnOff(QStringLiteral(":/icons/receiving_addresses_selected"), QStringLiteral(":/icons/receiving_addresses")));
         historyAction->setIcon(platformStyle->SingleColorIconOnOff(QStringLiteral(":/icons/history_selected"), QStringLiteral(":/icons/history")));
+        vaultAction->setIcon(platformStyle->SingleColorIconOnOff(QStringLiteral(":/icons/vault_selected"), QStringLiteral(":/icons/vault")));
     }
 
     QMainWindow::changeEvent(e);

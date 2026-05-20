@@ -12,6 +12,10 @@
 #include <rpc/rawtransaction_util.h>
 #include <rpc/util.h>
 #include <script/script.h>
+#include <script/signingprovider.h>
+#include <script/solver.h>
+#include <wallet/scriptpubkeyman.h>
+#include <addresstype.h>
 #include <util/rbf.h>
 #include <util/translation.h>
 #include <util/vector.h>
@@ -971,8 +975,10 @@ RPCHelpMan signrawtransactionwithwallet()
     }
     pwallet->chain().findCoins(coins);
 
-    // Parse the prevtxs array
-    ParsePrevouts(request.params[1], nullptr, coins);
+    // Parse the prevtxs array — capture redeemScript/witnessScript from prevouts
+    // so CLTV and other non-wallet scripts can be signed.
+    FlatSigningProvider prevout_keys;
+    ParsePrevouts(request.params[1], &prevout_keys, coins);
 
     std::optional<int> nHashType = ParseSighashString(request.params[2]);
     if (!nHashType) {
@@ -983,10 +989,101 @@ RPCHelpMan signrawtransactionwithwallet()
     // Script verification errors
     std::map<int, bilingual_str> input_errors;
 
-    bool complete = pwallet->SignTransaction(mtx, coins, *nHashType, input_errors);
-    UniValue result(UniValue::VOBJ);
-    SignTransactionResultToJSON(mtx, complete, coins, input_errors, result);
-    return result;
+    // Build a combined signing provider: wallet keys + redeemScripts from prevouts.
+    // This allows signing P2SH inputs (e.g. CLTV vaults) whose redeemScript is not
+    // stored in the wallet's descriptor/legacy store.
+    //
+    // Strategy: for each P2SH input, resolve the redeemScript from prevout_keys, then
+    // look up the wallet's signing provider for the *inner* scriptPubKey embedded in
+    // that redeemScript so we get the private key. Merge everything into one provider.
+    {
+        FlatSigningProvider combined;
+        combined.Merge(std::move(prevout_keys));
+
+        // For each coin, collect wallet signing data for the output's scriptPubKey.
+        // Also try the scriptPubKeys of any known redeemScripts in combined.scripts,
+        // so that P2SH wrappers of non-wallet scripts (e.g. CLTV vaults) are signed.
+        auto collect_keys = [&](const CScript& script) {
+            for (ScriptPubKeyMan* spkm : pwallet->GetAllScriptPubKeyMans()) {
+                if (auto* dspkm = dynamic_cast<DescriptorScriptPubKeyMan*>(spkm)) {
+                    if (auto keys = dspkm->GetSigningProvider(script, /*include_private=*/true)) {
+                        combined.Merge(std::move(*keys));
+                    }
+                }
+            }
+            // For WITNESS_V2_MLDSA44_CLTV scripts the vault address is a 40-byte
+            // witness program that is NOT in any descriptor's m_map_script_pub_keys.
+            // The underlying PQ private key is registered under the matching 32-byte
+            // plain WitnessV2MLDsa44 scriptPubKey (OP_2 <32-byte-hash>).
+            // Look that up in every DescriptorScriptPubKeyMan so the PQ key ends up
+            // in `combined.pq_keys` where CreateMLDsa44SigWithProgram can find it.
+            std::vector<std::vector<unsigned char>> solutions;
+            TxoutType script_type = Solver(script, solutions);
+            if (script_type == TxoutType::WITNESS_V2_MLDSA44_CLTV && solutions.size() >= 1) {
+                // Rebuild OP_2 <32-byte-hash> — the plain PQ scriptPubKey
+                CScript pq_script;
+                pq_script << OP_2 << solutions[0];
+                for (ScriptPubKeyMan* spkm2 : pwallet->GetAllScriptPubKeyMans()) {
+                    if (auto* dspkm2 = dynamic_cast<DescriptorScriptPubKeyMan*>(spkm2)) {
+                        if (auto keys2 = dspkm2->GetSigningProvider(pq_script, /*include_private=*/true)) {
+                            combined.Merge(std::move(*keys2));
+                            break;
+                        }
+                    }
+                }
+                // Fallback: key may be in the legacy PQ key store
+                if (LegacyDataSPKM* legacy = pwallet->GetLegacyDataSPKM()) {
+                    uint256 pq_hash(solutions[0]);
+                    CPQKey pq_key;
+                    if (legacy->GetPQKey(pq_hash, pq_key)) {
+                        combined.pq_keys[pq_hash] = std::make_shared<CPQKey>(std::move(pq_key));
+                    }
+                }
+            }
+        };
+
+        for (const auto& coin_pair : coins) {
+            collect_keys(coin_pair.second.out.scriptPubKey);
+        }
+        // Also try inner scripts from the combined redeemScript store
+        for (const auto& [scriptid, script] : combined.scripts) {
+            collect_keys(script);
+            // For each inner script, also try its P2PKH form
+            std::vector<std::vector<unsigned char>> solutions;
+            TxoutType type = Solver(script, solutions);
+            if (type == TxoutType::CLTV_P2PKH && !solutions.empty()) {
+                // Legacy CLTV form: solutions[0] = hash160 of key
+                CScript inner;
+                inner << OP_DUP << OP_HASH160 << solutions[0] << OP_EQUALVERIFY << OP_CHECKSIG;
+                collect_keys(inner);
+            } else {
+                // Miniscript form: <PUBKEY> OP_CHECKSIGVERIFY <N> OP_CHECKLOCKTIMEVERIFY
+                // Extract the leading 33-byte compressed pubkey and look up its P2PKH
+                CScript::const_iterator it = script.begin();
+                opcodetype op;
+                std::vector<unsigned char> pubkeyData;
+                if (script.GetOp(it, op, pubkeyData) && pubkeyData.size() == 33) {
+                    CPubKey pubkey(pubkeyData);
+                    if (pubkey.IsValid()) {
+                        CScript p2pkh;
+                        p2pkh << OP_DUP << OP_HASH160
+                              << ToByteVector(pubkey.GetID())
+                              << OP_EQUALVERIFY << OP_CHECKSIG;
+                        collect_keys(p2pkh);
+                    }
+                }
+            }
+        }
+
+        bool complete = ::SignTransaction(mtx, &combined, coins, *nHashType, input_errors);
+        // Fallback: if combined provider didn't fully sign, try the wallet's own path
+        if (!complete) {
+            complete = pwallet->SignTransaction(mtx, coins, *nHashType, input_errors);
+        }
+        UniValue result(UniValue::VOBJ);
+        SignTransactionResultToJSON(mtx, complete, coins, input_errors, result);
+        return result;
+    }
 },
     };
 }

@@ -22,6 +22,7 @@
 #include <qt/signverifymessagedialog.h>
 #include <qt/transactiontablemodel.h>
 #include <qt/transactionview.h>
+#include <qt/vaultdialog.h>
 #include <qt/walletmodel.h>
 
 #include <interfaces/node.h>
@@ -74,6 +75,7 @@ WalletView::WalletView(WalletModel* wallet_model, const PlatformStyle* _platform
     createAssetsPage = new CreateAssetDialog(platformStyle);
     manageAssetsPage = new ReissueAssetDialog(platformStyle);
     restrictedAssetsPage = new RestrictedAssetsDialog(platformStyle);
+    vaultPage = new VaultDialog(platformStyle);
     /** AVN END */
 
     usedSendingAddressesPage = new AddressBookPage(platformStyle, AddressBookPage::ForEditing, AddressBookPage::SendingTab, this);
@@ -92,6 +94,7 @@ WalletView::WalletView(WalletModel* wallet_model, const PlatformStyle* _platform
     addWidget(createAssetsPage);
     addWidget(manageAssetsPage);
     addWidget(restrictedAssetsPage);
+    addWidget(vaultPage);
     /** AVN END */
 
     connect(overviewPage, &OverviewPage::transactionClicked, this, &WalletView::transactionClicked);
@@ -137,6 +140,7 @@ WalletView::WalletView(WalletModel* wallet_model, const PlatformStyle* _platform
     createAssetsPage->setModel(walletModel);
     manageAssetsPage->setModel(walletModel);
     restrictedAssetsPage->setModel(walletModel);
+    vaultPage->setModel(walletModel);
     /** AVN END */
 
     connect(this, &WalletView::setPrivacy, overviewPage, &OverviewPage::setPrivacy);
@@ -167,6 +171,9 @@ void WalletView::setClientModel(ClientModel *_clientModel)
     overviewPage->setClientModel(_clientModel);
     sendCoinsPage->setClientModel(_clientModel);
     walletModel->setClientModel(_clientModel);
+    /** AVN START */
+    vaultPage->setClientModel(_clientModel);
+    /** AVN END */
 }
 
 void WalletView::processNewTransaction(const QModelIndex& parent, int start, int /*end*/)
@@ -361,6 +368,11 @@ void WalletView::gotoRestrictedAssetsPage()
     setCurrentWidget(restrictedAssetsPage);
 }
 
+void WalletView::gotoVaultPage()
+{
+    vaultPage->refresh();
+    setCurrentWidget(vaultPage);
+}
 void WalletView::dustWallet()
 {
     DusterDialog dlg(platformStyle, this);

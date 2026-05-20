@@ -21,6 +21,7 @@ class RestrictedAssetsDialog;
 class SendCoinsDialog;
 class SendCoinsRecipient;
 class TransactionView;
+class VaultDialog;
 class WalletModel;
 class AddressBookPage;
 
@@ -76,6 +77,7 @@ private:
     CreateAssetDialog* createAssetsPage;
     ReissueAssetDialog* manageAssetsPage;
     RestrictedAssetsDialog* restrictedAssetsPage;
+    VaultDialog* vaultPage;
     /** AVN END */
 
     QProgressDialog* progressDialog{nullptr};
@@ -102,6 +104,8 @@ public Q_SLOTS:
     void gotoCreateAssetsPage();
     void gotoManageAssetsPage();
     void gotoRestrictedAssetsPage();
+    /** Switch to vault page */
+    void gotoVaultPage();
 
     /** Consolidate wallet UTXOs */
     void dustWallet();
@@ -152,6 +156,7 @@ Q_SIGNALS:
     void assetPageRequested();
     void createAssetPageRequested();
     void manageAssetPageRequested();
+    void vaultPageRequested();
 };
 
 #endif // BITCOIN_QT_WALLETVIEW_H

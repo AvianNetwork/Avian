@@ -75,6 +75,21 @@ public:
         return bech32::Encode(bech32::Encoding::BECH32M, m_params.Bech32HRP(), data);
     }
 
+    std::string operator()(const WitnessV2MLDsa44CLTV& pqcltv) const
+    {
+        // RIP-25 CLTV: witness version 2, bech32m, 40-byte program = SHA256(pubkey)[32] || locktime_LE8[8]
+        std::vector<unsigned char> program;
+        program.reserve(40);
+        program.insert(program.end(), pqcltv.pqHash.begin(), pqcltv.pqHash.end());
+        for (int i = 0; i < 8; i++) {
+            program.push_back(static_cast<unsigned char>((pqcltv.locktime >> (8 * i)) & 0xff));
+        }
+        std::vector<unsigned char> data = {2};
+        data.reserve(66);
+        ConvertBits<8, 5, true>([&](unsigned char c) { data.push_back(c); }, program.begin(), program.end());
+        return bech32::Encode(bech32::Encoding::BECH32M, m_params.Bech32HRP(), data);
+    }
+
     std::string operator()(const WitnessUnknown& id) const
     {
         const std::vector<unsigned char>& program = id.GetWitnessProgram();
@@ -200,6 +215,18 @@ CTxDestination DecodeDestination(const std::string& str, const CChainParams& par
                 WitnessV2MLDsa44 pq;
                 std::copy(data.begin(), data.end(), pq.begin());
                 return pq;
+            }
+
+            // RIP-25 CLTV: witness version 2 with 40-byte program is a PQ+CLTV vault address.
+            if (version == 2 && data.size() == 40) {
+                WitnessV2MLDsa44CLTV pqcltv;
+                std::copy(data.begin(), data.begin() + 32, pqcltv.pqHash.begin());
+                int64_t lt = 0;
+                for (int i = 0; i < 8; i++) {
+                    lt |= static_cast<int64_t>(data[32 + i]) << (8 * i);
+                }
+                pqcltv.locktime = lt;
+                return pqcltv;
             }
 
             if (version > 16) {

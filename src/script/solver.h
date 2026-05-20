@@ -33,7 +33,9 @@ enum class TxoutType {
     WITNESS_V0_KEYHASH,
     WITNESS_V1_TAPROOT,
     WITNESS_V2_MLDSA44, //!< RIP-25: witness v2 ML-DSA-44 post-quantum signature output
+    WITNESS_V2_MLDSA44_CLTV, //!< RIP-25: witness v2 ML-DSA-44 + CLTV vault output (40-byte program)
     WITNESS_UNKNOWN, //!< Only for Witness versions not already defined above
+    CLTV_P2PKH, //!< Vault redeem script: <locktime> OP_CLTV OP_DROP OP_DUP OP_HASH160 <hash> OP_EQUALVERIFY OP_CHECKSIG
     // Avian asset transaction types:
     NEW_ASSET,
     REISSUE_ASSET,

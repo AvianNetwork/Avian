@@ -120,6 +120,36 @@ bool MutableTransactionSignatureCreator::CreateMLDsa44Sig(const SigningProvider&
     return true;
 }
 
+bool MutableTransactionSignatureCreator::CreateMLDsa44SigWithProgram(const SigningProvider& provider, std::vector<unsigned char>& sig_out, std::vector<unsigned char>& pubkey_out, const std::vector<unsigned char>& full_program) const
+{
+    // First 32 bytes of full_program identify the ML-DSA-44 key.
+    if (full_program.size() < 32) return false;
+    uint256 key_hash;
+    std::copy(full_program.begin(), full_program.begin() + 32, key_hash.begin());
+
+    CPQKey pq_key;
+    if (!provider.GetPQKey(key_hash, pq_key)) return false;
+
+    CPQPubKey pq_pubkey = pq_key.GetPubKey();
+
+    // Sighash uses the full program bytes, making CLTV spends domain-separated from plain PQ spends.
+    CScript scriptCode;
+    scriptCode << OP_2 << full_program;
+
+    constexpr int32_t nHashType = 0x41; // SIGHASH_ALL | SIGHASH_FORKID
+    uint256 sighash = SignatureHash(scriptCode, m_txto, nIn, nHashType, amount, SigVersion::WITNESS_V0, m_txdata);
+
+    sig_out.resize(mldsa::SIG_SIZE);
+    if (!pq_key.Sign(sig_out,
+                     std::span<const uint8_t>(sighash.begin(), 32))) {
+        return false;
+    }
+
+    auto pk_data = pq_pubkey.GetData();
+    pubkey_out.assign(pk_data.begin(), pk_data.end());
+    return true;
+}
+
 static bool GetCScript(const SigningProvider& provider, const SignatureData& sigdata, const CScriptID& scriptid, CScript& script)
 {
     if (provider.GetCScript(scriptid, script)) {
@@ -448,6 +478,21 @@ static bool SignStep(const SigningProvider& provider, const BaseSignatureCreator
         if (!CreateSig(creator, sigdata, provider, sig, CPubKey(vSolutions[0]), scriptPubKey, sigversion)) return false;
         ret.push_back(std::move(sig));
         return true;
+    case TxoutType::CLTV_P2PKH: {
+        // CLTV-P2PKH vault redeem script: <locktime> OP_CLTV OP_DROP OP_DUP OP_HASH160 <hash160> OP_EQUALVERIFY OP_CHECKSIG
+        // Sign exactly like PUBKEYHASH. The full redeemScript (scriptPubKey here) is used as
+        // the sighash scriptCode, which is correct for P2SH legacy inputs with SIGHASH_FORKID.
+        CKeyID keyID = CKeyID(uint160(vSolutions[0]));
+        CPubKey pubkey;
+        if (!GetPubKey(provider, sigdata, keyID, pubkey)) {
+            sigdata.missing_pubkeys.push_back(keyID);
+            return false;
+        }
+        if (!CreateSig(creator, sigdata, provider, sig, pubkey, scriptPubKey, sigversion)) return false;
+        ret.push_back(std::move(sig));
+        ret.push_back(ToByteVector(pubkey));
+        return true;
+    }
     case TxoutType::NEW_ASSET:
     case TxoutType::REISSUE_ASSET:
     case TxoutType::TRANSFER_ASSET:
@@ -521,6 +566,22 @@ static bool SignStep(const SigningProvider& provider, const BaseSignatureCreator
         std::vector<unsigned char> sig, pubkey;
         if (!mtxcreator->CreateMLDsa44Sig(provider, sig, pubkey, program)) return false;
         // Witness stack: [sig, pubkey] (sig pushed first so it's item 0 at stack top after pubkey)
+        ret.push_back(std::move(sig));
+        ret.push_back(std::move(pubkey));
+        return true;
+    }
+
+    case TxoutType::WITNESS_V2_MLDSA44_CLTV: {
+        // vSolutions[0] = 32-byte SHA256(pubkey), vSolutions[1] = 8-byte locktime LE
+        // Full 40-byte witness program is used for the sighash.
+        std::vector<unsigned char> full_program;
+        full_program.reserve(40);
+        full_program.insert(full_program.end(), vSolutions[0].begin(), vSolutions[0].end());
+        full_program.insert(full_program.end(), vSolutions[1].begin(), vSolutions[1].end());
+        const auto* mtxcreator = dynamic_cast<const MutableTransactionSignatureCreator*>(&creator);
+        if (!mtxcreator) return false;
+        std::vector<unsigned char> sig, pubkey;
+        if (!mtxcreator->CreateMLDsa44SigWithProgram(provider, sig, pubkey, full_program)) return false;
         ret.push_back(std::move(sig));
         ret.push_back(std::move(pubkey));
         return true;
@@ -610,6 +671,11 @@ bool ProduceSignature(const SigningProvider& provider, const BaseSignatureCreato
         result.clear();
     } else if (solved && whichType == TxoutType::WITNESS_V2_MLDSA44 && !P2SH) {
         // RIP-25: ML-DSA-44 witness v2 — stack: [sig, pubkey]
+        sigdata.witness = true;
+        sigdata.scriptWitness.stack = std::move(result);
+        result.clear();
+    } else if (solved && whichType == TxoutType::WITNESS_V2_MLDSA44_CLTV && !P2SH) {
+        // RIP-25 CLTV: ML-DSA-44+CLTV witness v2 — stack: [sig, pubkey]
         sigdata.witness = true;
         sigdata.scriptWitness.stack = std::move(result);
         result.clear();

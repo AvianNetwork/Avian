@@ -87,6 +87,8 @@ public Q_SLOTS:
     void gotoCreateAssetsPage();
     void gotoManageAssetsPage();
     void gotoRestrictedAssetsPage();
+    /** Switch to vault page */
+    void gotoVaultPage();
     /** AVN END */
 
     /** Load Partially Signed Bitcoin Transaction */

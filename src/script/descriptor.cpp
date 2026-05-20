@@ -1040,6 +1040,12 @@ public:
     bool IsSingleType() const final { return true; }
     bool ToPrivateString(const SigningProvider& arg, std::string& out) const final { return false; }
     std::optional<int64_t> ScriptSize() const override { return GetScriptForDestination(m_destination).size(); }
+    // Witness stack for spending: [sig (2420 bytes), pubkey (1312 bytes)].
+    // Both sizes > 252 so each compact-size prefix is 3 bytes.
+    std::optional<int64_t> MaxSatisfactionWeight(bool) const override {
+        return (3 + mldsa::SIG_SIZE) + (3 + mldsa::PUBKEY_SIZE); // = 3738
+    }
+    std::optional<int64_t> MaxSatisfactionElems() const override { return 2; }
     std::unique_ptr<DescriptorImpl> Clone() const override
     {
         return std::make_unique<MLDsaAddressDescriptor>(m_destination);
@@ -2973,6 +2979,18 @@ std::unique_ptr<DescriptorImpl> InferScript(const CScript& script, ParseScriptCo
                 if (provider.HavePQKey(wp)) {
                     return std::make_unique<MLDsaAddressDescriptor>(dest);
                 }
+            }
+            return std::make_unique<AddressDescriptor>(std::move(dest));
+        }
+    }
+
+    // RIP-25 CLTV: ML-DSA-44+CLTV vault outputs — infer as addr().
+    if (txntype == TxoutType::WITNESS_V2_MLDSA44_CLTV) {
+        CTxDestination dest;
+        if (ExtractDestination(script, dest)) {
+            const auto* pq_cltv = std::get_if<WitnessV2MLDsa44CLTV>(&dest);
+            if (pq_cltv && provider.HavePQKey(pq_cltv->pqHash)) {
+                return std::make_unique<MLDsaAddressDescriptor>(dest);
             }
             return std::make_unique<AddressDescriptor>(std::move(dest));
         }

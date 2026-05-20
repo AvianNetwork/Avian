@@ -244,6 +244,8 @@ if(ENABLE_WALLET)
       paperwalletdialog.h
       verticallabel.cpp
       verticallabel.h
+      vaultdialog.cpp
+      vaultdialog.h
   )
   target_link_libraries(bitcoinqt
     PRIVATE

@@ -30,7 +30,9 @@ std::string GetTxnOutputType(TxoutType t)
     case TxoutType::WITNESS_V0_SCRIPTHASH: return "witness_v0_scripthash";
     case TxoutType::WITNESS_V1_TAPROOT: return "witness_v1_taproot";
     case TxoutType::WITNESS_V2_MLDSA44: return "witness_v2_mldsa44";
+    case TxoutType::WITNESS_V2_MLDSA44_CLTV: return "witness_v2_mldsa44_cltv";
     case TxoutType::WITNESS_UNKNOWN: return "witness_unknown";
+    case TxoutType::CLTV_P2PKH: return "cltv_p2pkh";
     case TxoutType::NEW_ASSET: return "new_asset";
     case TxoutType::REISSUE_ASSET: return "reissue_asset";
     case TxoutType::TRANSFER_ASSET: return "transfer_asset";
@@ -86,6 +88,36 @@ static std::optional<int> GetScriptNumber(opcodetype opcode, valtype data, int m
     }
     if (count < min || count > max) return {};
     return count;
+}
+
+static bool MatchCLTVP2PKH(const CScript& script, valtype& pubkeyhash)
+{
+    // Pattern: <locktime_push> OP_CHECKLOCKTIMEVERIFY OP_DROP OP_DUP OP_HASH160 <20-byte-hash> OP_EQUALVERIFY OP_CHECKSIG
+    CScript::const_iterator it = script.begin();
+    opcodetype opcode;
+    valtype data;
+
+    // Read the locktime push — OP_1..OP_16 for tiny values, or a minimal data push
+    if (!script.GetOp(it, opcode, data)) return false;
+    if (opcode == OP_0) return false;
+    if (IsSmallInteger(opcode)) {
+        // OP_1..OP_16: tiny locktime (unusual but valid)
+    } else if (IsPushdataOp(opcode)) {
+        if (data.empty() || data.size() > 5) return false;
+        if (!CheckMinimalPush(data, opcode)) return false;
+    } else {
+        return false;
+    }
+
+    if (!script.GetOp(it, opcode) || opcode != OP_CHECKLOCKTIMEVERIFY) return false;
+    if (!script.GetOp(it, opcode) || opcode != OP_DROP)                 return false;
+    if (!script.GetOp(it, opcode) || opcode != OP_DUP)                  return false;
+    if (!script.GetOp(it, opcode) || opcode != OP_HASH160)              return false;
+    if (!script.GetOp(it, opcode, data) || data.size() != 20)           return false;
+    pubkeyhash = data;
+    if (!script.GetOp(it, opcode) || opcode != OP_EQUALVERIFY)          return false;
+    if (!script.GetOp(it, opcode) || opcode != OP_CHECKSIG)             return false;
+    return it == script.end();
 }
 
 static bool MatchMultisig(const CScript& script, int& required_sigs, std::vector<valtype>& pubkeys)
@@ -180,6 +212,13 @@ TxoutType Solver(const CScript& scriptPubKey, std::vector<std::vector<unsigned c
             vSolutionsRet.push_back(std::move(witnessprogram));
             return TxoutType::WITNESS_V2_MLDSA44;
         }
+        // RIP-25: witness version 2 with 40-byte program is ML-DSA-44 + CLTV vault output.
+        // Program layout: SHA256(pubkey)[32] || locktime_LE8[8]
+        if (witnessversion == 2 && witnessprogram.size() == 40) {
+            vSolutionsRet.push_back(valtype(witnessprogram.begin(), witnessprogram.begin() + 32));
+            vSolutionsRet.push_back(valtype(witnessprogram.begin() + 32, witnessprogram.begin() + 40));
+            return TxoutType::WITNESS_V2_MLDSA44_CLTV;
+        }
         if (witnessversion != 0) {
             vSolutionsRet.push_back(std::vector<unsigned char>{(unsigned char)witnessversion});
             vSolutionsRet.push_back(std::move(witnessprogram));
@@ -206,6 +245,11 @@ TxoutType Solver(const CScript& scriptPubKey, std::vector<std::vector<unsigned c
     if (MatchPayToPubkeyHash(scriptPubKey, data)) {
         vSolutionsRet.push_back(std::move(data));
         return TxoutType::PUBKEYHASH;
+    }
+
+    if (MatchCLTVP2PKH(scriptPubKey, data)) {
+        vSolutionsRet.push_back(std::move(data));
+        return TxoutType::CLTV_P2PKH;
     }
 
     int required;

@@ -97,6 +97,7 @@ IsMineResult LegacyWalletIsMineInnerDONOTUSE(const LegacyDataSPKM& keystore, con
     case TxoutType::WITNESS_V1_TAPROOT:
     case TxoutType::ANCHOR:
     case TxoutType::WITNESS_V2_MLDSA44:
+    case TxoutType::WITNESS_V2_MLDSA44_CLTV:
     case TxoutType::NEW_ASSET:
     case TxoutType::REISSUE_ASSET:
     case TxoutType::TRANSFER_ASSET:
@@ -134,6 +135,14 @@ IsMineResult LegacyWalletIsMineInnerDONOTUSE(const LegacyDataSPKM& keystore, con
                 return IsMineResult::INVALID;
             }
         }
+        if (keystore.HaveKey(keyID)) {
+            ret = std::max(ret, IsMineResult::SPENDABLE);
+        }
+        break;
+    case TxoutType::CLTV_P2PKH:
+        // CLTV-P2PKH vault redeem script. Ownership = having the embedded P2PKH key.
+        // Valid only as a P2SH subscript (outer SCRIPTHASH recurses into this).
+        keyID = CKeyID(uint160(vSolutions[0]));
         if (keystore.HaveKey(keyID)) {
             ret = std::max(ret, IsMineResult::SPENDABLE);
         }

@@ -2023,7 +2023,6 @@ static bool VerifyWitnessProgram(const CScriptWitness& witness, int witversion, 
     } else if (!is_p2sh && CScript::IsPayToAnchor(witversion, program)) {
         return true;
     } else if (witversion == 2 && program.size() == 32 && !is_p2sh) {
-        // RIP-25: ML-DSA-44 post-quantum witness v2 spending rule.
         // Witness stack must be: [sig (2420 bytes), pubkey (1312 bytes)]
         // Witness program is SHA256(pubkey).
         if (!(flags & SCRIPT_VERIFY_PQ_HYBRID)) {
@@ -2061,6 +2060,62 @@ static bool VerifyWitnessProgram(const CScriptWitness& witness, int witversion, 
         CPQPubKey pq_pubkey(std::span<const uint8_t, CPQPubKey::SIZE>(pk_bytes.data(), CPQPubKey::SIZE));
         if (!pq_pubkey.Verify(std::span<const uint8_t>(sig_bytes.data(), sig_bytes.size()),
                               std::span<const uint8_t>(sighash.begin(), 32))) {
+            return set_error(serror, SCRIPT_ERR_PQ_SIGNATURE_VERIFY_FAILED);
+        }
+        return set_success(serror);
+    } else if (witversion == 2 && program.size() == 40 && !is_p2sh) {
+        // RIP-25 CLTV: ML-DSA-44 + CLTV vault witness v2 spending rule.
+        // Program layout: SHA256(pubkey)[32] || int64_LE(locktime)[8]
+        // Witness stack: [sig (2420 bytes), pubkey (1312 bytes)]
+        if (!(flags & SCRIPT_VERIFY_PQ_HYBRID)) {
+            if (flags & SCRIPT_VERIFY_DISCOURAGE_UPGRADABLE_WITNESS_PROGRAM) {
+                return set_error(serror, SCRIPT_ERR_DISCOURAGE_UPGRADABLE_WITNESS_PROGRAM);
+            }
+            return true; // treat as unknown future upgrade
+        }
+
+        // Decode locktime from program bytes 32-39 (little-endian int64)
+        int64_t script_locktime = 0;
+        for (int i = 0; i < 8; i++) {
+            script_locktime |= static_cast<int64_t>(program[32 + i]) << (8 * i);
+        }
+
+        // Enforce CLTV: transaction nLockTime must be >= script locktime
+        // and this input's nSequence must not be SEQUENCE_FINAL.
+        if (script_locktime < 0) {
+            return set_error(serror, SCRIPT_ERR_NEGATIVE_LOCKTIME);
+        }
+        if (!checker.CheckLockTime(CScriptNum(script_locktime))) {
+            return set_error(serror, SCRIPT_ERR_UNSATISFIED_LOCKTIME);
+        }
+
+        if (stack.size() != 2) {
+            return set_error(serror, SCRIPT_ERR_WITNESS_PROGRAM_MISMATCH);
+        }
+        const valtype& pk_bytes  = stack[1]; // pubkey (1312 bytes)
+        const valtype& sig_bytes = stack[0]; // signature (2420 bytes)
+
+        if (pk_bytes.size() != CPQPubKey::SIZE) {
+            return set_error(serror, SCRIPT_ERR_PQ_PUBKEY_SIZE);
+        }
+        if (sig_bytes.size() != mldsa::SIG_SIZE) {
+            return set_error(serror, SCRIPT_ERR_PQ_SIGNATURE_SIZE);
+        }
+
+        // Verify witness program: SHA256(pubkey) == program[0..31]
+        uint256 pk_hash;
+        CSHA256().Write(pk_bytes.data(), pk_bytes.size()).Finalize(pk_hash.begin());
+        if (memcmp(pk_hash.begin(), program.data(), 32) != 0) {
+            return set_error(serror, SCRIPT_ERR_PQ_WITNESS_PROGRAM_MISMATCH);
+        }
+
+        // Sighash uses the full 40-byte program, distinguishing CLTV from plain PQ spend.
+        const CScript scriptCode = CScript() << OP_2 << program;
+        const uint256 sighash = checker.GetMLDsa44SigHash(scriptCode);
+
+        CPQPubKey pq_pubkey_cltv(std::span<const uint8_t, CPQPubKey::SIZE>(pk_bytes.data(), CPQPubKey::SIZE));
+        if (!pq_pubkey_cltv.Verify(std::span<const uint8_t>(sig_bytes.data(), sig_bytes.size()),
+                                   std::span<const uint8_t>(sighash.begin(), 32))) {
             return set_error(serror, SCRIPT_ERR_PQ_SIGNATURE_VERIFY_FAILED);
         }
         return set_success(serror);

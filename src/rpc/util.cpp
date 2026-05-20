@@ -347,6 +347,22 @@ public:
         return obj;
     }
 
+    UniValue operator()(const WitnessV2MLDsa44CLTV& id) const
+    {
+        UniValue obj(UniValue::VOBJ);
+        obj.pushKV("isscript", false);
+        obj.pushKV("iswitness", true);
+        obj.pushKV("witness_version", 2);
+        // 40-byte witness program: SHA256(pubkey)[32] || locktime_LE8
+        std::vector<unsigned char> program;
+        program.reserve(40);
+        program.insert(program.end(), id.pqHash.begin(), id.pqHash.end());
+        for (int i = 0; i < 8; i++) program.push_back((id.locktime >> (8 * i)) & 0xff);
+        obj.pushKV("witness_program", HexStr(program));
+        obj.pushKV("locktime", id.locktime);
+        return obj;
+    }
+
     UniValue operator()(const WitnessUnknown& id) const
     {
         UniValue obj(UniValue::VOBJ);

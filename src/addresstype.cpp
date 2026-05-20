@@ -97,6 +97,18 @@ bool ExtractDestination(const CScript& scriptPubKey, CTxDestination& addressRet)
         addressRet = id;
         return true;
     }
+    case TxoutType::WITNESS_V2_MLDSA44_CLTV: {
+        // vSolutions[0] = 32-byte SHA256(pubkey), vSolutions[1] = 8-byte locktime LE
+        WitnessV2MLDsa44CLTV dest;
+        std::copy(vSolutions[0].begin(), vSolutions[0].end(), dest.pqHash.begin());
+        int64_t lt = 0;
+        for (int i = 0; i < 8; i++) {
+            lt |= static_cast<int64_t>(vSolutions[1][i]) << (8 * i);
+        }
+        dest.locktime = lt;
+        addressRet = dest;
+        return true;
+    }
     case TxoutType::WITNESS_UNKNOWN: {
         addressRet = WitnessUnknown{vSolutions[0][0], vSolutions[1]};
         return true;
@@ -105,6 +117,7 @@ bool ExtractDestination(const CScript& scriptPubKey, CTxDestination& addressRet)
     case TxoutType::NULL_DATA:
     case TxoutType::NONSTANDARD:
     case TxoutType::RESTRICTED_ASSET_DATA:
+    case TxoutType::CLTV_P2PKH:
         addressRet = CNoDestination(scriptPubKey);
         return false;
     case TxoutType::NEW_ASSET:
@@ -162,6 +175,18 @@ public:
         return CScript() << OP_2 << ToByteVector(id);
     }
 
+    CScript operator()(const WitnessV2MLDsa44CLTV& id) const
+    {
+        // Build 40-byte program: SHA256(pubkey)[32] || locktime_LE8[8]
+        std::vector<unsigned char> program;
+        program.reserve(40);
+        program.insert(program.end(), id.pqHash.begin(), id.pqHash.end());
+        for (int i = 0; i < 8; i++) {
+            program.push_back(static_cast<unsigned char>((id.locktime >> (8 * i)) & 0xff));
+        }
+        return CScript() << OP_2 << program;
+    }
+
     CScript operator()(const WitnessUnknown& id) const
     {
         return CScript() << CScript::EncodeOP_N(id.GetWitnessVersion()) << id.GetWitnessProgram();
@@ -177,7 +202,7 @@ public:
     bool operator()(const ScriptHash& dest) const { return true; }
     bool operator()(const WitnessV0KeyHash& dest) const { return true; }
     bool operator()(const WitnessV0ScriptHash& dest) const { return true; }
-    bool operator()(const WitnessV1Taproot& dest) const { return true; }    bool operator()(const WitnessV2MLDsa44& dest) const { return true; }    bool operator()(const WitnessUnknown& dest) const { return true; }
+    bool operator()(const WitnessV1Taproot& dest) const { return true; }    bool operator()(const WitnessV2MLDsa44& dest) const { return true; }    bool operator()(const WitnessV2MLDsa44CLTV& dest) const { return true; }    bool operator()(const WitnessUnknown& dest) const { return true; }
 };
 } // namespace
 

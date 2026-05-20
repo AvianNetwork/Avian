@@ -360,8 +360,12 @@ public:
 
     UniValue operator()(const WitnessV1Taproot& id) const { return UniValue(UniValue::VOBJ); }
     UniValue operator()(const PayToAnchor& id) const { return UniValue(UniValue::VOBJ); }
-    UniValue operator()(const WitnessV2MLDsa44& id) const { return UniValue(UniValue::VOBJ); }
-    UniValue operator()(const WitnessUnknown& id) const { return UniValue(UniValue::VOBJ); }
+    UniValue operator()(const WitnessV2MLDsa44& id) const { return UniValue(UniValue::VOBJ); }    UniValue operator()(const WitnessV2MLDsa44CLTV& id) const
+    {
+        UniValue obj(UniValue::VOBJ);
+        obj.pushKV("cltv_locktime", id.locktime);
+        return obj;
+    }    UniValue operator()(const WitnessUnknown& id) const { return UniValue(UniValue::VOBJ); }
 };
 
 static UniValue DescribeWalletAddress(const CWallet& wallet, const CTxDestination& dest)
@@ -488,7 +492,8 @@ RPCHelpMan getaddressinfo()
     }
 
     ret.pushKV("iswatchonly", false);
-    ret.pushKV("ispostquantum", std::holds_alternative<WitnessV2MLDsa44>(dest));
+    ret.pushKV("ispostquantum", std::holds_alternative<WitnessV2MLDsa44>(dest) ||
+                                 std::holds_alternative<WitnessV2MLDsa44CLTV>(dest));
 
     UniValue detail = DescribeWalletAddress(*pwallet, dest);
     ret.pushKVs(std::move(detail));
