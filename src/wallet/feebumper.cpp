@@ -7,6 +7,7 @@
 #include <interfaces/chain.h>
 #include <policy/fees.h>
 #include <policy/policy.h>
+#include <script/solver.h>
 #include <util/moneystr.h>
 #include <util/rbf.h>
 #include <util/translation.h>
@@ -50,6 +51,24 @@ static feebumper::Result PreconditionChecks(const CWallet& wallet, const CWallet
         if (!AllInputsMine(wallet, *wtx.tx)) {
             errors.emplace_back(Untranslated("Transaction contains inputs that don't belong to this wallet"));
             return feebumper::Result::WALLET_ERROR;
+        }
+    }
+
+    // Reject if the transaction contains asset outputs.  feebumper rebuilds
+    // recipients from CTxOut as {destination, nValue}, discarding the original
+    // scriptPubKey.  For asset outputs nValue==0 and the asset payload lives
+    // entirely in the script, so the replacement transaction would silently
+    // drop every asset transfer.
+    for (const CTxOut& out : wtx.tx->vout) {
+        std::vector<std::vector<unsigned char>> solutions;
+        TxoutType type = Solver(out.scriptPubKey, solutions);
+        if (type == TxoutType::TRANSFER_ASSET ||
+            type == TxoutType::NEW_ASSET      ||
+            type == TxoutType::REISSUE_ASSET) {
+            errors.emplace_back(Untranslated(
+                "Cannot bump fee on a transaction containing asset outputs. "
+                "Use cancelrawtransaction and rebroadcast instead."));
+            return feebumper::Result::INVALID_REQUEST;
         }
     }
 
