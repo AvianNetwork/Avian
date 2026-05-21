@@ -101,32 +101,43 @@ UniValue NormalizeOutputs(const UniValue& outputs_in)
 
 std::vector<std::pair<CTxDestination, CAmount>> ParseOutputs(const UniValue& outputs)
 {
-    // Duplicate checking
-    std::set<CTxDestination> destinations;
+    // Track AVN and asset-transfer destinations separately so the same address
+    // may appear once as an AVN payment AND once as an asset transfer.
+    std::set<CTxDestination> avn_destinations;
+    std::set<CTxDestination> asset_destinations;
     std::vector<std::pair<CTxDestination, CAmount>> parsed_outputs;
     bool has_data{false};
-    for (const std::string& name_ : outputs.getKeys()) {
+
+    // Iterate positionally: outputs[name_] always returns the FIRST matching key,
+    // which breaks duplicate-key entries (e.g. one AVN + one asset to the same
+    // address).  Using getValues()[i] gives the correct value for each entry.
+    const auto& keys = outputs.getKeys();
+    const auto& values = outputs.getValues();
+
+    for (size_t i = 0; i < keys.size(); ++i) {
+        const std::string& name_ = keys[i];
+        const UniValue& val = values[i];
+
         if (name_ == "data") {
             if (has_data) {
                 throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid parameter, duplicate key: data");
             }
             has_data = true;
-            std::vector<unsigned char> data = ParseHexV(outputs[name_].getValStr(), "Data");
+            std::vector<unsigned char> data = ParseHexV(val.getValStr(), "Data");
             CTxDestination destination{CNoDestination{CScript() << OP_RETURN << data}};
-            CAmount amount{0};
-            parsed_outputs.emplace_back(destination, amount);
+            parsed_outputs.emplace_back(destination, CAmount{0});
         } else {
             CTxDestination destination{DecodeDestination(name_)};
             if (!IsValidDestination(destination)) {
                 throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, std::string("Invalid Avian address: ") + name_);
             }
-            if (!destinations.insert(destination).second) {
-                throw JSONRPCError(RPC_INVALID_PARAMETER, std::string("Invalid parameter, duplicated address: ") + name_);
-            }
 
-            const UniValue& val = outputs[name_];
             if (val.isObject() && val.exists("transfer")) {
                 // Asset transfer output: {"ADDRESS": {"transfer": {"ASSET_NAME": amount}}}
+                if (!asset_destinations.insert(destination).second) {
+                    throw JSONRPCError(RPC_INVALID_PARAMETER,
+                                       std::string("Invalid parameter, duplicated asset transfer address: ") + name_);
+                }
                 const UniValue& transferObj = val["transfer"];
                 if (transferObj.getKeys().size() != 1)
                     throw JSONRPCError(RPC_INVALID_PARAMETER, "transfer must specify exactly one asset");
@@ -140,6 +151,10 @@ std::vector<std::pair<CTxDestination, CAmount>> ParseOutputs(const UniValue& out
 
                 parsed_outputs.emplace_back(CNoDestination{assetScript}, 0);
             } else {
+                if (!avn_destinations.insert(destination).second) {
+                    throw JSONRPCError(RPC_INVALID_PARAMETER,
+                                       std::string("Invalid parameter, duplicated address: ") + name_);
+                }
                 CAmount amount{AmountFromValue(val)};
                 parsed_outputs.emplace_back(destination, amount);
             }
