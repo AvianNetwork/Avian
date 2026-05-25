@@ -25,6 +25,9 @@ public:
     Ui::AssignQualifier *getUI() { return ui; }
     void clear();
 
+private Q_SLOTS:
+    void populateAssetComboBox();
+
 private:
     Ui::AssignQualifier *ui;
     WalletModel *model{nullptr};

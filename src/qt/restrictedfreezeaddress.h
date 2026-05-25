@@ -25,6 +25,9 @@ public:
     Ui::FreezeAddress *getUI() { return ui; }
     void clear();
 
+private Q_SLOTS:
+    void populateAssetComboBox();
+
 private:
     Ui::FreezeAddress *ui;
     WalletModel *model{nullptr};
