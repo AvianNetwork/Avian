@@ -461,13 +461,13 @@ bool CreateAssetDialog::checkIPFSHash(QString hash)
         bool isANS = (hash.toStdString().substr(0, CAvianNameSystemID::prefix.length()) == CAvianNameSystemID::prefix);
         if (!CheckEncoded(DecodeAssetData(hash.toStdString()), error) && !isANS) {
             ui->ipfsText->setStyleSheet("border: 2px solid red");
-            showMessage(tr("IPFS must be 46 characters (starting with 'Qm') or Txid must be 64 hex characters"));
+            showMessage(tr("IPFS must be CIDv0 (46 chars starting 'Qm'), CIDv1 base32 (starts with 'b'), or Txid (64 hex chars)"));
             disableCreateButton();
             return false;
         }
-        else if (hash.size() != 46 && hash.size() != 64) {
+        else if (hash.size() != 46 && hash.size() != 64 && !(hash.size() > 1 && hash[0] == 'b')) {
             ui->ipfsText->setStyleSheet("border: 2px solid red");
-            showMessage(tr("IPFS Hash must be 46 characters or Txid must be 64 characters"));
+            showMessage(tr("IPFS Hash must be CIDv0 (46 chars), CIDv1 base32 (starts with 'b'), or Txid (64 hex chars)"));
             disableCreateButton();
             return false;
         } else if (DecodeAssetData(hash.toStdString()).empty()) {

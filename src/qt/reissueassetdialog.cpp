@@ -816,12 +816,12 @@ bool ReissueAssetDialog::checkIPFSHash(QString hash)
         std::string error;
         if (!CheckEncoded(DecodeAssetData(hash.toStdString()), error)) {
             ui->ipfsText->setStyleSheet(STYLE_INVALID);
-            showMessage(tr("IPFS/Txid Hash must start with 'Qm' and be 46 characters or Txid Hash must have 64 hex characters"));
+            showMessage(tr("IPFS must be CIDv0 (46 chars starting 'Qm'), CIDv1 base32 (starts with 'b'), or Txid (64 hex chars)"));
             disableReissueButton();
             return false;
-        } else if (hash.size() != 46 && hash.size() != 64) {
+        } else if (hash.size() != 46 && hash.size() != 64 && !(hash.size() > 1 && hash[0] == 'b')) {
             ui->ipfsText->setStyleSheet(STYLE_INVALID);
-            showMessage(tr("IPFS/Txid Hash must have size of 46 characters, or 64 hex characters"));
+            showMessage(tr("IPFS Hash must be CIDv0 (46 chars), CIDv1 base32 (starts with 'b'), or Txid (64 hex chars)"));
             disableReissueButton();
             return false;
         } else if (DecodeAssetData(ui->ipfsText->text().toStdString()).empty()) {

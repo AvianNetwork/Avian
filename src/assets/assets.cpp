@@ -3836,7 +3836,19 @@ std::string DecodeAssetData(std::string encoded)
         return encoded;
     }
 
-    // IPFS
+    // CIDv1 IPFS: multibase base32 with 'b' (lowercase) or 'B' (uppercase) prefix
+    else if (encoded.size() > 1 && (encoded[0] == 'b' || encoded[0] == 'B')) {
+        std::string base32Str = encoded.substr(1);
+        // DecodeBase32 requires length to be a multiple of 8 (padded)
+        while (base32Str.size() % 8 != 0) base32Str += '=';
+        auto decoded = DecodeBase32(base32Str);
+        if (decoded && !decoded->empty() && (*decoded)[0] == 0x01) {
+            return std::string(decoded->begin(), decoded->end());
+        }
+        return ""; // Invalid CIDv1
+    }
+
+    // CIDv0 IPFS (46-char base58 starting with "Qm")
     else if (encoded.size() == 46) {
         std::vector<unsigned char> b;
         (void)DecodeBase58(encoded, b, 64);
@@ -3860,7 +3872,13 @@ std::string EncodeAssetData(std::string decoded)
         return decoded;
     }
 
-    // IPFS
+    // CIDv1 IPFS: 36-byte binary (version 0x01 + codec + multihash + digest)
+    else if (decoded.size() == 36 && (unsigned char)decoded[0] == 0x01) {
+        // Encode as base32 lowercase with 'b' multibase prefix, no padding
+        return std::string("b") + EncodeBase32(decoded, /*pad=*/false);
+    }
+
+    // CIDv0 IPFS
     else if (decoded.size() == 34) {
         return EncodeIPFS(decoded);
     }
@@ -3905,8 +3923,13 @@ bool CheckEncoded(const std::string& hash, std::string& strError) {
         return true;
     }
 
-    // IPFS
+    // CIDv0 IPFS
     if (encodedStr.substr(0, 2) == "Qm" && encodedStr.size() == 46) {
+        return true;
+    }
+
+    // CIDv1 IPFS (base32 multibase, 'b' prefix)
+    if (!encodedStr.empty() && encodedStr[0] == 'b') {
         return true;
     }
 
@@ -4896,7 +4919,7 @@ bool ContextualCheckNewAsset(CAssetsCache* assetCache, const CNewAsset& asset, s
     }
 
     // Check the ipfs hash as it changes when messaging goes active
-    if (asset.nHasIPFS && asset.strIPFSHash.size() != 34) {
+    if (asset.nHasIPFS && asset.strIPFSHash.size() != 34 && asset.strIPFSHash.size() != 36) {
         if (!AreMessagesDeployed()) {
             strError = _("Invalid parameter: ipfs_hash must be 46 characters. Txid must be valid 64 character hash");
             return false;
@@ -5021,7 +5044,7 @@ bool ContextualCheckReissueAsset(CAssetsCache* assetCache, const CReissueAsset& 
     }
 
     // Check the ipfs hash
-    if (reissue_asset.strIPFSHash != "" && reissue_asset.strIPFSHash.size() != 34 && (AreMessagesDeployed() && reissue_asset.strIPFSHash.size() != 32)) {
+    if (reissue_asset.strIPFSHash != "" && reissue_asset.strIPFSHash.size() != 34 && reissue_asset.strIPFSHash.size() != 36 && (AreMessagesDeployed() && reissue_asset.strIPFSHash.size() != 32)) {
         strError = _("Invalid parameter: ipfs_hash must be 34 bytes, Txid must be 32 bytes");
         return false;
     }
@@ -5127,7 +5150,7 @@ bool ContextualCheckReissueAsset(CAssetsCache* assetCache, const CReissueAsset& 
     }
 
     // Check the ipfs hash
-    if (reissue_asset.strIPFSHash != "" && reissue_asset.strIPFSHash.size() != 34 && (AreMessagesDeployed() && reissue_asset.strIPFSHash.size() != 32)) {
+    if (reissue_asset.strIPFSHash != "" && reissue_asset.strIPFSHash.size() != 34 && reissue_asset.strIPFSHash.size() != 36 && (AreMessagesDeployed() && reissue_asset.strIPFSHash.size() != 32)) {
         strError = _("Invalid parameter: ipfs_hash must be 34 bytes, Txid must be 32 bytes");
         return false;
     }

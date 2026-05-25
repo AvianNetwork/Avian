@@ -78,16 +78,25 @@ struct CAssetOutputEntry
 static constexpr int8_t IPFS_SHA2_256 = 0x12;
 static constexpr int8_t TXID_NOTIFIER = 0x54;
 static constexpr int8_t IPFS_SHA2_256_LEN = 0x20;
+static constexpr int8_t CIDV1_VERSION = 0x01; // CIDv1 IPFS version byte
 
 // Helper: serialize an IPFS/TXID hash to a stream
 template <typename Stream>
 bool SerializeIPFSHash(Stream& s, const std::string& strIPFSHash)
 {
     if (strIPFSHash.length() == 34) {
+        // CIDv0: 0x1220 + 32-byte hash
         int8_t type = IPFS_SHA2_256;
         ::Serialize(s, type);
         std::string hashData = strIPFSHash.substr(2);
         ::Serialize(s, hashData);
+        return true;
+    } else if (strIPFSHash.length() == 36) {
+        // CIDv1: version(0x01) + codec + multihash, stored as 36 bytes
+        int8_t type = CIDV1_VERSION;
+        ::Serialize(s, type);
+        std::string cidv1Data = strIPFSHash.substr(1); // strip version byte
+        ::Serialize(s, cidv1Data);
         return true;
     } else if (strIPFSHash.length() == 32) {
         int8_t type = TXID_NOTIFIER;
@@ -113,8 +122,15 @@ bool UnserializeIPFSHash(Stream& s, std::string& strIPFSHash)
         if (type == IPFS_SHA2_256) {
             strIPFSHash += char(IPFS_SHA2_256);
             strIPFSHash += char(IPFS_SHA2_256_LEN);
+            strIPFSHash.append(hash, 0, 32);
+        } else if (type == CIDV1_VERSION) {
+            // CIDv1: restore version byte then append codec+multihash data
+            strIPFSHash += char(CIDV1_VERSION);
+            strIPFSHash.append(hash); // full 35 bytes (codec + multihash + digest)
+        } else {
+            // TXID (0x54) or other: no prefix, use raw hash
+            strIPFSHash.append(hash, 0, 32);
         }
-        strIPFSHash.append(hash, 0, 32);
         return true;
     }
     return false;
