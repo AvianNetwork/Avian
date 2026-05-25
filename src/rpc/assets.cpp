@@ -53,6 +53,8 @@ static RPCHelpMan listassets()
                         {RPCResult::Type::NUM, "units", "the number of decimal places"},
                         {RPCResult::Type::NUM, "reissuable", "1 if reissuable"},
                         {RPCResult::Type::NUM, "has_ipfs", "1 if has IPFS data"},
+                        {RPCResult::Type::NUM, "has_ans", "1 if has ANS data"},
+                        {RPCResult::Type::STR, "ans_id", /*optional=*/true, "the ANS ID (only if has_ans = 1)"},
                         {RPCResult::Type::NUM, "block_height", "the block height the asset was created"},
                         {RPCResult::Type::STR_HEX, "blockhash", "the block hash the asset was created"},
                     }},
@@ -107,6 +109,7 @@ static RPCHelpMan listassets()
                     detail.pushKV("units", asset.units);
                     detail.pushKV("reissuable", asset.nReissuable);
                     detail.pushKV("has_ipfs", asset.nHasIPFS);
+                    detail.pushKV("has_ans", asset.nHasANS);
                     detail.pushKV("block_height", data.nHeight);
                     detail.pushKV("blockhash", data.blockHash.GetHex());
                     if (asset.nHasIPFS) {
@@ -116,6 +119,8 @@ static RPCHelpMan listassets()
                             detail.pushKV("ipfs_hash", EncodeAssetData(asset.strIPFSHash));
                         }
                     }
+                    if (asset.nHasANS)
+                        detail.pushKV("ans_id", asset.strANSID);
                     result.pushKV(asset.strName, detail);
                 } else {
                     result.push_back(asset.strName);
@@ -144,6 +149,8 @@ static RPCHelpMan getassetdata()
                 {RPCResult::Type::NUM, "reissuable", "1 if reissuable"},
                 {RPCResult::Type::NUM, "has_ipfs", "1 if has IPFS data"},
                 {RPCResult::Type::STR, "ipfs_hash", /*optional=*/true, "the IPFS hash (only if has_ipfs = 1)"},
+                {RPCResult::Type::NUM, "has_ans", "1 if has ANS data"},
+                {RPCResult::Type::STR, "ans_id", /*optional=*/true, "the ANS ID (only if has_ans = 1)"},
                 {RPCResult::Type::STR, "verifier_string", /*optional=*/true, "the verifier string for restricted assets"},
             }
         },
@@ -176,6 +183,10 @@ static RPCHelpMan getassetdata()
                         result.pushKV("ipfs_hash", EncodeAssetData(asset.strIPFSHash));
                     }
                 }
+
+                result.pushKV("has_ans", asset.nHasANS);
+                if (asset.nHasANS)
+                    result.pushKV("ans_id", asset.strANSID);
 
                 CNullAssetTxVerifierString verifier;
                 if (passets->GetAssetVerifierStringIfExists(asset.strName, verifier)) {
