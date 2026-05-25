@@ -64,8 +64,8 @@ CAmount GetDustThreshold(const CTxOut& txout, const CFeeRate& dustRelayFeeIn)
 
 bool IsDust(const CTxOut& txout, const CFeeRate& dustRelayFeeIn)
 {
-    // AVN: Asset scripts are never considered dust
-    if (txout.scriptPubKey.IsAssetScript())
+    // AVN: Asset scripts and null asset scripts (verifier strings, null data) are never considered dust
+    if (txout.scriptPubKey.IsAssetScript() || txout.scriptPubKey.IsNullAsset())
         return false;
 
     return (txout.nValue < GetDustThreshold(txout, dustRelayFeeIn));
