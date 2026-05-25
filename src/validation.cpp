@@ -3116,10 +3116,29 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
                     if (!assetsCache->AddNewAsset(asset, strAddress, pindex->nHeight, pindex->GetBlockHash()))
                         LogError("ConnectBlock: Failed to add restricted asset %s", asset.strName);
 
+                    // For restricted assets ($TOKEN), the owner token is TOKEN! (root with $ stripped + !).
+                    // OwnerFromTransaction uses IsNewAsset() which explicitly excludes restricted assets,
+                    // so we must derive the owner name and address directly from the tx vouts.
                     std::string ownerName;
                     std::string ownerAddress;
-                    OwnerFromTransaction(tx, ownerName, ownerAddress);
-                    if (!assetsCache->AddOwnerAsset(ownerName, ownerAddress))
+                    {
+                        // Compute TOKEN! from $TOKEN (strip leading '$', append OWNER_TAG)
+                        const std::string& restrictedName = asset.strName;
+                        std::string rootOwnerName = restrictedName.substr(1) + OWNER_TAG; // e.g. "$SMAUG" -> "SMAUG!"
+                        // Find the ROOT! transfer output to get its destination address
+                        for (const auto& vout : tx.vout) {
+                            CAssetTransfer transfer;
+                            std::string transferAddress;
+                            if (TransferAssetFromScript(vout.scriptPubKey, transfer, transferAddress)) {
+                                if (transfer.strName == rootOwnerName) {
+                                    ownerName = rootOwnerName;
+                                    ownerAddress = transferAddress;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                    if (!ownerName.empty() && !assetsCache->AddOwnerAsset(ownerName, ownerAddress))
                         LogError("ConnectBlock: Failed to add owner asset %s", ownerName);
 
                     // Add verifier string for restricted asset
@@ -7073,9 +7092,23 @@ bool ReindexAssets(ChainstateManager& chainman)
                 std::string strAddress;
                 if (RestrictedAssetFromTransaction(tx, asset, strAddress)) {
                     assetCache.AddNewAsset(asset, strAddress, pindex->nHeight, pindex->GetBlockHash());
+                    // For restricted assets ($TOKEN), derive owner name TOKEN! directly (OwnerFromTransaction
+                    // uses IsNewAsset which excludes restricted assets).
                     std::string ownerName, ownerAddress;
-                    OwnerFromTransaction(tx, ownerName, ownerAddress);
-                    assetCache.AddOwnerAsset(ownerName, ownerAddress);
+                    const std::string rootOwnerName = asset.strName.substr(1) + OWNER_TAG;
+                    for (const auto& vout : tx.vout) {
+                        CAssetTransfer transfer;
+                        std::string transferAddress;
+                        if (TransferAssetFromScript(vout.scriptPubKey, transfer, transferAddress)) {
+                            if (transfer.strName == rootOwnerName) {
+                                ownerName = rootOwnerName;
+                                ownerAddress = transferAddress;
+                                break;
+                            }
+                        }
+                    }
+                    if (!ownerName.empty())
+                        assetCache.AddOwnerAsset(ownerName, ownerAddress);
                     CNullAssetTxVerifierString verifier;
                     std::string strError;
                     if (GetVerifierStringFromTx(tx, verifier, strError))

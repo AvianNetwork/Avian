@@ -229,21 +229,28 @@ bool CreateAssetTransaction(
     }
 
     // 5) New asset output(s) — the actual asset scripts sent to the destination address.
-    // IMPORTANT: IsNewAsset() validation requires vout[n-2] = owner token, vout[n-1] = issue data.
-    // Owner token must be pushed BEFORE the asset data, and change must be pinned to position 0
-    // so it cannot displace either of the last two outputs.
+    // IMPORTANT: For regular/sub/unique assets, IsNewAsset() validation requires
+    //   vout[n-2] = owner token, vout[n-1] = issue data.
+    // For restricted assets, NO explicit owner token creation output is needed — the protocol
+    //   handles $TOKEN! implicitly. Only the ROOT owner token (TOKEN!) is transferred (section 4).
+    //   Owner token must be pushed BEFORE the asset data for non-restricted assets, and change
+    //   must be pinned to position 0 so it cannot displace either of the last two outputs.
     CTxDestination assetDest = DecodeDestination(address);
     for (const auto& asset : assets) {
-        // Owner token output (will be second-to-last)
-        CScript scriptOwnerNew = GetScriptForDestination(assetDest);
-        asset.ConstructOwnerTransaction(scriptOwnerNew);
+        // Owner token output (will be second-to-last) — NOT for restricted assets.
+        // Restricted assets ($TOKEN) must NOT have an explicit $TOKEN! creation output;
+        // the validated transaction structure is: burn, ROOT! transfer, verifier, $TOKEN.
+        if (assetType != AssetType::RESTRICTED) {
+            CScript scriptOwnerNew = GetScriptForDestination(assetDest);
+            asset.ConstructOwnerTransaction(scriptOwnerNew);
 
-        CRecipient ownerRec;
-        ownerRec.dest = CNoDestination();
-        ownerRec.nAmount = 0;
-        ownerRec.fSubtractFeeFromAmount = false;
-        ownerRec.scriptOverride = scriptOwnerNew;
-        vecSend.push_back(ownerRec);
+            CRecipient ownerRec;
+            ownerRec.dest = CNoDestination();
+            ownerRec.nAmount = 0;
+            ownerRec.fSubtractFeeFromAmount = false;
+            ownerRec.scriptOverride = scriptOwnerNew;
+            vecSend.push_back(ownerRec);
+        }
 
         // Issue data output (must be last)
         CScript scriptAssetNew = GetScriptForDestination(assetDest);
