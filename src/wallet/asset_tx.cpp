@@ -228,20 +228,13 @@ bool CreateAssetTransaction(
         vecSend.push_back(verifierRec);
     }
 
-    // 5) New asset output(s) — the actual asset scripts sent to the destination address
+    // 5) New asset output(s) — the actual asset scripts sent to the destination address.
+    // IMPORTANT: IsNewAsset() validation requires vout[n-2] = owner token, vout[n-1] = issue data.
+    // Owner token must be pushed BEFORE the asset data, and change must be pinned to position 0
+    // so it cannot displace either of the last two outputs.
     CTxDestination assetDest = DecodeDestination(address);
     for (const auto& asset : assets) {
-        CScript scriptAssetNew = GetScriptForDestination(assetDest);
-        asset.ConstructTransaction(scriptAssetNew);
-
-        CRecipient assetRec;
-        assetRec.dest = CNoDestination();
-        assetRec.nAmount = 0;
-        assetRec.fSubtractFeeFromAmount = false;
-        assetRec.scriptOverride = scriptAssetNew;
-        vecSend.push_back(assetRec);
-
-        // Owner token output
+        // Owner token output (will be second-to-last)
         CScript scriptOwnerNew = GetScriptForDestination(assetDest);
         asset.ConstructOwnerTransaction(scriptOwnerNew);
 
@@ -251,6 +244,17 @@ bool CreateAssetTransaction(
         ownerRec.fSubtractFeeFromAmount = false;
         ownerRec.scriptOverride = scriptOwnerNew;
         vecSend.push_back(ownerRec);
+
+        // Issue data output (must be last)
+        CScript scriptAssetNew = GetScriptForDestination(assetDest);
+        asset.ConstructTransaction(scriptAssetNew);
+
+        CRecipient assetRec;
+        assetRec.dest = CNoDestination();
+        assetRec.nAmount = 0;
+        assetRec.fSubtractFeeFromAmount = false;
+        assetRec.scriptOverride = scriptAssetNew;
+        vecSend.push_back(assetRec);
     }
 
     // Pre-select owner token UTXOs if needed for subassets/unique/msgchannel/restricted
@@ -284,8 +288,8 @@ bool CreateAssetTransaction(
     // Allow the wallet to select additional AVN inputs for fees
     coinControl.m_allow_other_inputs = true;
 
-    // Create the transaction
-    auto res = CreateTransaction(wallet, vecSend, std::nullopt, coinControl, true);
+    // Pin change to position 0 so it cannot displace the required last/second-to-last asset outputs.
+    auto res = CreateTransaction(wallet, vecSend, (unsigned int)0, coinControl, true);
     if (!res) {
         error = std::make_pair(RPC_WALLET_ERROR, util::ErrorString(res).original);
         return false;
@@ -695,8 +699,8 @@ bool CreateReissueAssetTransaction(
 
     coinControl.m_allow_other_inputs = true;
 
-    // Create the transaction
-    auto res = CreateTransaction(wallet, vecSend, std::nullopt, coinControl, true);
+    // Pin change to position 0 so it cannot displace the required last reissue output.
+    auto res = CreateTransaction(wallet, vecSend, (unsigned int)0, coinControl, true);
     if (!res) {
         error = std::make_pair(RPC_WALLET_ERROR, util::ErrorString(res).original);
         return false;
