@@ -97,6 +97,29 @@ static RPCHelpMan listassets()
             if (!passetsdb->AssetDir(assets, filter, count, start))
                 throw JSONRPCError(RPC_INTERNAL_ERROR, "couldn't retrieve asset directory.");
 
+            // Also include assets that are in the in-memory cache but not yet flushed to disk.
+            // This mirrors the pattern used by listaddressesbyasset.
+            if (passets) {
+                LOCK(cs_main);
+                std::set<std::string> inDbNames;
+                for (const auto& d : assets)
+                    inDbNames.insert(d.asset.strName);
+
+                bool wc = !filter.empty() && filter.back() == '*';
+                const std::string pfx = wc ? filter.substr(0, filter.size() - 1) : filter;
+
+                for (const auto& entry : passets->setNewAssetsToAdd) {
+                    const std::string& name = entry.asset.strName;
+                    if (inDbNames.count(name))
+                        continue;
+                    bool matches = pfx.empty() ||
+                                   (wc  && name.substr(0, pfx.size()) == pfx) ||
+                                   (!wc && name == pfx);
+                    if (matches)
+                        assets.emplace_back(entry.asset, entry.blockHeight, entry.blockHash);
+                }
+            }
+
             UniValue result;
             result = verbose ? UniValue(UniValue::VOBJ) : UniValue(UniValue::VARR);
 
