@@ -250,6 +250,17 @@ QString PSBTOperationsDialog::renderTransaction(const PartiallySignedTransaction
                 .arg(QString::fromStdString(ValueFromAmountString(assetData.nAmount, 8)))
                 .arg(QString::fromStdString(assetData.assetName))
                 .arg(QString::fromStdString(EncodeDestination(address))));
+        } else if (out.scriptPubKey.IsNullAsset()) {
+            // Null asset metadata output (verifier string, address tag, global restriction)
+            if (out.scriptPubKey.IsNullAssetVerifierTxDataScript()) {
+                CNullAssetTxVerifierString verifier;
+                if (AssetNullVerifierDataFromScript(out.scriptPubKey, verifier)) {
+                    tx_description.append(bullet_point).append(tr("Sets verifier string: \"%1\"")
+                        .arg(QString::fromStdString(verifier.verifier_string)));
+                }
+            }
+            // Other null asset data outputs (address tags, global restrictions) are
+            // protocol metadata and are not displayed as payments.
         } else {
             // Regular AVN output
             totalAmount += out.nValue;
