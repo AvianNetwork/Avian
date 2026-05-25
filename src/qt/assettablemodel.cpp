@@ -46,9 +46,10 @@ static bool GetAllMyAssetBalances(wallet::CWallet* pwallet,
 
         const wallet::CWalletTx& wtx = txo.GetWalletTx();
         int nDepth = pwallet->GetTxDepthInMainChain(wtx);
-        if (nDepth < 0)
-            continue;
-        if (nDepth == 0 && !wtx.InMempool())
+        // Only include confirmed UTXOs. Mempool asset-creation UTXOs have no
+        // confirmed metadata in the asset cache yet, which would cause the
+        // whole list to go blank when refreshWallet() can't look them up.
+        if (nDepth <= 0)
             continue;
 
         CAssetOutputEntry data;
@@ -115,8 +116,9 @@ public:
                         // Asset is not an administrator asset
                         CNewAsset assetData;
                         if (!currentActiveAssetCache->GetAssetMetaDataIfExists(bal->first, assetData)) {
-                            qWarning("AssetTablePriv::refreshWallet: Error retrieving asset data");
-                            return;
+                            qWarning("AssetTablePriv::refreshWallet: No metadata for asset '%s' — skipping",
+                                     qPrintable(QString::fromStdString(bal->first)));
+                            continue;
                         }
                         units = assetData.units;
                         ipfsHash = assetData.strIPFSHash;
