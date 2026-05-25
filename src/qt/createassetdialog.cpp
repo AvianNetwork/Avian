@@ -20,6 +20,8 @@
 #include <wallet/coincontrol.h>
 #include <wallet/asset_tx.h>
 #include <policy/fees.h>
+#include <psbt.h>
+#include <util/strencodings.h>
 
 #include <addresstype.h>
 #include <key_io.h>
@@ -32,6 +34,8 @@
 #include <assets/assets.h>
 #include <assets/ans.h>
 #include <qt/assettablemodel.h>
+
+#include <fstream>
 
 #include <QGraphicsDropShadowEffect>
 #include <QModelIndex>
@@ -457,13 +461,13 @@ bool CreateAssetDialog::checkIPFSHash(QString hash)
         bool isANS = (hash.toStdString().substr(0, CAvianNameSystemID::prefix.length()) == CAvianNameSystemID::prefix);
         if (!CheckEncoded(DecodeAssetData(hash.toStdString()), error) && !isANS) {
             ui->ipfsText->setStyleSheet("border: 2px solid red");
-            showMessage(tr("IPFS must start with 'Qm' and be 46 characters or Txid must be 64 hex characters"));
+            showMessage(tr("IPFS must be 46 characters (starting with 'Qm') or Txid must be 64 hex characters"));
             disableCreateButton();
             return false;
         }
         else if (hash.size() != 46 && hash.size() != 64) {
             ui->ipfsText->setStyleSheet("border: 2px solid red");
-            showMessage(tr("IPFS Hash must be 46 characters, or Txid 64 hex characters"));
+            showMessage(tr("IPFS Hash must be 46 characters or Txid must be 64 characters"));
             disableCreateButton();
             return false;
         } else if (DecodeAssetData(hash.toStdString()).empty()) {
@@ -921,40 +925,82 @@ void CreateAssetDialog::onCreateAssetClicked()
     confirmationDialog.exec();
     QMessageBox::StandardButton retval = (QMessageBox::StandardButton)confirmationDialog.result();
 
-    if(retval != QMessageBox::Yes)
+    if (retval != QMessageBox::Yes && retval != QMessageBox::Save)
     {
         return;
     }
 
-    // Create the transaction and broadcast it
-    std::string txid;
-    {
-        LOCK(pwallet->cs_wallet);
-        if (!wallet::SendAssetTransaction(*pwallet, txRef, error, txid)) {
-            showMessage(tr("Invalid: ") + QString::fromStdString(error.second));
-        } else {
-            QMessageBox msgBox;
-            QPushButton *copyButton = msgBox.addButton(tr("Copy"), QMessageBox::ActionRole);
-            copyButton->disconnect();
-            connect(copyButton, &QPushButton::clicked, this, [=](){
-                QClipboard *p_Clipboard = QApplication::clipboard();
-                p_Clipboard->setText(QString::fromStdString(txid), QClipboard::Mode::Clipboard);
+    if (retval == QMessageBox::Save) {
+        // "Create Unsigned" clicked — export as PSBT
+        CMutableTransaction mtx = CMutableTransaction{*txRef};
+        // Strip scriptSigs and scriptWitnesses — PSBT format requires unsigned tx
+        for (CTxIn& txin : mtx.vin) {
+            txin.scriptSig.clear();
+            txin.scriptWitness.SetNull();
+        }
+        PartiallySignedTransaction psbtx(mtx);
+        bool complete = false;
+        const auto err{model->wallet().fillPSBT(std::nullopt, /*sign=*/false, /*bip32derivs=*/true, /*n_signed=*/nullptr, psbtx, complete)};
+        if (err) {
+            showMessage(tr("Failed to create PSBT"));
+            return;
+        }
+        // Serialize and copy to clipboard, offer save
+        DataStream ssTx{};
+        ssTx << psbtx;
+        GUIUtil::setClipboard(EncodeBase64(ssTx.str()).c_str());
+        QMessageBox msgBox(this);
+        msgBox.setText(tr("Unsigned Transaction", "PSBT copied"));
+        msgBox.setInformativeText(tr("The PSBT has been copied to the clipboard. You can also save it."));
+        msgBox.setStandardButtons(QMessageBox::Save | QMessageBox::Discard);
+        msgBox.setDefaultButton(QMessageBox::Discard);
+        switch (msgBox.exec()) {
+        case QMessageBox::Save: {
+            QString selectedFilter;
+            QString filename = GUIUtil::getSaveFileName(this,
+                tr("Save Transaction Data"), QString::fromStdString(asset.strName) + ".psbt",
+                tr("Partially Signed Transaction (Binary)") + QLatin1String(" (*.psbt)"), &selectedFilter);
+            if (!filename.isEmpty()) {
+                std::ofstream out{filename.toLocal8Bit().data(), std::ofstream::out | std::ofstream::binary};
+                out << ssTx.str();
+                out.close();
+            }
+            break;
+        }
+        case QMessageBox::Discard:
+            break;
+        }
+    } else {
+        // "Send" clicked — broadcast directly
+        std::string txid;
+        {
+            LOCK(pwallet->cs_wallet);
+            if (!wallet::SendAssetTransaction(*pwallet, txRef, error, txid)) {
+                showMessage(tr("Invalid: ") + QString::fromStdString(error.second));
+            } else {
+                QMessageBox msgBox;
+                QPushButton *copyButton = msgBox.addButton(tr("Copy"), QMessageBox::ActionRole);
+                copyButton->disconnect();
+                connect(copyButton, &QPushButton::clicked, this, [=](){
+                    QClipboard *p_Clipboard = QApplication::clipboard();
+                    p_Clipboard->setText(QString::fromStdString(txid), QClipboard::Mode::Clipboard);
 
-                QMessageBox copiedBox;
-                copiedBox.setText(tr("Transaction ID Copied"));
-                copiedBox.exec();
-            });
+                    QMessageBox copiedBox;
+                    copiedBox.setText(tr("Transaction ID Copied"));
+                    copiedBox.exec();
+                });
 
-            QPushButton *okayButton = msgBox.addButton(QMessageBox::Ok);
-            msgBox.setText(tr("Asset transaction sent to network:"));
-            msgBox.setInformativeText(QString::fromStdString(txid));
-            msgBox.exec();
+                QPushButton *okayButton = msgBox.addButton(QMessageBox::Ok);
+                msgBox.setText(tr("Asset transaction sent to network:"));
+                msgBox.setInformativeText(QString::fromStdString(txid));
+                msgBox.exec();
 
-            if (msgBox.clickedButton() == okayButton) {
-                clear();
+                if (msgBox.clickedButton() == okayButton) {
+                    clear();
 
-                s_coinControl().UnSelectAll();
-                coinControlUpdateLabels();
+                    s_coinControl().UnSelectAll();
+                    coinControlUpdateLabels();
+                }
             }
         }
     }

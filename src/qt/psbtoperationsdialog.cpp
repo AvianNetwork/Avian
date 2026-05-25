@@ -15,9 +15,12 @@
 #include <qt/forms/ui_psbtoperationsdialog.h>
 #include <qt/guiutil.h>
 #include <qt/optionsmodel.h>
+
+#include <QMessageBox>
 #include <util/fs.h>
 #include <assets/assets.h>
 #include <assets/assettypes.h>
+#include <script/interpreter.h>
 #include <util/strencodings.h>
 
 #include <fstream>
@@ -45,8 +48,17 @@ PSBTOperationsDialog::PSBTOperationsDialog(
 
     connect(m_ui->closeButton, &QPushButton::clicked, this, &PSBTOperationsDialog::close);
 
+    // Populate sighash type selector with all Avian FORKID variants
+    m_ui->sighashTypeCombo->addItem(tr("ALL|FORKID (default)"),       SIGHASH_ALL|SIGHASH_FORKID);
+    m_ui->sighashTypeCombo->addItem(tr("NONE|FORKID"),                SIGHASH_NONE|SIGHASH_FORKID);
+    m_ui->sighashTypeCombo->addItem(tr("SINGLE|FORKID"),              SIGHASH_SINGLE|SIGHASH_FORKID);
+    m_ui->sighashTypeCombo->addItem(tr("ALL|FORKID|ANYONECANPAY"),    SIGHASH_ALL|SIGHASH_FORKID|SIGHASH_ANYONECANPAY);
+    m_ui->sighashTypeCombo->addItem(tr("NONE|FORKID|ANYONECANPAY"),   SIGHASH_NONE|SIGHASH_FORKID|SIGHASH_ANYONECANPAY);
+    m_ui->sighashTypeCombo->addItem(tr("SINGLE|FORKID|ANYONECANPAY"), SIGHASH_SINGLE|SIGHASH_FORKID|SIGHASH_ANYONECANPAY);
+
     m_ui->signTransactionButton->setEnabled(false);
     m_ui->broadcastTransactionButton->setEnabled(false);
+    m_ui->sighashTypeCombo->setEnabled(false);
 }
 
 PSBTOperationsDialog::~PSBTOperationsDialog()
@@ -72,9 +84,12 @@ void PSBTOperationsDialog::openWithPSBT(PartiallySignedTransaction psbtx)
         // Use either result — FinalizePSBT may recognize completeness that
         // FillPSBT (descriptor-wallet-only verification) does not.
         complete = complete || fill_complete;
-        m_ui->signTransactionButton->setEnabled(!complete && !m_wallet_model->wallet().privateKeysDisabled() && n_could_sign > 0);
+        const bool can_sign = !complete && !m_wallet_model->wallet().privateKeysDisabled() && n_could_sign > 0;
+        m_ui->signTransactionButton->setEnabled(can_sign);
+        m_ui->sighashTypeCombo->setEnabled(can_sign);
     } else {
         m_ui->signTransactionButton->setEnabled(false);
+        m_ui->sighashTypeCombo->setEnabled(false);
     }
 
     m_ui->broadcastTransactionButton->setEnabled(complete);
@@ -89,7 +104,8 @@ void PSBTOperationsDialog::signTransaction()
 
     WalletModel::UnlockContext ctx(m_wallet_model->requestUnlock());
 
-    const auto err{m_wallet_model->wallet().fillPSBT(std::nullopt, /*sign=*/true, /*bip32derivs=*/true, &n_signed, m_transaction_data, complete)};
+    const int sighash_type = m_ui->sighashTypeCombo->currentData().toInt();
+    const auto err{m_wallet_model->wallet().fillPSBT(sighash_type, /*sign=*/true, /*bip32derivs=*/true, &n_signed, m_transaction_data, complete)};
 
     if (err) {
         showStatus(tr("Failed to sign transaction: %1")
@@ -123,6 +139,34 @@ void PSBTOperationsDialog::signTransaction()
 
 void PSBTOperationsDialog::broadcastTransaction()
 {
+    // Warn if any input was signed with ANYONECANPAY. Such a PSBT is typically
+    // a partial Marketplace offer that requires a buyer to add inputs before
+    // broadcasting. Broadcasting it standalone will burn the excess input value
+    // as miner fees and the node will likely reject it for excessive fee rate.
+    bool has_anyonecanpay = false;
+    for (const PSBTInput& input : m_transaction_data.inputs) {
+        for (const auto& [keyid, sig_pair] : input.partial_sigs) {
+            if (!sig_pair.second.empty() && (sig_pair.second.back() & SIGHASH_ANYONECANPAY)) {
+                has_anyonecanpay = true;
+                break;
+            }
+        }
+        if (has_anyonecanpay) break;
+    }
+    if (has_anyonecanpay) {
+        const auto reply = QMessageBox::warning(this,
+            tr("ANYONECANPAY Transaction Warning"),
+            tr("This transaction was signed with ANYONECANPAY and is likely intended as a "
+               "partial Marketplace offer. A buyer must add their own inputs before "
+               "broadcasting — sending it now as a standalone transaction will almost "
+               "certainly result in the excess input value being lost to miner fees, "
+               "and the node may reject it for exceeding the maximum fee rate.\n\n"
+               "Are you sure you want to broadcast?"),
+            QMessageBox::Yes | QMessageBox::Cancel,
+            QMessageBox::Cancel);
+        if (reply != QMessageBox::Yes) return;
+    }
+
     CMutableTransaction mtx;
     if (!FinalizeAndExtractPSBT(m_transaction_data, mtx)) {
         // This is never expected to fail unless we were given a malformed PSBT
