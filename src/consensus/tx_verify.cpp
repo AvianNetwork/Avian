@@ -418,6 +418,20 @@ bool Consensus::CheckTxAssets(const CTransaction& tx, TxValidationState& state, 
             if (!AreRestrictedAssetsDeployed())
                 return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-txns-issue-restricted-before-it-is-active");
 
+            // Restricted asset creation txs must NOT contain an owner token creation output (TX_NEW_ASSET, fIsOwner=true).
+            // The root TOKEN! owner is transferred (not newly created) in these transactions. Any tx with an
+            // extra $TOKEN! creation output is malformed — reject it so it cannot enter or persist in the mempool.
+            for (const auto& vout : tx.vout) {
+                int nOutType = 0;
+                bool fOutIsOwner = false;
+                if (vout.scriptPubKey.IsAssetScript(nOutType, fOutIsOwner)) {
+                    if (nOutType == TX_NEW_ASSET && fOutIsOwner) {
+                        return state.Invalid(TxValidationResult::TX_CONSENSUS,
+                                             "bad-txns-issue-restricted-has-owner-creation-output");
+                    }
+                }
+            }
+
             CNewAsset asset;
             std::string strAddress;
             if (!RestrictedAssetFromTransaction(tx, asset, strAddress))
