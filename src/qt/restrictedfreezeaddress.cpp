@@ -55,11 +55,17 @@ void FreezeAddress::populateAssetComboBox()
             continue;
 
         QString name = assetModel->data(idx, AssetTableModel::AssetNameRole).toString();
-        if (!name.endsWith('!'))
+
+        // AssetTableModel has two cases for admin assets:
+        //   1. Wallet holds both "FOO" and "FOO!" → row shows "FOO"  (AdministratorRole=true, FOO! skipped)
+        //   2. Wallet holds only "FOO!"           → row shows "FOO!" (AdministratorRole=true)
+        QString baseName = name.endsWith('!') ? name.chopped(1) : name;
+
+        // Only root assets own restricted assets; skip sub-assets, qualifiers, and restricted entries
+        if (baseName.contains('/') || baseName.startsWith('#') || baseName.startsWith('$'))
             continue;
 
-        // Owner token "FOO!" → restricted asset "$FOO"
-        ui->assetComboBox->addItem("$" + name.chopped(1));
+        ui->assetComboBox->addItem("$" + baseName);
     }
 
     // Restore previous selection if it is still present
