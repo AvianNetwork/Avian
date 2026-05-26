@@ -42,6 +42,7 @@
 #include <policy/policy.h>
 #include <core_io.h>
 #include <wallet/coincontrol.h>
+#include <assets/assets.h>
 
 RestrictedAssetsDialog::RestrictedAssetsDialog(const PlatformStyle *_platformStyle, QWidget *parent) :
         QDialog(parent),
@@ -104,12 +105,14 @@ void RestrictedAssetsDialog::setModel(WalletModel *_model)
         assignQualifier->setWalletModel(_model);
         assignQualifier->setObjectName("tab_assign_qualifier");
         connect(assignQualifier->getUI()->buttonSubmit, SIGNAL(clicked()), this, SLOT(assignQualifierClicked()));
+        connect(assignQualifier->getUI()->buttonCheck,  SIGNAL(clicked()), this, SLOT(checkQualifierClicked()));
         ui->tabWidget->addTab(assignQualifier, "Assign/Remove Qualifier");
 
         FreezeAddress *freezeAddress = new FreezeAddress(platformStyle, this);
         freezeAddress->setWalletModel(_model);
         freezeAddress->setObjectName("tab_freeze_address");
         connect(freezeAddress->getUI()->buttonSubmit, SIGNAL(clicked()), this, SLOT(freezeAddressClicked()));
+        connect(freezeAddress->getUI()->buttonCheck,  SIGNAL(clicked()), this, SLOT(checkFreezeClicked()));
         ui->tabWidget->addTab(freezeAddress, "Restrict Addresses/Global");
     }
 }
@@ -256,6 +259,20 @@ void RestrictedAssetsDialog::freezeAddressClicked()
         }
     }
 
+    // Confirm before broadcasting
+    {
+        bool isGlobalOp = fui->radioButtonGlobalFreeze->isChecked() || fui->radioButtonGlobalUnfreeze->isChecked();
+        QString opDesc = isFreeze ? tr("freeze") : tr("unfreeze");
+        QString scopeDesc = isGlobalOp ? tr("ALL trading for %1").arg(assetName) :
+                                         tr("address %1 for %2").arg(fui->lineEditAddress->text().trimmed()).arg(assetName);
+        QString feeStr = BitcoinUnits::formatWithUnit(model->getOptionsModel()->getDisplayUnit(), nFeeRequired);
+        auto reply = QMessageBox::question(this, tr("Confirm Restriction"),
+            tr("You are about to %1 %2.\n\nEstimated fee: %3\n\nProceed?").arg(opDesc).arg(scopeDesc).arg(feeStr),
+            QMessageBox::Yes | QMessageBox::No);
+        if (reply != QMessageBox::Yes)
+            return;
+    }
+
     std::string txid;
     if (!wallet::SendAssetTransaction(*pwallet, tx, error, txid)) {
         QMessageBox::critical(this, tr("Error"), QString::fromStdString(error.second));
@@ -359,6 +376,20 @@ void RestrictedAssetsDialog::assignQualifierClicked()
         return;
     }
 
+    // Confirm before broadcasting
+    {
+        QString action = (flag == 1) ? tr("assign qualifier %1 to") : tr("remove qualifier %1 from");
+        QString feeStr = BitcoinUnits::formatWithUnit(model->getOptionsModel()->getDisplayUnit(), nFeeRequired);
+        auto reply = QMessageBox::question(this, tr("Confirm Qualifier Change"),
+            tr("You are about to %1 address %2.\n\nEstimated fee: %3\n\nProceed?")
+                .arg(action.arg(qualifierName))
+                .arg(qui->lineEditAddress->text().trimmed())
+                .arg(feeStr),
+            QMessageBox::Yes | QMessageBox::No);
+        if (reply != QMessageBox::Yes)
+            return;
+    }
+
     std::string txid;
     if (!wallet::SendAssetTransaction(*pwallet, tx, error, txid)) {
         QMessageBox::critical(this, tr("Error"), QString::fromStdString(error.second));
@@ -367,4 +398,77 @@ void RestrictedAssetsDialog::assignQualifierClicked()
 
     QMessageBox::information(this, tr("Success"),
         tr("Transaction sent successfully.\nTxID: %1").arg(QString::fromStdString(txid)));
+}
+
+void RestrictedAssetsDialog::checkFreezeClicked()
+{
+    FreezeAddress *freezeTab = findChild<FreezeAddress*>("tab_freeze_address");
+    if (!freezeTab) return;
+    Ui::FreezeAddress *fui = freezeTab->getUI();
+
+    QString assetName = fui->assetComboBox->currentText();
+    if (assetName.isEmpty()) {
+        QMessageBox::warning(this, tr("Check"), tr("Please select a restricted asset."));
+        return;
+    }
+    std::string asset_name = assetName.toStdString();
+    if (asset_name[0] != RESTRICTED_CHAR)
+        asset_name = std::string(1, RESTRICTED_CHAR) + asset_name;
+
+    LOCK(cs_main);
+    if (!passets) {
+        QMessageBox::warning(this, tr("Check"), tr("Asset cache not available."));
+        return;
+    }
+
+    bool isGlobal = fui->radioButtonGlobalFreeze->isChecked() || fui->radioButtonGlobalUnfreeze->isChecked();
+    if (isGlobal) {
+        bool frozen = passets->CheckForGlobalRestriction(asset_name);
+        QMessageBox::information(this, tr("Global Restriction Status"),
+            frozen ? tr("%1 is currently globally frozen (all trading restricted).").arg(assetName)
+                   : tr("%1 is not globally frozen.").arg(assetName));
+    } else {
+        QString address = fui->lineEditAddress->text().trimmed();
+        if (address.isEmpty()) {
+            QMessageBox::warning(this, tr("Check"), tr("Please enter an address to check."));
+            return;
+        }
+        bool frozen = passets->CheckForAddressRestriction(asset_name, address.toStdString(), true);
+        QMessageBox::information(this, tr("Address Restriction Status"),
+            frozen ? tr("Address %1 is currently frozen for %2.").arg(address).arg(assetName)
+                   : tr("Address %1 is not frozen for %2.").arg(address).arg(assetName));
+    }
+}
+
+void RestrictedAssetsDialog::checkQualifierClicked()
+{
+    AssignQualifier *qualifierTab = findChild<AssignQualifier*>("tab_assign_qualifier");
+    if (!qualifierTab) return;
+    Ui::AssignQualifier *qui = qualifierTab->getUI();
+
+    QString qualifierName = qui->assetComboBox->currentText();
+    if (qualifierName.isEmpty()) {
+        QMessageBox::warning(this, tr("Check"), tr("Please select a qualifier asset."));
+        return;
+    }
+    std::string tag_name = qualifierName.toStdString();
+    if (tag_name[0] != QUALIFIER_CHAR)
+        tag_name = std::string(1, QUALIFIER_CHAR) + tag_name;
+
+    QString address = qui->lineEditAddress->text().trimmed();
+    if (address.isEmpty()) {
+        QMessageBox::warning(this, tr("Check"), tr("Please enter an address to check."));
+        return;
+    }
+
+    LOCK(cs_main);
+    if (!passets) {
+        QMessageBox::warning(this, tr("Check"), tr("Asset cache not available."));
+        return;
+    }
+
+    bool hasQualifier = passets->CheckForAddressQualifier(tag_name, address.toStdString(), true);
+    QMessageBox::information(this, tr("Qualifier Status"),
+        hasQualifier ? tr("Address %1 has qualifier %2.").arg(address).arg(qualifierName)
+                     : tr("Address %1 does not have qualifier %2.").arg(address).arg(qualifierName));
 }

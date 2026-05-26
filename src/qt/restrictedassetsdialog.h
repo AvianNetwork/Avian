@@ -65,6 +65,8 @@ private Q_SLOTS:
     void updateDisplayUnit();
     void assignQualifierClicked();
     void freezeAddressClicked();
+    void checkFreezeClicked();
+    void checkQualifierClicked();
 
 
     Q_SIGNALS:
