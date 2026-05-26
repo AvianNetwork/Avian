@@ -31,6 +31,7 @@
 #include <wallet/wallet.h>
 
 #include <QGraphicsDropShadowEffect>
+#include <QDateTime>
 #include <QFontMetrics>
 #include <QMessageBox>
 #include <QScrollBar>
@@ -43,6 +44,9 @@
 #include <core_io.h>
 #include <wallet/coincontrol.h>
 #include <assets/assets.h>
+#include <assets/myassetsdb.h>
+
+extern CMyRestrictedDB* pmyrestricteddb;
 
 RestrictedAssetsDialog::RestrictedAssetsDialog(const PlatformStyle *_platformStyle, QWidget *parent) :
         QDialog(parent),
@@ -279,6 +283,18 @@ void RestrictedAssetsDialog::freezeAddressClicked()
         return;
     }
 
+    // Record per-address restrictions in pmyrestricteddb so the Address List panel shows them.
+    // Global freezes have no specific address and are not recorded here.
+    if (!isGlobal && pmyrestricteddb) {
+        std::string addr = fui->lineEditAddress->text().trimmed().toStdString();
+        pmyrestricteddb->WriteRestrictedAddress(addr, asset_name, isFreeze, 0);
+        model->getMyRestrictedAssetsTableModel()->updateMyRestrictedAssets(
+            QString::fromStdString(addr),
+            assetName,
+            isFreeze ? 1 : 0,
+            QDateTime::currentSecsSinceEpoch());
+    }
+
     QMessageBox::information(this, tr("Success"),
         tr("Transaction sent successfully.\nTxID: %1").arg(QString::fromStdString(txid)));
 }
@@ -394,6 +410,16 @@ void RestrictedAssetsDialog::assignQualifierClicked()
     if (!wallet::SendAssetTransaction(*pwallet, tx, error, txid)) {
         QMessageBox::critical(this, tr("Error"), QString::fromStdString(error.second));
         return;
+    }
+
+    // Record the qualifier assignment in pmyrestricteddb so the Address List panel shows it.
+    if (pmyrestricteddb) {
+        pmyrestricteddb->WriteTaggedAddress(to_address, tag_name, flag == 1, 0);
+        model->getMyRestrictedAssetsTableModel()->updateMyRestrictedAssets(
+            QString::fromStdString(to_address),
+            qualifierName,
+            flag,
+            QDateTime::currentSecsSinceEpoch());
     }
 
     QMessageBox::information(this, tr("Success"),
