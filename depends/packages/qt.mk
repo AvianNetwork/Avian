@@ -19,6 +19,7 @@ $(package)_patches += qtbase_skip_tools.patch
 $(package)_patches += rcc_hardcode_timestamp.patch
 $(package)_patches += qttools_skip_dependencies.patch
 $(package)_patches += static_fixes.patch
+$(package)_patches += qtbase_avoid_native_float16.patch
 $(package)_patches += fix-gcc16-qcompare.patch
 $(package)_patches += fix-gcc16-sfinae-qregularexpression.patch
 $(package)_patches += fix-gcc16-sfinae-qchar.patch
