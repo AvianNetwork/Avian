@@ -63,6 +63,7 @@
 #include <QRegularExpression>
 #include <QScreen>
 #include <QSettings>
+#include <QStyleHints>
 #include <QShortcut>
 #include <QSize>
 #include <QStandardPaths>
@@ -473,6 +474,12 @@ void loadTheme(bool darkmode)
 {
     // Update the global darkModeEnabled flag used by PlatformStyle color methods
     darkModeEnabled = darkmode;
+
+    // Tell Qt which color scheme is active so it selects the correct icon variants
+    // (light icons on dark background, dark icons on light background). Qt 6.8+.
+#if QT_VERSION >= QT_VERSION_CHECK(6, 8, 0)
+    qApp->styleHints()->setColorScheme(darkmode ? Qt::ColorScheme::Dark : Qt::ColorScheme::Light);
+#endif
 
     QString fileName = QStringLiteral(":/css/");
     fileName += darkmode ? QStringLiteral("Dark") : QStringLiteral("Light");

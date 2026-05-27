@@ -756,6 +756,9 @@
             </item>
             <item>
              <widget class="QSpinBox" name="unitBox">
+              <property name="minimumWidth">
+               <number>80</number>
+              </property>
               <property name="toolTip">
                <string>How divisble the assets will be (e.g. 8 = 1.00000000, 2 = 1.00)</string>
               </property>

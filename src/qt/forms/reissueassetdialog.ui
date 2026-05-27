@@ -794,6 +794,9 @@
               </item>
               <item>
                <widget class="QSpinBox" name="unitSpinBox">
+                <property name="minimumWidth">
+                 <number>80</number>
+                </property>
                 <property name="maximum">
                  <number>8</number>
                 </property>
