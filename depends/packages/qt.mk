@@ -174,9 +174,6 @@ $(package)_config_env_darwin += OBJCXX="$$($(package)_cxx)"
 $(package)_cmake_opts := -DCMAKE_PREFIX_PATH=$(host_prefix)
 $(package)_cmake_opts += -DQT_FEATURE_cxx20=ON
 $(package)_cmake_opts += -DQT_GENERATE_SBOM=OFF
-# Disable native _Float16 type to avoid GCC_12.0.0-versioned libgcc symbols (e.g. __truncsfhf2)
-# that exceed the allowed GCC symbol version (7.0.0) checked by contrib/guix/symbol-check.py
-$(package)_cmake_opts += -DQT_FEATURE_c_float16=OFF
 ifneq ($(V),)
 $(package)_cmake_opts += --log-level=STATUS
 endif
