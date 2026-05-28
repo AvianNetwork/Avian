@@ -153,8 +153,8 @@ public:
         consensus.powTypeLimits.emplace_back(uint256{"00000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"}); // X16RT limit
         consensus.powTypeLimits.emplace_back(uint256{"000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"}); // MinotaurX limit
 
-        consensus.nMinimumChainWork = uint256{"000000000000000000000000000000000000000000000000465a271cdbe88c6e"};  // Block 4726352
-        consensus.defaultAssumeValid = uint256{"000000000c32edff3c1f1f09a7291d787acd748e13f1a71b9ed41bddd8d38de9"}; // Block 4726352
+        consensus.nMinimumChainWork = uint256{"000000000000000000000000000000000000000000000000467aa1ce12211f7a"};  // Block 4909756
+        consensus.defaultAssumeValid = uint256{"000000000afe7564cd746a69c516b407e3aa0357e95f5dc853b58d6bd9a98339"}; // Block 4909756
 
         // Founder payment
         consensus.founderAddress = "rPC7kPCNPAVnUvQs4fWEvnFwJ4yfKvArXM";
@@ -203,9 +203,9 @@ public:
         m_assumeutxo_data = {};
 
         chainTxData = ChainTxData{
-            .nTime    = 1663533875, // UNIX timestamp of last known number of transactions
-            .tx_count = 1451962,    // total number of transactions between genesis and that timestamp
-            .dTxRate  = 0.04,       // estimated number of transactions per second
+            .nTime    = 1779966188, // UNIX timestamp of last known number of transactions
+            .tx_count = 5610165,    // total number of transactions between genesis and that timestamp
+            .dTxRate  = 0.034,      // estimated number of transactions per second
         };
     }
 };
