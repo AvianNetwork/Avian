@@ -621,15 +621,23 @@ bool SelectAssets(const CWallet& wallet,
 
         CAmount nValueSelected = 0;
         for (const auto& coin : sortedCoins) {
-            // Extract asset amount from script (not the nValue which is the AVN dust amount)
+            // Extract asset amount from script (not the nValue which is the AVN dust amount).
+            // All spendable asset script types must be handled here: transfer, new-asset issuance,
+            // and reissuance outputs are all valid inputs for an asset transfer transaction.
             CAssetTransfer assetTransfer;
             std::string strAddress;
             CAmount assetAmount = 0;
 
             if (TransferAssetFromScript(coin.txout.scriptPubKey, assetTransfer, strAddress)) {
                 assetAmount = assetTransfer.nAmount;
+            } else if (CNewAsset newAssetOut; AssetFromScript(coin.txout.scriptPubKey, newAssetOut, strAddress)) {
+                assetAmount = newAssetOut.nAmount;
+            } else if (CReissueAsset reissueAssetOut; ReissueAssetFromScript(coin.txout.scriptPubKey, reissueAssetOut, strAddress)) {
+                assetAmount = reissueAssetOut.nAmount;
+            } else if (std::string ownerName; OwnerAssetFromScript(coin.txout.scriptPubKey, ownerName, strAddress)) {
+                assetAmount = OWNER_ASSET_AMOUNT;
             } else {
-                continue; // Can only spend transfer type outputs
+                continue; // Unknown asset script type
             }
 
             setCoinsRet.insert(coin);

@@ -937,6 +937,13 @@ void ReissueAssetDialog::onReissueAssetClicked()
     if (model->getOptionsModel()->getCoinControlFeatures())
         ctrl = s_coinControl();
 
+    // If the user has pre-selected inputs via coin control but they are insufficient,
+    // reject early before attempting to build the transaction.
+    if (ctrl.HasSelected() && ui->labelCoinControlInsuffFunds->isVisible()) {
+        QMessageBox::critical(this, tr("Insufficient funds"), tr("The selected inputs do not cover the reissue burn fee. Please select more inputs or clear coin control."));
+        return;
+    }
+
     updateCoinControlState(ctrl);
 
     std::string ipfsDecoded = "";

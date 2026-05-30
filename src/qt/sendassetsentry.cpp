@@ -386,7 +386,10 @@ void SendAssetsEntry::onAssetSelected(int index)
     // If it is not an ownership asset unlock the amount
     if (!fIsOwnerAsset) {
         ui->payAssetAmount->setUnit(asset.units);
-        ui->payAssetAmount->setSingleStep(1);
+        // Step by the smallest whole unit for this asset's precision
+        CAmount unitStep = COIN;
+        for (int i = 0; i < asset.units; ++i) unitStep /= 10;
+        ui->payAssetAmount->setSingleStep(unitStep);
         ui->payAssetAmount->setDisabled(false);
         ui->payAssetAmount->setValue(0);
     }

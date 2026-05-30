@@ -6,6 +6,7 @@
 #include <wallet/asset_tx.h>
 
 #include <addresstype.h>
+#include <algorithm>
 #include <assets/assets.h>
 #include <assets/assettypes.h>
 #include <key_io.h>
@@ -264,6 +265,10 @@ bool CreateAssetTransaction(
         vecSend.push_back(assetRec);
     }
 
+    // Remember whether the user pre-selected AVN inputs before we add owner token UTXOs.
+    // If the user made selections, respect them strictly (don't allow extra inputs).
+    const bool user_preselected_avn = coinControl.HasSelected();
+
     // Pre-select owner token UTXOs if needed for subassets/unique/msgchannel/restricted
     if (assetType == AssetType::SUB || assetType == AssetType::UNIQUE || assetType == AssetType::MSGCHANNEL) {
         CoinFilterParams coin_params;
@@ -292,8 +297,9 @@ bool CreateAssetTransaction(
         }
     }
 
-    // Allow the wallet to select additional AVN inputs for fees
-    coinControl.m_allow_other_inputs = true;
+    // Allow other inputs only when the user made no pre-selection; if they chose specific
+    // inputs via coin control, honour that choice strictly (error on insufficient funds).
+    coinControl.m_allow_other_inputs = !user_preselected_avn;
 
     // Pin change to position 0 so it cannot displace the required last/second-to-last asset outputs.
     auto res = CreateTransaction(wallet, vecSend, (unsigned int)0, coinControl, true);
@@ -458,6 +464,16 @@ bool CreateTransferAssetTransaction(
     CoinFilterParams coin_params;
     coin_params.min_amount = 0;
     CoinsResult available = AvailableCoinsWithAssets(wallet, nullptr, std::nullopt, coin_params);
+
+    // If the user pre-selected asset inputs via coin control, restrict to only those
+    if (coinControl.HasAssetSelected()) {
+        for (auto& [assetName, outputs] : available.mapAssetCoins) {
+            outputs.erase(
+                std::remove_if(outputs.begin(), outputs.end(),
+                    [&](const COutput& o) { return !coinControl.IsAssetSelected(o.outpoint); }),
+                outputs.end());
+        }
+    }
 
     std::set<COutput> setAssetCoins;
     std::map<std::string, CAmount> mapSelectedValues;
@@ -699,12 +715,16 @@ bool CreateReissueAssetTransaction(
         ownerTokenName = asset_name + OWNER_TAG;
     }
 
+    // Remember whether the user pre-selected AVN inputs before we add the owner token UTXO.
+    const bool user_preselected_avn = coinControl.HasSelected();
+
     auto it = available.mapAssetCoins.find(ownerTokenName);
     if (it != available.mapAssetCoins.end() && !it->second.empty()) {
         coinControl.Select(it->second[0].outpoint);
     }
 
-    coinControl.m_allow_other_inputs = true;
+    // Allow other inputs only when the user made no pre-selection.
+    coinControl.m_allow_other_inputs = !user_preselected_avn;
 
     // Pin change to position 0 so it cannot displace the required last reissue output.
     auto res = CreateTransaction(wallet, vecSend, (unsigned int)0, coinControl, true);

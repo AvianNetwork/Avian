@@ -850,6 +850,18 @@ void AssetsDialog::customFeeFeatureChanged(bool checked)
 // Coin Control: button inputs -> show actual coin control dialog
 void AssetsDialog::assetControlButtonClicked()
 {
+    // Pre-fill the asset selection from the first send entry if not already set
+    if (AssetControlDialog::assetControl()->strAssetSelected.empty()) {
+        if (ui->entries->count() > 0) {
+            SendAssetsEntry *entry = qobject_cast<SendAssetsEntry*>(ui->entries->itemAt(0)->widget());
+            if (entry) {
+                QString assetName = entry->getValue().assetName;
+                if (!assetName.isEmpty())
+                    AssetControlDialog::assetControl()->strAssetSelected = assetName.toStdString();
+            }
+        }
+    }
+
     AssetControlDialog dlg(platformStyle);
     dlg.setModel(model);
     dlg.exec();

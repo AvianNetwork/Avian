@@ -168,7 +168,7 @@ AssetControlDialog::AssetControlDialog(const PlatformStyle *_platformStyle, QWid
 
     // Add the assets into the dropdown menu
     connect(ui->viewAdministrator, SIGNAL(clicked()), this, SLOT(viewAdministratorClicked()));
-    connect(ui->assetList, SIGNAL(currentIndexChanged(QString)), this, SLOT(onAssetSelected(QString)));
+    connect(ui->assetList, &QComboBox::currentTextChanged, this, &AssetControlDialog::onAssetSelected);
 
     /** Setup the asset list combobox */
     stringModel = new QStringListModel;
@@ -239,7 +239,7 @@ void AssetControlDialog::buttonSelectAllClicked()
                 ui->treeWidget->topLevelItem(i)->setCheckState(COLUMN_CHECKBOX, state);
     ui->treeWidget->setEnabled(true);
     if (state == Qt::Unchecked)
-        assetControl()->UnSelectAll();
+        assetControl()->UnSelectAllAssets();
     AssetControlDialog::updateLabels(model, this);
 }
 
@@ -420,6 +420,7 @@ void AssetControlDialog::viewItemChanged(QTreeWidgetItem* item, int column)
 {
     if (column == COLUMN_CHECKBOX && item->text(COLUMN_TXHASH).length() == 64)
     {
+        // Leaf UTXO row
         COutPoint outpt(Txid::FromUint256(uint256::FromHex(item->text(COLUMN_TXHASH).toStdString()).value()), item->text(COLUMN_VOUT_INDEX).toUInt());
 
         if (item->checkState(COLUMN_CHECKBOX) == Qt::Unchecked)
@@ -429,13 +430,38 @@ void AssetControlDialog::viewItemChanged(QTreeWidgetItem* item, int column)
         else
             assetControl()->SelectAsset(outpt);
 
+        // Update parent tristate
+        if (item->parent()) {
+            int nChecked = 0;
+            for (int i = 0; i < item->parent()->childCount(); i++)
+                if (item->parent()->child(i)->checkState(COLUMN_CHECKBOX) == Qt::Checked) nChecked++;
+            if (nChecked == item->parent()->childCount())
+                item->parent()->setCheckState(COLUMN_CHECKBOX, Qt::Checked);
+            else if (nChecked == 0)
+                item->parent()->setCheckState(COLUMN_CHECKBOX, Qt::Unchecked);
+            else
+                item->parent()->setCheckState(COLUMN_CHECKBOX, Qt::PartiallyChecked);
+        }
+
         if (ui->treeWidget->isEnabled())
             AssetControlDialog::updateLabels(model, this);
     }
     else if (column == COLUMN_CHECKBOX && item->childCount() > 0)
     {
+        // Address group row — clicking PartiallyChecked promotes to Checked
         if (item->checkState(COLUMN_CHECKBOX) == Qt::PartiallyChecked && item->child(0)->checkState(COLUMN_CHECKBOX) == Qt::PartiallyChecked)
             item->setCheckState(COLUMN_CHECKBOX, Qt::Checked);
+
+        // Cascade to all children
+        ui->treeWidget->setEnabled(false);
+        for (int i = 0; i < item->childCount(); i++) {
+            if (item->child(i)->checkState(COLUMN_CHECKBOX) != item->checkState(COLUMN_CHECKBOX))
+                item->child(i)->setCheckState(COLUMN_CHECKBOX, item->checkState(COLUMN_CHECKBOX));
+        }
+        ui->treeWidget->setEnabled(true);
+
+        if (ui->treeWidget->isEnabled())
+            AssetControlDialog::updateLabels(model, this);
     }
 }
 
@@ -486,7 +512,7 @@ void AssetControlDialog::updateLabels(WalletModel *model, QDialog* dialog)
             auto it = available.mapAssetCoins.find(strAssetName);
             if (it != available.mapAssetCoins.end()) {
                 for (const auto& output : it->second) {
-                    if (assetControl()->IsSelected(output.outpoint)) {
+                    if (assetControl()->IsAssetSelected(output.outpoint)) {
                         CAssetOutputEntry data;
                         if (GetAssetData(output.txout.scriptPubKey, data)) {
                             nAssetAmount += data.nAmount;
@@ -683,7 +709,7 @@ void AssetControlDialog::updateView()
             itemOutput->setText(COLUMN_VOUT_INDEX, QString::number(out->outpoint.n));
 
             // Set checkbox state if selected in coin control
-            if (assetControl()->IsSelected(out->outpoint))
+            if (assetControl()->IsAssetSelected(out->outpoint))
                 itemOutput->setCheckState(COLUMN_CHECKBOX, Qt::Checked);
         }
     }
@@ -713,7 +739,14 @@ void AssetControlDialog::updateAssetList(bool fSetOnStart)
         wallet::CoinFilterParams params;
         params.min_amount = 0;
         wallet::CoinsResult available = wallet::AvailableCoinsWithAssets(*pwallet, nullptr, std::nullopt, params);
+        bool showAdmin = ui->viewAdministrator->isChecked();
         for (const auto& [assetName, assetOutputs] : available.mapAssetCoins) {
+            bool isAdmin = IsAssetNameAnOwner(assetName) ||
+                           IsAssetNameAnRestricted(assetName) ||
+                           IsAssetNameAQualifier(assetName) ||
+                           IsAssetNameAnMsgChannel(assetName);
+            if (!showAdmin && isAdmin)
+                continue;
             list << QString::fromStdString(assetName);
         }
     }
@@ -733,9 +766,10 @@ void AssetControlDialog::onAssetSelected(QString name)
     if (fOnStartUp) {
         fOnStartUp = false;
     } else {
-        assetControl()->UnSelectAll();
+        assetControl()->UnSelectAllAssets();
     }
 
+    assetControl()->strAssetSelected = name.toStdString();
     AssetControlDialog::updateLabels(model, this);
     updateView();
 }
