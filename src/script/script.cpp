@@ -306,7 +306,7 @@ bool CScript::HasValidOps() const
     while (it < end()) {
         opcodetype opcode;
         std::vector<unsigned char> item;
-        if (!GetOp(it, opcode, item) || opcode > MAX_OPCODE || item.size() > MAX_SCRIPT_ELEMENT_SIZE) {
+        if (!GetOp(it, opcode, item) || opcode > MAX_OPCODE || item.size() > MAX_SCRIPT_ELEMENT_SIZE_ANS_V2) {
             return false;
         }
     }
@@ -417,15 +417,20 @@ bool CScript::IsAssetScript(int& nType, bool& fIsOwner, int& nStartingIndex) con
         if ((*this)[25] == OP_AVN_ASSET) {
             int index = -1;
             if ((*this)[27] == AVN_R) {
+                // 1-byte push opcode at [26]: data starts at [27]
                 if ((*this)[28] == AVN_V)
                     if ((*this)[29] == AVN_N)
                         index = 30;
-            } else {
-                if ((*this)[28] == AVN_R) {
-                    if ((*this)[29] == AVN_V)
-                        if ((*this)[30] == AVN_N)
-                            index = 31;
-                }
+            } else if ((*this)[28] == AVN_R) {
+                // OP_PUSHDATA1 (2-byte prefix) at [26-27]: data starts at [28]
+                if ((*this)[29] == AVN_V)
+                    if ((*this)[30] == AVN_N)
+                        index = 31;
+            } else if (this->size() > 32 && (*this)[29] == AVN_R) {
+                // OP_PUSHDATA2 (3-byte prefix) at [26-28]: data starts at [29]
+                if ((*this)[30] == AVN_V)
+                    if ((*this)[31] == AVN_N)
+                        index = 32;
             }
 
             if (index > 0) {

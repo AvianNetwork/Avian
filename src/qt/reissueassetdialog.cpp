@@ -8,7 +8,9 @@
 #include <qt/addresstablemodel.h>
 #include <assets/ans.h>
 #include <assets/assets.h>
+#include <assets/assetdb.h>
 #include <assets/assettypes.h>
+#include <assets/cbor.h>
 #include <qt/assettablemodel.h>
 #include <qt/bitcoinunits.h>
 #include <qt/clientmodel.h>
@@ -92,7 +94,13 @@ ReissueAssetDialog::ReissueAssetDialog(const PlatformStyle* _platformStyle, QWid
     connect(ui->ipfsText, SIGNAL(textChanged(QString)), this, SLOT(onIPFSHashChanged(QString)));
     connect(ui->ansText, SIGNAL(textChanged(QString)), this, SLOT(onANSDataChanged(QString)));
     connect(ui->ansType, SIGNAL(currentIndexChanged(int)), this, SLOT(onANSTypeChanged(int)));
+    connect(ui->ansCborAddrEdit, SIGNAL(textChanged(QString)), this, SLOT(onANSDataChanged(QString)));
+    connect(ui->ansCborNameEdit, SIGNAL(textChanged(QString)), this, SLOT(onANSDataChanged(QString)));
+    connect(ui->ansCborAvatarEdit, SIGNAL(textChanged(QString)), this, SLOT(onANSDataChanged(QString)));
+    connect(ui->ansCborBannerEdit, SIGNAL(textChanged(QString)), this, SLOT(onANSDataChanged(QString)));
+    connect(ui->ansCborUrlEdit, SIGNAL(textChanged(QString)), this, SLOT(onANSDataChanged(QString)));
     connect(ui->addressText, SIGNAL(textChanged(QString)), this, SLOT(onAddressNameChanged(QString)));
+    connect(ui->addressText, &QLineEdit::editingFinished, this, &ReissueAssetDialog::onAddressEditingFinished);
     connect(ui->reissueAssetButton, SIGNAL(clicked()), this, SLOT(onReissueAssetClicked()));
     connect(ui->reissuableBox, SIGNAL(clicked()), this, SLOT(onReissueBoxChanged()));
     connect(ui->unitSpinBox, SIGNAL(valueChanged(int)), this, SLOT(onUnitChanged(int)));
@@ -152,10 +160,13 @@ ReissueAssetDialog::ReissueAssetDialog(const PlatformStyle* _platformStyle, QWid
     ui->checkBoxMinimumFee->setChecked(settings.value("fPayOnlyMinFee").toBool());
     minimizeFeeSection(settings.value("fFeeSectionMinimized").toBool());
 
-    formatGreen = "%1%2 <font color=green><b>%3</b></font>";
-    formatBlack = "%1%2 <font color=black><b>%3</b></font>";
-    if (darkModeEnabled)
-        formatBlack = "%1%2 <font color=white><b>%3</b></font>";
+    if (darkModeEnabled) {
+        formatGreen = "<font color=#c8c8c8>%1%2</font> <font color=#00e676><b>%3</b></font>";
+        formatBlack = "<font color=#c8c8c8>%1%2 <b>%3</b></font>";
+    } else {
+        formatGreen = "<font color=#000000>%1%2</font> <font color=#007700><b>%3</b></font>";
+        formatBlack = "<font color=#000000>%1%2 <b>%3</b></font>";
+    }
 
     setupCoinControlFrame(platformStyle);
     setupAssetDataView(platformStyle);
@@ -283,7 +294,7 @@ bool ReissueAssetDialog::eventFilter(QObject* sender, QEvent* event)
             hideInvalidVerifierStringMessage();
         }
     } else if (sender == ui->comboBox) {
-        if (event->type() == QEvent::Show) {
+        if (event->type() == QEvent::Show && m_pendingAssetName.isEmpty()) {
             updateAssetsList();
         }
     }
@@ -300,6 +311,8 @@ void ReissueAssetDialog::setUpValues()
     ui->ipfsText->setDisabled(true);
     ui->ansText->setDisabled(true);
     ui->ansType->setDisabled(true);
+    ui->ansCborWidget->hide();
+    ui->ansCborWidget->setDisabled(true);
     if (!IsAvianNameSystemDeployed()) {
         ui->ansBox->hide();
         ui->ansText->hide();
@@ -386,15 +399,57 @@ void ReissueAssetDialog::toggleIPFSText()
 void ReissueAssetDialog::toggleANSText()
 {
     if (ui->ansBox->isChecked()) {
-        ui->ansText->setDisabled(false);
         ui->ansType->setDisabled(false);
+        CAvianNameSystemID::Type type = currentANSType();
+        if (type == CAvianNameSystemID::PROFILE) {
+            ui->ansText->setDisabled(true);
+            ui->ansCborWidget->setDisabled(false);
+            ui->ansCborWidget->show();
+        } else {
+            ui->ansText->setDisabled(false);
+            ui->ansCborWidget->setDisabled(true);
+            ui->ansCborWidget->hide();
+        }
     } else {
         ui->ansText->setDisabled(true);
         ui->ansType->setDisabled(true);
+        ui->ansCborWidget->setDisabled(true);
+        ui->ansCborWidget->hide();
     }
 
     buildUpdatedData();
     CheckFormState();
+}
+
+CAvianNameSystemID::Type ReissueAssetDialog::currentANSType() const
+{
+    int idx = ui->ansType->currentIndex();
+    if (m_ansSubMode) {
+        if (idx >= 0 && idx < (int)ANSSubTypes.size())
+            return ANSSubTypes[idx];
+        return CAvianNameSystemID::XADDR;
+    }
+    if (idx >= 0 && idx < (int)ANSTypes.size())
+        return ANSTypes[idx];
+    return CAvianNameSystemID::ADDR;
+}
+
+void ReissueAssetDialog::setANSSubMode(bool subMode)
+{
+    if (m_ansSubMode == subMode) return;
+    m_ansSubMode = subMode;
+
+    ui->ansType->blockSignals(true);
+    ui->ansType->clear();
+    if (subMode) {
+        for (const auto t : ANSSubTypes)
+            ui->ansType->addItem(QString::fromStdString(CAvianNameSystemID::enum_to_string(t).first));
+    } else {
+        for (const auto t : ANSTypes)
+            ui->ansType->addItem(QString::fromStdString(CAvianNameSystemID::enum_to_string(t).first));
+    }
+    ui->ansType->setCurrentIndex(0);
+    ui->ansType->blockSignals(false);
 }
 
 void ReissueAssetDialog::showMessage(QString string)
@@ -462,40 +517,60 @@ void ReissueAssetDialog::CheckFormState()
             ui->openIpfsButton->setDisabled(false);
     }
 
-    if (ui->ansBox->isChecked() && !ui->ansText->text().isEmpty()) {
-        CAvianNameSystemID::Type type = static_cast<CAvianNameSystemID::Type>(ui->ansType->currentIndex());
-
-        std::string error;
-        std::string formattedTypeData;
-        std::string typeData = ui->ansText->text().toStdString();
-
-        formattedTypeData = CAvianNameSystemID::FormatTypeData(type, typeData, error);
-
-        if (error != "") {
-            ui->ansText->setStyleSheet("border: 2px solid red");
-            showMessage(QString::fromStdString(error));
-            disableReissueButton();
-            return;
-        }
-
-        CAvianNameSystemID ans(type, formattedTypeData);
-
-        if (!IsAvianNameSystemDeployed()) {
-            ui->ansText->setStyleSheet("border: 2px solid red");
-            showMessage(tr("ANS not deployed yet."));
-            disableReissueButton();
-            return;
-        }
-
-        if (!CAvianNameSystemID::IsValidID(ans.to_string())) {
-            ui->ansText->setStyleSheet("border: 2px solid red");
-            showMessage(tr("Invalid ANS data."));
-            disableReissueButton();
-            return;
+    if (ui->ansBox->isChecked()) {
+        CAvianNameSystemID::Type ansType = currentANSType();
+        std::string typeData;
+        bool hasData = false;
+        if (ansType == CAvianNameSystemID::PROFILE) {
+            ANSProfileData p;
+            p.addr   = ui->ansCborAddrEdit->text().toStdString();
+            p.name   = ui->ansCborNameEdit->text().toStdString();
+            p.avatar = ui->ansCborAvatarEdit->text().toStdString();
+            p.banner = ui->ansCborBannerEdit->text().toStdString();
+            p.url    = ui->ansCborUrlEdit->text().toStdString();
+            hasData = !(p.addr.empty() && p.name.empty() && p.avatar.empty() && p.banner.empty() && p.url.empty());
+            if (!hasData) {
+                showMessage(tr("Enter at least one CBOR field."));
+                disableReissueButton();
+                return;
+            }
+            typeData = ANS_CBOR::EncodeProfile(p);
         } else {
-            ui->ansText->setStyleSheet("");
-            hideMessage();
-            enableReissueButton();
+            hasData = !ui->ansText->text().isEmpty();
+            if (hasData) typeData = ui->ansText->text().toStdString();
+        }
+        if (hasData) {
+            std::string error;
+            std::string formattedTypeData = CAvianNameSystemID::FormatTypeData(ansType, typeData, error);
+            if (error != "") {
+                if (ansType != CAvianNameSystemID::PROFILE)
+                    ui->ansText->setStyleSheet("border: 2px solid red");
+                showMessage(QString::fromStdString(error));
+                disableReissueButton();
+                return;
+            }
+            CAvianNameSystemID ans(ansType, formattedTypeData);
+            if (!IsAvianNameSystemDeployed()) {
+                showMessage(tr("ANS not deployed yet."));
+                disableReissueButton();
+                return;
+            }
+            if (!CAvianNameSystemID::IsValidID(ans.to_string())) {
+                if (ansType != CAvianNameSystemID::PROFILE)
+                    ui->ansText->setStyleSheet("border: 2px solid red");
+                showMessage(tr("Invalid ANS data."));
+                disableReissueButton();
+                return;
+            } else {
+                if (asset->nHasANS && ans.to_string() == asset->strANSID) {
+                    showMessage(tr("ANS data is unchanged."));
+                    disableReissueButton();
+                    return;
+                }
+                ui->ansText->setStyleSheet("");
+                hideMessage();
+                enableReissueButton();
+            }
         }
     }
 
@@ -628,18 +703,35 @@ void ReissueAssetDialog::buildUpdatedData()
 
     QString ansID;
 
-    if (asset->nHasANS && (!ui->ansBox->isChecked() || (ui->ansBox->isChecked() && ui->ansText->text().isEmpty()))) {
+    if (asset->nHasANS && (!ui->ansBox->isChecked() || (ui->ansBox->isChecked() && ui->ansText->text().isEmpty() && !ui->ansCborWidget->isVisible()))) {
         QString qstr = QString::fromStdString(asset->strANSID);
         ansID = formatBlack.arg(tr("ANS ID"), ":", qstr) + "\n";
-    } else if (ui->ansBox->isChecked() && !ui->ansBox->text().isEmpty()) {
-        std::string error;
-        std::string formattedTypeData;
-        CAvianNameSystemID::Type type = static_cast<CAvianNameSystemID::Type>(ui->ansType->currentIndex());
-        formattedTypeData = CAvianNameSystemID::FormatTypeData(type, ui->ansText->text().toStdString(), error);
-
-        CAvianNameSystemID ansData(type, formattedTypeData);
-        QString qstr = QString::fromStdString(ansData.to_string());
-        ansID = formatGreen.arg(tr("ANS ID"), ":", qstr) + "\n";
+    } else if (ui->ansBox->isChecked()) {
+        CAvianNameSystemID::Type ansType = currentANSType();
+        std::string typeData;
+        bool hasData = false;
+        if (ansType == CAvianNameSystemID::PROFILE) {
+            ANSProfileData p;
+            p.addr   = ui->ansCborAddrEdit->text().toStdString();
+            p.name   = ui->ansCborNameEdit->text().toStdString();
+            p.avatar = ui->ansCborAvatarEdit->text().toStdString();
+            p.banner = ui->ansCborBannerEdit->text().toStdString();
+            p.url    = ui->ansCborUrlEdit->text().toStdString();
+            hasData = !(p.addr.empty() && p.name.empty() && p.avatar.empty() && p.banner.empty() && p.url.empty());
+            if (hasData) typeData = ANS_CBOR::EncodeProfile(p);
+        } else {
+            hasData = !ui->ansText->text().isEmpty();
+            if (hasData) typeData = ui->ansText->text().toStdString();
+        }
+        if (hasData) {
+            std::string error;
+            std::string formattedTypeData = CAvianNameSystemID::FormatTypeData(ansType, typeData, error);
+            if (error.empty()) {
+                CAvianNameSystemID ansData(ansType, formattedTypeData);
+                QString qstr = QString::fromStdString(ansData.to_string());
+                ansID = formatGreen.arg(tr("ANS ID"), ":", qstr) + "\n";
+            }
+        }
     }
 
     QString verifierString;
@@ -730,7 +822,7 @@ void ReissueAssetDialog::onAssetSelected(int index)
         QString name = formatBlack.arg(tr("Name"), ":", QString::fromStdString(asset->strName)) + "\n";
         QString quantity = formatBlack.arg(tr("Current Quantity"), ":", QString::fromStdString(ss.str())) + "\n";
         QString units = formatBlack.arg(tr("Current Units"), ":", QString::number(ui->unitSpinBox->value()));
-        QString reissue = formatBlack.arg(tr("Can Reissue"), ":", tr("Yes")) + "\n";
+        QString reissue = formatBlack.arg(tr("Can Reissue"), ":", asset->nReissuable ? tr("Yes") : tr("No")) + "\n";
 
         QString assetdatahash = "";
         if (asset->nHasIPFS) {
@@ -746,8 +838,26 @@ void ReissueAssetDialog::onAssetSelected(int index)
 
         QString assetdataANS = "";
         if (asset->nHasANS) {
-            QString qstr = QString::fromStdString(asset->strANSID);
-            assetdataANS = formatBlack.arg(tr("ANS ID"), ":", qstr) + "\n";
+            if (CAvianNameSystemID::IsValidID(asset->strANSID)) {
+                CAvianNameSystemID ansObj(asset->strANSID);
+                QString typeStr = QString::fromStdString(CAvianNameSystemID::enum_to_string(ansObj.type()).first);
+                assetdataANS = formatBlack.arg(tr("ANS Type"), ":", typeStr) + "\n";
+                if (ansObj.type() == CAvianNameSystemID::ADDR) {
+                    assetdataANS += formatBlack.arg(tr("ANS Address"), ":", QString::fromStdString(ansObj.addr())) + "\n";
+                } else if (ansObj.type() == CAvianNameSystemID::PROFILE) {
+                    const ANSProfileData& pd = ansObj.profile();
+                    if (!pd.addr.empty())
+                        assetdataANS += formatBlack.arg(tr("Payment Address"), ":", QString::fromStdString(pd.addr)) + "\n";
+                    if (!pd.name.empty())
+                        assetdataANS += formatBlack.arg(tr("Display Name"), ":", QString::fromStdString(pd.name)) + "\n";
+                    if (!pd.url.empty())
+                        assetdataANS += formatBlack.arg(tr("URL"), ":", QString::fromStdString(pd.url)) + "\n";
+                    if (!pd.avatar.empty() && !pd.avatar_binary)
+                        assetdataANS += formatBlack.arg(tr("Avatar"), ":", QString::fromStdString(pd.avatar)) + "\n";
+                }
+            } else {
+                assetdataANS = formatBlack.arg(tr("ANS ID"), ":", QString::fromStdString(asset->strANSID)) + "\n";
+            }
         }
 
         QString verifierString = "";
@@ -774,6 +884,95 @@ void ReissueAssetDialog::onAssetSelected(int index)
         ui->currentAssetData->setFixedHeight(ui->currentAssetData->document()->size().height());
 
         buildUpdatedData();
+
+        // Show/hide the ANS checkbox based on whether the asset is ANS-eligible (AIP-0009/AIP-0010)
+        if (IsAvianNameSystemDeployed()) {
+            const std::string& domain = CAvianNameSystemID::domain;
+            std::string assetNameStr = qstr_name.toStdString();
+            bool endsWithAVN = assetNameStr.size() > domain.size() &&
+                               assetNameStr.substr(assetNameStr.size() - domain.size()) == domain;
+            // AIP-0010: sub-asset of a .AVN name (e.g. BOB.AVN/BTC)
+            bool isAVNSubAsset = false;
+            if (!endsWithAVN) {
+                size_t pos = assetNameStr.find(domain);
+                if (pos != std::string::npos) {
+                    size_t endPos = pos + domain.size();
+                    isAVNSubAsset = endPos < assetNameStr.size() && assetNameStr[endPos] == '/';
+                }
+            }
+            if (endsWithAVN) {
+                setANSSubMode(false);
+                ui->ansBox->show();
+                ui->ansBox->setDisabled(false);
+                // ANS assets must remain qty=1, units=0 — lock both fields
+                ui->quantitySpinBox->setValue(0);
+                ui->quantitySpinBox->setDisabled(true);
+                ui->unitSpinBox->setDisabled(true);
+                // ANS assets must stay reissuable so future profile updates are possible
+                if (asset->nReissuable) {
+                    ui->reissuableBox->setChecked(true);
+                    ui->reissuableBox->setDisabled(true);
+                } else {
+                    // Asset was created non-reissuable — reflect reality and block submission
+                    ui->reissuableBox->setChecked(false);
+                    ui->reissuableBox->setDisabled(true);
+                    showMessage(tr("This ANS asset was created as non-reissuable and cannot be updated."));
+                    disableReissueButton();
+                }
+                // Clear all ANS fields first so previous selection doesn't bleed through
+                ui->ansText->clear();
+                ui->ansCborAddrEdit->clear();
+                ui->ansCborNameEdit->clear();
+                ui->ansCborAvatarEdit->clear();
+                ui->ansCborBannerEdit->clear();
+                ui->ansCborUrlEdit->clear();
+                // Pre-populate ANS fields from the existing record so no values are lost
+                if (asset->nHasANS && !asset->strANSID.empty() && CAvianNameSystemID::IsValidID(asset->strANSID)) {
+                    CAvianNameSystemID ansObj(asset->strANSID);
+                    int typeIdx = (ansObj.type() == CAvianNameSystemID::ADDR) ? 0 : 1;
+                    ui->ansType->setCurrentIndex(typeIdx);
+                    if (ansObj.type() == CAvianNameSystemID::ADDR) {
+                        ui->ansText->setText(QString::fromStdString(ansObj.addr()));
+                    } else { // PROFILE
+                        const ANSProfileData& pd = ansObj.profile();
+                        ui->ansCborAddrEdit->setText(QString::fromStdString(pd.addr));
+                        ui->ansCborNameEdit->setText(QString::fromStdString(pd.name));
+                        ui->ansCborAvatarEdit->setText(QString::fromStdString(pd.avatar_binary ? "" : pd.avatar));
+                        ui->ansCborBannerEdit->setText(QString::fromStdString(pd.banner_binary ? "" : pd.banner));
+                        ui->ansCborUrlEdit->setText(QString::fromStdString(pd.url));
+                    }
+                }
+                if (!ui->ansBox->isChecked())
+                    ui->ansBox->setChecked(true);
+                toggleANSText();
+            } else if (isAVNSubAsset) {
+                // AIP-0010: sub-asset of a .AVN name — XADDR mode only
+                setANSSubMode(true);
+                ui->ansBox->show();
+                ui->ansBox->setDisabled(false);
+                // Clear fields first
+                ui->ansText->clear();
+                // Pre-populate XADDR field from existing record
+                if (asset->nHasANS && !asset->strANSID.empty() && CAvianNameSystemID::IsValidID(asset->strANSID)) {
+                    CAvianNameSystemID ansObj(asset->strANSID);
+                    if (ansObj.type() == CAvianNameSystemID::XADDR) {
+                        ui->ansType->setCurrentIndex(0);
+                        ui->ansText->setText(QString::fromStdString(ansObj.addr()));
+                    }
+                }
+                if (!ui->ansBox->isChecked())
+                    ui->ansBox->setChecked(true);
+                toggleANSText();
+            } else {
+                setANSSubMode(false);
+                if (ui->ansBox->isChecked()) {
+                    ui->ansBox->setChecked(false);
+                    toggleANSText();
+                }
+                ui->ansBox->hide();
+                ui->reissuableBox->setDisabled(false);
+            }
+        }
 
         CheckFormState();
     } else {
@@ -858,9 +1057,19 @@ void ReissueAssetDialog::onANSDataChanged(QString data)
 
 void ReissueAssetDialog::onANSTypeChanged(int index)
 {
-    CAvianNameSystemID::Type type = static_cast<CAvianNameSystemID::Type>(index);
-    ui->ansText->setPlaceholderText(QString::fromStdString(CAvianNameSystemID::enum_to_string(type).second));
-    ui->ansText->clear();
+    CAvianNameSystemID::Type type = currentANSType();
+    if (type == CAvianNameSystemID::PROFILE) {
+        ui->ansText->setDisabled(true);
+        ui->ansText->clear();
+        ui->ansCborWidget->setDisabled(false);
+        ui->ansCborWidget->show();
+    } else {
+        ui->ansText->setPlaceholderText(QString::fromStdString(CAvianNameSystemID::enum_to_string(type).second));
+        ui->ansText->clear();
+        ui->ansText->setDisabled(false);
+        ui->ansCborWidget->setDisabled(true);
+        ui->ansCborWidget->hide();
+    }
 
     buildUpdatedData();
 }
@@ -880,6 +1089,48 @@ void ReissueAssetDialog::openIpfsBrowser()
                                     tr("Open the following IPFS content in your default browser?\n") + ipfsurl.toString()))
             QDesktopServices::openUrl(ipfsurl);
     }
+}
+
+void ReissueAssetDialog::onAddressEditingFinished()
+{
+    const QString text = ui->addressText->text().trimmed();
+    const std::string& domain = CAvianNameSystemID::domain; // ".AVN"
+    const QString domainQ = QString::fromStdString(domain);
+    if (!text.toUpper().endsWith(domainQ) || text.length() <= (int)domain.size())
+        return;
+    if (!passets)
+        return;
+
+    LOCK(cs_main);
+
+    const std::string assetName = text.toUpper().toStdString();
+    CNewAsset resolvedAsset;
+    if (!passets->GetAssetMetaDataIfExists(assetName, resolvedAsset))
+        return;
+
+    std::string resolvedAddr;
+
+    if (IsAvianNameSystemDeployed() && resolvedAsset.nHasANS && !resolvedAsset.strANSID.empty()) {
+        CAvianNameSystemID ansID(resolvedAsset.strANSID);
+        if (ansID.type() == CAvianNameSystemID::ADDR)
+            resolvedAddr = ansID.addr();
+        else if (ansID.type() == CAvianNameSystemID::PROFILE && !ansID.profile().addr.empty())
+            resolvedAddr = ansID.profile().addr;
+    }
+
+    // Fallback: use owner token holder address
+    if (resolvedAddr.empty() && fAssetIndex && passetsdb) {
+        std::string ownerToken = assetName + "!";
+        std::vector<std::pair<std::string, CAmount>> ownerAddrs;
+        int dbTotal = 0;
+        if (passetsdb->AssetAddressDir(ownerAddrs, dbTotal, false, ownerToken, 1, 0) && !ownerAddrs.empty())
+            resolvedAddr = ownerAddrs[0].first;
+    }
+
+    if (resolvedAddr.empty())
+        return;
+
+    ui->addressText->setText(QString::fromStdString(resolvedAddr));
 }
 
 void ReissueAssetDialog::onAddressNameChanged(QString address)
@@ -926,7 +1177,17 @@ void ReissueAssetDialog::onReissueAssetClicked()
     CAmount quantity = ui->quantitySpinBox->value() * COIN;
     bool reissuable = ui->reissuableBox->isChecked();
     bool hasIPFS = ui->ipfsBox->isChecked() && !ui->ipfsText->text().isEmpty();
-    bool hasANS = ui->ansBox->isChecked() && !ui->ansText->text().isEmpty();
+    CAvianNameSystemID::Type ansType = currentANSType();
+    bool hasANS = false;
+    if (ui->ansBox->isChecked()) {
+        if (ansType == CAvianNameSystemID::PROFILE) {
+            hasANS = !ui->ansCborAddrEdit->text().isEmpty() || !ui->ansCborNameEdit->text().isEmpty() ||
+                     !ui->ansCborAvatarEdit->text().isEmpty() || !ui->ansCborBannerEdit->text().isEmpty() ||
+                     !ui->ansCborUrlEdit->text().isEmpty();
+        } else {
+            hasANS = !ui->ansText->text().isEmpty();
+        }
+    }
 
     int unit = ui->unitSpinBox->value();
     if (unit == asset->units)
@@ -955,14 +1216,25 @@ void ReissueAssetDialog::onReissueAssetClicked()
     if (hasANS) {
         std::string error;
         std::string formattedTypeData;
-        CAvianNameSystemID::Type type = static_cast<CAvianNameSystemID::Type>(ui->ansType->currentIndex());
-        formattedTypeData = CAvianNameSystemID::FormatTypeData(type, ui->ansText->text().toStdString(), error);
-
-        CAvianNameSystemID ansID(type, formattedTypeData);
+        std::string typeData;
+        if (ansType == CAvianNameSystemID::PROFILE) {
+            ANSProfileData p;
+            p.addr   = ui->ansCborAddrEdit->text().toStdString();
+            p.name   = ui->ansCborNameEdit->text().toStdString();
+            p.avatar = ui->ansCborAvatarEdit->text().toStdString();
+            p.banner = ui->ansCborBannerEdit->text().toStdString();
+            p.url    = ui->ansCborUrlEdit->text().toStdString();
+            typeData = ANS_CBOR::EncodeProfile(p);
+        } else {
+            typeData = ui->ansText->text().toStdString();
+        }
+        formattedTypeData = CAvianNameSystemID::FormatTypeData(ansType, typeData, error);
+        CAvianNameSystemID ansID(ansType, formattedTypeData);
         ansDecoded = ansID.to_string();
 
-        // Warn user
-        QMessageBox::critical(this, "ANS Warning", tr("Storing data using the Avian Name System will forever stay in the blockchain. You can edit the ANS ID only if the asset is reissueable.") + QString("\n\nANS ID: ") + QString::fromStdString(ansDecoded), QMessageBox::Ok, QMessageBox::Ok);
+        // Only warn when the asset is non-reissuable — the ANS data will be permanent with no way to update it
+        if (!reissuable)
+            QMessageBox::critical(this, "ANS Warning", tr("Storing data using the Avian Name System will forever stay in the blockchain. You can edit the ANS ID only if the asset is reissueable.") + QString("\n\nANS ID: ") + QString::fromStdString(ansDecoded), QMessageBox::Ok, QMessageBox::Ok);
     }
 
     CReissueAsset reissueAsset(name.toStdString(), quantity, unit, reissuable ? 1 : 0, ipfsDecoded, ansDecoded);
@@ -1476,6 +1748,16 @@ void ReissueAssetDialog::onAssetsListLoaded(QStringList assetsList)
 {
     // Update the string model with loaded assets
     stringModel->setStringList(assetsList);
+
+    // If a pre-selection was requested (e.g. from the asset list context menu), apply it now
+    if (!m_pendingAssetName.isEmpty()) {
+        int idx = ui->comboBox->findText(m_pendingAssetName);
+        if (idx >= 0) {
+            ui->comboBox->setCurrentIndex(idx);
+            onAssetSelected(idx);
+        }
+        m_pendingAssetName.clear();
+    }
 }
 
 void ReissueAssetDialog::clear()
@@ -1506,14 +1788,13 @@ void ReissueAssetDialog::onClearButtonClicked()
 
 void ReissueAssetDialog::focusReissueAsset(const QModelIndex& index)
 {
-    clear();
-
     QString name = index.data(AssetTableModel::AssetNameRole).toString();
     if (IsAssetNameAnOwner(name.toStdString()))
         name = name.left(name.size() - 1);
 
-    ui->comboBox->setCurrentIndex(ui->comboBox->findText(name));
-    onAssetSelected(ui->comboBox->currentIndex());
+    // Store the name; onAssetsListLoaded will select it once the async list population finishes
+    m_pendingAssetName = name;
+    clear(); // triggers updateAssetsListAsync()
 
     ui->quantitySpinBox->setFocus();
 }

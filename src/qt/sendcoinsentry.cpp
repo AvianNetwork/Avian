@@ -11,6 +11,10 @@
 #include <qt/optionsmodel.h>
 #include <qt/platformstyle.h>
 #include <qt/walletmodel.h>
+#include <assets/ans.h>
+#include <assets/assets.h>
+#include <assets/assetdb.h>
+#include <validation.h>
 
 #include <QApplication>
 #include <QClipboard>
@@ -36,6 +40,7 @@ SendCoinsEntry::SendCoinsEntry(const PlatformStyle *_platformStyle, QWidget *par
     connect(ui->checkboxSubtractFeeFromAmount, &QCheckBox::toggled, this, &SendCoinsEntry::subtractFeeFromAmountChanged);
     connect(ui->deleteButton, &QPushButton::clicked, this, &SendCoinsEntry::deleteClicked);
     connect(ui->useAvailableBalanceButton, &QPushButton::clicked, this, &SendCoinsEntry::useAvailableBalanceClicked);
+    connect(ui->payTo, &QLineEdit::editingFinished, this, &SendCoinsEntry::on_payTo_editingFinished);
 }
 
 SendCoinsEntry::~SendCoinsEntry()
@@ -65,6 +70,49 @@ void SendCoinsEntry::on_addressBookButton_clicked()
 void SendCoinsEntry::on_payTo_textChanged(const QString &address)
 {
     updateLabel(address);
+}
+
+void SendCoinsEntry::on_payTo_editingFinished()
+{
+    const QString text = ui->payTo->text().trimmed();
+    if (!text.toUpper().endsWith(".AVN") || text.length() <= 4)
+        return;
+    if (!passets)
+        return;
+
+    LOCK(cs_main);
+
+    const std::string assetName = text.toUpper().toStdString();
+    CNewAsset asset;
+    if (!passets->GetAssetMetaDataIfExists(assetName, asset))
+        return;
+
+    std::string resolvedAddr;
+
+    // ANS record lookup — only when ANS is deployed on this network
+    if (IsAvianNameSystemDeployed() && asset.nHasANS && !asset.strANSID.empty()) {
+        CAvianNameSystemID ansID(asset.strANSID);
+        if (ansID.type() == CAvianNameSystemID::ADDR)
+            resolvedAddr = ansID.addr();
+        else if (ansID.type() == CAvianNameSystemID::PROFILE && !ansID.profile().addr.empty())
+            resolvedAddr = ansID.profile().addr;
+    }
+
+    // Fallback: look up the owner of the ALICE.AVN! owner token (requires -assetindex)
+    if (resolvedAddr.empty() && fAssetIndex && passetsdb) {
+        std::string ownerToken = assetName + "!";
+        std::vector<std::pair<std::string, CAmount>> ownerAddrs;
+        int dbTotal = 0;
+        if (passetsdb->AssetAddressDir(ownerAddrs, dbTotal, false, ownerToken, 1, 0) && !ownerAddrs.empty())
+            resolvedAddr = ownerAddrs[0].first;
+    }
+
+    if (resolvedAddr.empty())
+        return;
+
+    const QString ansName = text.toUpper();
+    ui->payTo->setText(QString::fromStdString(resolvedAddr));
+    ui->addAsLabel->setText(ansName);
 }
 
 void SendCoinsEntry::setModel(WalletModel *_model)

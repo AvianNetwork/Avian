@@ -14,9 +14,11 @@
 #include <validation.h>
 
 #include <assets/ans.h>
+#include <assets/cbor.h>
 #include <assets/assetsnapshotdb.h>
 #include <assets/snapshotrequestdb.h>
 #include <key_io.h>
+#include <util/strencodings.h>
 
 #include <univalue.h>
 #include <limits>
@@ -530,8 +532,18 @@ static UniValue ANSIDToObject(CAvianNameSystemID& ansID)
     obj.pushKV("type_name", typePair.first);
     if (ansID.type() == CAvianNameSystemID::ADDR)
         obj.pushKV("address", ansID.addr());
-    else if (ansID.type() == CAvianNameSystemID::IP)
-        obj.pushKV("ip", ansID.ip());
+    if (ansID.type() == CAvianNameSystemID::PROFILE) {
+        const ANSProfileData& p = ansID.profile();
+        if (!p.addr.empty())   obj.pushKV("address",      p.addr);
+        if (!p.name.empty())   obj.pushKV("display_name", p.name);
+        if (!p.avatar.empty()) obj.pushKV("avatar",       p.avatar_binary
+                                            ? HexStr(p.avatar)  // binary: return as hex
+                                            : p.avatar);
+        if (!p.banner.empty()) obj.pushKV("banner",      p.banner_binary
+                                            ? HexStr(p.banner)
+                                            : p.banner);
+        if (!p.url.empty())    obj.pushKV("url",          p.url);
+    }
     return obj;
 }
 
@@ -546,11 +558,14 @@ static RPCHelpMan getansdata()
         RPCResult{
             RPCResult::Type::OBJ, "", "ANS data object, or null if the asset has no ANS record",
             {
-                {RPCResult::Type::STR, "id", "the ANS ID string"},
-                {RPCResult::Type::NUM, "type", "the ANS type number"},
-                {RPCResult::Type::STR, "type_name", "the ANS type description"},
-                {RPCResult::Type::STR, "address", /*optional=*/true, "the Avian address (if type is ADDR)"},
-                {RPCResult::Type::STR, "ip", /*optional=*/true, "the IP address (if type is IP)"},
+                {RPCResult::Type::STR, "id",           "the ANS ID string"},
+                {RPCResult::Type::NUM, "type",         "the ANS type number"},
+                {RPCResult::Type::STR, "type_name",    "the ANS type description"},
+                {RPCResult::Type::STR, "address",      /*optional=*/true, "the Avian address (ADDR type, or PROFILE key 0)"},
+                {RPCResult::Type::STR, "display_name", /*optional=*/true, "display name (PROFILE key 1)"},
+                {RPCResult::Type::STR, "avatar",       /*optional=*/true, "avatar URL/CID or hex image bytes (PROFILE key 2)"},
+                {RPCResult::Type::STR, "banner",       /*optional=*/true, "banner URL/CID or hex image bytes (PROFILE key 4)"},
+                {RPCResult::Type::STR, "url",          /*optional=*/true, "website URL (PROFILE key 3)"},
             }
         },
         RPCExamples{
@@ -559,9 +574,6 @@ static RPCHelpMan getansdata()
         },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
         {
-            if (!IsAvianNameSystemDeployed())
-                throw JSONRPCError(RPC_MISC_ERROR, "Avian Name System is not active on this network.");
-
             std::string asset_name = request.params[0].get_str();
 
             LOCK(cs_main);
@@ -936,34 +948,204 @@ static RPCHelpMan purgesnapshot()
     };
 }
 
+static RPCHelpMan resolveavn()
+{
+    return RPCHelpMan{
+        "resolveavn",
+        "Resolves an AVN name to an address.\n"
+        "If 'coin' is omitted, resolves to an Avian address using ANS ADDR/PROFILE record or owner-token fallback.\n"
+        "If 'coin' is provided (e.g. \"BTC\"), resolves to an external address stored in the sub-asset NAME.AVN/COIN (AIP-0010).\n",
+        {
+            {"name", RPCArg::Type::STR, RPCArg::Optional::NO, "the AVN name to resolve (e.g. \"ALICE\" or \"ALICE.AVN\")"},
+            {"coin", RPCArg::Type::STR, RPCArg::Optional::OMITTED, "optional coin ticker for cross-chain lookup (e.g. \"BTC\", \"MEWC\")"},
+        },
+        RPCResult{
+            RPCResult::Type::OBJ, "", "",
+            {
+                {RPCResult::Type::STR, "name",         "the resolved asset name"},
+                {RPCResult::Type::STR, "address",      "the resolved address"},
+                {RPCResult::Type::STR, "source",       "resolution source: \"ans_record\", \"ans_xaddr\", \"ans_profile\", or \"owner_token\""},
+                {RPCResult::Type::STR, "display_name", /*optional=*/true, "display name from ANS PROFILE (ans_profile only)"},
+                {RPCResult::Type::STR, "avatar",       /*optional=*/true, "avatar URL/CID from ANS PROFILE (ans_profile only)"},
+                {RPCResult::Type::STR, "banner",       /*optional=*/true, "banner URL/CID from ANS PROFILE (ans_profile only)"},
+                {RPCResult::Type::STR, "url",          /*optional=*/true, "website URL from ANS PROFILE (ans_profile only)"},
+            }
+        },
+        RPCExamples{
+            HelpExampleCli("resolveavn", "\"ALICE\"")
+          + HelpExampleCli("resolveavn", "\"BOB\" \"BTC\"")
+          + HelpExampleRpc("resolveavn", "\"ALICE\"")
+          + HelpExampleRpc("resolveavn", "\"BOB\", \"MEWC\"")
+        },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+        {
+            std::string name = request.params[0].get_str();
+
+            // Normalise to uppercase and strip ".AVN" suffix if present
+            for (auto& c : name) c = toupper(c);
+            if (name.size() > 4 && name.substr(name.size() - 4) == ".AVN")
+                name = name.substr(0, name.size() - 4);
+
+            if (name.empty())
+                throw JSONRPCError(RPC_INVALID_PARAMETER, "Name must not be empty.");
+
+            LOCK(cs_main);
+
+            if (!passets)
+                throw JSONRPCError(RPC_INTERNAL_ERROR, "asset cache unavailable.");
+
+            // AIP-0010: cross-chain resolution via sub-asset NAME.AVN/COIN
+            if (!request.params[1].isNull()) {
+                std::string coin = request.params[1].get_str();
+                for (auto& c : coin) c = toupper(c);
+                if (coin.empty())
+                    throw JSONRPCError(RPC_INVALID_PARAMETER, "Coin ticker must not be empty.");
+
+                std::string subAssetName = name + CAvianNameSystemID::domain + "/" + coin; // "NAME.AVN/COIN"
+
+                CNewAsset subAsset;
+                if (!passets->GetAssetMetaDataIfExists(subAssetName, subAsset))
+                    throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY,
+                        "Cross-chain sub-asset not found: " + subAssetName);
+
+                if (!subAsset.nHasANS || subAsset.strANSID.empty())
+                    throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY,
+                        "Sub-asset has no ANS record: " + subAssetName);
+
+                CAvianNameSystemID ansID(subAsset.strANSID);
+                if (ansID.type() != CAvianNameSystemID::XADDR || ansID.addr().empty())
+                    throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY,
+                        "Sub-asset ANS record is not an external address (XADDR): " + subAssetName);
+
+                UniValue result(UniValue::VOBJ);
+                result.pushKV("name",    subAssetName);
+                result.pushKV("address", ansID.addr());
+                result.pushKV("source",  "ans_xaddr");
+                return result;
+            }
+
+            std::string assetName = name + CAvianNameSystemID::domain; // "<NAME>.AVN"
+
+            CNewAsset asset;
+            if (!passets->GetAssetMetaDataIfExists(assetName, asset))
+                throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "AVN name not found: " + assetName);
+
+            // Tier 1a/1b: ANS record lookup
+            if (asset.nHasANS && !asset.strANSID.empty()) {
+                CAvianNameSystemID ansID(asset.strANSID);
+                if (ansID.type() == CAvianNameSystemID::ADDR && !ansID.addr().empty()) {
+                    UniValue result(UniValue::VOBJ);
+                    result.pushKV("name", assetName);
+                    result.pushKV("address", ansID.addr());
+                    result.pushKV("source", "ans_record");
+                    return result;
+                }
+                // Tier 1b: ANS PROFILE record — use the addr field (CBOR key 0) if present
+                if (ansID.type() == CAvianNameSystemID::PROFILE && !ansID.profile().addr.empty()) {
+                    const ANSProfileData& pd = ansID.profile();
+                    UniValue result(UniValue::VOBJ);
+                    result.pushKV("name",    assetName);
+                    result.pushKV("address", pd.addr);
+                    result.pushKV("source",  "ans_profile");
+                    if (!pd.name.empty())   result.pushKV("display_name", pd.name);
+                    if (!pd.avatar.empty()) result.pushKV("avatar", pd.avatar_binary ? HexStr(pd.avatar) : pd.avatar);
+                    if (!pd.banner.empty()) result.pushKV("banner", pd.banner_binary ? HexStr(pd.banner) : pd.banner);
+                    if (!pd.url.empty())    result.pushKV("url", pd.url);
+                    return result;
+                }
+            }
+
+            // Tier 2: owner token fallback (requires assetindex)
+            if (!fAssetIndex)
+                throw JSONRPCError(RPC_MISC_ERROR,
+                    "Enable -assetindex for owner token fallback resolution of '" + assetName + "'.");
+
+            if (!passetsdb)
+                throw JSONRPCError(RPC_INTERNAL_ERROR, "asset db unavailable.");
+
+            std::string ownerToken = assetName + "!";
+            std::vector<std::pair<std::string, CAmount>> ownerAddrs;
+            int dbTotal = 0;
+            if (!passetsdb->AssetAddressDir(ownerAddrs, dbTotal, false, ownerToken, 1, 0) || ownerAddrs.empty())
+                throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY,
+                    "No ANS record and no owner found for: " + assetName);
+
+            UniValue result(UniValue::VOBJ);
+            result.pushKV("name", assetName);
+            result.pushKV("address", ownerAddrs[0].first);
+            result.pushKV("source", "owner_token");
+            return result;
+        },
+    };
+}
+
 static RPCHelpMan ansencode()
 {
     return RPCHelpMan{
         "ansencode",
-        "Encodes type and data into an ANS (Avian Name System) ID string.\n",
+        "Encodes type and data into an ANS (Avian Name System) ID string.\n"
+        "For PROFILE type, 'data' can be a JSON object with named fields or raw hex-encoded CBOR bytes.\n"
+        "JSON fields: \"name\" (display name), \"addr\" (Avian address), \"avatar\" (URL/CID), \"url\" (website).\n",
         {
-            {"type", RPCArg::Type::STR, RPCArg::Optional::NO, "the ANS type: \"ADDR\" or \"IP\""},
-            {"data", RPCArg::Type::STR, RPCArg::Optional::NO, "the data for the ANS record (Avian address or IP address)"},
+            {"type", RPCArg::Type::STR, RPCArg::Optional::NO, "the ANS type: \"ADDR\" or \"PROFILE\""},
+            {"data", RPCArg::Type::STR, RPCArg::Optional::NO,
+                "for ADDR: an Avian address; "
+                "for PROFILE: a JSON object e.g. {\"name\":\"Bob\",\"avatar\":\"ipfs://Qm...\"} "
+                "or raw hex-encoded CBOR bytes"},
         },
         RPCResult{
             RPCResult::Type::STR, "", "the encoded ANS ID string"
         },
         RPCExamples{
             HelpExampleCli("ansencode", "\"ADDR\" \"RXissueAssetXXXXXXXXXXXXXXXXZFGHWo\"")
-          + HelpExampleCli("ansencode", "\"IP\" \"127.0.0.1\"")
+          + HelpExampleCli("ansencode", "\"PROFILE\" \"{\\\"name\\\":\\\"Bob\\\",\\\"avatar\\\":\\\"ipfs://QmTest\\\"}\"")
+          + HelpExampleCli("ansencode", "\"PROFILE\" \"{\\\"name\\\":\\\"Bob\\\",\\\"addr\\\":\\\"RXissueAssetXXXXXXXXXXXXXXXXZFGHWo\\\",\\\"url\\\":\\\"https://example.com\\\"}\"")
         },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
         {
             std::string type_str = request.params[0].get_str();
-            std::string data = request.params[1].get_str();
+            std::string data     = request.params[1].get_str();
 
             CAvianNameSystemID::Type type;
             if (type_str == "ADDR" || type_str == "addr" || type_str == "0")
                 type = CAvianNameSystemID::ADDR;
-            else if (type_str == "IP" || type_str == "ip" || type_str == "1")
-                type = CAvianNameSystemID::IP;
+            else if (type_str == "XADDR" || type_str == "xaddr" || type_str == "1")
+                type = CAvianNameSystemID::XADDR;
+            else if (type_str == "PROFILE" || type_str == "profile" || type_str == "2")
+                type = CAvianNameSystemID::PROFILE;
             else
-                throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid ANS type. Must be \"ADDR\" or \"IP\".");
+                throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid ANS type. Supported types: \"ADDR\" (0), \"XADDR\" (1), \"PROFILE\" (2).");
+
+            if (type == CAvianNameSystemID::PROFILE) {
+                std::string trimmed = data;
+                trimmed.erase(0, trimmed.find_first_not_of(" \t\n\r"));
+
+                if (!trimmed.empty() && trimmed[0] == '{') {
+                    // JSON object input: build CBOR from named fields
+                    UniValue profileJson;
+                    if (!profileJson.read(trimmed))
+                        throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid JSON for PROFILE data. Expected object with fields: name, addr, avatar, url.");
+                    if (!profileJson.isObject())
+                        throw JSONRPCError(RPC_INVALID_PARAMETER, "PROFILE JSON data must be an object.");
+
+                    ANSProfileData p;
+                    if (profileJson.exists("name"))   p.name   = profileJson["name"].get_str();
+                    if (profileJson.exists("addr"))   p.addr   = profileJson["addr"].get_str();
+                    if (profileJson.exists("avatar")) { p.avatar = profileJson["avatar"].get_str(); p.avatar_binary = false; }
+                    if (profileJson.exists("url"))    p.url    = profileJson["url"].get_str();
+
+                    if (p.name.empty() && p.addr.empty() && p.avatar.empty() && p.url.empty())
+                        throw JSONRPCError(RPC_INVALID_PARAMETER, "PROFILE JSON must have at least one of: name, addr, avatar, url.");
+
+                    data = ANS_CBOR::EncodeProfile(p);
+                } else {
+                    // Hex CBOR input (power user / programmatic)
+                    if (!IsHex(data))
+                        throw JSONRPCError(RPC_INVALID_PARAMETER, "For PROFILE type, data must be a JSON object or hex-encoded CBOR bytes.");
+                    auto bytes = ParseHex(data);
+                    data = std::string(bytes.begin(), bytes.end());
+                }
+            }
 
             std::string error;
             std::string formatted = CAvianNameSystemID::FormatTypeData(type, data, error);
@@ -980,18 +1162,22 @@ static RPCHelpMan ansdecode()
 {
     return RPCHelpMan{
         "ansdecode",
-        "Decodes an ANS (Avian Name System) ID string and returns its components.\n",
+        "Decodes an ANS (Avian Name System) ID string and returns its components.\n"
+        "For PROFILE records, CBOR binary fields (avatar) are returned as hex.\n",
         {
             {"ans_id", RPCArg::Type::STR, RPCArg::Optional::NO, "the ANS ID string to decode"},
         },
         RPCResult{
             RPCResult::Type::OBJ, "", "",
             {
-                {RPCResult::Type::STR, "id", "the ANS ID string"},
-                {RPCResult::Type::NUM, "type", "the ANS type number"},
-                {RPCResult::Type::STR, "type_name", "the ANS type description"},
-                {RPCResult::Type::STR, "address", /*optional=*/true, "the Avian address (if type is ADDR)"},
-                {RPCResult::Type::STR, "ip", /*optional=*/true, "the IP address (if type is IP)"},
+                {RPCResult::Type::STR, "id",           "the ANS ID string"},
+                {RPCResult::Type::NUM, "type",         "the ANS type number"},
+                {RPCResult::Type::STR, "type_name",    "the ANS type description"},
+                {RPCResult::Type::STR, "address",      /*optional=*/true, "the Avian address (ADDR type, or PROFILE key 0)"},
+                {RPCResult::Type::STR, "display_name", /*optional=*/true, "display name (PROFILE key 1)"},
+                {RPCResult::Type::STR, "avatar",       /*optional=*/true, "avatar URL/CID or hex image bytes (PROFILE key 2)"},
+                {RPCResult::Type::STR, "banner",       /*optional=*/true, "banner URL/CID or hex image bytes (PROFILE key 4)"},
+                {RPCResult::Type::STR, "url",          /*optional=*/true, "website URL (PROFILE key 3)"},
             }
         },
         RPCExamples{
@@ -1011,6 +1197,102 @@ static RPCHelpMan ansdecode()
     };
 }
 
+static RPCHelpMan whoisavn()
+{
+    return RPCHelpMan{
+        "whoisavn",
+        "Reverse ANS lookup: given an Avian address, returns which ANS names are owned at or registered to that address.\n"
+        "Requires -assetindex.\n",
+        {
+            {"address", RPCArg::Type::STR, RPCArg::Optional::NO, "the Avian address to look up"},
+        },
+        RPCResult{
+            RPCResult::Type::OBJ, "", "",
+            {
+                {RPCResult::Type::STR, "address",      "the queried address"},
+                {RPCResult::Type::ARR, "owner_of",     "ANS names whose owner token is held at this address",
+                    {{RPCResult::Type::STR, "", "ANS name"}}},
+                {RPCResult::Type::ARR, "registered_as", "ANS names whose ANS record points to this address",
+                    {{RPCResult::Type::STR, "", "ANS name"}}},
+            }
+        },
+        RPCExamples{
+            HelpExampleCli("whoisavn", "\"RXissueAssetXXXXXXXXXXXXXXXXXhhZGt\"")
+          + HelpExampleRpc("whoisavn", "\"RXissueAssetXXXXXXXXXXXXXXXXXhhZGt\"")
+        },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+        {
+            if (!fAssetIndex)
+                throw JSONRPCError(RPC_MISC_ERROR, "whoisavn requires -assetindex.");
+
+            if (!passetsdb || !passets)
+                throw JSONRPCError(RPC_INTERNAL_ERROR, "asset db unavailable.");
+
+            std::string address = request.params[0].get_str();
+
+            LOCK(cs_main);
+
+            const std::string& domain = CAvianNameSystemID::domain; // ".AVN"
+
+            // --- owner_of: find X.AVN! owner tokens at this address ---
+            UniValue ownerOf(UniValue::VARR);
+            {
+                std::vector<std::pair<std::string, CAmount>> vecDB;
+                int dbTotal = 0;
+                passetsdb->AddressDir(vecDB, dbTotal, false, address, std::numeric_limits<size_t>::max(), 0);
+                // Overlay dirty in-memory entries
+                std::map<std::string, CAmount> combined;
+                for (const auto& [name, amt] : vecDB) combined[name] = amt;
+                for (const auto& [pair, amt] : passets->mapAssetsAddressAmount)
+                    if (pair.second == address) combined[pair.first] = amt;
+
+                for (const auto& [name, amt] : combined) {
+                    if (amt <= 0) continue;
+                    // Owner token ends in '!' and base name ends in domain
+                    if (name.size() > domain.size() + 1 && name.back() == '!') {
+                        std::string base = name.substr(0, name.size() - 1);
+                        if (base.size() > domain.size() &&
+                            base.substr(base.size() - domain.size()) == domain)
+                            ownerOf.push_back(base);
+                    }
+                }
+            }
+
+            // --- registered_as: scan all .AVN assets whose ANS addr == queried address ---
+            // Note: AssetDir only supports prefix* wildcards, so we scan all assets and
+            // filter by suffix in code.
+            UniValue registeredAs(UniValue::VARR);
+            {
+                std::vector<CDatabasedAssetData> ansAssets;
+                passetsdb->AssetDir(ansAssets, "*", std::numeric_limits<size_t>::max(), 0);
+                for (const auto& data : ansAssets) {
+                    const CNewAsset& a = data.asset;
+                    // Only consider assets whose name ends in domain (e.g. "BOB.AVN")
+                    if (a.strName.size() <= domain.size() ||
+                        a.strName.substr(a.strName.size() - domain.size()) != domain)
+                        continue;
+                    if (!a.nHasANS || a.strANSID.empty()) continue;
+                    if (!CAvianNameSystemID::IsValidID(a.strANSID)) continue;
+                    CAvianNameSystemID ans(a.strANSID);
+                    std::string ansAddr;
+                    if (ans.type() == CAvianNameSystemID::ADDR)
+                        ansAddr = ans.addr();
+                    else if (ans.type() == CAvianNameSystemID::PROFILE)
+                        ansAddr = ans.profile().addr;
+                    if (!ansAddr.empty() && ansAddr == address)
+                        registeredAs.push_back(a.strName);
+                }
+            }
+
+            UniValue result(UniValue::VOBJ);
+            result.pushKV("address",       address);
+            result.pushKV("owner_of",      ownerOf);
+            result.pushKV("registered_as", registeredAs);
+            return result;
+        },
+    };
+}
+
 void RegisterAssetRPCCommands(CRPCTable& t)
 {
     static const CRPCCommand commands[]{
@@ -1019,11 +1301,13 @@ void RegisterAssetRPCCommands(CRPCTable& t)
         {"assets", &getcacheinfo},
         {"assets", &listassetbalancesbyaddress},
         {"assets", &listaddressesbyasset},
-        {"assets", &getansdata},
         {"assets", &getsnapshot},
         {"assets", &purgesnapshot},
-        {"assets", &ansencode},
-        {"assets", &ansdecode},
+        {"avian name system", &getansdata},
+        {"avian name system", &resolveavn},
+        {"avian name system", &whoisavn},
+        {"avian name system", &ansencode},
+        {"avian name system", &ansdecode},
         {"restricted assets", &checkaddressrestriction},
         {"restricted assets", &checkglobalrestriction},
         {"restricted assets", &checkaddresstag},

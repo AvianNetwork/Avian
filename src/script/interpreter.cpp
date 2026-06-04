@@ -456,6 +456,8 @@ bool EvalScript(std::vector<std::vector<unsigned char> >& stack, const CScript& 
     uint32_t opcode_pos = 0;
     execdata.m_codeseparator_pos = 0xFFFFFFFFUL;
     execdata.m_codeseparator_pos_init = true;
+    const unsigned int max_push_size = (flags & SCRIPT_VERIFY_ANS_V2)
+        ? MAX_SCRIPT_ELEMENT_SIZE_ANS_V2 : MAX_SCRIPT_ELEMENT_SIZE;
 
     try
     {
@@ -467,7 +469,7 @@ bool EvalScript(std::vector<std::vector<unsigned char> >& stack, const CScript& 
             //
             if (!script.GetOp(pc, opcode, vchPushValue))
                 return set_error(serror, SCRIPT_ERR_BAD_OPCODE);
-            if (vchPushValue.size() > MAX_SCRIPT_ELEMENT_SIZE)
+            if (vchPushValue.size() > max_push_size)
                 return set_error(serror, SCRIPT_ERR_PUSH_SIZE);
 
             if (sigversion == SigVersion::BASE || sigversion == SigVersion::WITNESS_V0) {

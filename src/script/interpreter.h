@@ -151,6 +151,9 @@ enum : uint32_t {
     // RIP-25: Enforce ML-DSA-44 post-quantum signing rules for witness v2 outputs.
     SCRIPT_VERIFY_PQ_HYBRID = (1U << 22),
 
+    // AIP-0009: allow push data up to MAX_SCRIPT_ELEMENT_SIZE_ANS_V2 after DEPLOYMENT_ANS_V2.
+    SCRIPT_VERIFY_ANS_V2 = (1U << 23),
+
     // Constants to point to the highest flag in use. Add new flags above this line.
     //
     SCRIPT_VERIFY_END_MARKER

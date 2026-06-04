@@ -577,14 +577,41 @@ void OverviewPage::handleAssetRightClicked(const QModelIndex& index)
 
     // View ANS action
     disconnect(assetViewANSAction, &QAction::triggered, nullptr, nullptr);
-    connect(assetViewANSAction, &QAction::triggered, [this, index, ansid]() {
+    connect(assetViewANSAction, &QAction::triggered, [this, assetName, ansid]() {
         if (!ansid.isEmpty()) {
-            QString assetname = index.data(AssetTableModel::AssetNameRole).toString();
             CAvianNameSystemID ans(ansid.toStdString());
             QString ansData;
-            if (ans.type() == CAvianNameSystemID::ADDR) ansData = "Address: " + QString::fromStdString(ans.addr());
-            if (ans.type() == CAvianNameSystemID::IP) ansData = "IPv4: " + QString::fromStdString(ans.ip());
-            QMessageBox::information(this, "ANS Info", assetname + " links to:\n" + ansData);
+            QString label;
+            if (ans.type() == CAvianNameSystemID::ADDR) {
+                label = tr("AVN Address");
+                ansData = QString::fromStdString(ans.addr());
+            } else if (ans.type() == CAvianNameSystemID::XADDR) {
+                label = tr("External Address");
+                ansData = QString::fromStdString(ans.addr());
+            } else if (ans.type() == CAvianNameSystemID::PROFILE) {
+                label = tr("Profile");
+                const ANSProfileData& p = ans.profile();
+                if (!p.name.empty())
+                    ansData += tr("Display Name: ") + QString::fromStdString(p.name) + "\n";
+                if (!p.addr.empty())
+                    ansData += tr("Address: ")      + QString::fromStdString(p.addr) + "\n";
+                if (!p.avatar.empty()) {
+                    if (p.avatar_binary)
+                        ansData += tr("Avatar: ")   + tr("[inline binary, %1 bytes]").arg((qulonglong)p.avatar.size()) + "\n";
+                    else
+                        ansData += tr("Avatar: ")   + QString::fromStdString(p.avatar) + "\n";
+                }
+                if (!p.banner.empty()) {
+                    if (p.banner_binary)
+                        ansData += tr("Banner: ")   + tr("[inline binary, %1 bytes]").arg((qulonglong)p.banner.size()) + "\n";
+                    else
+                        ansData += tr("Banner: ")   + QString::fromStdString(p.banner) + "\n";
+                }
+                if (!p.url.empty())
+                    ansData += tr("URL: ")          + QString::fromStdString(p.url) + "\n";
+                if (ansData.endsWith("\n")) ansData.chop(1);
+            }
+            QMessageBox::information(this, tr("ANS Info"), assetName + " " + label + ":\n" + ansData);
         }
     });
 

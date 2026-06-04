@@ -63,6 +63,7 @@ private Q_SLOTS:
     void deleteClicked();
     void useAvailableBalanceClicked();
     void on_payTo_textChanged(const QString &address);
+    void on_payTo_editingFinished();
     void on_addressBookButton_clicked();
     void on_pasteButton_clicked();
     void updateDisplayUnit();

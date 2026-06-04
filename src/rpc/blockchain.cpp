@@ -1624,9 +1624,17 @@ static void SoftForkDescPushBack(const CBlockIndex* blockindex, UniValue& softfo
     if (!DeploymentEnabled(chainman, id)) return;
     if (blockindex == nullptr) return;
 
+    const auto& depparams{chainman.GetConsensus().vDeployments[id]};
+
+    // GetStateFor normalizes to a period boundary: GetAncestor(height - ((height+1) % period)).
+    // For heights below (period - 1) this produces a negative index and asserts. Skip reporting
+    // until ALWAYS_ACTIVE/NEVER_ACTIVE or the chain is deep enough.
+    if (depparams.nStartTime != Consensus::BIP9Deployment::ALWAYS_ACTIVE &&
+        depparams.nStartTime != Consensus::BIP9Deployment::NEVER_ACTIVE &&
+        blockindex->nHeight < static_cast<int>(depparams.period) - 1) return;
+
     UniValue bip9(UniValue::VOBJ);
     BIP9Info info{chainman.m_versionbitscache.Info(*blockindex, chainman.GetConsensus(), id)};
-    const auto& depparams{chainman.GetConsensus().vDeployments[id]};
 
     // BIP9 parameters
     if (info.stats.has_value()) {
@@ -1806,6 +1814,7 @@ UniValue DeploymentInfo(const CBlockIndex* blockindex, const ChainstateManager& 
     SoftForkDescPushBack(blockindex, softforks, chainman, Consensus::DEPLOYMENT_TESTDUMMY);
     SoftForkDescPushBack(blockindex, softforks, chainman, Consensus::DEPLOYMENT_TAPROOT);
     SoftForkDescPushBack(blockindex, softforks, chainman, Consensus::DEPLOYMENT_MLDSA44);
+    SoftForkDescPushBack(blockindex, softforks, chainman, Consensus::DEPLOYMENT_ANS_V2);
     return softforks;
 }
 } // anon namespace

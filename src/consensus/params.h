@@ -38,6 +38,7 @@ enum DeploymentPos : uint16_t {
     DEPLOYMENT_TESTDUMMY,
     DEPLOYMENT_TAPROOT, // Deployment of Schnorr/Taproot (BIPs 340-342)
     DEPLOYMENT_MLDSA44, // RIP-25: Deployment of ML-DSA-44 post-quantum signatures (witness v2)
+    DEPLOYMENT_ANS_V2,  // AIP-0009: Avian Name System v2 (replaces UPGRADE_AVIAN_NAME_SYSTEM)
     // NOTE: Also add new deployments to VersionBitsDeploymentInfo in deploymentinfo.cpp
     MAX_VERSION_BITS_DEPLOYMENTS
 };

@@ -99,12 +99,19 @@ bool SerializeIPFSHash(Stream& s, const std::string& strIPFSHash)
 }
 
 // Helper: unserialize an IPFS/TXID hash from a stream
-// Requires the stream to support size() and empty() (e.g., DataStream).
+// Requires the stream to support size(), empty(), and operator[] (e.g., DataStream).
 template <typename Stream>
 bool UnserializeIPFSHash(Stream& s, std::string& strIPFSHash)
 {
     strIPFSHash.clear();
-    if (!s.empty() && s.size() >= 33) {
+    if (!s.empty() && s.size() >= 34) {
+        // Peek at the type byte before consuming.  If it is not a known IPFS/TXID
+        // marker (0x12 or 0x54) the remaining stream bytes belong to a different
+        // field (e.g. strANSID) and must not be consumed here.
+        int8_t peekType = static_cast<int8_t>(s[0]);
+        if (peekType != IPFS_SHA2_256 && peekType != TXID_NOTIFIER)
+            return false;
+
         int8_t type;
         ::Unserialize(s, type);
         std::string hash;
@@ -130,7 +137,7 @@ public:
     int8_t nHasIPFS;     // 1 Byte
     int8_t nHasANS;      // 1 Byte
     std::string strIPFSHash; // MAX 40 Bytes
-    std::string strANSID;    // MAX 40 Bytes
+    std::string strANSID;    // MAX 404 Bytes (AIP-0009: "ANS" + nibble + 400 hex chars for 200-byte CBOR)
 
     CNewAsset()
     {
@@ -328,7 +335,10 @@ public:
         ::Unserialize(s, nUnits);
         ::Unserialize(s, nReissuable);
         UnserializeIPFSHash(s, strIPFSHash);
-        ::Unserialize(s, strANSID);
+        // strANSID is absent in pre-ANS reissue scripts; only read if bytes remain.
+        if (!s.empty()) {
+            ::Unserialize(s, strANSID);
+        }
     }
 
     CReissueAsset(const std::string& strAssetName, const CAmount& nAmount, const int& nUnits, const int& nReissuable, const std::string& strIPFSHash, const std::string& strANSID);

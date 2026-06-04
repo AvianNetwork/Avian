@@ -14,6 +14,7 @@
 #include <core_io.h>
 #include <key_io.h>
 #include <util/moneystr.h>
+#include <util/strencodings.h>
 #include <validation.h>
 
 #include <wallet/asset_tx.h>
@@ -23,6 +24,7 @@
 #include <wallet/wallet.h>
 
 #include <univalue.h>
+#include <limits>
 
 namespace wallet {
 
@@ -233,7 +235,8 @@ RPCHelpMan issue()
         "Issue an asset, subasset or unique asset.\n"
         "Asset name must not conflict with any existing asset.\n"
         "Unit as the number of decimals precision for the asset (0 for whole units (\"1\"), 8 for max precision (\"1.00000000\"))\n"
-        "Reissuable is true/false for whether additional units can be issued by the original issuer.\n",
+        "Reissuable is true/false for whether additional units can be issued by the original issuer.\n"
+        "ANS data (AIP-0009) can be attached to .AVN root assets at issuance when ANS v2 is deployed.\n",
         {
             {"asset_name", RPCArg::Type::STR, RPCArg::Optional::NO, "a unique name"},
             {"qty", RPCArg::Type::NUM, RPCArg::Default{1}, "the number of units to be issued"},
@@ -243,11 +246,14 @@ RPCHelpMan issue()
             {"reissuable", RPCArg::Type::BOOL, RPCArg::Default{true}, "whether future reissuance is allowed (false for unique assets)"},
             {"has_ipfs", RPCArg::Type::BOOL, RPCArg::Default{false}, "whether an ipfs hash is going to be added"},
             {"ipfs_hash", RPCArg::Type::STR, RPCArg::Default{""}, "an ipfs hash or txid hash (required if has_ipfs = true)"},
+            {"has_ans", RPCArg::Type::BOOL, RPCArg::Default{false}, "whether an ANS ID is going to be added (asset name must end in .AVN)"},
+            {"ans_id", RPCArg::Type::STR, RPCArg::Default{""}, "ANS ID string to attach (use ansencode to build; required if has_ans = true)"},
         },
         RPCResult{RPCResult::Type::ARR, "", "", {{RPCResult::Type::STR, "txid", "The transaction id"}}},
         RPCExamples{
             HelpExampleCli("issue", "\"ASSET_NAME\" 1000")
             + HelpExampleCli("issue", "\"ASSET_NAME\" 1000 \"myaddress\" \"changeaddress\" 8 false true \"QmTqu3Lk3gmTsQVtjU7rYYM37EAW4xNmbuEAp2Mjr4AV7E\"")
+            + HelpExampleCli("issue", "\"ALICE.AVN\" 1 \"myaddress\" \"\" 0 true false \"\" true \"ANS0<avian_address>\"")
         },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
         {
@@ -316,11 +322,28 @@ RPCHelpMan issue()
                 CheckIPFSTxidMessage(ipfs_hash, expireTime);
             }
 
+            bool has_ans = false;
+            if (!request.params[8].isNull())
+                has_ans = request.params[8].get_bool();
+
+            std::string ans_id;
+            if (!request.params[9].isNull() && has_ans) {
+                ans_id = request.params[9].get_str();
+                if (!IsAvianNameSystemDeployed())
+                    throw JSONRPCError(RPC_INVALID_PARAMS, "ANS not active on this network.");
+                if (!CAvianNameSystemID::IsValidID(ans_id))
+                    throw JSONRPCError(RPC_INVALID_PARAMS, "Invalid ANS ID: use ansencode to build one.");
+                const std::string& domain = CAvianNameSystemID::domain;
+                bool shortLen = assetName.length() <= domain.length();
+                if (shortLen || assetName.substr(assetName.length() - domain.length()) != domain)
+                    throw JSONRPCError(RPC_INVALID_PARAMS, strprintf("ANS data requires asset name ending in '%s'.", domain));
+            }
+
             // Validate unique/msgchannel constraints
             if ((assetType == AssetType::UNIQUE || assetType == AssetType::MSGCHANNEL) && (nAmount != COIN || units != 0 || reissuable))
                 throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid parameters for issuing a unique asset.");
 
-            CNewAsset asset(assetName, nAmount, units, reissuable ? 1 : 0, has_ipfs ? 1 : 0, DecodeAssetData(ipfs_hash));
+            CNewAsset asset(assetName, nAmount, units, reissuable ? 1 : 0, has_ipfs ? 1 : 0, DecodeAssetData(ipfs_hash), has_ans ? 1 : 0, ans_id);
 
             CCoinControl ctrl;
             ctrl.destChange = DecodeDestination(change_address);
@@ -447,7 +470,8 @@ RPCHelpMan reissue()
         "reissue",
         "Reissues a quantity of an asset to an owned address if you own the Owner Token.\n"
         "Can change the reissuable flag during reissuance.\n"
-        "Can change the ipfs hash during reissuance.\n",
+        "Can change the ipfs hash during reissuance.\n"
+        "Can set or update an ANS record on a .AVN asset (ANS v2, AIP-0009).\n",
         {
             {"asset_name", RPCArg::Type::STR, RPCArg::Optional::NO, "name of asset that is being reissued"},
             {"qty", RPCArg::Type::NUM, RPCArg::Optional::NO, "number of assets to reissue"},
@@ -456,11 +480,13 @@ RPCHelpMan reissue()
             {"reissuable", RPCArg::Type::BOOL, RPCArg::Default{true}, "whether future reissuance is allowed"},
             {"new_units", RPCArg::Type::NUM, RPCArg::Default{-1}, "the new units that will be associated with the asset"},
             {"new_ipfs", RPCArg::Type::STR, RPCArg::Default{""}, "whether to update the current ipfs hash or txid"},
+            {"ans_id", RPCArg::Type::STR, RPCArg::Default{""}, "ANS ID string to attach (use ansencode to build; asset name must end in .AVN)"},
         },
         RPCResult{RPCResult::Type::ARR, "", "", {{RPCResult::Type::STR, "txid", "The transaction id"}}},
         RPCExamples{
             HelpExampleCli("reissue", "\"ASSET_NAME\" 20 \"address\"")
             + HelpExampleCli("reissue", "\"ASSET_NAME\" 20 \"address\" \"change_address\" true 8 \"Qmd286K6pohQcTKYqnS1YhWrCiS4gz7Xi34sdwMe9USZ7u\"")
+            + HelpExampleCli("reissue", "\"ALICE.AVN\" 0 \"address\" \"\" true -1 \"\" \"ANS0<avian_address>\"")
         },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
         {
@@ -494,7 +520,22 @@ RPCHelpMan reissue()
                 }
             }
 
-            CReissueAsset reissueAsset(asset_name, nAmount, newUnits, reissuable ? 1 : 0, DecodeAssetData(newipfs), "");
+            std::string ansID;
+            if (!request.params[7].isNull()) {
+                ansID = request.params[7].get_str();
+                if (!ansID.empty()) {
+                    if (!IsAvianNameSystemDeployed())
+                        throw JSONRPCError(RPC_INVALID_PARAMS, "ANS not active on this network.");
+                    if (!CAvianNameSystemID::IsValidID(ansID))
+                        throw JSONRPCError(RPC_INVALID_PARAMS, "Invalid ANS ID: use ansencode to build one.");
+                    const std::string& domain = CAvianNameSystemID::domain;
+                    bool shortLen = asset_name.length() <= domain.length();
+                    if (shortLen || asset_name.substr(asset_name.length() - domain.length()) != domain)
+                        throw JSONRPCError(RPC_INVALID_PARAMS, strprintf("ANS data requires asset name ending in '%s'.", domain));
+                }
+            }
+
+            CReissueAsset reissueAsset(asset_name, nAmount, newUnits, reissuable ? 1 : 0, DecodeAssetData(newipfs), ansID);
 
             CCoinControl ctrl;
             ctrl.destChange = DecodeDestination(changeAddress);
@@ -2014,6 +2055,128 @@ RPCHelpMan consolidateutxos()
             }
 
             return ret;
+        },
+    };
+}
+
+RPCHelpMan myansnames()
+{
+    return RPCHelpMan{
+        "myansnames",
+        "Returns all ANS names owned by this wallet, with their current ANS records.\n",
+        {},
+        RPCResult{
+            RPCResult::Type::ARR, "", "",
+            {{
+                RPCResult::Type::OBJ, "", "",
+                {
+                    {RPCResult::Type::STR, "name",         "the .AVN asset name"},
+                    {RPCResult::Type::STR, "type",         "ANS type: ADDR, XADDR, PROFILE, or none"},
+                    {RPCResult::Type::STR, "address",      /*optional=*/true, "registered address (ADDR or PROFILE)"},
+                    {RPCResult::Type::STR, "display_name", /*optional=*/true, "display name (PROFILE)"},
+                    {RPCResult::Type::STR, "avatar",       /*optional=*/true, "avatar URL (PROFILE)"},
+                    {RPCResult::Type::STR, "banner",       /*optional=*/true, "banner URL (PROFILE)"},
+                    {RPCResult::Type::STR, "url",          /*optional=*/true, "website URL (PROFILE)"},
+                    {RPCResult::Type::ARR, "cross_chain",  /*optional=*/true, "cross-chain address records (sub-assets)",
+                        {{
+                            RPCResult::Type::OBJ, "", "",
+                            {
+                                {RPCResult::Type::STR, "coin",    "coin ticker (e.g. BTC, MEWC)"},
+                                {RPCResult::Type::STR, "address", "external address for this chain"},
+                            }
+                        }}
+                    },
+                }
+            }}
+        },
+        RPCExamples{
+            HelpExampleCli("myansnames", "")
+          + HelpExampleRpc("myansnames", "")
+        },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+        {
+            const std::shared_ptr<const CWallet> pwallet = GetWalletForJSONRPCRequest(request);
+            if (!pwallet) return UniValue::VNULL;
+
+            if (!passetsdb || !passets)
+                throw JSONRPCError(RPC_INTERNAL_ERROR, "asset db unavailable.");
+
+            const std::string& domain = CAvianNameSystemID::domain; // ".AVN"
+
+            // Find all .AVN owner tokens in wallet (X.AVN!)
+            LOCK(pwallet->cs_wallet);
+            CoinFilterParams coin_params;
+            coin_params.min_amount = 0;
+            CoinsResult available = AvailableCoinsWithAssets(*pwallet, nullptr, std::nullopt, coin_params);
+
+            // Collect .AVN names from owner tokens held in wallet
+            std::set<std::string> ownedNames;
+            for (const auto& [assetName, outputs] : available.mapAssetCoins) {
+                if (assetName.size() > domain.size() + 1 && assetName.back() == '!') {
+                    std::string base = assetName.substr(0, assetName.size() - 1);
+                    if (base.size() > domain.size() &&
+                        base.substr(base.size() - domain.size()) == domain)
+                        ownedNames.insert(base);
+                }
+            }
+
+            UniValue result(UniValue::VARR);
+            LOCK(cs_main);
+
+            for (const auto& ansName : ownedNames) {
+                UniValue entry(UniValue::VOBJ);
+                entry.pushKV("name", ansName);
+
+                // Read the ROOT .AVN asset ANS record
+                CNewAsset rootAsset;
+                int nHeight; uint256 blockHash;
+                std::string type_str = "none";
+                if (passetsdb->ReadAssetData(ansName, rootAsset, nHeight, blockHash) &&
+                    rootAsset.nHasANS && !rootAsset.strANSID.empty() &&
+                    CAvianNameSystemID::IsValidID(rootAsset.strANSID))
+                {
+                    CAvianNameSystemID ans(rootAsset.strANSID);
+                    if (ans.type() == CAvianNameSystemID::ADDR) {
+                        type_str = "ADDR";
+                        entry.pushKV("address", ans.addr());
+                    } else if (ans.type() == CAvianNameSystemID::PROFILE) {
+                        type_str = "PROFILE";
+                        const ANSProfileData& p = ans.profile();
+                        if (!p.addr.empty())   entry.pushKV("address",      p.addr);
+                        if (!p.name.empty())   entry.pushKV("display_name", p.name);
+                        if (!p.avatar.empty()) entry.pushKV("avatar",       p.avatar_binary ? HexStr(p.avatar) : p.avatar);
+                        if (!p.banner.empty()) entry.pushKV("banner",       p.banner_binary ? HexStr(p.banner) : p.banner);
+                        if (!p.url.empty())    entry.pushKV("url",          p.url);
+                    }
+                }
+                entry.pushKV("type", type_str);
+
+                // Scan sub-assets for cross-chain XADDR records (e.g. BOB.AVN/BTC)
+                UniValue crossChain(UniValue::VARR);
+                std::vector<CDatabasedAssetData> subAssets;
+                passetsdb->AssetDir(subAssets, ansName + "/*", std::numeric_limits<size_t>::max(), 0);
+                for (const auto& data : subAssets) {
+                    const CNewAsset& sub = data.asset;
+                    if (!sub.nHasANS || sub.strANSID.empty()) continue;
+                    if (!CAvianNameSystemID::IsValidID(sub.strANSID)) continue;
+                    CAvianNameSystemID subAns(sub.strANSID);
+                    if (subAns.type() != CAvianNameSystemID::XADDR) continue;
+                    // Extract coin ticker: everything after the last '/'
+                    size_t slash = sub.strName.rfind('/');
+                    if (slash == std::string::npos) continue;
+                    std::string coin = sub.strName.substr(slash + 1);
+                    UniValue cc(UniValue::VOBJ);
+                    cc.pushKV("coin",    coin);
+                    cc.pushKV("address", subAns.addr());
+                    crossChain.push_back(cc);
+                }
+                if (!crossChain.empty())
+                    entry.pushKV("cross_chain", crossChain);
+
+                result.push_back(entry);
+            }
+
+            return result;
         },
     };
 }

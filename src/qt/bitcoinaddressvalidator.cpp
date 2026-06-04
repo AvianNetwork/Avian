@@ -67,13 +67,38 @@ QValidator::State BitcoinAddressEntryValidator::validate(QString &input, int &po
         if (((ch >= '0' && ch<='9') ||
             (ch >= 'a' && ch<='z') ||
             (ch >= 'A' && ch<='Z')) &&
-            ch != 'I' && ch != 'O') // Characters invalid in both Base58 and Bech32
+            ch != 'I' && ch != 'O') // Valid Base58 and Bech32 characters
         {
-            // Alphanumeric and not a 'forbidden' character
+            // Alphanumeric and valid in base58/bech32
+        }
+        else if (ch == 'I' || ch == 'O' || ch == '.')
+        {
+            // Allowed for ANS name entry (e.g. BOB.AVN)
         }
         else
         {
             state = QValidator::Invalid;
+            break;
+        }
+    }
+
+    if (state == QValidator::Invalid)
+        return state;
+
+    // A complete ANS name (e.g. "BOB.AVN") must be Acceptable so that
+    // QLineEdit emits editingFinished on focus loss (Qt skips the signal
+    // when the entry validator returns only Intermediate).
+    if (input.toUpper().endsWith(".AVN") && input.length() > 4)
+        return QValidator::Acceptable;
+
+    // Inputs containing ANS-only characters but not yet a complete .AVN name
+    // are in-progress — degrade to Intermediate so base58/bech32 addresses
+    // in the same character set are not prematurely accepted.
+    for (int idx = 0; idx < input.size(); ++idx) {
+        int ch = input.at(idx).unicode();
+        if (ch == 'I' || ch == 'O' || ch == '.') {
+            state = QValidator::Intermediate;
+            break;
         }
     }
 

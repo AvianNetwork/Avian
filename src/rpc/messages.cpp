@@ -186,6 +186,7 @@ static RPCHelpMan subscribetochannel()
                 throw JSONRPCError(RPC_INVALID_PARAMETER, "Channel must be an owner asset or message channel asset, e.g. OWNER! or MSG_CHANNEL~123.");
 
             AddChannel(channel_name);
+            pmessagechanneldb->Flush();
 
             return "Subscribed to channel: " + channel_name;
         },
@@ -233,7 +234,8 @@ static RPCHelpMan unsubscribefromchannel()
                 throw JSONRPCError(RPC_INVALID_PARAMETER, "Channel must be an owner asset or message channel asset, e.g. OWNER! or MSG_CHANNEL~123.");
 
             RemoveChannel(channel_name);
-
+            pmessagechanneldb->Flush();
+            
             return "Unsubscribed from channel: " + channel_name;
         },
     };

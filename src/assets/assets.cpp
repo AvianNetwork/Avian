@@ -28,6 +28,7 @@
 #include <assets/assets.h>
 #include <assets/assetdb.h>
 #include <assets/assettypes.h>
+#include <deploymentstatus.h>
 #include <txmempool.h>
 #include <assets/ans.h>
 #include <assets/LibBoolEE.h>
@@ -95,9 +96,22 @@ bool AreRestrictedAssetsDeployed()
     return IsUpgradeActive(Consensus::UPGRADE_AVIAN_ASSETS);
 }
 
+bool IsAvianNameSystemDeployed(const CBlockIndex* pindexPrev, VersionBitsCache& vbc)
+{
+    // AIP-0009: Full BIP9 state-machine check via DeploymentActiveAfter.
+    // Handles ALWAYS_ACTIVE, NEVER_ACTIVE, and real miner-signalling state.
+    return DeploymentActiveAfter(pindexPrev, Params().GetConsensus(), Consensus::DEPLOYMENT_ANS_V2, vbc);
+}
+
 bool IsAvianNameSystemDeployed()
 {
-    return IsUpgradeActive(Consensus::UPGRADE_AVIAN_NAME_SYSTEM);
+    // Fast-path without a block index: only correct for NEVER_ACTIVE and ALWAYS_ACTIVE.
+    // Callers with block context (consensus validation) should use the pindexPrev overload.
+    const auto& dep = Params().GetConsensus().vDeployments[Consensus::DEPLOYMENT_ANS_V2];
+    if (dep.nStartTime == Consensus::BIP9Deployment::NEVER_ACTIVE) return false;
+    if (dep.nStartTime == Consensus::BIP9Deployment::ALWAYS_ACTIVE) return true;
+    // BIP9 signalling state requires a CBlockIndex — unknown without one.
+    return false;
 }
 
 // excluding owner tag ('!')
@@ -3756,29 +3770,42 @@ std::string GetBurnAddress(const int nType)
 
 std::string GetBurnAddress(const AssetType type)
 {
+    // Testnet and regtest share the same burn address set (Ravencoin-compatible, version byte 0x6f)
+    bool fTestnet = (Params().GetChainType() == ChainType::TESTNET ||
+                     Params().GetChainType() == ChainType::REGTEST);
+
     switch (type) {
         case AssetType::ROOT:
-            return "RXissueAssetXXXXXXXXXXXXXXXXXhhZGt";
+            return fTestnet ? "n1issueAssetXXXXXXXXXXXXXXXXWdnemQ"
+                            : "RXissueAssetXXXXXXXXXXXXXXXXXhhZGt";
         case AssetType::SUB:
-            return "RXissueSubAssetXXXXXXXXXXXXXWcwhwL";
+            return fTestnet ? "n1issueSubAssetXXXXXXXXXXXXXbNiH6v"
+                            : "RXissueSubAssetXXXXXXXXXXXXXWcwhwL";
         case AssetType::MSGCHANNEL:
-            return "RXissueMsgChanneLAssetXXXXXXSjHvAY";
+            return fTestnet ? "n1issueMsgChanneLAssetXXXXXXW2ptUU"
+                            : "RXissueMsgChanneLAssetXXXXXXSjHvAY";
         case AssetType::OWNER:
             return "";
         case AssetType::UNIQUE:
-            return "RXissueUniqueAssetXXXXXXXXXXWEAe58";
+            return fTestnet ? "n1issueUniqueAssetXXXXXXXXXXS4695i"
+                            : "RXissueUniqueAssetXXXXXXXXXXWEAe58";
         case AssetType::VOTE:
             return "";
         case AssetType::REISSUE:
-            return "RXReissueAssetXXXXXXXXXXXXXXVEFAWu";
+            return fTestnet ? "n1ReissueAssetXXXXXXXXXXXXXXWG9NLd"
+                            : "RXReissueAssetXXXXXXXXXXXXXXVEFAWu";
         case AssetType::QUALIFIER:
-            return "RXissueQuaLifierXXXXXXXXXXXXUgEDbC";
+            return fTestnet ? "n1issueQuaLifierXXXXXXXXXXXXUysLTj"
+                            : "RXissueQuaLifierXXXXXXXXXXXXUgEDbC";
         case AssetType::SUB_QUALIFIER:
-            return "RXissueSubQuaLifierXXXXXXXXXVTzvv5";
+            return fTestnet ? "n1issueSubQuaLifierXXXXXXXXXYffPLh"
+                            : "RXissueSubQuaLifierXXXXXXXXXVTzvv5";
         case AssetType::RESTRICTED:
-            return "RXissueRestrictedXXXXXXXXXXXXzJZ1q";
+            return fTestnet ? "n1issueRestrictedXXXXXXXXXXXXZVT9V"
+                            : "RXissueRestrictedXXXXXXXXXXXXzJZ1q";
         case AssetType::NULL_ADD_QUALIFIER:
-            return "RXaddTagBurnXXXXXXXXXXXXXXXXZQm5ya";
+            return fTestnet ? "n1addTagBurnXXXXXXXXXXXXXXXXWQj6Et"
+                            : "RXaddTagBurnXXXXXXXXXXXXXXXXZQm5ya";
         default:
             return "";
     }
@@ -3789,7 +3816,10 @@ bool IsBurnAddress(const std::string& address)
     if (address.empty()) return false;
 
     // Global burn address (not tied to any specific AssetType)
-    if (address == "RXBurnXXXXXXXXXXXXXXXXXXXXXXWUo9FV")
+    bool fTestnet = (Params().GetChainType() == ChainType::TESTNET ||
+                     Params().GetChainType() == ChainType::REGTEST);
+    if (address == (fTestnet ? "n1BurnXXXXXXXXXXXXXXXXXXXXXXU1qejP"
+                             : "RXBurnXXXXXXXXXXXXXXXXXXXXXXWUo9FV"))
         return true;
 
     for (int i = 0; i <= static_cast<int>(AssetType::NULL_ADD_QUALIFIER); i++) {
@@ -4866,7 +4896,47 @@ bool CheckNewAsset(const CNewAsset& asset, std::string& strError)
         return false;
     }
 
+    if (asset.nHasANS) {
+        if (asset.nReissuable != 1) {
+            strError = _("Invalid parameter: ANS assets must be reissuable (reissuable must be 1)");
+            return false;
+        }
+        if (asset.nAmount != COIN) {
+            strError = _("Invalid parameter: ANS assets must have a quantity of exactly 1");
+            return false;
+        }
+        if (asset.units != 0) {
+            strError = _("Invalid parameter: ANS assets must have 0 decimal units");
+            return false;
+        }
+    }
+
     return true;
+}
+
+/** AIP-0010: Returns true if the asset name is eligible to carry ANS data.
+ *  Eligible names: ROOT .AVN assets (end in ".AVN") or sub-assets of .AVN names
+ *  (contain ".AVN/" or ".AVN#" — i.e. the root ends in .AVN).
+ */
+static bool IsANSEligibleName(const std::string& name)
+{
+    const std::string& domain = CAvianNameSystemID::domain; // ".AVN"
+    if (name.size() <= domain.size()) return false;
+    // Check for ROOT .AVN ending (e.g. BOB.AVN)
+    if (name.substr(name.size() - domain.size()) == domain) return true;
+    // Check for direct sub-asset of a .AVN name (e.g. BOB.AVN/BTC)
+    // Must be exactly one level deep — no second '/' after the separator
+    size_t pos = name.find(domain);
+    if (pos != std::string::npos) {
+        size_t endPos = pos + domain.size();
+        if (endPos < name.size() && name[endPos] == '/') {
+            std::string ticker = name.substr(endPos + 1);
+            // Only a direct sub-asset (no further nesting) is ANS-eligible
+            if (!ticker.empty() && ticker.find('/') == std::string::npos)
+                return true;
+        }
+    }
+    return false;
 }
 
 bool ContextualCheckNewAsset(CAssetsCache* assetCache, const CNewAsset& asset, std::string& strError, const CTxMemPool* mempool)
@@ -4914,11 +4984,10 @@ bool ContextualCheckNewAsset(CAssetsCache* assetCache, const CNewAsset& asset, s
         return false;
     }
 
-    // Check asset name for ANS
-    if (IsAssetNameARoot(asset.strName) && asset.nHasANS) {
-        bool shortLength = asset.strName.length() <= CAvianNameSystemID::domain.length();
-        if (shortLength || asset.strName.substr(asset.strName.length() - CAvianNameSystemID::domain.length()) != CAvianNameSystemID::domain) {
-            strError = std::string(_("Invalid parameter: asset name needs to end in '")) + CAvianNameSystemID::domain + std::string(_("' since ANS data is attached."));
+    // Check asset name for ANS - must end in .AVN or be a sub-asset of a .AVN name (AIP-0010)
+    if (asset.nHasANS) {
+        if (!IsANSEligibleName(asset.strName)) {
+            strError = std::string(_("Invalid parameter: asset name needs to end in '")) + CAvianNameSystemID::domain + std::string(_("' (or be a sub-asset of one) since ANS data is attached."));
             return false;
         }
     }
@@ -5037,11 +5106,10 @@ bool ContextualCheckReissueAsset(CAssetsCache* assetCache, const CReissueAsset& 
         return false;
     }
 
-    // Check asset name for ANS
-    if (IsAssetNameARoot(reissue_asset.strName) && reissue_asset.strANSID != "") {
-        bool shortLength = reissue_asset.strName.length() <= CAvianNameSystemID::domain.length();
-        if (shortLength || reissue_asset.strName.substr(reissue_asset.strName.length() - CAvianNameSystemID::domain.length()) != CAvianNameSystemID::domain) {
-            strError = std::string(_("Invalid parameter: asset name needs to end in '")) + CAvianNameSystemID::domain + std::string(_("' since ANS data is attached."));
+    // Check asset name for ANS - must end in .AVN or be a sub-asset of a .AVN name (AIP-0010)
+    if (reissue_asset.strANSID != "") {
+        if (!IsANSEligibleName(reissue_asset.strName)) {
+            strError = std::string(_("Invalid parameter: asset name needs to end in '")) + CAvianNameSystemID::domain + std::string(_("' (or be a sub-asset of one) since ANS data is attached."));
             return false;
         }
     }
@@ -5143,11 +5211,10 @@ bool ContextualCheckReissueAsset(CAssetsCache* assetCache, const CReissueAsset& 
         return false;
     }
 
-    // Check asset name for ANS
-    if (IsAssetNameARoot(reissue_asset.strName) && reissue_asset.strANSID != "") {
-        bool shortLength = reissue_asset.strName.length() <= CAvianNameSystemID::domain.length();
-        if (shortLength || reissue_asset.strName.substr(reissue_asset.strName.length() - CAvianNameSystemID::domain.length()) != CAvianNameSystemID::domain) {
-            strError = std::string(_("Invalid parameter: asset name needs to end in '")) + CAvianNameSystemID::domain + std::string(_("' since ANS data is attached."));
+    // Check asset name for ANS - must end in .AVN or be a sub-asset of a .AVN name (AIP-0010)
+    if (reissue_asset.strANSID != "") {
+        if (!IsANSEligibleName(reissue_asset.strName)) {
+            strError = std::string(_("Invalid parameter: asset name needs to end in '")) + CAvianNameSystemID::domain + std::string(_("' (or be a sub-asset of one) since ANS data is attached."));
             return false;
         }
     }

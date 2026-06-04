@@ -15,6 +15,8 @@
 #include <map>
 
 class UniValue;
+class CBlockIndex;
+class VersionBitsCache;
 #include <unordered_map>
 #include <list>
 #include <vector>
@@ -589,6 +591,10 @@ bool CheckAddingTagBurnFee(const CTransaction& tx, const int& count);
 bool AreAssetsDeployed();
 bool AreMessagesDeployed();
 bool AreRestrictedAssetsDeployed();
+/** Returns true if ANS v2 is active for the next block after pindexPrev. */
+bool IsAvianNameSystemDeployed(const CBlockIndex* pindexPrev, VersionBitsCache& vbc);
+/** Fast-path variant without block context: correct for NEVER_ACTIVE/ALWAYS_ACTIVE only.
+ *  For proper BIP9 signalling state use the pindexPrev overload. */
 bool IsAvianNameSystemDeployed();
 
 //! Format a raw asset amount using the asset's unit precision

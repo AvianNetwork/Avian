@@ -927,6 +927,7 @@ RPCHelpMan freezerestrictedasset();
 RPCHelpMan unfreezerestrictedasset();
 RPCHelpMan sendmessage();
 RPCHelpMan consolidateutxos();
+RPCHelpMan myansnames();
 
 // rewards (wallet/rpc/rewards.cpp)
 RPCHelpMan distributereward();
@@ -1015,6 +1016,8 @@ std::span<const CRPCCommand> GetWalletRPCCommands()
         {"wallet", &consolidateutxos},
         /** AVN: Reward distribution RPCs */
         {"rewards", &distributereward},
+        /** AVN: ANS wallet RPCs */
+        {"avian name system", &myansnames},
     };
     return commands;
 }

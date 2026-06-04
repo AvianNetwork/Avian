@@ -27,6 +27,7 @@
 #include <assets/assetdb.h>
 #include <assets/assettypes.h>
 #include <assets/messages.h>
+#include <assets/myassetsdb.h>
 #include <key_io.h>
 #include <hash.h>
 #include <kernel/chain.h>
@@ -1324,6 +1325,11 @@ bool MemPoolAccept::PolicyScriptChecks(const ATMPArgs& args, Workspace& ws)
     // Avian: Add SIGHASH_FORKID enforcement if UAHF is active
     if (IsForkIDUAHFenabled(m_active_chainstate.m_chain.Tip())) {
         scriptVerifyFlags |= SCRIPT_ENABLE_SIGHASH_FORKID;
+    }
+
+    if (m_active_chainstate.m_chain.Tip() &&
+        DeploymentActiveAt(*m_active_chainstate.m_chain.Tip(), m_active_chainstate.m_chainman, Consensus::DEPLOYMENT_ANS_V2)) {
+        scriptVerifyFlags |= SCRIPT_VERIFY_ANS_V2;
     }
 
     // Check input scripts and signatures.
@@ -2660,6 +2666,10 @@ static unsigned int GetBlockScriptFlags(const CBlockIndex& block_index, const Ch
         flags |= SCRIPT_VERIFY_PQ_HYBRID;
     }
 
+    if (DeploymentActiveAt(block_index, chainman, Consensus::DEPLOYMENT_ANS_V2)) {
+        flags |= SCRIPT_VERIFY_ANS_V2;
+    }
+
     return flags;
 }
 
@@ -3262,6 +3272,26 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
         }
     }
 
+    // AVN: Process messages collected during block connection
+    // setMessages was populated in CheckTxAssets; persist any that belong to
+    // subscribed channels.  This is intentionally placed after the fJustCheck
+    // early return so we only write on a real block connection.
+    {
+        extern bool fMessaging;
+        extern CMessageDB* pmessagedb;
+        if (AreMessagesDeployed() && fMessaging && !setMessages.empty()) {
+            LOCK(cs_messaging);
+            for (const auto& message : setMessages) {
+                if (IsChannelSubscribed(message.strName)) {
+                    AddMessage(message);
+                }
+            }
+            if (pmessagedb && !mapDirtyMessagesAdd.empty()) {
+                pmessagedb->Flush();
+            }
+        }
+    }
+
     const auto time_5{SteadyClock::now()};
     m_chainman.time_undo += time_5 - time_4;
     LogDebug(BCLog::BENCH, "    - Write undo data: %.2fms [%.2fs (%.2fms/blk)]\n",
@@ -3415,6 +3445,24 @@ bool Chainstate::FlushStateToDisk(
             // Then update all block file information (which may refer to block and undo files).
             {
                 LOG_TIME_MILLIS_WITH_CATEGORY("write block index to disk", BCLog::BENCH);
+
+                // Keep block index and chainstate in lockstep even if a previous
+                // code path failed to mark the current coins tip as dirty.
+                const uint256 coins_best{CoinsTip().GetBestBlock()};
+                if (!coins_best.IsNull()) {
+                    CBlockIndex* coins_best_index{m_blockman.LookupBlockIndex(coins_best)};
+                    if (!coins_best_index) {
+                        LogWarning("%s: coins best block %s is missing from block index before flush; continuing",
+                                   __func__, coins_best.ToString());
+                    } else {
+                        // Persist the tip and a short ancestor chain to avoid restart
+                        // mismatches if multiple recent blocks were never written.
+                        for (int i = 0; coins_best_index != nullptr && i < 32; ++i) {
+                            m_blockman.m_dirty_blockindex.insert(coins_best_index);
+                            coins_best_index = coins_best_index->pprev;
+                        }
+                    }
+                }
 
                 if (!m_blockman.WriteBlockIndexDB()) {
                     return FatalError(m_chainman.GetNotifications(), state, _("Failed to write to block index database."));

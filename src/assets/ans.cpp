@@ -4,28 +4,14 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include <assets/ans.h>
+#include <assets/cbor.h>
 
 #include <string>
 #include <sstream>
-#include <cstring>
 #include <cstdint>
 
-#include <util/strencodings.h>
 #include <key_io.h>
-
-// IsHexNumber was removed in BTC 30.2. Define a local version.
-static bool IsHexNumber(const std::string& str) {
-    if (str.empty()) return false;
-    size_t start = 0;
-    if (str.size() > 2 && str[0] == '0' && str[1] == 'x') start = 2;
-    for (size_t i = start; i < str.size(); i++) {
-        if (!((str[i] >= '0' && str[i] <= '9') ||
-              (str[i] >= 'a' && str[i] <= 'f') ||
-              (str[i] >= 'A' && str[i] <= 'F')))
-            return false;
-    }
-    return true;
-}
+#include <util/strencodings.h>
 
 /* Static prefix */
 const std::string CAvianNameSystemID::prefix = "ANS";
@@ -33,55 +19,22 @@ const std::string CAvianNameSystemID::prefix = "ANS";
 /* Static domain */
 const std::string CAvianNameSystemID::domain = ".AVN";
 
-static std::string IPToHex(std::string strIP)
-{
-    // Parse IPv4 address manually (replaces boost::asio::ip::address_v4)
-    uint32_t parts[4];
-    if (sscanf(strIP.c_str(), "%u.%u.%u.%u", &parts[0], &parts[1], &parts[2], &parts[3]) != 4)
-        return "0";
-    for (int i = 0; i < 4; i++) {
-        if (parts[i] > 255) return "0";
-    }
-    uint32_t ip = (parts[0] << 24) | (parts[1] << 16) | (parts[2] << 8) | parts[3];
-    std::stringstream ss;
-    ss << std::hex << ip;
-    return ss.str();
-}
-
-static std::string HexToIP(std::string hexIP)
-{
-    if(!IsHexNumber(hexIP)) return "0.0.0.0";
-
-    unsigned int hex = std::stoul(hexIP, 0, 16);
-    uint8_t a = (hex >> 24) & 0xFF;
-    uint8_t b = (hex >> 16) & 0xFF;
-    uint8_t c = (hex >> 8) & 0xFF;
-    uint8_t d = hex & 0xFF;
-    return std::to_string(a) + "." + std::to_string(b) + "." + std::to_string(c) + "." + std::to_string(d);
-}
-
-bool CAvianNameSystemID::CheckIP(std::string rawip, bool isHex) {
-    std::string ip = rawip;
-    if (isHex) ip = HexToIP(rawip.c_str());
-
-    uint32_t parts[4];
-    if (sscanf(ip.c_str(), "%u.%u.%u.%u", &parts[0], &parts[1], &parts[2], &parts[3]) != 4)
-        return false;
-    for (int i = 0; i < 4; i++) {
-        if (parts[i] > 255) return false;
-    }
-    return true;
-}
-
 // TODO: Add error result?
 bool CAvianNameSystemID::CheckTypeData(Type type, std::string typeData) {
     if (type == Type::ADDR) {
         CTxDestination destination = DecodeDestination(typeData);
         if (!IsValidDestination(destination)) return false;
-    } else if (type == Type::IP) {
-        if (!CheckIP(typeData, true)) return false;
+    } else if (type == Type::XADDR) {
+        // AIP-0010: external address — any non-empty string, max 468 bytes
+        if (typeData.empty() || typeData.size() > 468) return false;
+    } else if (type == Type::PROFILE) {
+        // typeData is raw CBOR bytes; max 468 bytes (active after DEPLOYMENT_ANS_V2).
+        if (typeData.size() > 468) return false;
+        ANSProfileData profile;
+        std::string err;
+        if (!ANS_CBOR::DecodeProfile(typeData, profile, err)) return false;
     } else {
-        // Unknown type
+        // Unknown/unsupported type
         return false;
     }
     return true;
@@ -99,13 +52,15 @@ std::string CAvianNameSystemID::FormatTypeData(Type type, std::string typeData, 
             ? std::string("Invalid Avian address: ") + typeData
             : std::string("Empty Avian address.");
         }
-    } else if (type == IP) {
-        if (!CheckIP(typeData, false)) {
-            error = (typeData != "")
-            ? std::string("Invalid IPv4 address: ") + typeData
-            : std::string("Empty IPv4 addresss.");
+    } else if (type == XADDR) {
+        // AIP-0010: external address — only validate non-empty
+        if (typeData.empty())
+            error = "Empty external address.";
+    } else if (type == PROFILE) {
+        ANSProfileData profile;
+        if (!ANS_CBOR::DecodeProfile(typeData, profile, error)) {
+            if (error.empty()) error = "Invalid CBOR payload for PROFILE record.";
         }
-        returnStr = IPToHex(typeData);
     }
 
     return returnStr;
@@ -115,13 +70,13 @@ bool CAvianNameSystemID::IsValidID(std::string ansID) {
     // Check for min length
     if(ansID.length() <= prefix.size() + 1) return false;
 
-    // Check for prefix
-    bool hasPrefix = (ansID.substr(0, CAvianNameSystemID::prefix.length()) == CAvianNameSystemID::prefix) && (ansID.size() <= 64);
+    // Check for prefix and maximum size (940 bytes: "ANS" + 1 type nibble + 936 hex chars for 468-byte CBOR)
+    bool hasPrefix = (ansID.substr(0, CAvianNameSystemID::prefix.length()) == CAvianNameSystemID::prefix) && (ansID.size() <= 940);
     if (!hasPrefix) return false;
 
     // Must be valid hex char
     std::string hexStr = ansID.substr(prefix.length(), 1);
-    if (!IsHexNumber(hexStr)) return false;
+    if (!std::isxdigit(static_cast<unsigned char>(hexStr[0]))) return false;
 
     // Hex value must be less than 0xf
     int hexInt = stoi(hexStr, 0, 16);
@@ -131,32 +86,37 @@ bool CAvianNameSystemID::IsValidID(std::string ansID) {
     Type type = static_cast<Type>(hexInt);
     std::string rawData = ansID.substr(prefix.length() + 1);
 
-    if (!CheckTypeData(type, rawData)) return false;
+    // For PROFILE the ANS ID carries hex-encoded CBOR; decode to raw bytes before validation.
+    std::string checkData = rawData;
+    if (type == Type::PROFILE) {
+        if (!IsHex(rawData)) return false;
+        auto bytes = ParseHex(rawData);
+        checkData = std::string(bytes.begin(), bytes.end());
+    }
+
+    if (!CheckTypeData(type, checkData)) return false;
 
     return true;
 }
 
 CAvianNameSystemID::CAvianNameSystemID(Type type, std::string rawData) :
-    m_addr(""),
-    m_ip("")
+    m_addr("")
 {
     this->m_type = type;
 
     if (!CheckTypeData(this->m_type, rawData)) return;
 
-    if (this->m_type == Type::ADDR) {
-        // Avian address
+    if (this->m_type == Type::ADDR || this->m_type == Type::XADDR) {
         this->m_addr = rawData;
-    }
-    else if (this->m_type == Type::IP) {
-        // Raw IP (127.0.0.1)
-        this->m_ip = HexToIP(rawData.c_str());
+    } else if (this->m_type == Type::PROFILE) {
+        this->m_cbor_payload = rawData;
+        std::string err;
+        ANS_CBOR::DecodeProfile(rawData, this->m_profile, err);
     }
 }
 
 CAvianNameSystemID::CAvianNameSystemID(std::string ansID) :
-    m_addr(""),
-    m_ip("")
+    m_addr("")
 {
     // Check if valid ID
     if(!IsValidID(ansID)) return;
@@ -166,12 +126,16 @@ CAvianNameSystemID::CAvianNameSystemID(std::string ansID) :
     this->m_type = type;
 
     // Set info based on data
-    std::string data = ansID.substr(prefix.length() + 1); // prefix + type
+    std::string data = ansID.substr(prefix.length() + 1); // prefix + type nibble
 
-    if (this->m_type == Type::ADDR) {
+    if (this->m_type == Type::ADDR || this->m_type == Type::XADDR) {
         this->m_addr = data;
-    } else if(this->m_type == Type::IP) {
-        this->m_ip = HexToIP(data.c_str());
+    } else if (this->m_type == Type::PROFILE) {
+        // data is hex CBOR; decode to raw bytes for internal storage and parsing.
+        auto rawBytes = ParseHex(data);
+        this->m_cbor_payload = std::string(rawBytes.begin(), rawBytes.end());
+        std::string err;
+        ANS_CBOR::DecodeProfile(this->m_cbor_payload, this->m_profile, err);
     }
 }
 
@@ -187,10 +151,10 @@ std::string CAvianNameSystemID::to_string() {
     id += ss.str();
 
     // 3. Add data
-    if (this->m_type == Type::ADDR) {
-       id += m_addr;
-    } else if (this->m_type == Type::IP) {
-        id += IPToHex(m_ip);
+    if (this->m_type == Type::ADDR || this->m_type == Type::XADDR) {
+        id += m_addr;
+    } else if (this->m_type == Type::PROFILE) {
+        id += HexStr(m_cbor_payload); // hex-encode raw CBOR bytes per AIP-0009
     }
 
     return id;

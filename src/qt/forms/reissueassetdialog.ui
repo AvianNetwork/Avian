@@ -942,19 +942,80 @@
                <item>
                 <widget class="QLineEdit" name="ansText">
                     <property name="toolTip">
-                        <string>Raw ANS data</string>
+                        <string>Avian address (ADDR type)</string>
                     </property>
                     <property name="maxLength">
-                        <number>64</number>
+                        <number>100</number>
                     </property>
                         <property name="placeholderText">
-                        <string>Raw ANS data...</string>
+                        <string>Avian address...</string>
                     </property>
                 </widget>
                 </item>
              </layout>
             </item>
            </layout>
+          </item>
+          <item>
+           <widget class="QWidget" name="ansCborWidget">
+            <layout class="QFormLayout" name="ansCborLayout">
+             <item row="0" column="0">
+              <widget class="QLabel" name="ansCborAddrLabel">
+               <property name="text"><string>Address:</string></property>
+              </widget>
+             </item>
+             <item row="0" column="1">
+              <widget class="QLineEdit" name="ansCborAddrEdit">
+               <property name="placeholderText"><string>Avian address (optional)</string></property>
+               <property name="maxLength"><number>100</number></property>
+              </widget>
+             </item>
+             <item row="1" column="0">
+              <widget class="QLabel" name="ansCborNameLabel">
+               <property name="text"><string>Display Name:</string></property>
+              </widget>
+             </item>
+             <item row="1" column="1">
+              <widget class="QLineEdit" name="ansCborNameEdit">
+               <property name="placeholderText"><string>Display name (optional)</string></property>
+               <property name="maxLength"><number>64</number></property>
+              </widget>
+             </item>
+             <item row="2" column="0">
+              <widget class="QLabel" name="ansCborAvatarLabel">
+               <property name="text"><string>Avatar:</string></property>
+              </widget>
+             </item>
+             <item row="2" column="1">
+              <widget class="QLineEdit" name="ansCborAvatarEdit">
+               <property name="placeholderText"><string>ipfs://Qm... or https://... (optional)</string></property>
+               <property name="maxLength"><number>200</number></property>
+              </widget>
+             </item>
+             <item row="3" column="0">
+              <widget class="QLabel" name="ansCborBannerLabel">
+               <property name="text"><string>Banner:</string></property>
+              </widget>
+             </item>
+             <item row="3" column="1">
+              <widget class="QLineEdit" name="ansCborBannerEdit">
+               <property name="placeholderText"><string>ipfs://Qm... or https://... (optional)</string></property>
+               <property name="maxLength"><number>200</number></property>
+              </widget>
+             </item>
+             <item row="4" column="0">
+              <widget class="QLabel" name="ansCborUrlLabel">
+               <property name="text"><string>URL:</string></property>
+              </widget>
+             </item>
+             <item row="4" column="1">
+              <widget class="QLineEdit" name="ansCborUrlEdit">
+               <property name="placeholderText"><string>https://... (optional)</string></property>
+               <property name="maxLength"><number>200</number></property>
+              </widget>
+             </item>
+            </layout>
+           </widget>
           </item>
           <item>
            <layout class="QHBoxLayout" name="horizontalLayout_5"/>

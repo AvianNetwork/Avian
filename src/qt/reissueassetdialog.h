@@ -7,6 +7,7 @@
 #define AVIAN_QT_REISSUEASSETDIALOG_H
 
 #include <qt/walletmodel.h>
+#include <assets/ans.h>
 
 #include <QDialog>
 
@@ -62,6 +63,12 @@ private:
     bool fFeeMinimized;
 
     CNewAsset* asset;
+    QString m_pendingAssetName; // asset to select once the async combo list finishes loading
+
+    // AIP-0010: true when the asset being reissued is a sub-asset of a .AVN name
+    bool m_ansSubMode = false;
+    CAvianNameSystemID::Type currentANSType() const;
+    void setANSSubMode(bool subMode);
 
     void toggleIPFSText();
     void toggleANSText();
@@ -106,6 +113,7 @@ private Q_SLOTS:
     void onANSDataChanged(QString data);
     void onANSTypeChanged(int index);
     void onAddressNameChanged(QString address);
+    void onAddressEditingFinished();
     void onReissueAssetClicked();
     void onReissueBoxChanged();
     void onUnitChanged(int value);

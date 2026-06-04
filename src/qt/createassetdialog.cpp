@@ -25,6 +25,7 @@
 
 #include <addresstype.h>
 #include <key_io.h>
+#include <regex>
 #include <string>
 #include <validation.h> // mempool and minRelayTxFee
 #include <wallet/wallet.h>
@@ -33,6 +34,8 @@
 #include <policy/policy.h>
 #include <assets/assets.h>
 #include <assets/ans.h>
+#include <assets/assetdb.h>
+#include <assets/cbor.h>
 #include <qt/assettablemodel.h>
 
 #include <fstream>
@@ -76,6 +79,11 @@ CreateAssetDialog::CreateAssetDialog(const PlatformStyle *_platformStyle, QWidge
     ui->setupUi(this);
     setWindowTitle("Create Assets");
 
+    // Address and label are shown only when coin control is enabled (set in setModel).
+    // Hide them here so they are never visible before setModel is called.
+    ui->addressText->hide();
+    ui->addressLabel->hide();
+
     if (!IsAvianNameSystemDeployed()) {
         ui->ansBox->hide();
         ui->ansType->hide();
@@ -88,9 +96,15 @@ CreateAssetDialog::CreateAssetDialog(const PlatformStyle *_platformStyle, QWidge
     connect(ui->availabilityButton, SIGNAL(clicked()), this, SLOT(checkAvailabilityClicked()));
     connect(ui->nameText, SIGNAL(textChanged(QString)), this, SLOT(onNameChanged(QString)));
     connect(ui->addressText, SIGNAL(textChanged(QString)), this, SLOT(onAddressNameChanged(QString)));
+    connect(ui->addressText, &QLineEdit::editingFinished, this, &CreateAssetDialog::onAddressEditingFinished);
     connect(ui->ipfsText, SIGNAL(textChanged(QString)), this, SLOT(onIPFSHashChanged(QString)));
     connect(ui->ansText, SIGNAL(textChanged(QString)), this, SLOT(onANSDataChanged(QString)));
     connect(ui->ansType, SIGNAL(currentIndexChanged(int)), this, SLOT(onANSTypeChanged(int)));
+    connect(ui->ansCborAddrEdit, SIGNAL(textChanged(QString)), this, SLOT(onANSDataChanged(QString)));
+    connect(ui->ansCborNameEdit, SIGNAL(textChanged(QString)), this, SLOT(onANSDataChanged(QString)));
+    connect(ui->ansCborAvatarEdit, SIGNAL(textChanged(QString)), this, SLOT(onANSDataChanged(QString)));
+    connect(ui->ansCborBannerEdit, SIGNAL(textChanged(QString)), this, SLOT(onANSDataChanged(QString)));
+    connect(ui->ansCborUrlEdit, SIGNAL(textChanged(QString)), this, SLOT(onANSDataChanged(QString)));
     connect(ui->createAssetButton, SIGNAL(clicked()), this, SLOT(onCreateAssetClicked()));
     connect(ui->unitBox, SIGNAL(valueChanged(int)), this, SLOT(onUnitChanged(int)));
     connect(ui->assetType, SIGNAL(activated(int)), this, SLOT(onAssetTypeActivated(int)));
@@ -298,8 +312,12 @@ void CreateAssetDialog::setUpValues()
     ui->ipfsText->hide();
     ui->ansText->hide();
     ui->ansType->hide();
+    ui->ansCborWidget->hide();
     if (!IsAvianNameSystemDeployed()) {
         ui->ansBox->hide();
+    } else {
+        // Visible but disabled until a .AVN name is typed for ROOT type
+        ui->ansBox->setDisabled(true);
     }
     ui->openIpfsButton->hide();
     ui->openIpfsButton->setDisabled(true);
@@ -318,6 +336,9 @@ void CreateAssetDialog::setUpValues()
     list.append(tr("Qualifier Asset") + " (" + BitcoinUnits::formatWithUnit(model->getOptionsModel()->getDisplayUnit(), GetBurnAmount(AssetType::QUALIFIER)) + ")");
     list.append(tr("Sub Qualifier Asset") + " (" + BitcoinUnits::formatWithUnit(model->getOptionsModel()->getDisplayUnit(), GetBurnAmount(AssetType::SUB_QUALIFIER)) + ")");
     list.append(tr("Restricted Asset") + " (" + BitcoinUnits::formatWithUnit(model->getOptionsModel()->getDisplayUnit(), GetBurnAmount(AssetType::RESTRICTED)) + ")");
+    if (IsAvianNameSystemDeployed()) {
+        list.append(tr("ANS Asset") + " (" + BitcoinUnits::formatWithUnit(model->getOptionsModel()->getDisplayUnit(), GetBurnAmount(AssetType::ROOT)) + ")");
+    }
 
     ui->assetType->addItems(list);
     type = IntFromAssetType(AssetType::ROOT);
@@ -391,12 +412,52 @@ void CreateAssetDialog::toggleANSText()
 {
     if (ui->ansBox->isChecked()) {
         ui->ansType->show();
-        ui->ansText->show();
+        CAvianNameSystemID::Type type = currentANSType();
+        if (type == CAvianNameSystemID::PROFILE) {
+            ui->ansText->hide();
+            ui->ansCborWidget->show();
+        } else {
+            ui->ansText->show();
+            ui->ansCborWidget->hide();
+        }
     } else {
         ui->ansType->hide();
         ui->ansText->hide();
+        ui->ansCborWidget->hide();
         ui->ansText->clear();
     }
+}
+
+CAvianNameSystemID::Type CreateAssetDialog::currentANSType() const
+{
+    int idx = ui->ansType->currentIndex();
+    if (m_ansSubMode) {
+        if (idx >= 0 && idx < (int)ANSSubTypes.size())
+            return ANSSubTypes[idx];
+        return CAvianNameSystemID::XADDR;
+    }
+    if (idx >= 0 && idx < (int)ANSTypes.size())
+        return ANSTypes[idx];
+    return CAvianNameSystemID::ADDR;
+}
+
+void CreateAssetDialog::setANSSubMode(bool subMode)
+{
+    if (m_ansSubMode == subMode) return;
+    m_ansSubMode = subMode;
+
+    // Repopulate the ANS type combo for the new mode
+    ui->ansType->blockSignals(true);
+    ui->ansType->clear();
+    if (subMode) {
+        for (const auto t : ANSSubTypes)
+            ui->ansType->addItem(QString::fromStdString(CAvianNameSystemID::enum_to_string(t).first));
+    } else {
+        for (const auto t : ANSTypes)
+            ui->ansType->addItem(QString::fromStdString(CAvianNameSystemID::enum_to_string(t).first));
+    }
+    ui->ansType->setCurrentIndex(0);
+    ui->ansType->blockSignals(false);
 }
 
 void CreateAssetDialog::showMessage(QString string)
@@ -497,9 +558,10 @@ void CreateAssetDialog::CheckFormState()
     QString name = GetAssetName();
 
     std::string error;
-    bool assetNameValid = IsTypeCheckNameValid(AssetTypeFromInt(type), name.toStdString(), error);
+    AssetType effectiveAssetType = (type == ANS_ASSET_TYPE_INDEX) ? AssetType::ROOT : AssetTypeFromInt(type);
+    bool assetNameValid = IsTypeCheckNameValid(effectiveAssetType, name.toStdString(), error);
 
-    if (type != IntFromAssetType(AssetType::ROOT) && type != IntFromAssetType(AssetType::QUALIFIER) && type != IntFromAssetType(AssetType::RESTRICTED)) {
+    if (type != IntFromAssetType(AssetType::ROOT) && type != IntFromAssetType(AssetType::QUALIFIER) && type != IntFromAssetType(AssetType::RESTRICTED) && type != ANS_ASSET_TYPE_INDEX) {
         if (ui->assetList->currentText() == "")
         {
             ui->assetList->lineEdit()->setStyleSheet(STYLE_INVALID);
@@ -567,40 +629,50 @@ void CreateAssetDialog::CheckFormState()
         if (!checkIPFSHash(ui->ipfsText->text()))
             return;
 
-    if (ui->ansBox->isChecked() && !ui->ansText->text().isEmpty()) {
-        CAvianNameSystemID::Type type = static_cast<CAvianNameSystemID::Type>(ui->ansType->currentIndex());
-
-        std::string error;
-        std::string formattedTypeData;
-        std::string typeData = ui->ansText->text().toStdString();
-        
-        formattedTypeData = CAvianNameSystemID::FormatTypeData(type, typeData, error);
-
-        if (error != "") {
-            ui->ansText->setStyleSheet("border: 2px solid red");
-            showMessage(QString::fromStdString(error));
-            disableCreateButton();
-            return;
-        }
-
-        CAvianNameSystemID ans(type, formattedTypeData);
-
-        if (!IsAvianNameSystemDeployed()) {
-            ui->ansText->setStyleSheet("border: 2px solid red");
-            showMessage(tr("ANS not deployed yet."));
-            disableCreateButton();
-            return;
-        }
-
-        if (!CAvianNameSystemID::IsValidID(ans.to_string())) {
-            ui->ansText->setStyleSheet("border: 2px solid red");
-            showMessage(tr("Invalid ANS data."));
-            disableCreateButton();
-            return;
+    if (ui->ansBox->isChecked()) {
+        CAvianNameSystemID::Type ansType = currentANSType();
+        std::string typeData;
+        bool hasData = false;
+        if (ansType == CAvianNameSystemID::PROFILE) {
+            ANSProfileData p;
+            p.addr   = ui->ansCborAddrEdit->text().toStdString();
+            p.name   = ui->ansCborNameEdit->text().toStdString();
+            p.avatar = ui->ansCborAvatarEdit->text().toStdString();
+            p.banner = ui->ansCborBannerEdit->text().toStdString();
+            p.url    = ui->ansCborUrlEdit->text().toStdString();
+            hasData = !(p.addr.empty() && p.name.empty() && p.avatar.empty() && p.banner.empty() && p.url.empty());
+            if (hasData) typeData = ANS_CBOR::EncodeProfile(p);
         } else {
-            ui->ansText->setStyleSheet("");
-            hideMessage();
-            enableCreateButton();
+            hasData = !ui->ansText->text().isEmpty();
+            if (hasData) typeData = ui->ansText->text().toStdString();
+        }
+        if (hasData) {
+            std::string error;
+            std::string formattedTypeData = CAvianNameSystemID::FormatTypeData(ansType, typeData, error);
+            if (error != "") {
+                if (ansType != CAvianNameSystemID::PROFILE)
+                    ui->ansText->setStyleSheet("border: 2px solid red");
+                showMessage(QString::fromStdString(error));
+                disableCreateButton();
+                return;
+            }
+            CAvianNameSystemID ans(ansType, formattedTypeData);
+            if (!IsAvianNameSystemDeployed()) {
+                showMessage(tr("ANS not deployed yet."));
+                disableCreateButton();
+                return;
+            }
+            if (!CAvianNameSystemID::IsValidID(ans.to_string())) {
+                if (ansType != CAvianNameSystemID::PROFILE)
+                    ui->ansText->setStyleSheet("border: 2px solid red");
+                showMessage(tr("Invalid ANS data."));
+                disableCreateButton();
+                return;
+            } else {
+                ui->ansText->setStyleSheet("");
+                hideMessage();
+                enableCreateButton();
+            }
         }
     }
 
@@ -698,6 +770,67 @@ void CreateAssetDialog::onNameChanged(QString name)
         if (IsTypeCheckNameValid(AssetType::ROOT, strName.toStdString(), error)) {
             hideMessage();
             ui->availabilityButton->setDisabled(false);
+            // Enable ANS checkbox only when the name ends in .AVN
+            if (IsAvianNameSystemDeployed()) {
+                const std::string& domain = CAvianNameSystemID::domain;
+                std::string sn = strName.toStdString();
+                bool endsWithAVN = sn.size() > domain.size() &&
+                                   sn.substr(sn.size() - domain.size()) == domain;
+                if (!endsWithAVN && ui->ansBox->isChecked()) {
+                    ui->ansBox->setChecked(false);
+                    toggleANSText();
+                    // Restore free qty/units when name no longer ends in .AVN
+                    ui->quantitySpinBox->setMaximum(21000000000);
+                    ui->quantitySpinBox->setDisabled(false);
+                    ui->unitBox->setDisabled(false);
+                }
+                ui->ansBox->setDisabled(true); // always locked: checked for .AVN (required), unchecked otherwise
+                // Auto-check ansBox and lock qty=1/units=0 when name ends in .AVN
+                if (endsWithAVN) {
+                    if (!ui->ansBox->isChecked()) {
+                        ui->ansBox->setChecked(true);
+                        toggleANSText();
+                    }
+                    ui->quantitySpinBox->setValue(1);
+                    ui->quantitySpinBox->setDisabled(true);
+                    ui->unitBox->setValue(0);
+                    ui->unitBox->setDisabled(true);
+                }
+            }
+        } else {
+            ui->nameText->setStyleSheet(STYLE_INVALID);
+            showMessage(tr(error.c_str()));
+            ui->availabilityButton->setDisabled(true);
+            if (IsAvianNameSystemDeployed()) {
+                if (ui->ansBox->isChecked()) {
+                    ui->ansBox->setChecked(false);
+                    toggleANSText();
+                }
+                ui->ansBox->setDisabled(true);
+                // Restore free qty/units when name becomes invalid
+                ui->quantitySpinBox->setMaximum(21000000000);
+                ui->quantitySpinBox->setDisabled(false);
+                ui->unitBox->setDisabled(false);
+            }
+        }
+    } else if (type == ANS_ASSET_TYPE_INDEX) {
+        std::string error;
+        auto strName = GetAssetName(); // includes the .AVN suffix
+        if (IsTypeCheckNameValid(AssetType::ROOT, strName.toStdString(), error)) {
+            // UI-only: block reserved base names (e.g. AVN.AVN, RVN.AVN).
+            // These are NOT blocked at consensus level to preserve pre-ANS assets on Mainnet.
+            const std::string& domain = CAvianNameSystemID::domain;
+            std::string sn = strName.toStdString();
+            std::string baseName = sn.substr(0, sn.size() - domain.size());
+            static const std::regex RESERVED_ANS_BASE("^(RVN|AVN|AVIAN)$");
+            if (std::regex_match(baseName, RESERVED_ANS_BASE)) {
+                ui->nameText->setStyleSheet(STYLE_INVALID);
+                showMessage(tr("Asset name '%1' is reserved.").arg(QString::fromStdString(sn)));
+                ui->availabilityButton->setDisabled(true);
+            } else {
+                hideMessage();
+                ui->availabilityButton->setDisabled(false);
+            }
         } else {
             ui->nameText->setStyleSheet(STYLE_INVALID);
             showMessage(tr(error.c_str()));
@@ -723,10 +856,40 @@ void CreateAssetDialog::onNameChanged(QString name)
         if (IsTypeCheckNameValid(assetType, strName.toStdString(), error)) {
             hideMessage();
             ui->availabilityButton->setDisabled(false);
+
+            // AIP-0010: enable ANS (XADDR mode) for sub-assets of .AVN names
+            if (IsAvianNameSystemDeployed() && type == IntFromAssetType(AssetType::SUB)) {
+                const std::string& domain = CAvianNameSystemID::domain;
+                std::string parentStr = ui->assetList->currentText().toStdString();
+                bool parentIsAVN = parentStr.size() > domain.size() &&
+                                   parentStr.substr(parentStr.size() - domain.size()) == domain;
+                if (parentIsAVN) {
+                    setANSSubMode(true);
+                    ui->ansBox->setDisabled(false);
+                    ui->ansBox->show();
+                } else {
+                    if (ui->ansBox->isChecked()) {
+                        ui->ansBox->setChecked(false);
+                        toggleANSText();
+                    }
+                    setANSSubMode(false);
+                    ui->ansBox->setDisabled(true);
+                    ui->ansBox->hide();
+                }
+            }
         } else {
             ui->nameText->setStyleSheet(STYLE_INVALID);
             showMessage(tr(error.c_str()));
             ui->availabilityButton->setDisabled(true);
+            if (IsAvianNameSystemDeployed() && type == IntFromAssetType(AssetType::SUB)) {
+                if (ui->ansBox->isChecked()) {
+                    ui->ansBox->setChecked(false);
+                    toggleANSText();
+                }
+                setANSSubMode(false);
+                ui->ansBox->setDisabled(true);
+                ui->ansBox->hide();
+            }
         }
     } else if (type == IntFromAssetType(AssetType::QUALIFIER) || type == IntFromAssetType(AssetType::SUB_QUALIFIER)) {
         if (name.size() == 0) {
@@ -757,10 +920,53 @@ void CreateAssetDialog::onNameChanged(QString name)
     }
 
     // Set the assetName
-    updatePresentedAssetName(format.arg(type == IntFromAssetType(AssetType::ROOT) ? "" : ui->assetList->currentText(), identifier, name));
+    QString displayName = (type == ANS_ASSET_TYPE_INDEX) ? name + QString::fromStdString(CAvianNameSystemID::domain) : name;
+    updatePresentedAssetName(format.arg((type == IntFromAssetType(AssetType::ROOT) || type == ANS_ASSET_TYPE_INDEX) ? "" : ui->assetList->currentText(), identifier, displayName));
 
     checkedAvailablity = false;
     disableCreateButton();
+}
+
+void CreateAssetDialog::onAddressEditingFinished()
+{
+    const QString text = ui->addressText->text().trimmed();
+    const std::string& domain = CAvianNameSystemID::domain;
+    const QString domainQ = QString::fromStdString(domain);
+    if (!text.toUpper().endsWith(domainQ) || text.length() <= (int)domain.size())
+        return;
+    if (!passets)
+        return;
+
+    LOCK(cs_main);
+
+    const std::string assetName = text.toUpper().toStdString();
+    CNewAsset resolvedAsset;
+    if (!passets->GetAssetMetaDataIfExists(assetName, resolvedAsset))
+        return;
+
+    std::string resolvedAddr;
+
+    if (IsAvianNameSystemDeployed() && resolvedAsset.nHasANS && !resolvedAsset.strANSID.empty()) {
+        CAvianNameSystemID ansID(resolvedAsset.strANSID);
+        if (ansID.type() == CAvianNameSystemID::ADDR)
+            resolvedAddr = ansID.addr();
+        else if (ansID.type() == CAvianNameSystemID::PROFILE && !ansID.profile().addr.empty())
+            resolvedAddr = ansID.profile().addr;
+    }
+
+    // Fallback: use owner token holder address
+    if (resolvedAddr.empty() && fAssetIndex && passetsdb) {
+        std::string ownerToken = assetName + "!";
+        std::vector<std::pair<std::string, CAmount>> ownerAddrs;
+        int dbTotal = 0;
+        if (passetsdb->AssetAddressDir(ownerAddrs, dbTotal, false, ownerToken, 1, 0) && !ownerAddrs.empty())
+            resolvedAddr = ownerAddrs[0].first;
+    }
+
+    if (resolvedAddr.empty())
+        return;
+
+    ui->addressText->setText(QString::fromStdString(resolvedAddr));
 }
 
 void CreateAssetDialog::onAddressNameChanged(QString address)
@@ -780,9 +986,18 @@ void CreateAssetDialog::onIPFSHashChanged(QString hash)
 }
 
 void CreateAssetDialog::onANSTypeChanged(int index) {
-    CAvianNameSystemID::Type type = static_cast<CAvianNameSystemID::Type>(index);
-    ui->ansText->setPlaceholderText(QString::fromStdString(CAvianNameSystemID::enum_to_string(type).second));
-    ui->ansText->clear();
+    CAvianNameSystemID::Type type = currentANSType();
+    if (type == CAvianNameSystemID::PROFILE) {
+        ui->ansText->hide();
+        ui->ansText->clear();
+        ui->ansCborWidget->show();
+    } else {
+        ui->ansText->setPlaceholderText(QString::fromStdString(CAvianNameSystemID::enum_to_string(type).second));
+        ui->ansText->clear();
+        ui->ansText->show();
+        ui->ansCborWidget->hide();
+    }
+    CheckFormState();
 }
 
 void CreateAssetDialog::onANSDataChanged(QString data)
@@ -804,7 +1019,17 @@ void CreateAssetDialog::onCreateAssetClicked()
     int units = ui->unitBox->value();
     bool reissuable = ui->reissuableBox->isChecked();
     bool hasIPFS = ui->ipfsBox->isChecked() && !ui->ipfsText->text().isEmpty();
-    bool hasANS = ui->ansBox->isChecked() && !ui->ansText->text().isEmpty();
+    CAvianNameSystemID::Type ansType = currentANSType();
+    bool hasANS = false;
+    if (ui->ansBox->isChecked()) {
+        if (ansType == CAvianNameSystemID::PROFILE) {
+            hasANS = !ui->ansCborAddrEdit->text().isEmpty() || !ui->ansCborNameEdit->text().isEmpty() ||
+                     !ui->ansCborAvatarEdit->text().isEmpty() || !ui->ansCborBannerEdit->text().isEmpty() ||
+                     !ui->ansCborUrlEdit->text().isEmpty();
+        } else {
+            hasANS = !ui->ansText->text().isEmpty();
+        }
+    }
 
     std::string ipfsDecoded = "";
     if (hasIPFS) {
@@ -815,14 +1040,26 @@ void CreateAssetDialog::onCreateAssetClicked()
     if (hasANS) {
         std::string error;
         std::string formattedTypeData;
-        CAvianNameSystemID::Type type = static_cast<CAvianNameSystemID::Type>(ui->ansType->currentIndex());
-        formattedTypeData = CAvianNameSystemID::FormatTypeData(type, ui->ansText->text().toStdString(), error);
-
-        CAvianNameSystemID ansID(type, formattedTypeData);
+        std::string typeData;
+        if (ansType == CAvianNameSystemID::PROFILE) {
+            ANSProfileData p;
+            p.addr   = ui->ansCborAddrEdit->text().toStdString();
+            p.name   = ui->ansCborNameEdit->text().toStdString();
+            p.avatar = ui->ansCborAvatarEdit->text().toStdString();
+            p.banner = ui->ansCborBannerEdit->text().toStdString();
+            p.url    = ui->ansCborUrlEdit->text().toStdString();
+            typeData = ANS_CBOR::EncodeProfile(p);
+        } else {
+            typeData = ui->ansText->text().toStdString();
+        }
+        formattedTypeData = CAvianNameSystemID::FormatTypeData(ansType, typeData, error);
+        CAvianNameSystemID ansID(ansType, formattedTypeData);
         ansDecoded = ansID.to_string();
 
-        // Warn user
-        QMessageBox::critical(this, "ANS Warning", tr("Storing data using the Avian Name System will forever stay in the blockchain. You can edit the ANS ID only if the asset is reissueable.") + QString("\n\nANS ID: ") + QString::fromStdString(ansDecoded), QMessageBox::Ok, QMessageBox::Ok);
+        // Warn user — skip warning for reissuable sub-assets (AIP-0010) since updating is expected
+        if (!reissuable || !m_ansSubMode) {
+            QMessageBox::critical(this, "ANS Warning", tr("Storing data using the Avian Name System will forever stay in the blockchain. You can edit the ANS ID only if the asset is reissueable.") + QString("\n\nANS ID: ") + QString::fromStdString(ansDecoded), QMessageBox::Ok, QMessageBox::Ok);
+        }
     }
 
     CNewAsset asset(name.toStdString(), quantity, units, reissuable ? 1 : 0, hasIPFS ? 1 : 0, ipfsDecoded, hasANS ? 1 : 0, ansDecoded);
@@ -879,10 +1116,10 @@ void CreateAssetDialog::onCreateAssetClicked()
     QStringList formatted;
 
     // generate bold burn amount string
-    QString burnAmount = "<b>" + QString::fromStdString(ValueFromAmountString(GetBurnAmount(type), 8)) + " AVN";
+    QString burnAmount = "<b>" + QString::fromStdString(ValueFromAmountString(GetBurnAmount(getBurnType()), 8)) + " AVN";
     burnAmount.append("</b>");
     // generate monospace burn address string
-    QString addressburn = "<span style='font-family: monospace;'>" + QString::fromStdString(GetBurnAddress(type));
+    QString addressburn = "<span style='font-family: monospace;'>" + QString::fromStdString(GetBurnAddress(getBurnType()));
     addressburn.append("</span>");
 
     QString recipientElement1;
@@ -915,7 +1152,7 @@ void CreateAssetDialog::onCreateAssetClicked()
 
     // add total amount in all subdivision units
     questionString.append("<hr />");
-    CAmount totalAmount = GetBurnAmount(type) + nFeeRequired;
+    CAmount totalAmount = GetBurnAmount(getBurnType()) + nFeeRequired;
     QStringList alternativeUnits;
     for (const BitcoinUnit& u : BitcoinUnits::availableUnits())
     {
@@ -1043,18 +1280,60 @@ void CreateAssetDialog::onAssetTypeActivated(int index)
     // Update the selected type
     type = index;
 
+    bool fANSTypeAsset = type == ANS_ASSET_TYPE_INDEX;
     bool fOrginalTypeAsset = type == IntFromAssetType(AssetType::ROOT) || type == IntFromAssetType(AssetType::SUB) || type == IntFromAssetType(AssetType::UNIQUE) || type == IntFromAssetType(AssetType::MSGCHANNEL);
     bool fRestrictedTypeAsset = type == IntFromAssetType(AssetType::QUALIFIER) || type == IntFromAssetType(AssetType::SUB_QUALIFIER) || type == IntFromAssetType(AssetType::RESTRICTED);
 
     bool fShowList = type == IntFromAssetType(AssetType::SUB) || type == IntFromAssetType(AssetType::UNIQUE) || type == IntFromAssetType(AssetType::SUB_QUALIFIER) || type == IntFromAssetType(AssetType::RESTRICTED) || type == IntFromAssetType(AssetType::MSGCHANNEL);
 
     // Make sure the type is only the the supported issue types
-    if(!(fOrginalTypeAsset || fRestrictedTypeAsset)) {
+    if(!(fOrginalTypeAsset || fRestrictedTypeAsset || fANSTypeAsset)) {
         type = IntFromAssetType(AssetType::ROOT);
+        fOrginalTypeAsset = true;
+        fANSTypeAsset = false;
     }
 
-    // If the type is UNIQUE, set the units and amount to the correct value, and disable them.
-    if (type == IntFromAssetType(AssetType::UNIQUE) || type == IntFromAssetType(AssetType::MSGCHANNEL)) {
+    // If we're transitioning FROM ANS Asset to another type, restore the locked controls
+    if (nCurrentType == ANS_ASSET_TYPE_INDEX && !fANSTypeAsset) {
+        ui->ipfsBox->setDisabled(false);
+        if (IsAvianNameSystemDeployed()) {
+            ui->ansBox->setChecked(false);
+            ui->ansBox->setDisabled(false);
+            ui->ansType->setDisabled(false);
+        }
+        ui->ansType->hide();
+        ui->ansCborWidget->hide();
+        ui->ansText->hide();
+    }
+
+    // Show/hide ansBox based on asset type — only ROOT and ANS types support ANS data
+    if (IsAvianNameSystemDeployed() && !fANSTypeAsset) {
+        if (type == IntFromAssetType(AssetType::ROOT)) {
+            ui->ansBox->show();
+            // Set disabled/enabled state based on whether the current name ends in .AVN
+            const std::string& domain = CAvianNameSystemID::domain;
+            std::string sn = ui->nameText->text().toStdString();
+            bool endsWithAVN = sn.size() > domain.size() &&
+                               sn.substr(sn.size() - domain.size()) == domain;
+            ui->ansBox->setDisabled(true); // always locked: checked for .AVN (required), unchecked otherwise
+            if (!endsWithAVN && ui->ansBox->isChecked()) {
+                ui->ansBox->setChecked(false);
+                toggleANSText();
+            }
+        } else {
+            if (ui->ansBox->isChecked()) {
+                ui->ansBox->setChecked(false);
+                toggleANSText();
+            }
+            setANSSubMode(false);
+            ui->ansBox->hide();
+        }
+    }
+
+    // Set the locked/default values for the selected type
+    if (fANSTypeAsset) {
+        setANSAssetSelected();
+    } else if (type == IntFromAssetType(AssetType::UNIQUE) || type == IntFromAssetType(AssetType::MSGCHANNEL)) {
         setUniqueSelected();
     } else if (type == IntFromAssetType(AssetType::QUALIFIER) || type == IntFromAssetType(AssetType::SUB_QUALIFIER)) {
         setQualifierSelected();
@@ -1087,6 +1366,9 @@ void CreateAssetDialog::onAssetTypeActivated(int index)
     // Set assetName when it is an original asset type
     if (fOrginalTypeAsset)
         updatePresentedAssetName(format.arg(type == IntFromAssetType(AssetType::ROOT) ? "" : ui->assetList->currentText(), identifier, ui->nameText->text()));
+
+    if (fANSTypeAsset)
+        updatePresentedAssetName(format.arg("", identifier, ui->nameText->text() + QString::fromStdString(CAvianNameSystemID::domain)));
 
     if (fRestrictedTypeAsset) {
         bool fSingleName = type != IntFromAssetType(AssetType::SUB_QUALIFIER);
@@ -1160,6 +1442,8 @@ QString CreateAssetDialog::GetAssetName()
         return ui->nameText->text();
     else if (type == IntFromAssetType(AssetType::SUB_QUALIFIER))
         return ui->assetList->currentText() + "/" + ui->nameText->text();
+    else if (type == ANS_ASSET_TYPE_INDEX)
+        return ui->nameText->text() + QString::fromStdString(CAvianNameSystemID::domain);
     return "";
 }
 
@@ -1167,6 +1451,9 @@ void CreateAssetDialog::UpdateAssetNameMaxSize()
 {
     if (type == IntFromAssetType(AssetType::ROOT) || type == IntFromAssetType(AssetType::QUALIFIER) || type == IntFromAssetType(AssetType::RESTRICTED)) {
         ui->nameText->setMaxLength(30);
+    } else if (type == ANS_ASSET_TYPE_INDEX) {
+        // Reserve room for the .AVN suffix (4 chars) that is auto-appended
+        ui->nameText->setMaxLength(30 - (int)CAvianNameSystemID::domain.size());
     } else if (type == IntFromAssetType(AssetType::SUB) || type == IntFromAssetType(AssetType::UNIQUE) || type == IntFromAssetType(AssetType::SUB_QUALIFIER)) {
         ui->nameText->setMaxLength(30 - (ui->assetList->currentText().size() + 1));
     }
@@ -1174,8 +1461,17 @@ void CreateAssetDialog::UpdateAssetNameMaxSize()
 
 void CreateAssetDialog::UpdateAssetNameToUpper()
 {
-    if (type == IntFromAssetType(AssetType::ROOT) || type == IntFromAssetType(AssetType::SUB) || type == IntFromAssetType(AssetType::RESTRICTED) || type == IntFromAssetType(AssetType::QUALIFIER) || type == IntFromAssetType(AssetType::SUB_QUALIFIER) || type == IntFromAssetType(AssetType::MSGCHANNEL)) {
+    if (type == IntFromAssetType(AssetType::ROOT) || type == IntFromAssetType(AssetType::SUB) || type == IntFromAssetType(AssetType::RESTRICTED) || type == IntFromAssetType(AssetType::QUALIFIER) || type == IntFromAssetType(AssetType::SUB_QUALIFIER) || type == IntFromAssetType(AssetType::MSGCHANNEL) || type == ANS_ASSET_TYPE_INDEX) {
         ui->nameText->setText(ui->nameText->text().toUpper());
+    }
+    // The MSGCHANNEL name field holds only the channel tag (after '~'); strip '~' to
+    // prevent the user from producing a double-delimiter (e.g. PARENT~~TAG).
+    if (type == IntFromAssetType(AssetType::MSGCHANNEL)) {
+        QString text = ui->nameText->text();
+        QString stripped = text;
+        stripped.remove('~');
+        if (stripped != text)
+            ui->nameText->setText(stripped);
     }
 }
 
@@ -1370,7 +1666,7 @@ void CreateAssetDialog::coinControlUpdateLabels()
     CoinControlDialog::payAmounts.clear();
     CoinControlDialog::fSubtractFeeFromAmount = false;
 
-    CoinControlDialog::payAmounts.append(GetBurnAmount(type));
+    CoinControlDialog::payAmounts.append(GetBurnAmount(getBurnType()));
 
     if (s_coinControl().HasSelected())
     {
@@ -1484,6 +1780,38 @@ void CreateAssetDialog::clearSelected()
     
     ui->reissuableBox->setChecked(true);
     ui->reissuableBox->setDisabled(false);
+}
+
+void CreateAssetDialog::setANSAssetSelected()
+{
+    ui->quantitySpinBox->setValue(1);
+    ui->quantitySpinBox->setDisabled(true);
+
+    ui->unitBox->setValue(0);
+    ui->unitBox->setDisabled(true);
+
+    ui->reissuableBox->setChecked(true);
+    ui->reissuableBox->setDisabled(true);
+
+    ui->ipfsBox->setDisabled(true);
+    ui->ipfsBox->setChecked(false);
+    ui->ipfsText->hide();
+    ui->openIpfsButton->hide();
+
+    if (IsAvianNameSystemDeployed()) {
+        ui->ansBox->setChecked(true);
+        ui->ansBox->setDisabled(true);
+        ui->ansType->show();
+        ui->ansType->setCurrentIndex(1); // default to PROFILE type; user may change to ADDR
+        ui->ansType->setDisabled(false);
+        ui->ansCborWidget->show();
+        ui->ansText->hide();
+    }
+}
+
+int CreateAssetDialog::getBurnType() const
+{
+    return type == ANS_ASSET_TYPE_INDEX ? IntFromAssetType(AssetType::ROOT) : type;
 }
 
 void CreateAssetDialog::updateAssetList()

@@ -22,6 +22,10 @@ const std::array<VBDeploymentInfo,Consensus::MAX_VERSION_BITS_DEPLOYMENTS> Versi
         .name = "mldsa44",   // RIP-25: ML-DSA-44 post-quantum signatures
         .gbt_optional_rule = true,
     },
+    VBDeploymentInfo{
+        .name = "ansv2",     // AIP-0009: Avian Name System v2
+        .gbt_optional_rule = true,
+    },
 };
 
 std::string DeploymentName(Consensus::BuriedDeployment dep)

@@ -7,6 +7,7 @@
 #define AVIAN_QT_CREATEASSETDIALOG_H
 
 #include <qt/walletmodel.h>
+#include <assets/ans.h>
 
 #include <QDialog>
 
@@ -67,6 +68,16 @@ private:
 
     bool checkedAvailablity = false;
 
+    // ANS Asset is a UI-only type that maps to ROOT at the consensus level,
+    // but enforces qty=1, units=0, reissuable=true, and auto-appends .AVN
+    static constexpr int ANS_ASSET_TYPE_INDEX = 7;
+
+    // AIP-0010: true when the asset being created is a sub-asset of a .AVN name
+    // (i.e. the ANS type combo should show XADDR only instead of ADDR+PROFILE)
+    bool m_ansSubMode = false;
+    CAvianNameSystemID::Type currentANSType() const;
+    void setANSSubMode(bool subMode);
+
     void toggleIPFSText();
     void toggleANSText();
     void setUpValues();
@@ -86,6 +97,8 @@ private:
     void setUniqueSelected();
     void setQualifierSelected();
     void clearSelected();
+    void setANSAssetSelected();
+    int getBurnType() const;
 
     // CoinControl
     // Update the passed in CCoinControl with state from the GUI
@@ -106,6 +119,7 @@ private Q_SLOTS:
     void openIpfsBrowser();
     void onNameChanged(QString name);
     void onAddressNameChanged(QString address);
+    void onAddressEditingFinished();
     void onIPFSHashChanged(QString hash);
     void onANSTypeChanged(int index);
     void onANSDataChanged(QString data);
