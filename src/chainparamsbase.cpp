@@ -34,8 +34,8 @@ const CBaseChainParams& BaseParams()
 }
 
 /**
- * RPC port numbers: mainnet 7896 (P2P 7895+1), testnet 18771 (P2P 18770+1).
- * Testnet4, signet, regtest are stub networks and use Bitcoin Core defaults.
+ * RPC port numbers: mainnet 7896 (P2P 7895+1), testnet 18771 (P2P 18770+1),
+ * testnet4 28771 (P2P 28770+1).
  */
 std::unique_ptr<CBaseChainParams> CreateBaseChainParams(const ChainType chain)
 {
@@ -45,7 +45,7 @@ std::unique_ptr<CBaseChainParams> CreateBaseChainParams(const ChainType chain)
     case ChainType::TESTNET:
         return std::make_unique<CBaseChainParams>("testnet3", 18771);
     case ChainType::TESTNET4:
-        return std::make_unique<CBaseChainParams>("testnet4", 48332);
+        return std::make_unique<CBaseChainParams>("testnet4_v5", 28771);
     case ChainType::SIGNET:
         return std::make_unique<CBaseChainParams>("signet", 38332);
     case ChainType::REGTEST:

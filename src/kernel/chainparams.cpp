@@ -137,6 +137,14 @@ public:
         consensus.vDeployments[Consensus::DEPLOYMENT_MLDSA44].threshold = 36288; // 90% of 40320
         consensus.vDeployments[Consensus::DEPLOYMENT_MLDSA44].period = 40320;    // ~2 weeks at 30s blocks
 
+        // AIP-0009: ANS v2 - not deployed on Avian mainnet yet.
+        consensus.vDeployments[Consensus::DEPLOYMENT_ANS_V2].bit = 12;
+        consensus.vDeployments[Consensus::DEPLOYMENT_ANS_V2].nStartTime = Consensus::BIP9Deployment::NEVER_ACTIVE;
+        consensus.vDeployments[Consensus::DEPLOYMENT_ANS_V2].nTimeout = Consensus::BIP9Deployment::NO_TIMEOUT;
+        consensus.vDeployments[Consensus::DEPLOYMENT_ANS_V2].min_activation_height = 0;
+        consensus.vDeployments[Consensus::DEPLOYMENT_ANS_V2].threshold = 36288; // 90% of 40320
+        consensus.vDeployments[Consensus::DEPLOYMENT_ANS_V2].period = 40320;    // ~2 weeks at 30s blocks
+
         // Avian network upgrades (hardforks)
         consensus.vUpgrades[Consensus::UPGRADE_X16RT_SWITCH].nTimestamp = 1638847406;
         consensus.vUpgrades[Consensus::UPGRADE_DUAL_ALGO].nTimestamp = 1638847407;
@@ -263,6 +271,14 @@ public:
         consensus.vDeployments[Consensus::DEPLOYMENT_MLDSA44].threshold = 1512;
         consensus.vDeployments[Consensus::DEPLOYMENT_MLDSA44].period = 2016;
 
+        // AIP-0009: ANS v2 - always active on testnet for testing
+        consensus.vDeployments[Consensus::DEPLOYMENT_ANS_V2].bit = 12;
+        consensus.vDeployments[Consensus::DEPLOYMENT_ANS_V2].nStartTime = Consensus::BIP9Deployment::ALWAYS_ACTIVE;
+        consensus.vDeployments[Consensus::DEPLOYMENT_ANS_V2].nTimeout = Consensus::BIP9Deployment::NO_TIMEOUT;
+        consensus.vDeployments[Consensus::DEPLOYMENT_ANS_V2].min_activation_height = 0;
+        consensus.vDeployments[Consensus::DEPLOYMENT_ANS_V2].threshold = 1512;
+        consensus.vDeployments[Consensus::DEPLOYMENT_ANS_V2].period = 2016;
+
         // Avian network upgrades (hardforks)
         consensus.vUpgrades[Consensus::UPGRADE_X16RT_SWITCH].nTimestamp = 1634101200; // Oct 13, 2021
         consensus.vUpgrades[Consensus::UPGRADE_DUAL_ALGO].nTimestamp = 1639005225;
@@ -332,7 +348,7 @@ public:
 };
 
 /**
- * Testnet4: Not used by Avian. Stub for compatibility with Bitcoin Core infrastructure.
+ * Testnet4 (v5): fresh public test network for Avian 5.x.
  */
 class CTestNet4Params : public CChainParams {
 public:
@@ -353,15 +369,15 @@ public:
         consensus.CSVHeight = 1;
         consensus.SegwitHeight = 1;
         consensus.MinBIP9WarningHeight = 0;
-        consensus.powLimit = uint256{"7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"};
+        consensus.powLimit = uint256{"00000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"};
         consensus.nPowTargetTimespan = 2016 * 30;
         consensus.nPowTargetSpacing = 1 * 30;
         consensus.fPowAllowMinDifficultyBlocks = true;
         consensus.enforce_BIP94 = false;
-        consensus.fPowNoRetargeting = true;
+        consensus.fPowNoRetargeting = false;
 
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].bit = 28;
-        consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nStartTime = Consensus::BIP9Deployment::NEVER_ACTIVE;
+        consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nStartTime = 0;
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nTimeout = Consensus::BIP9Deployment::NO_TIMEOUT;
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].min_activation_height = 0;
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].threshold = 1512;
@@ -382,22 +398,57 @@ public:
         consensus.vDeployments[Consensus::DEPLOYMENT_MLDSA44].threshold = 1512;
         consensus.vDeployments[Consensus::DEPLOYMENT_MLDSA44].period = 2016;
 
-        consensus.nMinimumChainWork = uint256{};
+        // AIP-0009: ANS v2 - always active on testnet4 for testing
+        consensus.vDeployments[Consensus::DEPLOYMENT_ANS_V2].bit = 12;
+        consensus.vDeployments[Consensus::DEPLOYMENT_ANS_V2].nStartTime = Consensus::BIP9Deployment::ALWAYS_ACTIVE;
+        consensus.vDeployments[Consensus::DEPLOYMENT_ANS_V2].nTimeout = Consensus::BIP9Deployment::NO_TIMEOUT;
+        consensus.vDeployments[Consensus::DEPLOYMENT_ANS_V2].min_activation_height = 0;
+        consensus.vDeployments[Consensus::DEPLOYMENT_ANS_V2].threshold = 1512;
+        consensus.vDeployments[Consensus::DEPLOYMENT_ANS_V2].period = 2016;
+
+        // Avian network upgrades (hardforks)
+        consensus.vUpgrades[Consensus::UPGRADE_X16RT_SWITCH].nTimestamp = 1634101200; // Oct 13, 2021
+        consensus.vUpgrades[Consensus::UPGRADE_DUAL_ALGO].nTimestamp = 1639005225;
+        consensus.vUpgrades[Consensus::UPGRADE_AVIAN_ASSETS].nTimestamp = 1645104453; // Feb 17, 2022
+        consensus.vUpgrades[Consensus::UPGRADE_AVIAN_FLIGHT_PLANS].nTimestamp = 1645104453; // Feb 17, 2022
+        consensus.vUpgrades[Consensus::UPGRADE_AVIAN_NAME_SYSTEM].nTimestamp = 1645104453; // Feb 17, 2022
+
+        // Dual algorithm consensus
+        consensus.powForkTime = 1639005225;
+        consensus.lwmaAveragingWindow = 45;
+        consensus.diffRetargetFix = 0;
+        consensus.diffRetargetTake2 = 1639269000;
+
+        // Per-algorithm difficulty limits
+        consensus.powTypeLimits.emplace_back(uint256{"00000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"}); // X16RT limit
+        consensus.powTypeLimits.emplace_back(uint256{"000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"}); // MinotaurX limit
+
+        consensus.nMinimumChainWork = uint256{"0000000000000000000000000000000000000000000000000000000000000002"};
         consensus.defaultAssumeValid = uint256{};
+
+        // Founder payment (testnet4)
+        consensus.founderAddress = "2MvpouPdDEujBZg5eZnLNv5bCn78EE2bi65"; // P2SH testnet
+        consensus.founderStartBlock = 10;
+        consensus.founderRewardStructures = {{std::numeric_limits<int>::max(), 5}}; // 5% forever
+
+        // Max reorg protection
+        consensus.nMaxReorganizationDepth = 60;
+        consensus.nMinReorganizationPeers = 4;
+        consensus.nMinReorganizationAge = 60 * 60 * 12; // 12 hours
 
         pchMessageStart[0] = 0x1c;
         pchMessageStart[1] = 0x16;
         pchMessageStart[2] = 0x3f;
         pchMessageStart[3] = 0x28;
-        nDefaultPort = 48333;
+        nDefaultPort = 28770;
         nPruneAfterHeight = 1000;
-        m_assumed_blockchain_size = 0;
-        m_assumed_chain_state_size = 0;
+        m_assumed_blockchain_size = 2;
+        m_assumed_chain_state_size = 1;
 
-        // Reuse Avian regtest-style genesis for this stub network
-        genesis = CreateGenesisBlock(1629951211, 1, 0x207fffff, 2, 2500 * COIN);
-        consensus.hashGenesisBlock = uint256{"653634d03d27ed84e8aba5dd47903906ad7be4876a1d3677be0db2891dcf787f"};
-        // No hash assertion for stub network
+        // Use a PoW-valid genesis block so startup block reads pass header checks.
+        genesis = CreateGenesisBlock(1630065295, 24922064, 0x1e00ffff, 4, 10 * COIN);
+        consensus.hashGenesisBlock = uint256{"00000084af22998d2aed78cc29f1fa587f854150ccd2991dfc82241c8f049219"};
+        assert(genesis.hashMerkleRoot == uint256{"63d9b6b6b549a2d96eb5ac4eb2ab80761e6d7bffa9ae1a647191e08d6416184d"});
 
         vFixedSeeds.clear();
         vSeeds.clear();
@@ -416,9 +467,9 @@ public:
         m_assumeutxo_data = {};
 
         chainTxData = ChainTxData{
-            .nTime = 0,
+            .nTime    = 0,
             .tx_count = 0,
-            .dTxRate = 0,
+            .dTxRate  = 0,
         };
     }
 };
@@ -586,6 +637,16 @@ public:
         consensus.vDeployments[Consensus::DEPLOYMENT_MLDSA44].min_activation_height = 0;
         consensus.vDeployments[Consensus::DEPLOYMENT_MLDSA44].threshold = 108; // 75%
         consensus.vDeployments[Consensus::DEPLOYMENT_MLDSA44].period = 144;
+
+        // AIP-0009: ANS v2 - set nStartTime = 0 to test BIP9 signaling on regtest.
+        // Mine 144+ blocks, then signal bit 12 in ≥108/144 blocks to drive STARTED→LOCKED_IN→ACTIVE.
+        // Change to ALWAYS_ACTIVE to skip signaling and treat as unconditionally deployed.
+        consensus.vDeployments[Consensus::DEPLOYMENT_ANS_V2].bit = 12;
+        consensus.vDeployments[Consensus::DEPLOYMENT_ANS_V2].nStartTime = 0;
+        consensus.vDeployments[Consensus::DEPLOYMENT_ANS_V2].nTimeout = Consensus::BIP9Deployment::NO_TIMEOUT;
+        consensus.vDeployments[Consensus::DEPLOYMENT_ANS_V2].min_activation_height = 0;
+        consensus.vDeployments[Consensus::DEPLOYMENT_ANS_V2].threshold = 108; // 75%
+        consensus.vDeployments[Consensus::DEPLOYMENT_ANS_V2].period = 144;
 
         // Avian network upgrades — all active at genesis+1 timestamp for regtest
         consensus.vUpgrades[Consensus::UPGRADE_X16RT_SWITCH].nTimestamp = 1629951212;       // genesis+1
