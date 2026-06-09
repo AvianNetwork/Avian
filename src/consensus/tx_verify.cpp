@@ -245,9 +245,11 @@ bool Consensus::CheckTxAssets(const CTransaction& tx, TxValidationState& state, 
                 return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-txns-failed-to-get-asset-from-script");
 
             // Add to the total value of assets in the inputs
-            if (totalInputs.count(data.assetName))
+            if (totalInputs.count(data.assetName)) {
                 totalInputs.at(data.assetName) += data.nAmount;
-            else
+                if (!MoneyRange(totalInputs.at(data.assetName)))
+                    return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-txns-asset-inputs-amount-overflow");
+            } else
                 totalInputs.insert(make_pair(data.assetName, data.nAmount));
 
             if (AreMessagesDeployed()) {
@@ -308,9 +310,11 @@ bool Consensus::CheckTxAssets(const CTransaction& tx, TxValidationState& state, 
                 return state.Invalid(TxValidationResult::TX_CONSENSUS, strError);
 
             // Add to the total value of assets in the outputs
-            if (totalOutputs.count(transfer.strName))
+            if (totalOutputs.count(transfer.strName)) {
                 totalOutputs.at(transfer.strName) += transfer.nAmount;
-            else
+                if (!MoneyRange(totalOutputs.at(transfer.strName)))
+                    return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-txns-asset-outputs-amount-overflow");
+            } else
                 totalOutputs.insert(make_pair(transfer.strName, transfer.nAmount));
 
             if (!fRunningUnitTests) {
