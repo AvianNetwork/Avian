@@ -29,13 +29,18 @@
 #include <QClipboard>
 #include <QDateTime>
 #include <QDesktopServices>
+#include <QDialog>
+#include <QDialogButtonBox>
+#include <QFrame>
 #include <QMenu>
 #include <QMessageBox>
 #include <QPainter>
 #include <QPainterPath>
 #include <QStatusTipEvent>
+#include <QTextBrowser>
 #include <QTimer>
 #include <QUrl>
+#include <QVBoxLayout>
 
 #include <algorithm>
 #include <map>
@@ -580,38 +585,79 @@ void OverviewPage::handleAssetRightClicked(const QModelIndex& index)
     connect(assetViewANSAction, &QAction::triggered, [this, assetName, ansid]() {
         if (!ansid.isEmpty()) {
             CAvianNameSystemID ans(ansid.toStdString());
-            QString ansData;
-            QString label;
-            if (ans.type() == CAvianNameSystemID::ADDR) {
-                label = tr("AVN Address");
-                ansData = QString::fromStdString(ans.addr());
-            } else if (ans.type() == CAvianNameSystemID::XADDR) {
-                label = tr("External Address");
-                ansData = QString::fromStdString(ans.addr());
+
+            QString typeLabel;
+            if (ans.type() == CAvianNameSystemID::ADDR)         typeLabel = tr("AVN Address");
+            else if (ans.type() == CAvianNameSystemID::XADDR)   typeLabel = tr("External Address");
+            else if (ans.type() == CAvianNameSystemID::PROFILE) typeLabel = tr("Profile");
+
+            // Build HTML table rows — table cells wrap long strings correctly
+            QString rows;
+            auto addRow = [&](const QString& lbl, const QString& val) {
+                rows += "<tr>"
+                        "<td style='font-weight:bold;color:#19827B;white-space:nowrap;"
+                        "padding:4px 14px 4px 0;vertical-align:top'>"
+                        + lbl.toHtmlEscaped() + "</td>"
+                        "<td style='padding:4px 0'>"
+                        + val.toHtmlEscaped() + "</td></tr>";
+            };
+
+            if (ans.type() == CAvianNameSystemID::ADDR || ans.type() == CAvianNameSystemID::XADDR) {
+                addRow(typeLabel, QString::fromStdString(ans.addr()));
             } else if (ans.type() == CAvianNameSystemID::PROFILE) {
-                label = tr("Profile");
                 const ANSProfileData& p = ans.profile();
                 if (!p.name.empty())
-                    ansData += tr("Display Name: ") + QString::fromStdString(p.name) + "\n";
+                    addRow(tr("Display Name"), QString::fromStdString(p.name));
                 if (!p.addr.empty())
-                    ansData += tr("Address: ")      + QString::fromStdString(p.addr) + "\n";
-                if (!p.avatar.empty()) {
-                    if (p.avatar_binary)
-                        ansData += tr("Avatar: ")   + tr("[inline binary, %1 bytes]").arg((qulonglong)p.avatar.size()) + "\n";
-                    else
-                        ansData += tr("Avatar: ")   + QString::fromStdString(p.avatar) + "\n";
-                }
-                if (!p.banner.empty()) {
-                    if (p.banner_binary)
-                        ansData += tr("Banner: ")   + tr("[inline binary, %1 bytes]").arg((qulonglong)p.banner.size()) + "\n";
-                    else
-                        ansData += tr("Banner: ")   + QString::fromStdString(p.banner) + "\n";
-                }
+                    addRow(tr("Address"), QString::fromStdString(p.addr));
+                if (!p.avatar.empty())
+                    addRow(tr("Avatar"), p.avatar_binary
+                        ? tr("[inline binary, %1 bytes]").arg((qulonglong)p.avatar.size())
+                        : QString::fromStdString(p.avatar));
+                if (!p.banner.empty())
+                    addRow(tr("Banner"), p.banner_binary
+                        ? tr("[inline binary, %1 bytes]").arg((qulonglong)p.banner.size())
+                        : QString::fromStdString(p.banner));
                 if (!p.url.empty())
-                    ansData += tr("URL: ")          + QString::fromStdString(p.url) + "\n";
-                if (ansData.endsWith("\n")) ansData.chop(1);
+                    addRow(tr("URL"), QString::fromStdString(p.url));
             }
-            QMessageBox::information(this, tr("ANS Info"), assetName + " " + label + ":\n" + ansData);
+
+            QString html =
+                "<body style='margin:0;padding:0;font-family:sans-serif'>"
+                "<div style='background-color:#19827B;color:white;padding:10px 14px'>"
+                "<span style='font-size:13pt;font-weight:bold'>" + assetName.toHtmlEscaped() + "</span>"
+                "<br><span style='font-size:9pt;color:#d0f0ee'>" + typeLabel.toHtmlEscaped() + "</span>"
+                "</div>"
+                "<div style='padding:10px 14px'>"
+                "<table style='border-collapse:collapse;width:100%'>" + rows + "</table>"
+                "</div>"
+                "</body>";
+
+            QDialog dlg(this);
+            dlg.setWindowTitle(tr("ANS Info"));
+
+            QVBoxLayout* vbox = new QVBoxLayout(&dlg);
+            vbox->setContentsMargins(0, 0, 0, 8);
+            vbox->setSpacing(8);
+
+            QTextBrowser* view = new QTextBrowser(&dlg);
+            view->setOpenExternalLinks(false);
+            view->setFrameShape(QFrame::NoFrame);
+            view->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+            view->setHtml(html);
+
+            // Size the dialog to fit content
+            view->document()->setTextWidth(420);
+            int contentH = int(view->document()->size().height());
+            dlg.resize(440, qBound(140, contentH + 60, 500));
+
+            vbox->addWidget(view);
+
+            QDialogButtonBox* buttons = new QDialogButtonBox(QDialogButtonBox::Ok, &dlg);
+            connect(buttons, &QDialogButtonBox::accepted, &dlg, &QDialog::accept);
+            vbox->addWidget(buttons);
+
+            dlg.exec();
         }
     });
 
