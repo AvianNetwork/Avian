@@ -4755,11 +4755,6 @@ bool ContextualCheckTransferAsset(CAssetsCache* assetCache, const CAssetTransfer
         return false;
     }
 
-    if (transfer.nAmount > MAX_MONEY) {
-        strError = "Invalid parameter: asset amount greater than max money";
-        return false;
-    }
-
     if (AreMessagesDeployed()) {
         // This is for the current testnet6 only.
         if (transfer.nAmount <= 0) {

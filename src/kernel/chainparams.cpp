@@ -169,6 +169,8 @@ public:
         consensus.founderStartBlock = 1121000;
         consensus.founderRewardStructures = {{std::numeric_limits<int>::max(), 5}}; // 5% forever
 
+        consensus.nAssetTransferOverflowFixHeight = std::numeric_limits<int>::max(); // TODO: Set to actual activation height once determined --- IGNORE ---
+
         // Max reorg protection
         consensus.nMaxReorganizationDepth = 60;
         consensus.nMinReorganizationPeers = 4;
@@ -303,6 +305,8 @@ public:
         consensus.founderAddress = "2MvpouPdDEujBZg5eZnLNv5bCn78EE2bi65"; // P2SH testnet
         consensus.founderStartBlock = 10;
         consensus.founderRewardStructures = {{std::numeric_limits<int>::max(), 5}}; // 5% forever
+
+        consensus.nAssetTransferOverflowFixHeight = 0; 
 
         // Max reorg protection
         consensus.nMaxReorganizationDepth = 60;
@@ -578,6 +582,8 @@ public:
 
         bech32_hrp = "tavn";
 
+        consensus.nAssetTransferOverflowFixHeight = 0; // Active from genesis on signet
+
         fDefaultConsistencyChecks = false;
         m_is_mockable_chain = false;
     }
@@ -672,6 +678,8 @@ public:
         consensus.founderAddress = "2MwTWhsKXQTpMPEGsWZCdYy7UZRECPPapM1"; // P2SH regtest
         consensus.founderStartBlock = 1;
         consensus.founderRewardStructures = {{std::numeric_limits<int>::max(), 5}}; // 5% forever
+
+        consensus.nAssetTransferOverflowFixHeight = 0;
 
         // Max reorg protection
         consensus.nMaxReorganizationDepth = 60;
