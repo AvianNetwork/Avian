@@ -41,7 +41,7 @@ bool CheckTxAssets(const CTransaction& tx, TxValidationState& state, const CCoin
                    std::set<CMessage>* setMessages = nullptr,
                    int64_t nBlocktime = 0,
                    std::vector<std::pair<std::string, CNullAssetTxData>>* myNullAssetData = nullptr,
-                   int nSpendHeight);
+                   int nSpendHeight = 0);
 } // namespace Consensus
 
 /** Auxiliary functions for transaction validation (ideally should not be exposed) */
