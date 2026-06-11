@@ -582,81 +582,155 @@ void OverviewPage::handleAssetRightClicked(const QModelIndex& index)
 
     // View ANS action
     disconnect(assetViewANSAction, &QAction::triggered, nullptr, nullptr);
-    connect(assetViewANSAction, &QAction::triggered, [this, assetName, ansid]() {
+    connect(assetViewANSAction, &QAction::triggered, [this, assetName, ansid, ipfsbrowser]() {
         if (!ansid.isEmpty()) {
             CAvianNameSystemID ans(ansid.toStdString());
 
             QString typeLabel;
-            if (ans.type() == CAvianNameSystemID::ADDR)         typeLabel = tr("AVN Address");
-            else if (ans.type() == CAvianNameSystemID::XADDR)   typeLabel = tr("External Address");
-            else if (ans.type() == CAvianNameSystemID::PROFILE) typeLabel = tr("Profile");
+            if (ans.type() == CAvianNameSystemID::ADDR)
+                typeLabel = tr("AVN Address");
+            else if (ans.type() == CAvianNameSystemID::XADDR)
+                typeLabel = tr("External Address");
+            else if (ans.type() == CAvianNameSystemID::PROFILE)
+                typeLabel = tr("Profile");
 
-            // Build HTML table rows — table cells wrap long strings correctly
-            QString rows;
-            auto addRow = [&](const QString& lbl, const QString& val) {
-                rows += "<tr>"
-                        "<td style='font-weight:bold;color:#19827B;white-space:nowrap;"
-                        "padding:4px 14px 4px 0;vertical-align:top'>"
-                        + lbl.toHtmlEscaped() + "</td>"
-                        "<td style='padding:4px 0'>"
-                        + val.toHtmlEscaped() + "</td></tr>";
+            QDialog dlg(this);
+            dlg.setObjectName("ANSInfoDialog");
+            dlg.setWindowTitle(tr("ANS Info"));
+
+            QVBoxLayout* vbox = new QVBoxLayout(&dlg);
+            vbox->setContentsMargins(0, 0, 0, 0);
+            vbox->setSpacing(0);
+
+            // Header
+            QWidget* header = new QWidget(&dlg);
+            header->setObjectName("ansHeader");
+
+            QVBoxLayout* headerLayout = new QVBoxLayout(header);
+            headerLayout->setContentsMargins(16, 8, 16, 8);
+            headerLayout->setSpacing(1);
+
+            QLabel* titleLabel = new QLabel(assetName, header);
+            titleLabel->setObjectName("ansTitleLabel");
+            titleLabel->setTextFormat(Qt::PlainText);
+
+            QLabel* typeLabelWidget = new QLabel(typeLabel, header);
+            typeLabelWidget->setObjectName("ansTypeLabel");
+            typeLabelWidget->setTextFormat(Qt::PlainText);
+
+            headerLayout->addWidget(titleLabel);
+            headerLayout->addWidget(typeLabelWidget);
+
+            vbox->addWidget(header);
+
+            // Body
+            QWidget* body = new QWidget(&dlg);
+            body->setObjectName("ansBody");
+
+            QGridLayout* grid = new QGridLayout(body);
+            grid->setContentsMargins(16, 14, 16, 14);
+            grid->setHorizontalSpacing(20);
+            grid->setVerticalSpacing(4);
+
+            int row = 0;
+
+            // Build a full IPFS gateway URL from an ipfs://CID value, or return empty.
+            auto ipfsGatewayUrl = [&ipfsbrowser](const QString& val) -> QString {
+                if (val.startsWith(QStringLiteral("ipfs://")))
+                    return QString(ipfsbrowser).replace(QStringLiteral("%s"), val.mid(7));
+                return {};
+            };
+
+            auto addRow = [&](const QString& lbl, const QString& val, const QString& href = {}) {
+                QLabel* label = new QLabel(lbl, body);
+                label->setObjectName("ansFieldLabel");
+                label->setTextFormat(Qt::PlainText);
+                label->setAlignment(Qt::AlignLeft | Qt::AlignTop);
+                label->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Preferred);
+
+                QLabel* value = new QLabel(body);
+                value->setObjectName("ansFieldValue");
+                value->setMinimumWidth(520);
+                value->setWordWrap(true);
+                value->setAlignment(Qt::AlignLeft | Qt::AlignTop);
+                value->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
+
+                if (!href.isEmpty()) {
+                    value->setTextFormat(Qt::RichText);
+                    value->setOpenExternalLinks(true);
+                    value->setTextInteractionFlags(Qt::TextBrowserInteraction);
+                    value->setText(QStringLiteral("<a href='") + href.toHtmlEscaped() +
+                                   QStringLiteral("' style='color:#19827B'>") +
+                                   val.toHtmlEscaped() + QStringLiteral("</a>"));
+                } else {
+                    value->setTextFormat(Qt::PlainText);
+                    value->setTextInteractionFlags(Qt::TextSelectableByMouse);
+                    value->setText(val);
+                }
+
+                grid->addWidget(label, row, 0);
+                grid->addWidget(value, row, 1);
+                ++row;
             };
 
             if (ans.type() == CAvianNameSystemID::ADDR || ans.type() == CAvianNameSystemID::XADDR) {
                 addRow(typeLabel, QString::fromStdString(ans.addr()));
             } else if (ans.type() == CAvianNameSystemID::PROFILE) {
                 const ANSProfileData& p = ans.profile();
+
                 if (!p.name.empty())
                     addRow(tr("Display Name"), QString::fromStdString(p.name));
+
                 if (!p.addr.empty())
                     addRow(tr("Address"), QString::fromStdString(p.addr));
-                if (!p.avatar.empty())
-                    addRow(tr("Avatar"), p.avatar_binary
+
+                if (!p.avatar.empty()) {
+                    QString val = p.avatar_binary
                         ? tr("[inline binary, %1 bytes]").arg((qulonglong)p.avatar.size())
-                        : QString::fromStdString(p.avatar));
-                if (!p.banner.empty())
-                    addRow(tr("Banner"), p.banner_binary
+                        : QString::fromStdString(p.avatar);
+                    addRow(tr("Avatar"), val, p.avatar_binary ? QString{} : ipfsGatewayUrl(val));
+                }
+
+                if (!p.banner.empty()) {
+                    QString val = p.banner_binary
                         ? tr("[inline binary, %1 bytes]").arg((qulonglong)p.banner.size())
-                        : QString::fromStdString(p.banner));
-                if (!p.url.empty())
-                    addRow(tr("URL"), QString::fromStdString(p.url));
+                        : QString::fromStdString(p.banner);
+                    addRow(tr("Banner"), val, p.banner_binary ? QString{} : ipfsGatewayUrl(val));
+                }
+
+                if (!p.url.empty()) {
+                    QString val = QString::fromStdString(p.url);
+                    QString href = (val.startsWith(QStringLiteral("http://")) ||
+                                    val.startsWith(QStringLiteral("https://"))) ? val : QString{};
+                    addRow(tr("URL"), val, href);
+                }
             }
 
-            QString html =
-                "<body style='margin:0;padding:0;font-family:sans-serif'>"
-                "<div style='background-color:#19827B;color:white;padding:10px 14px'>"
-                "<span style='font-size:13pt;font-weight:bold'>" + assetName.toHtmlEscaped() + "</span>"
-                "<br><span style='font-size:9pt;color:#d0f0ee'>" + typeLabel.toHtmlEscaped() + "</span>"
-                "</div>"
-                "<div style='padding:10px 14px'>"
-                "<table style='border-collapse:collapse;width:100%'>" + rows + "</table>"
-                "</div>"
-                "</body>";
+            grid->setColumnStretch(0, 0);
+            grid->setColumnStretch(1, 1);
 
-            QDialog dlg(this);
-            dlg.setWindowTitle(tr("ANS Info"));
+            for (int i = 0; i < row; ++i) {
+                grid->setRowStretch(i, 0);
+            }
+            
+            grid->setRowStretch(row, 1);
 
-            QVBoxLayout* vbox = new QVBoxLayout(&dlg);
-            vbox->setContentsMargins(0, 0, 0, 8);
-            vbox->setSpacing(8);
-
-            QTextBrowser* view = new QTextBrowser(&dlg);
-            view->setOpenExternalLinks(false);
-            view->setFrameShape(QFrame::NoFrame);
-            view->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
-            view->setHtml(html);
-
-            // Size the dialog to fit content
-            view->document()->setTextWidth(420);
-            int contentH = int(view->document()->size().height());
-            dlg.resize(440, qBound(140, contentH + 60, 500));
-
-            vbox->addWidget(view);
+            vbox->addWidget(body, 1);
 
             QDialogButtonBox* buttons = new QDialogButtonBox(QDialogButtonBox::Ok, &dlg);
             connect(buttons, &QDialogButtonBox::accepted, &dlg, &QDialog::accept);
+
+            buttons->layout()->setContentsMargins(12, 8, 12, 12);
             vbox->addWidget(buttons);
 
+            const int minW = 720;
+            const int maxW = 1000;
+            const int extraH = 0;
+
+            const int dlgW = qBound(minW, dlg.sizeHint().width(), maxW);
+            const int dlgH = dlg.sizeHint().height() + extraH;
+
+            dlg.resize(dlgW, dlgH);
             dlg.exec();
         }
     });

@@ -2179,3 +2179,38 @@ QPushButton#warningIcon {
   background-color: #2e2e2e;
   height: 43px;
 }
+
+QDialog#ANSInfoDialog QWidget#ansHeader {
+  background-color: #2b737f;
+}
+
+QDialog#ANSInfoDialog QLabel#ansTitleLabel {
+  color: #ffffff;
+  background-color: transparent;
+  font: 13pt "Konnect";
+  font-weight: bold;
+}
+
+QDialog#ANSInfoDialog QLabel#ansTypeLabel {
+  color: #d0f0ee;
+  background-color: transparent;
+  font: 9pt "Konnect";
+}
+
+QDialog#ANSInfoDialog QWidget#ansBody {
+  background-color: #2e2e2e;
+  border: 1px solid #18a7b7;
+}
+
+QDialog#ANSInfoDialog QLabel#ansFieldLabel {
+  color: #18a7b7;
+  background-color: transparent;
+  font: 12pt "Konnect";
+  font-weight: bold;
+}
+
+QDialog#ANSInfoDialog QLabel#ansFieldValue {
+  color: #f4f4f4;
+  background-color: transparent;
+  font: 12pt "Konnect";
+}
