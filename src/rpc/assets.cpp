@@ -1201,7 +1201,8 @@ static RPCHelpMan whoisavn()
 {
     return RPCHelpMan{
         "whoisavn",
-        "Reverse ANS lookup: given an Avian address, returns which ANS names are owned at or registered to that address.\n"
+        "Reverse ANS lookup: given an Avian address, returns which ANS names are owned at,\n"
+        "registered to, or held as tokens at that address.\n"
         "Requires -assetindex.\n",
         {
             {"address", RPCArg::Type::STR, RPCArg::Optional::NO, "the Avian address to look up"},
@@ -1209,10 +1210,12 @@ static RPCHelpMan whoisavn()
         RPCResult{
             RPCResult::Type::OBJ, "", "",
             {
-                {RPCResult::Type::STR, "address",      "the queried address"},
-                {RPCResult::Type::ARR, "owner_of",     "ANS names whose owner token is held at this address",
+                {RPCResult::Type::STR, "address",       "the queried address"},
+                {RPCResult::Type::ARR, "owner_of",      "ANS names whose owner token (X.AVN!) is held at this address",
                     {{RPCResult::Type::STR, "", "ANS name"}}},
-                {RPCResult::Type::ARR, "registered_as", "ANS names whose ANS record points to this address",
+                {RPCResult::Type::ARR, "registered_as", "ANS names whose ANS record points to this address (bech32/legacy normalised)",
+                    {{RPCResult::Type::STR, "", "ANS name"}}},
+                {RPCResult::Type::ARR, "holds",         "ANS names whose regular token (X.AVN) is held at this address",
                     {{RPCResult::Type::STR, "", "ANS name"}}},
             }
         },
@@ -1234,40 +1237,46 @@ static RPCHelpMan whoisavn()
 
             const std::string& domain = CAvianNameSystemID::domain; // ".AVN"
 
-            // --- owner_of: find X.AVN! owner tokens at this address ---
-            UniValue ownerOf(UniValue::VARR);
+            // Normalise an address string to its underlying hash160 for cross-format
+            // comparison (P2PKH legacy ↔ P2WPKH bech32 share the same hash160).
+            auto addrHash = [](const std::string& addr) -> uint160 {
+                CTxDestination dest = DecodeDestination(addr);
+                if (auto* p = std::get_if<PKHash>(&dest))           return uint160(*p);
+                if (auto* p = std::get_if<WitnessV0KeyHash>(&dest)) return uint160(*p);
+                return uint160();
+            };
+            const uint160 queryHash = addrHash(address);
+
+            // Build the combined balance map once; shared by owner_of and holds.
+            std::map<std::string, CAmount> combined;
             {
                 std::vector<std::pair<std::string, CAmount>> vecDB;
                 int dbTotal = 0;
                 passetsdb->AddressDir(vecDB, dbTotal, false, address, std::numeric_limits<size_t>::max(), 0);
-                // Overlay dirty in-memory entries
-                std::map<std::string, CAmount> combined;
                 for (const auto& [name, amt] : vecDB) combined[name] = amt;
                 for (const auto& [pair, amt] : passets->mapAssetsAddressAmount)
                     if (pair.second == address) combined[pair.first] = amt;
+            }
 
-                for (const auto& [name, amt] : combined) {
-                    if (amt <= 0) continue;
-                    // Owner token ends in '!' and base name ends in domain
-                    if (name.size() > domain.size() + 1 && name.back() == '!') {
-                        std::string base = name.substr(0, name.size() - 1);
-                        if (base.size() > domain.size() &&
-                            base.substr(base.size() - domain.size()) == domain)
-                            ownerOf.push_back(base);
-                    }
+            // --- owner_of: X.AVN! owner tokens at this address ---
+            UniValue ownerOf(UniValue::VARR);
+            for (const auto& [name, amt] : combined) {
+                if (amt <= 0) continue;
+                if (name.size() > domain.size() + 1 && name.back() == '!') {
+                    std::string base = name.substr(0, name.size() - 1);
+                    if (base.size() > domain.size() &&
+                        base.substr(base.size() - domain.size()) == domain)
+                        ownerOf.push_back(base);
                 }
             }
 
-            // --- registered_as: scan all .AVN assets whose ANS addr == queried address ---
-            // Note: AssetDir only supports prefix* wildcards, so we scan all assets and
-            // filter by suffix in code.
+            // --- registered_as: .AVN assets whose ANS addr matches (hash160-normalised) ---
             UniValue registeredAs(UniValue::VARR);
             {
                 std::vector<CDatabasedAssetData> ansAssets;
                 passetsdb->AssetDir(ansAssets, "*", std::numeric_limits<size_t>::max(), 0);
                 for (const auto& data : ansAssets) {
                     const CNewAsset& a = data.asset;
-                    // Only consider assets whose name ends in domain (e.g. "BOB.AVN")
                     if (a.strName.size() <= domain.size() ||
                         a.strName.substr(a.strName.size() - domain.size()) != domain)
                         continue;
@@ -1279,15 +1288,27 @@ static RPCHelpMan whoisavn()
                         ansAddr = ans.addr();
                     else if (ans.type() == CAvianNameSystemID::PROFILE)
                         ansAddr = ans.profile().addr;
-                    if (!ansAddr.empty() && ansAddr == address)
+                    if (!ansAddr.empty() && !queryHash.IsNull() &&
+                        addrHash(ansAddr) == queryHash)
                         registeredAs.push_back(a.strName);
                 }
+            }
+
+            // --- holds: regular X.AVN tokens (not owner tokens) at this address ---
+            UniValue holds(UniValue::VARR);
+            for (const auto& [name, amt] : combined) {
+                if (amt <= 0) continue;
+                if (name.back() == '!') continue; // skip owner tokens
+                if (name.size() > domain.size() &&
+                    name.substr(name.size() - domain.size()) == domain)
+                    holds.push_back(name);
             }
 
             UniValue result(UniValue::VOBJ);
             result.pushKV("address",       address);
             result.pushKV("owner_of",      ownerOf);
             result.pushKV("registered_as", registeredAs);
+            result.pushKV("holds",         holds);
             return result;
         },
     };
