@@ -48,7 +48,7 @@ static bool g_webui_cookie_generated{false};
 
 static fs::path GetWebUICookiePath()
 {
-    return gArgs.GetDataDirNet() / WEBUI_COOKIE_FILE;
+    return gArgs.GetDataDirNet() / fs::PathFromString(WEBUI_COOKIE_FILE);
 }
 
 static bool InitWebUIAuth()
