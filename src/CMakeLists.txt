@@ -131,6 +131,10 @@ if(WITH_ZMQ)
   add_subdirectory(zmq)
 endif()
 
+if(WITH_WEBUI)
+  add_subdirectory(webui)
+endif()
+
 # Home for common functionality shared by different executables and libraries.
 # Similar to `bitcoin_util` library, but higher-level.
 add_library(bitcoin_common STATIC EXCLUDE_FROM_ALL
@@ -339,6 +343,7 @@ target_link_libraries(bitcoin_node
     bitcoin_common
     bitcoin_util
     $<TARGET_NAME_IF_EXISTS:bitcoin_zmq>
+    $<TARGET_NAME_IF_EXISTS:bitcoin_webui>
     leveldb
     minisketch
     univalue

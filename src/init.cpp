@@ -133,6 +133,10 @@
 #include <zmq/zmqrpc.h>
 #endif
 
+#ifdef ENABLE_WEBUI
+#include <webui/webui.h>
+#endif
+
 using common::AmountErrMsg;
 using common::InvalidPortErrMsg;
 using common::ResolveErrMsg;
@@ -325,6 +329,9 @@ void Shutdown(NodeContext& node)
 
     StopHTTPRPC();
     StopREST();
+#ifdef ENABLE_WEBUI
+    StopWebUI();
+#endif
     StopRPC();
     StopHTTPServer();
     for (auto& client : node.chain_clients) {
@@ -740,6 +747,12 @@ void SetupServerArgs(ArgsManager& argsman, bool can_listen_ipc)
     argsman.AddArg("-powalgo=x16rt|minotaurx", "Default pow mining algorithm for RPC commands and block template generation (default: x16rt)", ArgsManager::ALLOW_ANY, OptionsCategory::BLOCK_CREATION);
 
     argsman.AddArg("-rest", strprintf("Accept public REST requests (default: %u)", DEFAULT_REST_ENABLE), ArgsManager::ALLOW_ANY, OptionsCategory::RPC);
+
+#ifdef ENABLE_WEBUI
+    argsman.AddArg("-webui", strprintf("Enable local Web UI endpoint (default: %u)", DEFAULT_WEBUI_ENABLE), ArgsManager::ALLOW_ANY, OptionsCategory::WEBUI);
+    argsman.AddArg("-webuibind=<addr>", strprintf("Bind address for Web UI (default: %s, Phase 2)", DEFAULT_WEBUI_BIND), ArgsManager::ALLOW_ANY, OptionsCategory::WEBUI);
+    argsman.AddArg("-webuiport=<port>", strprintf("Port for Web UI (default: %d, Phase 2)", DEFAULT_WEBUI_PORT), ArgsManager::ALLOW_ANY, OptionsCategory::WEBUI);
+#endif
     argsman.AddArg("-rpcallowip=<ip>", "Allow JSON-RPC connections from specified source. Valid values for <ip> are a single IP (e.g. 1.2.3.4), a network/netmask (e.g. 1.2.3.4/255.255.255.0), a network/CIDR (e.g. 1.2.3.4/24), all ipv4 (0.0.0.0/0), or all ipv6 (::/0). RFC4193 is allowed only if -cjdnsreachable=0. This option can be specified multiple times", ArgsManager::ALLOW_ANY, OptionsCategory::RPC);
     argsman.AddArg("-rpcauth=<userpw>", "Username and HMAC-SHA-256 hashed password for JSON-RPC connections. The field <userpw> comes in the format: <USERNAME>:<SALT>$<HASH>. A canonical python script is included in share/rpcauth. The client then connects normally using the rpcuser=<USERNAME>/rpcpassword=<PASSWORD> pair of arguments. This option can be specified multiple times", ArgsManager::ALLOW_ANY | ArgsManager::SENSITIVE, OptionsCategory::RPC);
     argsman.AddArg("-rpcbind=<addr>[:port]", "Bind to given address to listen for JSON-RPC connections. Do not expose the RPC server to untrusted networks such as the public internet! This option is ignored unless -rpcallowip is also passed. Port is optional and overrides -rpcport. Use [host]:port notation for IPv6. This option can be specified multiple times (default: 127.0.0.1 and ::1 i.e., localhost)", ArgsManager::ALLOW_ANY | ArgsManager::NETWORK_ONLY, OptionsCategory::RPC);
@@ -793,6 +806,9 @@ static bool AppInitServers(NodeContext& node)
     if (!StartHTTPRPC(&node))
         return false;
     if (args.GetBoolArg("-rest", DEFAULT_REST_ENABLE)) StartREST(&node);
+#ifdef ENABLE_WEBUI
+    if (args.GetBoolArg("-webui", DEFAULT_WEBUI_ENABLE)) StartWebUI(&node);
+#endif
     StartHTTPServer();
     return true;
 }
