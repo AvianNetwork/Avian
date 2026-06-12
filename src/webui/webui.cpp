@@ -16,7 +16,6 @@
 #include <random.h>
 #include <rpc/protocol.h>
 #include <sync.h>
-#include <util/any.h>
 #include <util/fs.h>
 #include <util/fs_helpers.h>
 #include <util/strencodings.h>
@@ -33,7 +32,6 @@
 #include <wallet/walletutil.h>
 #endif
 
-#include <any>
 #include <chrono>
 #include <fstream>
 #include <optional>
@@ -42,9 +40,9 @@
 
 using node::NodeContext;
 
+static NodeContext* g_node{nullptr};
 static std::string g_webui_token;
 static bool g_webui_cookie_generated{false};
-static std::any g_webui_context;
 
 // ---- Cookie auth -------------------------------------------------------
 
@@ -90,6 +88,34 @@ static bool InitWebUIAuth()
     return true;
 }
 
+// ---- Request validators ------------------------------------------------
+
+// Defend against DNS rebinding: only allow requests whose Host header names
+// a loopback address. Port suffix is ignored.
+static bool CheckWebUIHost(HTTPRequest* req)
+{
+    auto [present, host] = req->GetHeader("host");
+    if (!present || host.empty()) {
+        req->WriteReply(HTTP_FORBIDDEN, R"({"error":"Missing Host header"})");
+        return false;
+    }
+    // Strip port suffix (handles "localhost:8332", "[::1]:8332", "127.0.0.1:8332")
+    std::string hostname = host;
+    if (!hostname.empty() && hostname.front() == '[') {
+        // IPv6 literal: "[::1]" or "[::1]:port"
+        size_t close = hostname.find(']');
+        hostname = (close != std::string::npos) ? hostname.substr(1, close - 1) : hostname;
+    } else {
+        size_t colon = hostname.rfind(':');
+        if (colon != std::string::npos) hostname = hostname.substr(0, colon);
+    }
+    if (hostname == "127.0.0.1" || hostname == "localhost" || hostname == "::1") {
+        return true;
+    }
+    req->WriteReply(HTTP_FORBIDDEN, R"({"error":"Host not allowed"})");
+    return false;
+}
+
 static bool CheckWebUIAuth(HTTPRequest* req)
 {
     auto [present, auth] = req->GetHeader("authorization");
@@ -108,7 +134,7 @@ static bool CheckWebUIAuth(HTTPRequest* req)
     return true;
 }
 
-// Returns the CORS origin to echo (empty string = no Origin header, allowed).
+// Returns the CORS origin to echo (empty = no Origin header, allowed).
 // Writes HTTP 403 and returns nullopt on violation.
 static std::optional<std::string> CheckWebUICORS(HTTPRequest* req)
 {
@@ -135,12 +161,12 @@ static bool HandleNodeStatus(HTTPRequest* req)
         req->WriteReply(HTTP_BAD_METHOD, "");
         return false;
     }
+    if (!CheckWebUIHost(req)) return false;
     auto cors = CheckWebUICORS(req);
     if (!cors) return false;
     if (!CheckWebUIAuth(req)) return false;
 
-    auto* node = util::AnyPtr<NodeContext>(g_webui_context);
-    if (!node || !node->chainman) {
+    if (!g_node || !g_node->chainman) {
         req->WriteReply(HTTP_SERVICE_UNAVAILABLE, R"({"error":"Node not ready"})");
         return false;
     }
@@ -150,7 +176,7 @@ static bool HandleNodeStatus(HTTPRequest* req)
 
     {
         LOCK(cs_main);
-        auto& chainman = *node->chainman;
+        auto& chainman = *g_node->chainman;
         const CBlockIndex* tip = chainman.ActiveChain().Tip();
 
         obj.pushKV("network", chainman.GetParams().GetChainTypeString());
@@ -167,13 +193,21 @@ static bool HandleNodeStatus(HTTPRequest* req)
     }
 
     obj.pushKV("connections",
-        node->connman ? static_cast<int>(node->connman->GetNodeCount(ConnectionDirection::Both)) : 0);
+        g_node->connman ? static_cast<int>(g_node->connman->GetNodeCount(ConnectionDirection::Both)) : 0);
     obj.pushKV("mempoolsize",
-        node->mempool ? static_cast<int>(node->mempool->size()) : 0);
+        g_node->mempool ? static_cast<int>(g_node->mempool->size()) : 0);
 
     SetJSONHeaders(req, *cors);
     req->WriteReply(HTTP_OK, obj.write());
     return true;
+}
+
+static UniValue FeatureFlag(bool compiled, bool active)
+{
+    UniValue f(UniValue::VOBJ);
+    f.pushKV("compiled", compiled);
+    f.pushKV("active",   active);
+    return f;
 }
 
 static bool HandleNodeFeatures(HTTPRequest* req)
@@ -182,12 +216,12 @@ static bool HandleNodeFeatures(HTTPRequest* req)
         req->WriteReply(HTTP_BAD_METHOD, "");
         return false;
     }
+    if (!CheckWebUIHost(req)) return false;
     auto cors = CheckWebUICORS(req);
     if (!cors) return false;
     if (!CheckWebUIAuth(req)) return false;
 
-    auto* node = util::AnyPtr<NodeContext>(g_webui_context);
-    if (!node || !node->chainman) {
+    if (!g_node || !g_node->chainman) {
         req->WriteReply(HTTP_SERVICE_UNAVAILABLE, R"({"error":"Node not ready"})");
         return false;
     }
@@ -195,19 +229,22 @@ static bool HandleNodeFeatures(HTTPRequest* req)
     UniValue obj(UniValue::VOBJ);
     {
         LOCK(cs_main);
-        obj.pushKV("network", node->chainman->GetParams().GetChainTypeString());
+        obj.pushKV("network", g_node->chainman->GetParams().GetChainTypeString());
     }
 
     UniValue features(UniValue::VOBJ);
-    features.pushKV("assets",           AreAssetsDeployed());
-    features.pushKV("restrictedAssets", AreRestrictedAssetsDeployed());
-    features.pushKV("messages",         AreMessagesDeployed());
-    features.pushKV("ans",              IsAvianNameSystemDeployed());
-    features.pushKV("psbt",             true);
+    // Assets and ANS are always compiled into Avian Core; active = deployment check.
+    features.pushKV("assets",           FeatureFlag(true, AreAssetsDeployed()));
+    features.pushKV("restrictedAssets", FeatureFlag(true, AreRestrictedAssetsDeployed()));
+    features.pushKV("messages",         FeatureFlag(true, AreMessagesDeployed()));
+    features.pushKV("ans",              FeatureFlag(true, IsAvianNameSystemDeployed()));
+    // PSBT is always available.
+    features.pushKV("psbt",             FeatureFlag(true, true));
+    // Post-quantum: compiled only when liboqs present; no separate runtime activation.
 #ifdef HAVE_LIBOQS
-    features.pushKV("postQuantum",      true);
+    features.pushKV("postQuantum",      FeatureFlag(true, true));
 #else
-    features.pushKV("postQuantum",      false);
+    features.pushKV("postQuantum",      FeatureFlag(false, false));
 #endif
     obj.pushKV("features", features);
 
@@ -224,21 +261,21 @@ static bool HandleWalletsLoaded(HTTPRequest* req)
         req->WriteReply(HTTP_BAD_METHOD, "");
         return false;
     }
+    if (!CheckWebUIHost(req)) return false;
     auto cors = CheckWebUICORS(req);
     if (!cors) return false;
     if (!CheckWebUIAuth(req)) return false;
 
-    auto* node = util::AnyPtr<NodeContext>(g_webui_context);
     UniValue obj(UniValue::VOBJ);
 
 #ifdef ENABLE_WALLET
-    if (!node || !node->wallet_loader) {
+    if (!g_node || !g_node->wallet_loader) {
         obj.pushKV("walletSupportEnabled", false);
         obj.pushKV("wallets", UniValue{UniValue::VARR});
     } else {
         obj.pushKV("walletSupportEnabled", true);
         UniValue arr(UniValue::VARR);
-        for (auto& wallet : node->wallet_loader->getWallets()) {
+        for (auto& wallet : g_node->wallet_loader->getWallets()) {
             UniValue wobj(UniValue::VOBJ);
             wobj.pushKV("name",      wallet->getWalletName());
             wobj.pushKV("encrypted", wallet->isCrypted());
@@ -262,21 +299,20 @@ static bool HandleWalletsAvailable(HTTPRequest* req)
         req->WriteReply(HTTP_BAD_METHOD, "");
         return false;
     }
+    if (!CheckWebUIHost(req)) return false;
     auto cors = CheckWebUICORS(req);
     if (!cors) return false;
     if (!CheckWebUIAuth(req)) return false;
 
 #ifdef ENABLE_WALLET
-    auto* node = util::AnyPtr<NodeContext>(g_webui_context);
-    if (!node || !node->wallet_loader) {
+    if (!g_node || !g_node->wallet_loader) {
         req->WriteReply(HTTP_SERVICE_UNAVAILABLE, R"({"error":"Wallet support not available"})");
         return false;
     }
-
     UniValue obj(UniValue::VOBJ);
-    obj.pushKV("walletdir", node->wallet_loader->getWalletDir());
+    obj.pushKV("walletdir", g_node->wallet_loader->getWalletDir());
     UniValue arr(UniValue::VARR);
-    for (auto& [name, format] : node->wallet_loader->listWalletDir()) {
+    for (auto& [name, format] : g_node->wallet_loader->listWalletDir()) {
         UniValue wobj(UniValue::VOBJ);
         wobj.pushKV("name", name);
         arr.push_back(wobj);
@@ -297,17 +333,16 @@ static bool HandleWalletLoad(HTTPRequest* req)
         req->WriteReply(HTTP_BAD_METHOD, "");
         return false;
     }
+    if (!CheckWebUIHost(req)) return false;
     auto cors = CheckWebUICORS(req);
     if (!cors) return false;
     if (!CheckWebUIAuth(req)) return false;
 
 #ifdef ENABLE_WALLET
-    auto* node = util::AnyPtr<NodeContext>(g_webui_context);
-    if (!node || !node->wallet_loader) {
+    if (!g_node || !g_node->wallet_loader) {
         req->WriteReply(HTTP_SERVICE_UNAVAILABLE, R"({"error":"Wallet support not available"})");
         return false;
     }
-
     UniValue body;
     if (!body.read(req->ReadBody()) || !body.isObject()) {
         req->WriteReply(HTTP_BAD_REQUEST, R"({"error":"Invalid request body"})");
@@ -318,9 +353,8 @@ static bool HandleWalletLoad(HTTPRequest* req)
         req->WriteReply(HTTP_BAD_REQUEST, R"({"error":"\"name\" field required"})");
         return false;
     }
-
     std::vector<bilingual_str> warnings;
-    auto result = node->wallet_loader->loadWallet(nameVal.get_str(), warnings);
+    auto result = g_node->wallet_loader->loadWallet(nameVal.get_str(), warnings);
     UniValue obj(UniValue::VOBJ);
     if (!result) {
         obj.pushKV("success", false);
@@ -349,17 +383,16 @@ static bool HandleWalletCreate(HTTPRequest* req)
         req->WriteReply(HTTP_BAD_METHOD, "");
         return false;
     }
+    if (!CheckWebUIHost(req)) return false;
     auto cors = CheckWebUICORS(req);
     if (!cors) return false;
     if (!CheckWebUIAuth(req)) return false;
 
 #ifdef ENABLE_WALLET
-    auto* node = util::AnyPtr<NodeContext>(g_webui_context);
-    if (!node || !node->wallet_loader) {
+    if (!g_node || !g_node->wallet_loader) {
         req->WriteReply(HTTP_SERVICE_UNAVAILABLE, R"({"error":"Wallet support not available"})");
         return false;
     }
-
     UniValue body;
     if (!body.read(req->ReadBody()) || !body.isObject()) {
         req->WriteReply(HTTP_BAD_REQUEST, R"({"error":"Invalid request body"})");
@@ -370,14 +403,12 @@ static bool HandleWalletCreate(HTTPRequest* req)
         req->WriteReply(HTTP_BAD_REQUEST, R"({"error":"\"name\" field required"})");
         return false;
     }
-
     SecureString passphrase;
     const UniValue& passVal = body["passphrase"];
     if (passVal.isStr()) {
         const std::string& pass_str = passVal.get_str();
         passphrase.assign(pass_str.begin(), pass_str.end());
     }
-
     uint64_t flags = wallet::WALLET_FLAG_DESCRIPTORS;
     if (body["blank"].isBool() && body["blank"].get_bool()) {
         flags |= wallet::WALLET_FLAG_BLANK_WALLET;
@@ -386,9 +417,8 @@ static bool HandleWalletCreate(HTTPRequest* req)
         flags |= wallet::WALLET_FLAG_DISABLE_PRIVATE_KEYS;
         flags |= wallet::WALLET_FLAG_BLANK_WALLET;
     }
-
     std::vector<bilingual_str> warnings;
-    auto result = node->wallet_loader->createWallet(nameVal.get_str(), passphrase, flags, warnings);
+    auto result = g_node->wallet_loader->createWallet(nameVal.get_str(), passphrase, flags, warnings);
     UniValue obj(UniValue::VOBJ);
     if (!result) {
         obj.pushKV("success", false);
@@ -417,17 +447,16 @@ static bool HandleWalletUnload(HTTPRequest* req)
         req->WriteReply(HTTP_BAD_METHOD, "");
         return false;
     }
+    if (!CheckWebUIHost(req)) return false;
     auto cors = CheckWebUICORS(req);
     if (!cors) return false;
     if (!CheckWebUIAuth(req)) return false;
 
 #ifdef ENABLE_WALLET
-    auto* node = util::AnyPtr<NodeContext>(g_webui_context);
-    if (!node || !node->wallet_loader) {
+    if (!g_node || !g_node->wallet_loader) {
         req->WriteReply(HTTP_SERVICE_UNAVAILABLE, R"({"error":"Wallet support not available"})");
         return false;
     }
-
     UniValue body;
     if (!body.read(req->ReadBody()) || !body.isObject()) {
         req->WriteReply(HTTP_BAD_REQUEST, R"({"error":"Invalid request body"})");
@@ -440,18 +469,16 @@ static bool HandleWalletUnload(HTTPRequest* req)
     }
     const std::string wallet_name = nameVal.get_str();
 
-    wallet::WalletContext* wctx = node->wallet_loader->context();
+    wallet::WalletContext* wctx = g_node->wallet_loader->context();
     if (!wctx) {
         req->WriteReply(HTTP_SERVICE_UNAVAILABLE, R"({"error":"Wallet context not available"})");
         return false;
     }
-
     std::shared_ptr<wallet::CWallet> wallet = wallet::GetWallet(*wctx, wallet_name);
     if (!wallet) {
         req->WriteReply(HTTP_BAD_REQUEST, R"({"error":"Wallet not found or not loaded"})");
         return false;
     }
-
     std::vector<bilingual_str> warnings;
     {
         wallet::WalletRescanReserver reserver(*wallet);
@@ -464,6 +491,7 @@ static bool HandleWalletUnload(HTTPRequest* req)
             return false;
         }
     }
+    // wallet local is the last holder; this blocks until destruction completes.
     wallet::WaitForDeleteWallet(std::move(wallet));
 
     UniValue obj(UniValue::VOBJ);
@@ -488,14 +516,16 @@ static bool HandleRoot(HTTPRequest* req)
         req->WriteReply(HTTP_BAD_METHOD, "");
         return false;
     }
+    if (!CheckWebUIHost(req)) return false;
     static const std::string html =
         "<!DOCTYPE html>\n"
         "<html>\n"
         "<head><meta charset=\"UTF-8\"><title>Avian Core Web UI</title></head>\n"
         "<body>\n"
         "<h1>Avian Core Web UI</h1>\n"
-        "<p>Node is running. Use <code>/webui/api/node/status</code> for JSON status.</p>\n"
-        "<p>Session token required for API: read <code>webui.cookie</code> from the datadir.</p>\n"
+        "<p>Node is running. <strong>Phase 1 backend — developer token flow only.</strong></p>\n"
+        "<p>Read the session token from <code>webui.cookie</code> in the datadir and pass it as\n"
+        "<code>Authorization: Bearer &lt;token&gt;</code> on all <code>/api/*</code> requests.</p>\n"
         "</body>\n"
         "</html>\n";
     req->WriteHeader("Content-Type", "text/html; charset=UTF-8");
@@ -508,19 +538,18 @@ static bool HandleRoot(HTTPRequest* req)
 static bool WebUIDispatch(HTTPRequest* req, const std::string& /*prefix*/)
 {
     std::string uri = req->GetURI();
-    // Strip query string for routing
     size_t qmark = uri.find('?');
     const std::string path = (qmark != std::string::npos) ? uri.substr(0, qmark) : uri;
 
     if (path == "/webui" || path == "/webui/") return HandleRoot(req);
 
-    if (path == "/webui/api/node/status")         return HandleNodeStatus(req);
-    if (path == "/webui/api/node/features")        return HandleNodeFeatures(req);
-    if (path == "/webui/api/wallets/loaded")       return HandleWalletsLoaded(req);
-    if (path == "/webui/api/wallets/available")    return HandleWalletsAvailable(req);
-    if (path == "/webui/api/wallets/load")         return HandleWalletLoad(req);
-    if (path == "/webui/api/wallets/create")       return HandleWalletCreate(req);
-    if (path == "/webui/api/wallets/unload")       return HandleWalletUnload(req);
+    if (path == "/webui/api/node/status")       return HandleNodeStatus(req);
+    if (path == "/webui/api/node/features")      return HandleNodeFeatures(req);
+    if (path == "/webui/api/wallets/loaded")     return HandleWalletsLoaded(req);
+    if (path == "/webui/api/wallets/available")  return HandleWalletsAvailable(req);
+    if (path == "/webui/api/wallets/load")       return HandleWalletLoad(req);
+    if (path == "/webui/api/wallets/create")     return HandleWalletCreate(req);
+    if (path == "/webui/api/wallets/unload")     return HandleWalletUnload(req);
 
     req->WriteReply(HTTP_NOT_FOUND, R"({"error":"not found"})");
     return false;
@@ -528,11 +557,12 @@ static bool WebUIDispatch(HTTPRequest* req, const std::string& /*prefix*/)
 
 // ---- Lifecycle ---------------------------------------------------------
 
-void StartWebUI(const std::any& context)
+void StartWebUI(NodeContext& node)
 {
-    g_webui_context = context;
+    g_node = &node;
     if (!InitWebUIAuth()) {
-        LogWarning("WebUI: Failed to initialize authentication, web UI will not start\n");
+        LogWarning("WebUI: Failed to initialise authentication, web UI will not start\n");
+        g_node = nullptr;
         return;
     }
     RegisterHTTPHandler("/webui/", false, WebUIDispatch);
@@ -556,4 +586,5 @@ void StopWebUI()
         }
         g_webui_cookie_generated = false;
     }
+    g_node = nullptr;
 }

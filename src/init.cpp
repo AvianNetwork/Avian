@@ -749,9 +749,7 @@ void SetupServerArgs(ArgsManager& argsman, bool can_listen_ipc)
     argsman.AddArg("-rest", strprintf("Accept public REST requests (default: %u)", DEFAULT_REST_ENABLE), ArgsManager::ALLOW_ANY, OptionsCategory::RPC);
 
 #ifdef ENABLE_WEBUI
-    argsman.AddArg("-webui", strprintf("Enable local Web UI endpoint (default: %u)", DEFAULT_WEBUI_ENABLE), ArgsManager::ALLOW_ANY, OptionsCategory::WEBUI);
-    argsman.AddArg("-webuibind=<addr>", strprintf("Bind address for Web UI (default: %s, Phase 2)", DEFAULT_WEBUI_BIND), ArgsManager::ALLOW_ANY, OptionsCategory::WEBUI);
-    argsman.AddArg("-webuiport=<port>", strprintf("Port for Web UI (default: %d, Phase 2)", DEFAULT_WEBUI_PORT), ArgsManager::ALLOW_ANY, OptionsCategory::WEBUI);
+    argsman.AddArg("-webui", strprintf("Enable local Web UI endpoint on the RPC server port (default: %u)", DEFAULT_WEBUI_ENABLE), ArgsManager::ALLOW_ANY, OptionsCategory::WEBUI);
 #endif
     argsman.AddArg("-rpcallowip=<ip>", "Allow JSON-RPC connections from specified source. Valid values for <ip> are a single IP (e.g. 1.2.3.4), a network/netmask (e.g. 1.2.3.4/255.255.255.0), a network/CIDR (e.g. 1.2.3.4/24), all ipv4 (0.0.0.0/0), or all ipv6 (::/0). RFC4193 is allowed only if -cjdnsreachable=0. This option can be specified multiple times", ArgsManager::ALLOW_ANY, OptionsCategory::RPC);
     argsman.AddArg("-rpcauth=<userpw>", "Username and HMAC-SHA-256 hashed password for JSON-RPC connections. The field <userpw> comes in the format: <USERNAME>:<SALT>$<HASH>. A canonical python script is included in share/rpcauth. The client then connects normally using the rpcuser=<USERNAME>/rpcpassword=<PASSWORD> pair of arguments. This option can be specified multiple times", ArgsManager::ALLOW_ANY | ArgsManager::SENSITIVE, OptionsCategory::RPC);
@@ -807,7 +805,7 @@ static bool AppInitServers(NodeContext& node)
         return false;
     if (args.GetBoolArg("-rest", DEFAULT_REST_ENABLE)) StartREST(&node);
 #ifdef ENABLE_WEBUI
-    if (args.GetBoolArg("-webui", DEFAULT_WEBUI_ENABLE)) StartWebUI(&node);
+    if (args.GetBoolArg("-webui", DEFAULT_WEBUI_ENABLE)) StartWebUI(node);
 #endif
     StartHTTPServer();
     return true;
