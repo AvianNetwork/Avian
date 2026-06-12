@@ -5,6 +5,7 @@
 #ifndef BITCOIN_WEBUI_WEBUI_H
 #define BITCOIN_WEBUI_WEBUI_H
 
+#include <cstdint>
 #include <string>
 
 namespace node {
@@ -12,6 +13,8 @@ struct NodeContext;
 } // namespace node
 
 static constexpr bool DEFAULT_WEBUI_ENABLE{false};
+static constexpr uint16_t DEFAULT_WEBUI_PORT{8766};
+inline const std::string DEFAULT_WEBUI_BIND{"127.0.0.1"};
 inline const std::string WEBUI_COOKIE_FILE{"webui.cookie"};
 
 /** Start the Web UI HTTP endpoint. Registers routes on the existing HTTP server.

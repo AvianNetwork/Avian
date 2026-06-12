@@ -567,6 +567,22 @@ struct event_base* EventBase()
     return eventBase;
 }
 
+bool BindHTTPAdditionalPort(const std::string& addr, uint16_t port)
+{
+    if (!eventHTTP) return false;
+    evhttp_bound_socket* bind_handle = evhttp_bind_socket_with_handle(
+        eventHTTP,
+        addr.empty() ? nullptr : addr.c_str(),
+        port);
+    if (!bind_handle) {
+        LogError("Binding WebUI HTTP on %s port %u failed.\n", addr, port);
+        return false;
+    }
+    boundSockets.push_back(bind_handle);
+    LogDebug(BCLog::HTTP, "Bound HTTP listener on %s:%u\n", addr, port);
+    return true;
+}
+
 static void httpevent_callback_fn(evutil_socket_t, short, void* data)
 {
     // Static handler: simply call inner handler

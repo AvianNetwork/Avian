@@ -5,6 +5,7 @@
 #ifndef BITCOIN_HTTPSERVER_H
 #define BITCOIN_HTTPSERVER_H
 
+#include <cstdint>
 #include <functional>
 #include <optional>
 #include <span>
@@ -58,6 +59,12 @@ typedef std::function<bool(HTTPRequest* req, const std::string &)> HTTPRequestHa
 void RegisterHTTPHandler(const std::string &prefix, bool exactMatch, const HTTPRequestHandler &handler);
 /** Unregister handler for prefix */
 void UnregisterHTTPHandler(const std::string &prefix, bool exactMatch);
+
+/** Bind an additional listening socket on the HTTP server.
+ * Must be called after InitHTTPServer(). Returns false if the server is not
+ * yet initialised or the bind fails.
+ */
+bool BindHTTPAdditionalPort(const std::string& addr, uint16_t port);
 
 /** Return evhttp event base. This can be used by submodules to
  * queue timers or custom events.

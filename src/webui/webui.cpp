@@ -9,10 +9,13 @@
 #include <assets/assets.h>
 #include <clientversion.h>
 #include <common/args.h>
+#include <core_io.h>
 #include <httpserver.h>
+#include <key_io.h>
 #include <logging.h>
 #include <net.h>
 #include <node/context.h>
+#include <outputtype.h>
 #include <random.h>
 #include <rpc/protocol.h>
 #include <sync.h>
@@ -28,13 +31,18 @@
 #include <interfaces/wallet.h>
 #include <support/allocators/secure.h>
 #include <wallet/context.h>
+#include <wallet/receive.h>
+#include <wallet/spend.h>
 #include <wallet/wallet.h>
 #include <wallet/walletutil.h>
 #endif
 
+#include <algorithm>
 #include <chrono>
 #include <fstream>
+#include <map>
 #include <optional>
+#include <set>
 #include <string>
 #include <vector>
 
@@ -508,6 +516,242 @@ static bool HandleWalletUnload(HTTPRequest* req)
 #endif
 }
 
+// ---- Wallet-scoped API handlers ----------------------------------------
+
+#ifdef ENABLE_WALLET
+
+static bool HandleWalletSummary(HTTPRequest* req, const std::string& wallet_name)
+{
+    if (req->GetRequestMethod() != HTTPRequest::GET) {
+        req->WriteReply(HTTP_BAD_METHOD, "");
+        return false;
+    }
+    if (!CheckWebUIHost(req)) return false;
+    auto cors = CheckWebUICORS(req);
+    if (!cors) return false;
+    if (!CheckWebUIAuth(req)) return false;
+
+    if (!g_node || !g_node->wallet_loader) {
+        req->WriteReply(HTTP_SERVICE_UNAVAILABLE, R"({"error":"Wallet support not available"})");
+        return false;
+    }
+    for (auto& w : g_node->wallet_loader->getWallets()) {
+        if (w->getWalletName() != wallet_name) continue;
+
+        interfaces::WalletBalances bal = w->getBalances();
+        UniValue obj(UniValue::VOBJ);
+        obj.pushKV("name",        wallet_name);
+        obj.pushKV("encrypted",   w->isCrypted());
+        obj.pushKV("locked",      w->isCrypted() && w->isLocked());
+        obj.pushKV("balance",     ValueFromAmount(bal.balance));
+        obj.pushKV("unconfirmed", ValueFromAmount(bal.unconfirmed_balance));
+        obj.pushKV("immature",    ValueFromAmount(bal.immature_balance));
+        SetJSONHeaders(req, *cors);
+        req->WriteReply(HTTP_OK, obj.write());
+        return true;
+    }
+    req->WriteReply(HTTP_NOT_FOUND, R"({"error":"Wallet not found or not loaded"})");
+    return false;
+}
+
+static bool HandleWalletTransactions(HTTPRequest* req, const std::string& wallet_name)
+{
+    if (req->GetRequestMethod() != HTTPRequest::GET) {
+        req->WriteReply(HTTP_BAD_METHOD, "");
+        return false;
+    }
+    if (!CheckWebUIHost(req)) return false;
+    auto cors = CheckWebUICORS(req);
+    if (!cors) return false;
+    if (!CheckWebUIAuth(req)) return false;
+
+    if (!g_node || !g_node->wallet_loader) {
+        req->WriteReply(HTTP_SERVICE_UNAVAILABLE, R"({"error":"Wallet support not available"})");
+        return false;
+    }
+
+    int limit = 50;
+    if (auto lp = req->GetQueryParameter("limit")) {
+        try { int v = std::stoi(*lp); if (v > 0 && v <= 500) limit = v; } catch (...) {}
+    }
+
+    for (auto& w : g_node->wallet_loader->getWallets()) {
+        if (w->getWalletName() != wallet_name) continue;
+
+        std::set<interfaces::WalletTx> txs = w->getWalletTxs();
+
+        std::vector<const interfaces::WalletTx*> sorted;
+        sorted.reserve(txs.size());
+        for (const auto& tx : txs) sorted.push_back(&tx);
+        std::sort(sorted.begin(), sorted.end(),
+            [](const interfaces::WalletTx* a, const interfaces::WalletTx* b) {
+                return a->time > b->time;
+            });
+
+        UniValue arr(UniValue::VARR);
+        int count = 0;
+        for (const auto* wtx : sorted) {
+            if (count++ >= limit) break;
+
+            const Txid& txid = wtx->tx->GetHash();
+            interfaces::WalletTxStatus status{};
+            int num_blocks{0};
+            int64_t block_time{0};
+            int confirmations{0};
+            if (w->tryGetTxStatus(txid, status, num_blocks, block_time)) {
+                confirmations = status.depth_in_main_chain;
+            }
+
+            UniValue tobj(UniValue::VOBJ);
+            tobj.pushKV("txid",          txid.GetHex());
+            tobj.pushKV("time",          wtx->time);
+            tobj.pushKV("amount",        ValueFromAmount(wtx->credit - wtx->debit));
+            tobj.pushKV("credit",        ValueFromAmount(wtx->credit));
+            tobj.pushKV("debit",         ValueFromAmount(wtx->debit));
+            tobj.pushKV("confirmations", confirmations);
+            tobj.pushKV("coinbase",      wtx->is_coinbase);
+
+            UniValue addrs(UniValue::VARR);
+            for (size_t i = 0; i < wtx->txout_address.size(); ++i) {
+                bool is_mine = i < wtx->txout_address_is_mine.size() && wtx->txout_address_is_mine[i];
+                if (is_mine) addrs.push_back(EncodeDestination(wtx->txout_address[i]));
+            }
+            tobj.pushKV("addresses", addrs);
+            arr.push_back(tobj);
+        }
+
+        UniValue obj(UniValue::VOBJ);
+        obj.pushKV("wallet",       wallet_name);
+        obj.pushKV("count",        static_cast<int>(arr.size()));
+        obj.pushKV("transactions", arr);
+        SetJSONHeaders(req, *cors);
+        req->WriteReply(HTTP_OK, obj.write());
+        return true;
+    }
+    req->WriteReply(HTTP_NOT_FOUND, R"({"error":"Wallet not found or not loaded"})");
+    return false;
+}
+
+static bool HandleWalletReceiveAddress(HTTPRequest* req, const std::string& wallet_name)
+{
+    if (req->GetRequestMethod() != HTTPRequest::GET) {
+        req->WriteReply(HTTP_BAD_METHOD, "");
+        return false;
+    }
+    if (!CheckWebUIHost(req)) return false;
+    auto cors = CheckWebUICORS(req);
+    if (!cors) return false;
+    if (!CheckWebUIAuth(req)) return false;
+
+    if (!g_node || !g_node->wallet_loader) {
+        req->WriteReply(HTTP_SERVICE_UNAVAILABLE, R"({"error":"Wallet support not available"})");
+        return false;
+    }
+    for (auto& w : g_node->wallet_loader->getWallets()) {
+        if (w->getWalletName() != wallet_name) continue;
+
+        auto dest_result = w->getNewDestination(OutputType::BECH32, "");
+        if (!dest_result) {
+            const std::string err_msg = util::ErrorString(dest_result).original;
+            req->WriteReply(HTTP_BAD_REQUEST,
+                "{\"error\":\"" + err_msg + "\"}");
+            return false;
+        }
+        UniValue obj(UniValue::VOBJ);
+        obj.pushKV("wallet",  wallet_name);
+        obj.pushKV("address", EncodeDestination(*dest_result));
+        SetJSONHeaders(req, *cors);
+        req->WriteReply(HTTP_OK, obj.write());
+        return true;
+    }
+    req->WriteReply(HTTP_NOT_FOUND, R"({"error":"Wallet not found or not loaded"})");
+    return false;
+}
+
+static bool HandleWalletAssets(HTTPRequest* req, const std::string& wallet_name)
+{
+    if (req->GetRequestMethod() != HTTPRequest::GET) {
+        req->WriteReply(HTTP_BAD_METHOD, "");
+        return false;
+    }
+    if (!CheckWebUIHost(req)) return false;
+    auto cors = CheckWebUICORS(req);
+    if (!cors) return false;
+    if (!CheckWebUIAuth(req)) return false;
+
+    if (!g_node || !g_node->wallet_loader) {
+        req->WriteReply(HTTP_SERVICE_UNAVAILABLE, R"({"error":"Wallet support not available"})");
+        return false;
+    }
+    wallet::WalletContext* wctx = g_node->wallet_loader->context();
+    if (!wctx) {
+        req->WriteReply(HTTP_SERVICE_UNAVAILABLE, R"({"error":"Wallet context not available"})");
+        return false;
+    }
+    std::shared_ptr<wallet::CWallet> pwallet = wallet::GetWallet(*wctx, wallet_name);
+    if (!pwallet) {
+        req->WriteReply(HTTP_NOT_FOUND, R"({"error":"Wallet not found or not loaded"})");
+        return false;
+    }
+
+    std::map<std::string, CAmount> asset_balances;
+    {
+        LOCK(pwallet->cs_wallet);
+        wallet::CoinFilterParams coin_params;
+        coin_params.min_amount = 0;
+        wallet::CoinsResult available = wallet::AvailableCoinsWithAssets(*pwallet, nullptr, std::nullopt, coin_params);
+        for (const auto& [name, outputs] : available.mapAssetCoins) {
+            CAmount total{0};
+            for (const auto& output : outputs) {
+                CAssetOutputEntry data;
+                if (GetAssetData(output.txout.scriptPubKey, data)) {
+                    total += data.nAmount;
+                }
+            }
+            if (total > 0) asset_balances[name] = total;
+        }
+    }
+
+    UniValue arr(UniValue::VARR);
+    for (const auto& [name, amount] : asset_balances) {
+        UniValue aobj(UniValue::VOBJ);
+        aobj.pushKV("name",    name);
+        aobj.pushKV("balance", AssetUnitValueFromAmount(amount, name));
+        arr.push_back(aobj);
+    }
+    UniValue obj(UniValue::VOBJ);
+    obj.pushKV("wallet", wallet_name);
+    obj.pushKV("assets", arr);
+    SetJSONHeaders(req, *cors);
+    req->WriteReply(HTTP_OK, obj.write());
+    return true;
+}
+
+#endif // ENABLE_WALLET
+
+static bool HandleWalletRoute(HTTPRequest* req, const std::string& path)
+{
+    static constexpr std::string_view WALLET_PREFIX{"/webui/api/wallet/"};
+    const std::string rest = path.substr(WALLET_PREFIX.size());
+    const size_t slash = rest.find('/');
+    if (slash == std::string::npos || slash == 0) {
+        req->WriteReply(HTTP_NOT_FOUND, R"({"error":"not found"})");
+        return false;
+    }
+    const std::string wallet_name = rest.substr(0, slash);
+    const std::string action = rest.substr(slash + 1);
+
+#ifdef ENABLE_WALLET
+    if (action == "summary")         return HandleWalletSummary(req, wallet_name);
+    if (action == "transactions")    return HandleWalletTransactions(req, wallet_name);
+    if (action == "receive-address") return HandleWalletReceiveAddress(req, wallet_name);
+    if (action == "assets")          return HandleWalletAssets(req, wallet_name);
+#endif
+
+    req->WriteReply(HTTP_NOT_FOUND, R"({"error":"not found"})");
+    return false;
+}
+
 // ---- Static HTML -------------------------------------------------------
 
 static bool HandleRoot(HTTPRequest* req)
@@ -551,6 +795,8 @@ static bool WebUIDispatch(HTTPRequest* req, const std::string& /*prefix*/)
     if (path == "/webui/api/wallets/create")     return HandleWalletCreate(req);
     if (path == "/webui/api/wallets/unload")     return HandleWalletUnload(req);
 
+    if (path.starts_with("/webui/api/wallet/")) return HandleWalletRoute(req, path);
+
     req->WriteReply(HTTP_NOT_FOUND, R"({"error":"not found"})");
     return false;
 }
@@ -566,6 +812,15 @@ void StartWebUI(NodeContext& node)
         return;
     }
     RegisterHTTPHandler("/webui/", false, WebUIDispatch);
+
+    if (gArgs.IsArgSet("-webuiport") || gArgs.IsArgSet("-webuibind")) {
+        const uint16_t port = static_cast<uint16_t>(gArgs.GetIntArg("-webuiport", DEFAULT_WEBUI_PORT));
+        const std::string bind_addr = gArgs.GetArg("-webuibind", DEFAULT_WEBUI_BIND);
+        if (!BindHTTPAdditionalPort(bind_addr, port)) {
+            LogWarning("WebUI: Failed to bind dedicated port %d on %s\n", port, bind_addr);
+        }
+    }
+
     LogInfo("WebUI endpoint started at /webui/ (token in webui.cookie)\n");
 }
 
