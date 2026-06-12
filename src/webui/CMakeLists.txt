@@ -13,5 +13,6 @@ target_link_libraries(bitcoin_webui
   PRIVATE
     core_interface
     univalue
+    Boost::headers
     $<TARGET_NAME_IF_EXISTS:bitcoin_wallet>
 )
