@@ -5,14 +5,17 @@
 #include <bitcoin-build-config.h> // IWYU pragma: keep
 
 #include <webui/webui.h>
+#include <webui/assets.h>
 
 #include <assets/ans.h>
 #include <assets/assets.h>
 #include <assets/assetdb.h>
 #include <clientversion.h>
 #include <common/args.h>
+#include <common/url.h>
 #include <common/signmessage.h>
 #include <core_io.h>
+#include <hash.h>
 #include <httpserver.h>
 #include <key_io.h>
 #include <logging.h>
@@ -38,6 +41,7 @@
 #ifdef ENABLE_WALLET
 #include <interfaces/wallet.h>
 #include <support/allocators/secure.h>
+#include <wallet/asset_tx.h>
 #include <wallet/coincontrol.h>
 #include <wallet/context.h>
 #include <wallet/receive.h>
@@ -61,6 +65,9 @@ using node::NodeContext;
 static NodeContext* g_node{nullptr};
 static std::string g_webui_token;
 static bool g_webui_cookie_generated{false};
+static bool g_webui_use_password{false};
+static std::string g_webui_password_hash; // hex-encoded SHA256 of configured password
+static std::set<std::string> g_webui_allowed_hosts; // populated in StartWebUI()
 
 // ---- Cookie auth -------------------------------------------------------
 
@@ -71,6 +78,18 @@ static fs::path GetWebUICookiePath()
 
 static bool InitWebUIAuth()
 {
+    std::string pw = gArgs.GetArg("-webuipassword", "");
+    if (!pw.empty()) {
+        // Password mode: hash the password and store; no cookie file needed.
+        HashWriter h{};
+        h.write({reinterpret_cast<const std::byte*>(pw.data()), pw.size()});
+        g_webui_password_hash = HexStr(h.GetHash());
+        g_webui_use_password = true;
+        LogInfo("WebUI: using configured password authentication\n");
+        return true;
+    }
+
+    // Cookie mode (default): generate random token and write to disk.
     unsigned char rand_bytes[32];
     GetRandBytes(rand_bytes);
     g_webui_token = HexStr(rand_bytes);
@@ -108,8 +127,8 @@ static bool InitWebUIAuth()
 
 // ---- Request validators ------------------------------------------------
 
-// Defend against DNS rebinding: only allow requests whose Host header names
-// a loopback address. Port suffix is ignored.
+// Defend against DNS rebinding: only allow requests whose Host header matches
+// an address the HTTP server is actually bound to. Port suffix is ignored.
 static bool CheckWebUIHost(HTTPRequest* req)
 {
     auto [present, host] = req->GetHeader("host");
@@ -127,7 +146,7 @@ static bool CheckWebUIHost(HTTPRequest* req)
         size_t colon = hostname.rfind(':');
         if (colon != std::string::npos) hostname = hostname.substr(0, colon);
     }
-    if (hostname == "127.0.0.1" || hostname == "localhost" || hostname == "::1") {
+    if (g_webui_allowed_hosts.count(hostname)) {
         return true;
     }
     req->WriteReply(HTTP_FORBIDDEN, R"({"error":"Host not allowed"})");
@@ -142,8 +161,19 @@ static bool CheckWebUIAuth(HTTPRequest* req)
         req->WriteReply(HTTP_UNAUTHORIZED, R"({"error":"unauthorized"})");
         return false;
     }
-    std::string token = auth.substr(7);
-    if (!TimingResistantEqual(token, g_webui_token)) {
+    std::string submitted = auth.substr(7);
+
+    bool ok = false;
+    if (g_webui_use_password) {
+        HashWriter h{};
+        h.write({reinterpret_cast<const std::byte*>(submitted.data()), submitted.size()});
+        std::string submitted_hash = HexStr(h.GetHash());
+        ok = TimingResistantEqual(submitted_hash, g_webui_password_hash);
+    } else {
+        ok = TimingResistantEqual(submitted, g_webui_token);
+    }
+
+    if (!ok) {
         UninterruptibleSleep(std::chrono::milliseconds{250});
         req->WriteHeader("WWW-Authenticate", "Bearer realm=\"aviand-webui\"");
         req->WriteReply(HTTP_UNAUTHORIZED, R"({"error":"unauthorized"})");
@@ -158,7 +188,20 @@ static std::optional<std::string> CheckWebUICORS(HTTPRequest* req)
 {
     auto [present, origin] = req->GetHeader("origin");
     if (!present) return std::string{};
-    if (origin == "http://127.0.0.1" || origin == "http://localhost") return origin;
+
+    // Strip scheme to get "host[:port]", then strip port, same as CheckWebUIHost.
+    std::string host = origin;
+    if (host.substr(0, 7) == "http://")  host = host.substr(7);
+    if (host.substr(0, 8) == "https://") host = host.substr(8);
+    if (!host.empty() && host.front() == '[') {
+        size_t close = host.find(']');
+        host = (close != std::string::npos) ? host.substr(1, close - 1) : host;
+    } else {
+        size_t colon = host.rfind(':');
+        if (colon != std::string::npos) host = host.substr(0, colon);
+    }
+    if (g_webui_allowed_hosts.count(host)) return origin;
+
     req->WriteReply(HTTP_FORBIDDEN, R"({"error":"CORS: origin not allowed"})");
     return std::nullopt;
 }
@@ -169,6 +212,21 @@ static void SetJSONHeaders(HTTPRequest* req, const std::string& allowed_origin)
     if (!allowed_origin.empty()) {
         req->WriteHeader("Access-Control-Allow-Origin", allowed_origin);
     }
+}
+
+// ---- Auth info (unauthenticated) ---------------------------------------
+
+// Tells the login page which auth mode is active so it can show the right hint.
+static bool HandleAuthInfo(HTTPRequest* req)
+{
+    if (!CheckWebUIHost(req)) return false;
+    auto cors = CheckWebUICORS(req);
+    if (!cors) return false;
+    UniValue obj(UniValue::VOBJ);
+    obj.pushKV("mode", g_webui_use_password ? "password" : "cookie");
+    SetJSONHeaders(req, *cors);
+    req->WriteReply(HTTP_OK, obj.write());
+    return true;
 }
 
 // ---- Node API handlers -------------------------------------------------
@@ -258,12 +316,16 @@ static bool HandleNodeFeatures(HTTPRequest* req)
     features.pushKV("ans",              FeatureFlag(true, IsAvianNameSystemDeployed()));
     // PSBT is always available.
     features.pushKV("psbt",             FeatureFlag(true, true));
-    // Post-quantum: compiled only when liboqs present; no separate runtime activation.
+    // Post-quantum: requires both liboqs compile support and DEPLOYMENT_MLDSA44 activation.
+    {
+        const CBlockIndex* tip = g_node->chainman->ActiveChain().Tip();
+        bool pq_active = tip && DeploymentActiveAt(*tip, *g_node->chainman, Consensus::DEPLOYMENT_MLDSA44);
 #ifdef HAVE_LIBOQS
-    features.pushKV("postQuantum",      FeatureFlag(true, true));
+        features.pushKV("postQuantum",  FeatureFlag(true, pq_active));
 #else
-    features.pushKV("postQuantum",      FeatureFlag(false, false));
+        features.pushKV("postQuantum",  FeatureFlag(false, false));
 #endif
+    }
     obj.pushKV("features", features);
 
     SetJSONHeaders(req, *cors);
@@ -644,6 +706,66 @@ static bool HandleWalletTransactions(HTTPRequest* req, const std::string& wallet
 
 static bool HandleWalletReceiveAddress(HTTPRequest* req, const std::string& wallet_name)
 {
+    if (req->GetRequestMethod() != HTTPRequest::POST) {
+        req->WriteReply(HTTP_BAD_METHOD, "");
+        return false;
+    }
+    if (!CheckWebUIHost(req)) return false;
+    auto cors = CheckWebUICORS(req);
+    if (!cors) return false;
+    if (!CheckWebUIAuth(req)) return false;
+
+    // Optional body: { "type": "legacy"|"p2sh-segwit"|"bech32", "label": "..." }
+    UniValue body;
+    const std::string raw = req->ReadBody();
+    if (!raw.empty()) body.read(raw);
+    const std::string type_str = (body.isObject() && body["type"].isStr()) ? body["type"].get_str() : "";
+    const std::string label    = (body.isObject() && body["label"].isStr()) ? body["label"].get_str() : "";
+
+    if (!g_node || !g_node->wallet_loader) {
+        req->WriteReply(HTTP_SERVICE_UNAVAILABLE, R"({"error":"Wallet support not available"})");
+        return false;
+    }
+    for (auto& w : g_node->wallet_loader->getWallets()) {
+        if (w->getWalletName() != wallet_name) continue;
+
+        if (w->isCrypted() && w->isLocked()) {
+            req->WriteReply(423, R"({"error":"Wallet is locked. Unlock it first."})");
+            return false;
+        }
+
+        OutputType out_type = w->getDefaultAddressType();
+        if (!type_str.empty()) {
+            auto parsed = ParseOutputType(type_str);
+            if (!parsed) {
+                req->WriteReply(HTTP_BAD_REQUEST, R"({"error":"Unknown address type. Use legacy, p2sh-segwit or bech32"})");
+                return false;
+            }
+            out_type = *parsed;
+        }
+
+        auto dest_result = w->getNewDestination(out_type, label);
+        if (!dest_result) {
+            const std::string err_msg = util::ErrorString(dest_result).original;
+            req->WriteReply(HTTP_BAD_REQUEST,
+                "{\"error\":\"" + err_msg + "\"}");
+            return false;
+        }
+        UniValue obj(UniValue::VOBJ);
+        obj.pushKV("wallet",  wallet_name);
+        obj.pushKV("address", EncodeDestination(*dest_result));
+        obj.pushKV("type",    FormatOutputType(out_type));
+        obj.pushKV("label",   label);
+        SetJSONHeaders(req, *cors);
+        req->WriteReply(HTTP_OK, obj.write());
+        return true;
+    }
+    req->WriteReply(HTTP_NOT_FOUND, R"({"error":"Wallet not found or not loaded"})");
+    return false;
+}
+
+static bool HandleWalletAddresses(HTTPRequest* req, const std::string& wallet_name)
+{
     if (req->GetRequestMethod() != HTTPRequest::GET) {
         req->WriteReply(HTTP_BAD_METHOD, "");
         return false;
@@ -660,26 +782,161 @@ static bool HandleWalletReceiveAddress(HTTPRequest* req, const std::string& wall
     for (auto& w : g_node->wallet_loader->getWallets()) {
         if (w->getWalletName() != wallet_name) continue;
 
-        if (w->isCrypted() && w->isLocked()) {
-            req->WriteReply(423, R"({"error":"Wallet is locked. Unlock it first."})");
-            return false;
-        }
-        auto dest_result = w->getNewDestination(OutputType::BECH32, "");
-        if (!dest_result) {
-            const std::string err_msg = util::ErrorString(dest_result).original;
-            req->WriteReply(HTTP_BAD_REQUEST,
-                "{\"error\":\"" + err_msg + "\"}");
-            return false;
+        UniValue arr(UniValue::VARR);
+        for (const auto& addr : w->getAddresses()) {
+            // Only include receive addresses (skip send-side address book entries)
+            if (addr.purpose != wallet::AddressPurpose::RECEIVE) continue;
+            UniValue entry(UniValue::VOBJ);
+            entry.pushKV("address", EncodeDestination(addr.dest));
+            entry.pushKV("label",   addr.name);
+            entry.pushKV("is_mine", addr.is_mine);
+            arr.push_back(entry);
         }
         UniValue obj(UniValue::VOBJ);
-        obj.pushKV("wallet",  wallet_name);
-        obj.pushKV("address", EncodeDestination(*dest_result));
+        obj.pushKV("wallet",    wallet_name);
+        obj.pushKV("addresses", arr);
         SetJSONHeaders(req, *cors);
         req->WriteReply(HTTP_OK, obj.write());
         return true;
     }
     req->WriteReply(HTTP_NOT_FOUND, R"({"error":"Wallet not found or not loaded"})");
     return false;
+}
+
+static bool HandleWalletSetAddressLabel(HTTPRequest* req, const std::string& wallet_name)
+{
+    if (req->GetRequestMethod() != HTTPRequest::POST) {
+        req->WriteReply(HTTP_BAD_METHOD, "");
+        return false;
+    }
+    if (!CheckWebUIHost(req)) return false;
+    auto cors = CheckWebUICORS(req);
+    if (!cors) return false;
+    if (!CheckWebUIAuth(req)) return false;
+
+    UniValue body;
+    if (!body.read(req->ReadBody()) || !body.isObject()) {
+        req->WriteReply(HTTP_BAD_REQUEST, R"({"error":"Invalid JSON"})");
+        return false;
+    }
+    const UniValue& addrVal  = body["address"];
+    const UniValue& labelVal = body["label"];
+    if (!addrVal.isStr()) {
+        req->WriteReply(HTTP_BAD_REQUEST, R"({"error":"address required"})");
+        return false;
+    }
+    const CTxDestination dest = DecodeDestination(addrVal.get_str());
+    if (!IsValidDestination(dest)) {
+        req->WriteReply(HTTP_BAD_REQUEST, R"({"error":"Invalid address"})");
+        return false;
+    }
+    const std::string label = labelVal.isStr() ? labelVal.get_str() : "";
+
+    if (!g_node || !g_node->wallet_loader) {
+        req->WriteReply(HTTP_SERVICE_UNAVAILABLE, R"({"error":"Wallet support not available"})");
+        return false;
+    }
+    for (auto& w : g_node->wallet_loader->getWallets()) {
+        if (w->getWalletName() != wallet_name) continue;
+        w->setAddressBook(dest, label, wallet::AddressPurpose::RECEIVE);
+        UniValue obj(UniValue::VOBJ);
+        obj.pushKV("success", true);
+        SetJSONHeaders(req, *cors);
+        req->WriteReply(HTTP_OK, obj.write());
+        return true;
+    }
+    req->WriteReply(HTTP_NOT_FOUND, R"({"error":"Wallet not found or not loaded"})");
+    return false;
+}
+
+static bool HandleWalletSendAsset(HTTPRequest* req, const std::string& wallet_name)
+{
+    if (req->GetRequestMethod() != HTTPRequest::POST) {
+        req->WriteReply(HTTP_BAD_METHOD, "");
+        return false;
+    }
+    if (!CheckWebUIHost(req)) return false;
+    auto cors = CheckWebUICORS(req);
+    if (!cors) return false;
+    if (!CheckWebUIAuth(req)) return false;
+
+    UniValue body;
+    if (!body.read(req->ReadBody()) || !body.isObject()) {
+        req->WriteReply(HTTP_BAD_REQUEST, R"({"error":"Invalid JSON"})");
+        return false;
+    }
+    const UniValue& assetVal  = body["asset"];
+    const UniValue& addrVal   = body["address"];
+    const UniValue& amountVal = body["amount"];
+    if (!assetVal.isStr() || !addrVal.isStr() || !amountVal.isStr()) {
+        req->WriteReply(HTTP_BAD_REQUEST, R"({"error":"asset, address and amount required"})");
+        return false;
+    }
+    const std::string asset_name = assetVal.get_str();
+    const std::string address    = addrVal.get_str();
+    CAmount nAmount;
+    if (!ParseFixedPoint(amountVal.get_str(), 8, &nAmount) || nAmount <= 0) {
+        req->WriteReply(HTTP_BAD_REQUEST, R"({"error":"Invalid amount"})");
+        return false;
+    }
+
+    if (!g_node || !g_node->wallet_loader) {
+        req->WriteReply(HTTP_SERVICE_UNAVAILABLE, R"({"error":"Wallet support not available"})");
+        return false;
+    }
+
+    wallet::WalletContext* wctx = g_node->wallet_loader->context();
+    if (!wctx) {
+        req->WriteReply(HTTP_SERVICE_UNAVAILABLE, R"({"error":"Wallet context unavailable"})");
+        return false;
+    }
+    auto pwallet = wallet::GetWallet(*wctx, wallet_name);
+    if (!pwallet) {
+        req->WriteReply(HTTP_NOT_FOUND, R"({"error":"Wallet not found or not loaded"})");
+        return false;
+    }
+    if (pwallet->IsLocked()) {
+        req->WriteReply(423, R"({"error":"Wallet is locked. Unlock it first."})");
+        return false;
+    }
+
+    // Verify the wallet actually holds this asset
+    std::pair<int, std::string> asset_err;
+    {
+        LOCK(pwallet->cs_wallet);
+        if (!wallet::VerifyWalletHasAsset(*pwallet, asset_name, asset_err)) {
+            req->WriteReply(HTTP_BAD_REQUEST,
+                "{\"error\":\"" + asset_err.second + "\"}");
+            return false;
+        }
+    }
+
+    wallet::CCoinControl coin_control;
+    CAssetTransfer transfer(asset_name, nAmount);
+    std::vector<std::pair<CAssetTransfer, std::string>> transfers{{transfer, address}};
+    std::pair<int, std::string> err;
+    CTransactionRef txRef;
+    CAmount nFeeRequired;
+
+    if (!wallet::CreateTransferAssetTransaction(*pwallet, coin_control, transfers, "", err, txRef, nFeeRequired)) {
+        req->WriteReply(HTTP_BAD_REQUEST,
+            "{\"error\":\"" + err.second + "\"}");
+        return false;
+    }
+
+    std::string txid;
+    if (!wallet::SendAssetTransaction(*pwallet, txRef, err, txid)) {
+        req->WriteReply(HTTP_BAD_REQUEST,
+            "{\"error\":\"" + err.second + "\"}");
+        return false;
+    }
+
+    UniValue obj(UniValue::VOBJ);
+    obj.pushKV("txid", txid);
+    obj.pushKV("fee",  ValueFromAmount(nFeeRequired).write());
+    SetJSONHeaders(req, *cors);
+    req->WriteReply(HTTP_OK, obj.write());
+    return true;
 }
 
 static bool HandleWalletSend(HTTPRequest* req, const std::string& wallet_name)
@@ -1109,6 +1366,25 @@ static bool HandleWalletPSBTSign(HTTPRequest* req, const std::string& wallet_nam
         return false;
     }
 
+    // Optional sighash type — defaults to ALL|FORKID (0x41).
+    std::optional<int> sighash_type;
+    if (body.exists("sighash") && body["sighash"].isStr()) {
+        static const std::map<std::string, int> SIGHASH_MAP = {
+            {"ALL|FORKID",                  0x41},
+            {"NONE|FORKID",                 0x42},
+            {"SINGLE|FORKID",               0x43},
+            {"ALL|FORKID|ANYONECANPAY",     0xC1},
+            {"NONE|FORKID|ANYONECANPAY",    0xC2},
+            {"SINGLE|FORKID|ANYONECANPAY",  0xC3},
+        };
+        const auto it = SIGHASH_MAP.find(body["sighash"].get_str());
+        if (it == SIGHASH_MAP.end()) {
+            req->WriteReply(HTTP_BAD_REQUEST, R"({"error":"Unknown sighash type"})");
+            return false;
+        }
+        sighash_type = it->second;
+    }
+
     PartiallySignedTransaction psbtx;
     std::string parse_err;
     if (!DecodeBase64PSBT(psbtx, psbtVal.get_str(), parse_err)) {
@@ -1126,7 +1402,7 @@ static bool HandleWalletPSBTSign(HTTPRequest* req, const std::string& wallet_nam
 
         bool complete{false};
         size_t n_signed{0};
-        auto fill_err = w->fillPSBT(std::nullopt, /*sign=*/true, /*bip32derivs=*/true, &n_signed, psbtx, complete);
+        auto fill_err = w->fillPSBT(sighash_type, /*sign=*/true, /*bip32derivs=*/true, &n_signed, psbtx, complete);
         if (fill_err) {
             req->WriteReply(HTTP_BAD_REQUEST, R"({"error":"Failed to sign PSBT"})");
             return false;
@@ -1157,13 +1433,16 @@ static bool HandleWalletRoute(HTTPRequest* req, const std::string& path)
         req->WriteReply(HTTP_NOT_FOUND, R"({"error":"not found"})");
         return false;
     }
-    const std::string wallet_name = rest.substr(0, slash);
+    const std::string wallet_name = UrlDecode(rest.substr(0, slash));
     const std::string action = rest.substr(slash + 1);
 
 #ifdef ENABLE_WALLET
     if (action == "summary")         return HandleWalletSummary(req, wallet_name);
     if (action == "transactions")    return HandleWalletTransactions(req, wallet_name);
     if (action == "receive-address") return HandleWalletReceiveAddress(req, wallet_name);
+    if (action == "addresses")          return HandleWalletAddresses(req, wallet_name);
+    if (action == "set-address-label")  return HandleWalletSetAddressLabel(req, wallet_name);
+    if (action == "send-asset")         return HandleWalletSendAsset(req, wallet_name);
     if (action == "assets")          return HandleWalletAssets(req, wallet_name);
     if (action == "send")            return HandleWalletSend(req, wallet_name);
     if (action == "unlock")          return HandleWalletUnlock(req, wallet_name);
@@ -1639,29 +1918,79 @@ static bool HandlePSBTNodeRoute(HTTPRequest* req, const std::string& path)
     return false;
 }
 
-// ---- Static HTML -------------------------------------------------------
+// ---- Static file serving -----------------------------------------------
 
-static bool HandleRoot(HTTPRequest* req)
+static std::string_view GetMimeType(const std::string& path)
+{
+    const auto dot = path.rfind('.');
+    if (dot == std::string::npos) return "application/octet-stream";
+    const std::string_view ext{path.data() + dot + 1, path.size() - dot - 1};
+    if (ext == "html")  return "text/html; charset=UTF-8";
+    if (ext == "css")   return "text/css";
+    if (ext == "js" || ext == "mjs") return "application/javascript";
+    if (ext == "json")  return "application/json";
+    if (ext == "svg")   return "image/svg+xml";
+    if (ext == "png")   return "image/png";
+    if (ext == "ico")   return "image/x-icon";
+    if (ext == "woff2") return "font/woff2";
+    if (ext == "woff")  return "font/woff";
+    if (ext == "ttf")   return "font/ttf";
+    return "application/octet-stream";
+}
+
+// Serves static files from -webuiassets dir (development) or embedded assets (production).
+// No auth required — the HTML/CSS/JS itself is not sensitive.
+static bool HandleStaticFile(HTTPRequest* req, const std::string& path)
 {
     if (req->GetRequestMethod() != HTTPRequest::GET) {
         req->WriteReply(HTTP_BAD_METHOD, "");
         return false;
     }
     if (!CheckWebUIHost(req)) return false;
-    static const std::string html =
-        "<!DOCTYPE html>\n"
-        "<html>\n"
-        "<head><meta charset=\"UTF-8\"><title>Avian Core Web UI</title></head>\n"
-        "<body>\n"
-        "<h1>Avian Core Web UI</h1>\n"
-        "<p>Node is running. <strong>Phase 1 backend — developer token flow only.</strong></p>\n"
-        "<p>Read the session token from <code>webui.cookie</code> in the datadir and pass it as\n"
-        "<code>Authorization: Bearer &lt;token&gt;</code> on all <code>/api/*</code> requests.</p>\n"
-        "</body>\n"
-        "</html>\n";
-    req->WriteHeader("Content-Type", "text/html; charset=UTF-8");
-    req->WriteReply(HTTP_OK, html);
-    return true;
+
+    // Strip /webui prefix and normalise to a relative file path
+    static constexpr std::string_view WEBUI_PREFIX{"/webui"};
+    std::string file_path = path.substr(WEBUI_PREFIX.size());
+    if (file_path.empty() || file_path == "/") {
+        file_path = "index.html";
+    } else if (file_path.front() == '/') {
+        file_path = file_path.substr(1);
+    }
+
+    // Block path traversal
+    if (file_path.find("..") != std::string::npos) {
+        req->WriteReply(HTTP_FORBIDDEN, "");
+        return false;
+    }
+
+    const std::string mime{GetMimeType(file_path)};
+
+    // 1. Disk override — serve live files from -webuiassets for development
+    const std::string assets_dir = gArgs.GetArg("-webuiassets", "");
+    if (!assets_dir.empty()) {
+        const fs::path disk_path = fs::PathFromString(assets_dir) / fs::PathFromString(file_path);
+        std::ifstream f(disk_path, std::ios::binary);
+        if (f) {
+            std::string content{std::istreambuf_iterator<char>(f), std::istreambuf_iterator<char>()};
+            req->WriteHeader("Content-Type", mime);
+            req->WriteReply(HTTP_OK, content);
+            return true;
+        }
+    }
+
+    // 2. Embedded assets (built into the binary)
+    const auto& assets = GetEmbeddedAssets();
+    auto it = assets.find(file_path);
+    // SPA fallback: unknown paths → index.html for client-side routing
+    if (it == assets.end()) it = assets.find("index.html");
+    if (it != assets.end()) {
+        req->WriteHeader("Content-Type", std::string(it->second.content_type));
+        req->WriteReply(HTTP_OK, it->second.content);
+        return true;
+    }
+
+    req->WriteReply(HTTP_NOT_FOUND, "Not found");
+    return false;
 }
 
 // ---- Main dispatcher ---------------------------------------------------
@@ -1669,27 +1998,30 @@ static bool HandleRoot(HTTPRequest* req)
 static bool WebUIDispatch(HTTPRequest* req, const std::string& /*prefix*/)
 {
     std::string uri = req->GetURI();
-    size_t qmark = uri.find('?');
+    const size_t qmark = uri.find('?');
     const std::string path = (qmark != std::string::npos) ? uri.substr(0, qmark) : uri;
 
-    if (path == "/webui" || path == "/webui/") return HandleRoot(req);
+    // ── API routes (require auth) ──────────────────────────────────────
+    if (path.starts_with("/webui/api/")) {
+        // Unauthenticated meta-endpoint: lets the login page know which auth mode is active.
+        if (path == "/webui/api/auth/info")        return HandleAuthInfo(req);
+        if (path == "/webui/api/node/status")      return HandleNodeStatus(req);
+        if (path == "/webui/api/node/features")     return HandleNodeFeatures(req);
+        if (path == "/webui/api/wallets/loaded")    return HandleWalletsLoaded(req);
+        if (path == "/webui/api/wallets/available") return HandleWalletsAvailable(req);
+        if (path == "/webui/api/wallets/load")      return HandleWalletLoad(req);
+        if (path == "/webui/api/wallets/create")    return HandleWalletCreate(req);
+        if (path == "/webui/api/wallets/unload")    return HandleWalletUnload(req);
+        if (path == "/webui/api/verifymessage")     return HandleVerifyMessage(req);
+        if (path.starts_with("/webui/api/wallet/")) return HandleWalletRoute(req, path);
+        if (path.starts_with("/webui/api/ans/"))    return HandleANSRoute(req, path);
+        if (path.starts_with("/webui/api/psbt/"))   return HandlePSBTNodeRoute(req, path);
+        req->WriteReply(HTTP_NOT_FOUND, R"({"error":"not found"})");
+        return false;
+    }
 
-    if (path == "/webui/api/node/status")       return HandleNodeStatus(req);
-    if (path == "/webui/api/node/features")      return HandleNodeFeatures(req);
-    if (path == "/webui/api/wallets/loaded")     return HandleWalletsLoaded(req);
-    if (path == "/webui/api/wallets/available")  return HandleWalletsAvailable(req);
-    if (path == "/webui/api/wallets/load")       return HandleWalletLoad(req);
-    if (path == "/webui/api/wallets/create")     return HandleWalletCreate(req);
-    if (path == "/webui/api/wallets/unload")     return HandleWalletUnload(req);
-
-    if (path == "/webui/api/verifymessage")     return HandleVerifyMessage(req);
-
-    if (path.starts_with("/webui/api/wallet/")) return HandleWalletRoute(req, path);
-    if (path.starts_with("/webui/api/ans/"))    return HandleANSRoute(req, path);
-    if (path.starts_with("/webui/api/psbt/"))   return HandlePSBTNodeRoute(req, path);
-
-    req->WriteReply(HTTP_NOT_FOUND, R"({"error":"not found"})");
-    return false;
+    // ── Static file serving (no auth) ─────────────────────────────────
+    return HandleStaticFile(req, path);
 }
 
 // ---- Lifecycle ---------------------------------------------------------
@@ -1702,6 +2034,28 @@ void StartWebUI(NodeContext& node)
         g_node = nullptr;
         return;
     }
+
+    // Build the set of hosts that CheckWebUIHost() and CheckWebUICORS() will accept.
+    // Always allow loopback; also allow any host embedded in -rpcbind (when -rpcallowip
+    // is set, mirroring HTTPBindAddresses) and any host in -webuibind.
+    g_webui_allowed_hosts = {"127.0.0.1", "localhost", "::1"};
+    if (!gArgs.GetArgs("-rpcallowip").empty()) {
+        for (const std::string& bind : gArgs.GetArgs("-rpcbind")) {
+            uint16_t port{0};
+            std::string host;
+            if (SplitHostPort(bind, port, host) && !host.empty()) {
+                g_webui_allowed_hosts.insert(host);
+            }
+        }
+    }
+    if (gArgs.IsArgSet("-webuibind")) {
+        uint16_t port{0};
+        std::string host;
+        if (SplitHostPort(gArgs.GetArg("-webuibind", ""), port, host) && !host.empty()) {
+            g_webui_allowed_hosts.insert(host);
+        }
+    }
+
     RegisterHTTPHandler("/webui/", false, WebUIDispatch);
 
     if (gArgs.IsArgSet("-webuiport") || gArgs.IsArgSet("-webuibind")) {

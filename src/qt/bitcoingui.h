@@ -170,6 +170,7 @@ private:
     QAction* restrictedAssetAction = nullptr;
     QAction* m_consolidate_utxos_action = nullptr;
     QAction* m_paper_wallet_action = nullptr;
+    QAction* m_open_webui_action = nullptr;
     /** AVN END */
 
     QLabel *m_wallet_selector_label = nullptr;
@@ -344,6 +345,7 @@ public Q_SLOTS:
     void showProgress(const QString &title, int nProgress);
 
     void showModalOverlay();
+    void openWebUI();
 };
 
 class UnitDisplayStatusBarControl : public QLabel

@@ -5,7 +5,6 @@
 #include <bitcoin-build-config.h> // IWYU pragma: keep
 
 #include <qt/bitcoingui.h>
-
 #include <qt/bitcoinunits.h>
 #include <qt/clientmodel.h>
 #include <qt/createwalletdialog.h>
@@ -35,16 +34,25 @@
 
 #include <chain.h>
 #include <chainparams.h>
+#include <chainparamsbase.h>
+#include <common/args.h>
+#include <util/strencodings.h>
 #include <common/system.h>
 #include <interfaces/handler.h>
 #include <interfaces/node.h>
 #include <node/interface_ui.h>
+#include <util/fs.h>
 #include <util/translation.h>
 #include <validation.h>
+// Inline constants so the "Open Web UI" menu item works regardless of WITH_WEBUI build flag.
+static constexpr bool  WEBUI_DEFAULT_ENABLE{false};
+static const std::string WEBUI_COOKIE_FILENAME{"webui.cookie"};
 
+#include <fstream>
 #include <functional>
 
 #include <QAction>
+#include <QDesktopServices>
 #include <QActionGroup>
 #include <QApplication>
 #include <QComboBox>
@@ -617,6 +625,11 @@ void BitcoinGUI::createActions()
 
     connect(new QShortcut(QKeySequence(Qt::CTRL | Qt::SHIFT | Qt::Key_C), this), &QShortcut::activated, this, &BitcoinGUI::showDebugWindowActivateConsole);
     connect(new QShortcut(QKeySequence(Qt::CTRL | Qt::SHIFT | Qt::Key_D), this), &QShortcut::activated, this, &BitcoinGUI::showDebugWindow);
+
+    m_open_webui_action = new QAction(tr("Open &Web UI…"), this);
+    m_open_webui_action->setStatusTip(tr("Open the Avian Web UI in your browser"));
+    m_open_webui_action->setEnabled(gArgs.GetBoolArg("-webui", WEBUI_DEFAULT_ENABLE));
+    connect(m_open_webui_action, &QAction::triggered, this, &BitcoinGUI::openWebUI);
 }
 
 void BitcoinGUI::createMenuBar()
@@ -637,6 +650,7 @@ void BitcoinGUI::createMenuBar()
         file->addAction(m_restore_wallet_action);
         file->addSeparator();
         file->addAction(openAction);
+        file->addAction(m_open_webui_action);
         file->addAction(signMessageAction);
         file->addAction(verifyMessageAction);
         file->addAction(m_paper_wallet_action);
@@ -1174,6 +1188,60 @@ void BitcoinGUI::openClicked()
     {
         Q_EMIT receivedURI(dlg.getURI());
     }
+}
+
+void BitcoinGUI::openWebUI()
+{
+    // Mirror HTTPBindAddresses(): base host/port from -rpcbind when -rpcallowip is
+    // also set; otherwise fall back to -rpcport / chain default on loopback.
+    std::string http_host = "127.0.0.1";
+    uint16_t http_port = static_cast<uint16_t>(gArgs.GetIntArg("-rpcport", BaseParams().RPCPort()));
+    if (!gArgs.GetArgs("-rpcallowip").empty() && !gArgs.GetArgs("-rpcbind").empty()) {
+        std::string host;
+        uint16_t port = http_port;
+        if (SplitHostPort(gArgs.GetArgs("-rpcbind")[0], port, host)) {
+            if (!host.empty()) http_host = host;
+            http_port = port;
+        }
+    }
+    // Dedicated webui bind overrides rpc bind
+    if (gArgs.IsArgSet("-webuibind")) {
+        std::string host;
+        uint16_t port = static_cast<uint16_t>(gArgs.GetIntArg("-webuiport", http_port));
+        if (SplitHostPort(gArgs.GetArg("-webuibind", ""), port, host)) {
+            if (!host.empty()) http_host = host;
+            http_port = port;
+        }
+    } else {
+        http_port = static_cast<uint16_t>(gArgs.GetIntArg("-webuiport", http_port));
+    }
+    QString baseUrl = QString("http://%1:%2/webui/").arg(QString::fromStdString(http_host)).arg(http_port);
+
+    if (!gArgs.GetArg("-webuipassword", "").empty()) {
+        // Password mode: just open the page; user types their configured password.
+        QDesktopServices::openUrl(QUrl(baseUrl));
+        return;
+    }
+
+    // Cookie mode: read the token and pass it in the URL fragment so the
+    // login page can auto-authenticate without the token appearing in server logs.
+    fs::path cookiePath = gArgs.GetDataDirNet() / fs::PathFromString(WEBUI_COOKIE_FILENAME);
+    std::ifstream cookieFile(cookiePath);
+    if (!cookieFile.is_open()) {
+        QMessageBox::warning(this, tr("Web UI"),
+            tr("Could not read %1.\nMake sure aviand is running with -webui=1.")
+                .arg(QString::fromStdString(fs::PathToString(cookiePath))));
+        return;
+    }
+    std::string token;
+    std::getline(cookieFile, token);
+    if (token.empty()) {
+        QMessageBox::warning(this, tr("Web UI"), tr("webui.cookie is empty. Restart with -webui=1."));
+        return;
+    }
+
+    QString url = baseUrl + QString("#token=%1").arg(QString::fromStdString(token));
+    QDesktopServices::openUrl(QUrl(url));
 }
 
 void BitcoinGUI::gotoOverviewPage()
