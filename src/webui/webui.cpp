@@ -47,6 +47,7 @@
 #include <optional>
 #include <set>
 #include <string>
+#include <thread>
 #include <vector>
 
 using node::NodeContext;
@@ -811,6 +812,107 @@ static bool HandleWalletAssets(HTTPRequest* req, const std::string& wallet_name)
     return true;
 }
 
+static bool HandleWalletUnlock(HTTPRequest* req, const std::string& wallet_name)
+{
+    if (req->GetRequestMethod() != HTTPRequest::POST) {
+        req->WriteReply(HTTP_BAD_METHOD, "");
+        return false;
+    }
+    if (!CheckWebUIHost(req)) return false;
+    auto cors = CheckWebUICORS(req);
+    if (!cors) return false;
+    if (!CheckWebUIAuth(req)) return false;
+
+    if (!g_node || !g_node->wallet_loader) {
+        req->WriteReply(HTTP_SERVICE_UNAVAILABLE, R"({"error":"Wallet support not available"})");
+        return false;
+    }
+    UniValue body;
+    if (!body.read(req->ReadBody()) || !body.isObject()) {
+        req->WriteReply(HTTP_BAD_REQUEST, R"({"error":"Invalid request body"})");
+        return false;
+    }
+    const UniValue& passVal = body["passphrase"];
+    if (!passVal.isStr()) {
+        req->WriteReply(HTTP_BAD_REQUEST, R"({"error":"\"passphrase\" field required"})");
+        return false;
+    }
+    SecureString passphrase;
+    const std::string& ps = passVal.get_str();
+    passphrase.assign(ps.begin(), ps.end());
+
+    int64_t timeout{0};
+    if (body["timeout"].isNum()) {
+        timeout = body["timeout"].getInt<int64_t>();
+        if (timeout < 0) timeout = 0;
+        if (timeout > 86400) timeout = 86400; // cap at 24 h
+    }
+
+    for (auto& w : g_node->wallet_loader->getWallets()) {
+        if (w->getWalletName() != wallet_name) continue;
+
+        if (!w->isCrypted()) {
+            req->WriteReply(HTTP_BAD_REQUEST, R"({"error":"Wallet is not encrypted"})");
+            return false;
+        }
+        if (!w->unlock(passphrase)) {
+            UninterruptibleSleep(std::chrono::milliseconds{250});
+            req->WriteReply(HTTP_BAD_REQUEST, R"({"error":"Incorrect passphrase"})");
+            return false;
+        }
+        if (timeout > 0) {
+            wallet::WalletContext* wctx = g_node->wallet_loader->context();
+            std::thread([wctx, wallet_name, timeout]() {
+                std::this_thread::sleep_for(std::chrono::seconds(timeout));
+                if (!wctx) return;
+                auto pwallet = wallet::GetWallet(*wctx, wallet_name);
+                if (pwallet) pwallet->Lock();
+            }).detach();
+        }
+        UniValue obj(UniValue::VOBJ);
+        obj.pushKV("success", true);
+        if (timeout > 0) obj.pushKV("relock_in", timeout);
+        SetJSONHeaders(req, *cors);
+        req->WriteReply(HTTP_OK, obj.write());
+        return true;
+    }
+    req->WriteReply(HTTP_NOT_FOUND, R"({"error":"Wallet not found or not loaded"})");
+    return false;
+}
+
+static bool HandleWalletLock(HTTPRequest* req, const std::string& wallet_name)
+{
+    if (req->GetRequestMethod() != HTTPRequest::POST) {
+        req->WriteReply(HTTP_BAD_METHOD, "");
+        return false;
+    }
+    if (!CheckWebUIHost(req)) return false;
+    auto cors = CheckWebUICORS(req);
+    if (!cors) return false;
+    if (!CheckWebUIAuth(req)) return false;
+
+    if (!g_node || !g_node->wallet_loader) {
+        req->WriteReply(HTTP_SERVICE_UNAVAILABLE, R"({"error":"Wallet support not available"})");
+        return false;
+    }
+    for (auto& w : g_node->wallet_loader->getWallets()) {
+        if (w->getWalletName() != wallet_name) continue;
+
+        if (!w->isCrypted()) {
+            req->WriteReply(HTTP_BAD_REQUEST, R"({"error":"Wallet is not encrypted"})");
+            return false;
+        }
+        w->lock();
+        UniValue obj(UniValue::VOBJ);
+        obj.pushKV("success", true);
+        SetJSONHeaders(req, *cors);
+        req->WriteReply(HTTP_OK, obj.write());
+        return true;
+    }
+    req->WriteReply(HTTP_NOT_FOUND, R"({"error":"Wallet not found or not loaded"})");
+    return false;
+}
+
 #endif // ENABLE_WALLET
 
 static bool HandleWalletRoute(HTTPRequest* req, const std::string& path)
@@ -831,6 +933,8 @@ static bool HandleWalletRoute(HTTPRequest* req, const std::string& path)
     if (action == "receive-address") return HandleWalletReceiveAddress(req, wallet_name);
     if (action == "assets")          return HandleWalletAssets(req, wallet_name);
     if (action == "send")            return HandleWalletSend(req, wallet_name);
+    if (action == "unlock")          return HandleWalletUnlock(req, wallet_name);
+    if (action == "lock")            return HandleWalletLock(req, wallet_name);
 #endif
 
     req->WriteReply(HTTP_NOT_FOUND, R"({"error":"not found"})");
