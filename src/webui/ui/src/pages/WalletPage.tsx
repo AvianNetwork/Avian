@@ -355,6 +355,7 @@ function TransactionsTab({ walletName }: { walletName: string }) {
             {pageSlice.map(tx => {
               const isOpen = expanded === tx.txid
               const positive = parseFloat(tx.amount) >= 0
+              const immature = tx.coinbase && tx.confirmations < 100
               return (
                 <>
                   <tr
@@ -366,7 +367,9 @@ function TransactionsTab({ walletName }: { walletName: string }) {
                       {new Date(tx.time * 1000).toLocaleString()}
                     </td>
                     <td style={{ color: positive ? 'var(--green)' : 'var(--red)', fontFamily: 'var(--mono)' }}>
-                      {positive ? '+' : ''}{tx.amount}
+                      {immature
+                        ? <span className="badge yellow">Immature</span>
+                        : <>{positive ? '+' : ''}{tx.amount}</>}
                     </td>
                     <td>{tx.confirmations}</td>
                     <td className="mono" style={{ fontSize: 11 }}>{tx.txid.slice(0, 16)}…</td>
@@ -409,6 +412,7 @@ function TxDetail({ tx }: { tx: WalletTx }) {
     setTimeout(() => setCopiedTxid(false), 1500)
   }
   const positive = parseFloat(tx.amount) >= 0
+  const immature = tx.coinbase && tx.confirmations < 100
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 8, fontSize: 13 }}>
       <div>
@@ -422,12 +426,18 @@ function TxDetail({ tx }: { tx: WalletTx }) {
       </div>
       <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap' }}>
         <div>
-          <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 2 }}>Net</div>
-          <span style={{ color: positive ? 'var(--green)' : 'var(--red)', fontFamily: 'var(--mono)' }}>
-            {positive ? '+' : ''}{tx.amount} AVN
-          </span>
+          <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 2 }}>Amount</div>
+          {immature ? (
+            <span style={{ color: 'var(--yellow)', fontFamily: 'var(--mono)' }}>
+              +{tx.credit} AVN <span style={{ color: 'var(--muted)', fontSize: 11 }}>(maturing)</span>
+            </span>
+          ) : (
+            <span style={{ color: positive ? 'var(--green)' : 'var(--red)', fontFamily: 'var(--mono)' }}>
+              {positive ? '+' : ''}{tx.amount} AVN
+            </span>
+          )}
         </div>
-        {parseFloat(tx.credit) !== 0 && (
+        {!immature && parseFloat(tx.credit) !== 0 && (
           <div>
             <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 2 }}>Received</div>
             <span style={{ color: 'var(--green)', fontFamily: 'var(--mono)' }}>+{tx.credit} AVN</span>
@@ -441,12 +451,12 @@ function TxDetail({ tx }: { tx: WalletTx }) {
         )}
         <div>
           <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 2 }}>Confirmations</div>
-          <span>{tx.confirmations}</span>
+          <span>{tx.confirmations}{immature ? ` / 100` : ''}</span>
         </div>
         {tx.coinbase && (
           <div>
             <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 2 }}>Type</div>
-            <span className="badge green">Coinbase</span>
+            <span className={`badge ${immature ? 'yellow' : 'green'}`}>{immature ? 'Immature' : 'Coinbase'}</span>
           </div>
         )}
       </div>
