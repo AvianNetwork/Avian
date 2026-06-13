@@ -786,10 +786,15 @@ static bool HandleWalletAddresses(HTTPRequest* req, const std::string& wallet_na
         for (const auto& addr : w->getAddresses()) {
             // Only include receive addresses (skip send-side address book entries)
             if (addr.purpose != wallet::AddressPurpose::RECEIVE) continue;
+            const char* addrType = "unknown";
+            if (std::holds_alternative<PKHash>(addr.dest))             addrType = "legacy";
+            else if (std::holds_alternative<WitnessV0KeyHash>(addr.dest)) addrType = "p2wpkh";
+            else if (std::holds_alternative<ScriptHash>(addr.dest))    addrType = "p2sh";
             UniValue entry(UniValue::VOBJ);
             entry.pushKV("address", EncodeDestination(addr.dest));
             entry.pushKV("label",   addr.name);
             entry.pushKV("is_mine", addr.is_mine);
+            entry.pushKV("type",    addrType);
             arr.push_back(entry);
         }
         UniValue obj(UniValue::VOBJ);

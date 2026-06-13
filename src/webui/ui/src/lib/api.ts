@@ -79,7 +79,7 @@ export interface PSBTOutput   { address?: string; script?: string; amount: strin
 export interface PSBTDecoded  { inputs: PSBTInput[]; outputs: PSBTOutput[]; fee?: string; complete: boolean }
 
 export interface Recipient    { address: string; amount: string; subtractFee?: boolean }
-export interface WalletAddressEntry { address: string; label: string; is_mine: boolean }
+export interface WalletAddressEntry { address: string; label: string; is_mine: boolean; type: string }
 
 // ── API ────────────────────────────────────────────────────────────────────
 

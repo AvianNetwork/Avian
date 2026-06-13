@@ -953,7 +953,7 @@ function SignVerifyTab({ walletName, features }: { walletName: string; features:
   useEffect(() => {
     api.wallet.addresses(walletName)
       .then(r => {
-        const mine = r.addresses.filter(a => a.is_mine)
+        const mine = r.addresses.filter(a => a.is_mine && a.type === 'legacy')
         setMyAddrs(mine)
         if (mine.length > 0) setSAddr(mine[0].address)
       })
