@@ -6,7 +6,9 @@
 
 #include <webui/webui.h>
 
+#include <assets/ans.h>
 #include <assets/assets.h>
+#include <assets/assetdb.h>
 #include <clientversion.h>
 #include <common/args.h>
 #include <core_io.h>
@@ -30,6 +32,7 @@
 #ifdef ENABLE_WALLET
 #include <interfaces/wallet.h>
 #include <support/allocators/secure.h>
+#include <wallet/coincontrol.h>
 #include <wallet/context.h>
 #include <wallet/receive.h>
 #include <wallet/spend.h>
@@ -650,6 +653,10 @@ static bool HandleWalletReceiveAddress(HTTPRequest* req, const std::string& wall
     for (auto& w : g_node->wallet_loader->getWallets()) {
         if (w->getWalletName() != wallet_name) continue;
 
+        if (w->isCrypted() && w->isLocked()) {
+            req->WriteReply(423, R"({"error":"Wallet is locked. Unlock it first."})");
+            return false;
+        }
         auto dest_result = w->getNewDestination(OutputType::BECH32, "");
         if (!dest_result) {
             const std::string err_msg = util::ErrorString(dest_result).original;
@@ -660,6 +667,83 @@ static bool HandleWalletReceiveAddress(HTTPRequest* req, const std::string& wall
         UniValue obj(UniValue::VOBJ);
         obj.pushKV("wallet",  wallet_name);
         obj.pushKV("address", EncodeDestination(*dest_result));
+        SetJSONHeaders(req, *cors);
+        req->WriteReply(HTTP_OK, obj.write());
+        return true;
+    }
+    req->WriteReply(HTTP_NOT_FOUND, R"({"error":"Wallet not found or not loaded"})");
+    return false;
+}
+
+static bool HandleWalletSend(HTTPRequest* req, const std::string& wallet_name)
+{
+    if (req->GetRequestMethod() != HTTPRequest::POST) {
+        req->WriteReply(HTTP_BAD_METHOD, "");
+        return false;
+    }
+    if (!CheckWebUIHost(req)) return false;
+    auto cors = CheckWebUICORS(req);
+    if (!cors) return false;
+    if (!CheckWebUIAuth(req)) return false;
+
+    if (!g_node || !g_node->wallet_loader) {
+        req->WriteReply(HTTP_SERVICE_UNAVAILABLE, R"({"error":"Wallet support not available"})");
+        return false;
+    }
+
+    UniValue body;
+    if (!body.read(req->ReadBody()) || !body.isObject()) {
+        req->WriteReply(HTTP_BAD_REQUEST, R"({"error":"Invalid request body"})");
+        return false;
+    }
+    const UniValue& addrVal = body["address"];
+    if (!addrVal.isStr() || addrVal.get_str().empty()) {
+        req->WriteReply(HTTP_BAD_REQUEST, R"({"error":"\"address\" field required"})");
+        return false;
+    }
+    CTxDestination dest = DecodeDestination(addrVal.get_str());
+    if (!IsValidDestination(dest)) {
+        req->WriteReply(HTTP_BAD_REQUEST, R"({"error":"Invalid Avian address"})");
+        return false;
+    }
+    const UniValue& amtVal = body["amount"];
+    if (!amtVal.isNum() && !amtVal.isStr()) {
+        req->WriteReply(HTTP_BAD_REQUEST, R"({"error":"\"amount\" field required"})");
+        return false;
+    }
+    int64_t amount_raw{0};
+    if (!ParseFixedPoint(amtVal.getValStr(), 8, &amount_raw) || amount_raw <= 0 || !MoneyRange(amount_raw)) {
+        req->WriteReply(HTTP_BAD_REQUEST, R"({"error":"Invalid or out-of-range amount"})");
+        return false;
+    }
+    const bool subtract_fee = body["subtractFee"].isBool() && body["subtractFee"].get_bool();
+
+    for (auto& w : g_node->wallet_loader->getWallets()) {
+        if (w->getWalletName() != wallet_name) continue;
+
+        if (w->isCrypted() && w->isLocked()) {
+            req->WriteReply(423, R"({"error":"Wallet is locked. Unlock it first."})");
+            return false;
+        }
+
+        wallet::CRecipient recipient{dest, static_cast<CAmount>(amount_raw), subtract_fee, {}};
+        wallet::CCoinControl coin_control;
+        int change_pos{-1};
+        CAmount fee{0};
+        auto tx_result = w->createTransaction({recipient}, coin_control, /*sign=*/true, change_pos, fee);
+        if (!tx_result) {
+            UniValue obj(UniValue::VOBJ);
+            obj.pushKV("success", false);
+            obj.pushKV("error",   util::ErrorString(tx_result).original);
+            SetJSONHeaders(req, *cors);
+            req->WriteReply(HTTP_BAD_REQUEST, obj.write());
+            return false;
+        }
+        w->commitTransaction(*tx_result, /*value_map=*/{}, /*order_form=*/{});
+
+        UniValue obj(UniValue::VOBJ);
+        obj.pushKV("txid", (*tx_result)->GetHash().GetHex());
+        obj.pushKV("fee",  ValueFromAmount(fee));
         SetJSONHeaders(req, *cors);
         req->WriteReply(HTTP_OK, obj.write());
         return true;
@@ -746,7 +830,234 @@ static bool HandleWalletRoute(HTTPRequest* req, const std::string& path)
     if (action == "transactions")    return HandleWalletTransactions(req, wallet_name);
     if (action == "receive-address") return HandleWalletReceiveAddress(req, wallet_name);
     if (action == "assets")          return HandleWalletAssets(req, wallet_name);
+    if (action == "send")            return HandleWalletSend(req, wallet_name);
 #endif
+
+    req->WriteReply(HTTP_NOT_FOUND, R"({"error":"not found"})");
+    return false;
+}
+
+// ---- ANS API handlers --------------------------------------------------
+
+static bool HandleANSResolve(HTTPRequest* req, const std::string& name, const std::optional<std::string>& coin)
+{
+    if (!CheckWebUIHost(req)) return false;
+    auto cors = CheckWebUICORS(req);
+    if (!cors) return false;
+    if (!CheckWebUIAuth(req)) return false;
+
+    // Normalise: uppercase, strip .AVN suffix
+    std::string base = name;
+    for (auto& c : base) c = static_cast<char>(toupper(static_cast<unsigned char>(c)));
+    if (base.size() > 4 && base.substr(base.size() - 4) == ".AVN")
+        base = base.substr(0, base.size() - 4);
+    if (base.empty()) {
+        req->WriteReply(HTTP_BAD_REQUEST, R"({"error":"Name must not be empty"})");
+        return false;
+    }
+
+    LOCK(cs_main);
+    if (!passets) {
+        req->WriteReply(HTTP_SERVICE_UNAVAILABLE, R"({"error":"Asset cache not available"})");
+        return false;
+    }
+
+    // Cross-chain resolution via sub-asset NAME.AVN/COIN (AIP-0010)
+    if (coin) {
+        std::string coinUpper = *coin;
+        for (auto& c : coinUpper) c = static_cast<char>(toupper(static_cast<unsigned char>(c)));
+        const std::string subAssetName = base + CAvianNameSystemID::domain + "/" + coinUpper;
+        CNewAsset subAsset;
+        if (!passets->GetAssetMetaDataIfExists(subAssetName, subAsset)) {
+            req->WriteReply(HTTP_NOT_FOUND,
+                "{\"error\":\"Cross-chain sub-asset not found: " + subAssetName + "\"}");
+            return false;
+        }
+        if (!subAsset.nHasANS || subAsset.strANSID.empty()) {
+            req->WriteReply(HTTP_NOT_FOUND, R"({"error":"Sub-asset has no ANS record"})");
+            return false;
+        }
+        CAvianNameSystemID ansID(subAsset.strANSID);
+        if (ansID.type() != CAvianNameSystemID::XADDR || ansID.addr().empty()) {
+            req->WriteReply(HTTP_NOT_FOUND, R"({"error":"Sub-asset ANS record is not an external address"})");
+            return false;
+        }
+        UniValue obj(UniValue::VOBJ);
+        obj.pushKV("name",    subAssetName);
+        obj.pushKV("address", ansID.addr());
+        obj.pushKV("source",  "ans_xaddr");
+        SetJSONHeaders(req, *cors);
+        req->WriteReply(HTTP_OK, obj.write());
+        return true;
+    }
+
+    // Avian resolution
+    const std::string assetName = base + CAvianNameSystemID::domain;
+    CNewAsset asset;
+    if (!passets->GetAssetMetaDataIfExists(assetName, asset)) {
+        req->WriteReply(HTTP_NOT_FOUND, "{\"error\":\"AVN name not found: " + assetName + "\"}");
+        return false;
+    }
+
+    // Tier 1a: ADDR record
+    if (asset.nHasANS && !asset.strANSID.empty()) {
+        CAvianNameSystemID ansID(asset.strANSID);
+        if (ansID.type() == CAvianNameSystemID::ADDR && !ansID.addr().empty()) {
+            UniValue obj(UniValue::VOBJ);
+            obj.pushKV("name",    assetName);
+            obj.pushKV("address", ansID.addr());
+            obj.pushKV("source",  "ans_record");
+            SetJSONHeaders(req, *cors);
+            req->WriteReply(HTTP_OK, obj.write());
+            return true;
+        }
+        // Tier 1b: PROFILE record
+        if (ansID.type() == CAvianNameSystemID::PROFILE && !ansID.profile().addr.empty()) {
+            const ANSProfileData& pd = ansID.profile();
+            UniValue obj(UniValue::VOBJ);
+            obj.pushKV("name",    assetName);
+            obj.pushKV("address", pd.addr);
+            obj.pushKV("source",  "ans_profile");
+            if (!pd.name.empty())   obj.pushKV("display_name", pd.name);
+            if (!pd.avatar.empty()) obj.pushKV("avatar", pd.avatar_binary ? HexStr(pd.avatar) : pd.avatar);
+            if (!pd.banner.empty()) obj.pushKV("banner", pd.banner_binary ? HexStr(pd.banner) : pd.banner);
+            if (!pd.url.empty())    obj.pushKV("url", pd.url);
+            SetJSONHeaders(req, *cors);
+            req->WriteReply(HTTP_OK, obj.write());
+            return true;
+        }
+    }
+
+    // Tier 2: owner token fallback (requires -assetindex)
+    if (!fAssetIndex || !passetsdb) {
+        req->WriteReply(HTTP_NOT_FOUND,
+            "{\"error\":\"No ANS record for " + assetName + "; enable -assetindex for owner-token fallback\"}");
+        return false;
+    }
+    const std::string ownerToken = assetName + "!";
+    std::vector<std::pair<std::string, CAmount>> ownerAddrs;
+    int dbTotal{0};
+    if (!passetsdb->AssetAddressDir(ownerAddrs, dbTotal, false, ownerToken, 1, 0) || ownerAddrs.empty()) {
+        req->WriteReply(HTTP_NOT_FOUND,
+            "{\"error\":\"No ANS record and no owner found for: " + assetName + "\"}");
+        return false;
+    }
+    UniValue obj(UniValue::VOBJ);
+    obj.pushKV("name",    assetName);
+    obj.pushKV("address", ownerAddrs[0].first);
+    obj.pushKV("source",  "owner_token");
+    SetJSONHeaders(req, *cors);
+    req->WriteReply(HTTP_OK, obj.write());
+    return true;
+}
+
+static bool HandleANSWhois(HTTPRequest* req, const std::string& address)
+{
+    if (!CheckWebUIHost(req)) return false;
+    auto cors = CheckWebUICORS(req);
+    if (!cors) return false;
+    if (!CheckWebUIAuth(req)) return false;
+
+    if (!fAssetIndex || !passetsdb || !passets) {
+        req->WriteReply(HTTP_SERVICE_UNAVAILABLE,
+            R"({"error":"whois requires -assetindex"})");
+        return false;
+    }
+
+    LOCK(cs_main);
+
+    const std::string& domain = CAvianNameSystemID::domain;
+
+    auto addrHash = [](const std::string& addr) -> uint160 {
+        CTxDestination d = DecodeDestination(addr);
+        if (auto* p = std::get_if<PKHash>(&d))           return uint160(*p);
+        if (auto* p = std::get_if<WitnessV0KeyHash>(&d)) return uint160(*p);
+        return uint160();
+    };
+    const uint160 queryHash = addrHash(address);
+
+    // Build combined balance map
+    std::map<std::string, CAmount> combined;
+    {
+        std::vector<std::pair<std::string, CAmount>> vecDB;
+        int dbTotal{0};
+        passetsdb->AddressDir(vecDB, dbTotal, false, address, std::numeric_limits<size_t>::max(), 0);
+        for (const auto& [nm, amt] : vecDB) combined[nm] = amt;
+        for (const auto& [pair, amt] : passets->mapAssetsAddressAmount)
+            if (pair.second == address) combined[pair.first] = amt;
+    }
+
+    UniValue ownerOf(UniValue::VARR);
+    UniValue holds(UniValue::VARR);
+    for (const auto& [nm, amt] : combined) {
+        if (amt <= 0) continue;
+        if (nm.size() > domain.size() + 1 && nm.back() == '!') {
+            std::string base = nm.substr(0, nm.size() - 1);
+            if (base.size() > domain.size() &&
+                base.substr(base.size() - domain.size()) == domain)
+                ownerOf.push_back(base);
+        } else if (nm.size() > domain.size() &&
+                   nm.substr(nm.size() - domain.size()) == domain) {
+            holds.push_back(nm);
+        }
+    }
+
+    UniValue registeredAs(UniValue::VARR);
+    {
+        std::vector<CDatabasedAssetData> ansAssets;
+        passetsdb->AssetDir(ansAssets, "*", std::numeric_limits<size_t>::max(), 0);
+        for (const auto& data : ansAssets) {
+            const CNewAsset& a = data.asset;
+            if (a.strName.size() <= domain.size() ||
+                a.strName.substr(a.strName.size() - domain.size()) != domain) continue;
+            if (!a.nHasANS || a.strANSID.empty()) continue;
+            if (!CAvianNameSystemID::IsValidID(a.strANSID)) continue;
+            CAvianNameSystemID ans(a.strANSID);
+            std::string ansAddr;
+            if (ans.type() == CAvianNameSystemID::ADDR)
+                ansAddr = ans.addr();
+            else if (ans.type() == CAvianNameSystemID::PROFILE)
+                ansAddr = ans.profile().addr;
+            if (!ansAddr.empty() && !queryHash.IsNull() && addrHash(ansAddr) == queryHash)
+                registeredAs.push_back(a.strName);
+        }
+    }
+
+    UniValue obj(UniValue::VOBJ);
+    obj.pushKV("address",       address);
+    obj.pushKV("owner_of",      ownerOf);
+    obj.pushKV("registered_as", registeredAs);
+    obj.pushKV("holds",         holds);
+    SetJSONHeaders(req, *cors);
+    req->WriteReply(HTTP_OK, obj.write());
+    return true;
+}
+
+static bool HandleANSRoute(HTTPRequest* req, const std::string& path)
+{
+    if (req->GetRequestMethod() != HTTPRequest::GET) {
+        req->WriteReply(HTTP_BAD_METHOD, "");
+        return false;
+    }
+    static constexpr std::string_view ANS_PREFIX{"/webui/api/ans/"};
+    const std::string rest = path.substr(ANS_PREFIX.size());
+    const size_t slash = rest.find('/');
+    if (slash == std::string::npos || slash == 0) {
+        req->WriteReply(HTTP_NOT_FOUND, R"({"error":"not found"})");
+        return false;
+    }
+    const std::string action = rest.substr(0, slash);
+    const std::string param  = rest.substr(slash + 1);
+    if (param.empty()) {
+        req->WriteReply(HTTP_BAD_REQUEST, R"({"error":"Missing parameter"})");
+        return false;
+    }
+
+    if (action == "resolve") {
+        auto coin = req->GetQueryParameter("coin");
+        return HandleANSResolve(req, param, coin);
+    }
+    if (action == "whois") return HandleANSWhois(req, param);
 
     req->WriteReply(HTTP_NOT_FOUND, R"({"error":"not found"})");
     return false;
@@ -796,6 +1107,7 @@ static bool WebUIDispatch(HTTPRequest* req, const std::string& /*prefix*/)
     if (path == "/webui/api/wallets/unload")     return HandleWalletUnload(req);
 
     if (path.starts_with("/webui/api/wallet/")) return HandleWalletRoute(req, path);
+    if (path.starts_with("/webui/api/ans/"))    return HandleANSRoute(req, path);
 
     req->WriteReply(HTTP_NOT_FOUND, R"({"error":"not found"})");
     return false;
