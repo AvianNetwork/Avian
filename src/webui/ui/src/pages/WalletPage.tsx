@@ -927,6 +927,7 @@ function PSBTBroadcast() {
 // ── Sign / Verify ─────────────────────────────────────────────────────────
 
 function SignVerifyTab({ walletName, features }: { walletName: string; features: NodeFeatures | null }) {
+  const [myAddrs, setMyAddrs] = useState<WalletAddressEntry[]>([])
   const [sAddr, setSAddr] = useState('')
   const [sMsg,  setSMsg]  = useState('')
   const [sSig,  setSSig]  = useState('')
@@ -938,6 +939,16 @@ function SignVerifyTab({ walletName, features }: { walletName: string; features:
   const [vSig,  setVSig]  = useState('')
   const [vBusy, setVBusy] = useState(false)
   const [vRes,  setVRes]  = useState<{ valid: boolean; error?: string } | null>(null)
+
+  useEffect(() => {
+    api.wallet.addresses(walletName)
+      .then(r => {
+        const mine = r.addresses.filter(a => a.is_mine)
+        setMyAddrs(mine)
+        if (mine.length > 0) setSAddr(mine[0].address)
+      })
+      .catch(() => {})
+  }, [walletName])
 
   const handleSign = async (e: FormEvent) => {
     e.preventDefault()
@@ -967,7 +978,17 @@ function SignVerifyTab({ walletName, features }: { walletName: string; features:
         <form onSubmit={handleSign} style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           <div>
             <label>Address (from this wallet)</label>
-            <input value={sAddr} onChange={e => setSAddr(e.target.value)} placeholder="AVN address…" spellCheck={false} />
+            {myAddrs.length > 0 ? (
+              <select value={sAddr} onChange={e => setSAddr(e.target.value)}>
+                {myAddrs.map(a => (
+                  <option key={a.address} value={a.address}>
+                    {a.label ? `${a.label} — ` : ''}{a.address}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <input value={sAddr} onChange={e => setSAddr(e.target.value)} placeholder="AVN address…" spellCheck={false} />
+            )}
           </div>
           <div>
             <label>Message</label>
