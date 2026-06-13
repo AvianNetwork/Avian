@@ -1,0 +1,161 @@
+/* Konnect — Avian's brand typeface (Regular/SemiBold/Bold only) */
+@font-face { font-family: "Konnect"; font-weight: 400; src: url('./assets/fonts/KonnectRegular.otf') format('opentype'); }
+@font-face { font-family: "Konnect"; font-weight: 600; src: url('./assets/fonts/KonnectSemiBold.otf') format('opentype'); }
+@font-face { font-family: "Konnect"; font-weight: 700; src: url('./assets/fonts/KonnectBold.otf') format('opentype'); }
+@font-face { font-family: "Roboto Mono"; font-weight: 400 700; src: url('./assets/fonts/RobotoMono-Bold.ttf') format('truetype'); }
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  /* Avian brand palette — sourced from src/qt/res/css/Dark.css */
+  --bg:          #2e2e2e;
+  --surf:        #363636;
+  --surf2:       #292929;
+  --surf3:       #272727;
+  --border:      #555555;
+  --border-teal: #2b737f;
+  --text:        #f4f4f4;
+  --muted:       #878787;
+  --muted2:      #cccccc;
+  --accent:      #2b737f;
+  --accent-bright: #18a7b7;
+  --selection:   #3d3939;
+  --input-bg:    #666666;
+  --green:       #5e8c41;
+  --red:         #a84832;
+  --yellow:      #c79304;
+  --radius:      4px;
+  --font:        "Konnect", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --mono:        "Roboto Mono", ui-monospace, SFMono-Regular, Consolas, monospace;
+}
+
+html, body, #root { height: 100%; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 14px;
+  line-height: 1.5;
+  font-weight: 400;
+}
+
+a { color: var(--accent-bright); text-decoration: none; }
+a:hover { text-decoration: underline; color: var(--accent-bright); }
+
+button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  background: var(--accent);
+  color: #ffffff;
+  border: 0;
+  border-radius: var(--radius);
+  font-size: 14px;
+  font-family: var(--font);
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s;
+  white-space: nowrap;
+  min-height: 26px;
+}
+button:hover  { background: var(--accent-bright); }
+button:active { opacity: 0.85; }
+button.primary { background: var(--accent); color: #fff; }
+button.primary:hover { background: var(--accent-bright); }
+button.secondary { background: var(--surf2); color: var(--text); border: 1px solid var(--border); }
+button.secondary:hover { background: var(--selection); }
+button.danger  { background: transparent; border: 1px solid var(--red); color: var(--red); }
+button.danger:hover { background: rgba(168,72,50,.15); }
+button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+input, textarea, select {
+  width: 100%;
+  padding: 5px 10px;
+  background: var(--input-bg);
+  color: var(--text);
+  border: 1px solid var(--border-teal);
+  border-radius: var(--radius);
+  font-family: var(--font);
+  font-size: 14px;
+  outline: none;
+  min-height: 28px;
+}
+input:hover:not(:focus), textarea:hover:not(:focus) {
+  border: 2px solid var(--accent-bright);
+  padding: 4px 9px;
+}
+input:focus, textarea:focus, select:focus {
+  border: 2px solid var(--accent-bright);
+  background: var(--surf2);
+  padding: 4px 9px;
+}
+textarea { resize: vertical; font-family: var(--mono); min-height: 28px; }
+
+label { display: block; font-size: 13px; color: var(--muted2); margin-bottom: 4px; }
+
+.card {
+  background: var(--surf);
+  border: 1px solid var(--border-teal);
+  border-radius: var(--radius);
+  padding: 16px;
+}
+
+.mono { font-family: var(--mono); font-size: 13px; word-break: break-all; }
+
+.badge {
+  display: inline-block;
+  padding: 1px 8px;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 600;
+}
+.badge.green  { background: rgba(94,140,65,.2);  color: #7ec95a; border: 1px solid rgba(94,140,65,.5); }
+.badge.red    { background: rgba(168,72,50,.2);  color: #e06b52; border: 1px solid rgba(168,72,50,.5); }
+.badge.yellow { background: rgba(199,147,4,.2);  color: var(--yellow); border: 1px solid rgba(199,147,4,.5); }
+.badge.blue   { background: rgba(24,167,183,.15);color: var(--accent-bright); border: 1px solid rgba(24,167,183,.4); }
+
+.error-box { padding: 10px 14px; background: rgba(168,72,50,.15); border: 1px solid rgba(168,72,50,.5); border-radius: var(--radius); color: #e06b52; }
+.info-box  { padding: 10px 14px; background: rgba(43,115,127,.15); border: 1px solid var(--border-teal); border-radius: var(--radius); color: var(--accent-bright); }
+.ok-box    { padding: 10px 14px; background: rgba(94,140,65,.15);  border: 1px solid rgba(94,140,65,.5);  border-radius: var(--radius); color: #7ec95a; }
+
+table { width: 100%; border-collapse: collapse; }
+th, td { padding: 8px 12px; text-align: left; border-bottom: 1px solid var(--border); }
+th { background: var(--accent); color: #f4f4f4; font-weight: 600; font-size: 13px; }
+th:first-child { border-radius: var(--radius) 0 0 0; }
+th:last-child  { border-radius: 0 var(--radius) 0 0; }
+tr:last-child td { border-bottom: none; }
+tr:nth-child(even) td { background: rgba(255,255,255,.04); }
+tr:hover td { background: rgba(24,167,183,.1); }
+
+.tabs { display: flex; gap: 0; border-bottom: 1px solid var(--border-teal); margin-bottom: 16px; }
+.tab {
+  padding: 8px 16px;
+  cursor: pointer;
+  color: var(--muted2);
+  border-bottom: 3px solid transparent;
+  margin-bottom: -1px;
+  font-size: 14px;
+  font-family: var(--font);
+  font-weight: 500;
+  background: none;
+  border-top: none;
+  border-left: none;
+  border-right: none;
+  border-radius: 0;
+  transition: color 0.15s, border-color 0.15s;
+  min-height: unset;
+}
+.tab:hover { color: var(--text); background: none; }
+.tab.active { color: var(--accent-bright); border-bottom-color: var(--accent-bright); }
+
+.spinner {
+  display: inline-block;
+  width: 16px; height: 16px;
+  border: 2px solid var(--border);
+  border-top-color: var(--accent-bright);
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
