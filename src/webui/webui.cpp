@@ -11,15 +11,21 @@
 #include <assets/assetdb.h>
 #include <clientversion.h>
 #include <common/args.h>
+#include <common/signmessage.h>
 #include <core_io.h>
 #include <httpserver.h>
 #include <key_io.h>
 #include <logging.h>
 #include <net.h>
 #include <node/context.h>
+#include <node/transaction.h>
+#include <node/types.h>
 #include <outputtype.h>
+#include <psbt.h>
 #include <random.h>
 #include <rpc/protocol.h>
+#include <script/solver.h>
+#include <streams.h>
 #include <sync.h>
 #include <util/fs.h>
 #include <util/fs_helpers.h>
@@ -913,6 +919,233 @@ static bool HandleWalletLock(HTTPRequest* req, const std::string& wallet_name)
     return false;
 }
 
+static bool HandleWalletSignMessage(HTTPRequest* req, const std::string& wallet_name)
+{
+    // POST {address, message} → {address, message, signature}
+    if (req->GetRequestMethod() != HTTPRequest::POST) {
+        req->WriteReply(HTTP_BAD_METHOD, "");
+        return false;
+    }
+    if (!CheckWebUIHost(req)) return false;
+    auto cors = CheckWebUICORS(req);
+    if (!cors) return false;
+    if (!CheckWebUIAuth(req)) return false;
+
+    if (!g_node || !g_node->wallet_loader) {
+        req->WriteReply(HTTP_SERVICE_UNAVAILABLE, R"({"error":"Wallet support not available"})");
+        return false;
+    }
+    UniValue body;
+    if (!body.read(req->ReadBody()) || !body.isObject()) {
+        req->WriteReply(HTTP_BAD_REQUEST, R"({"error":"Invalid request body"})");
+        return false;
+    }
+    const UniValue& addrVal = body["address"];
+    const UniValue& msgVal  = body["message"];
+    if (!addrVal.isStr() || addrVal.get_str().empty()) {
+        req->WriteReply(HTTP_BAD_REQUEST, R"({"error":"\"address\" field required"})");
+        return false;
+    }
+    if (!msgVal.isStr()) {
+        req->WriteReply(HTTP_BAD_REQUEST, R"({"error":"\"message\" field required"})");
+        return false;
+    }
+    CTxDestination dest = DecodeDestination(addrVal.get_str());
+    if (!IsValidDestination(dest)) {
+        req->WriteReply(HTTP_BAD_REQUEST, R"({"error":"Invalid address"})");
+        return false;
+    }
+    // Extract hash160 — accepts both P2PKH and P2WPKH since they share the same key
+    PKHash pkhash;
+    if (const auto* p = std::get_if<PKHash>(&dest)) {
+        pkhash = *p;
+    } else if (const auto* p = std::get_if<WitnessV0KeyHash>(&dest)) {
+        pkhash = PKHash(uint160(*p));
+    } else {
+        req->WriteReply(HTTP_BAD_REQUEST, R"({"error":"Address must be P2PKH or P2WPKH for message signing"})");
+        return false;
+    }
+
+    for (auto& w : g_node->wallet_loader->getWallets()) {
+        if (w->getWalletName() != wallet_name) continue;
+
+        if (w->isCrypted() && w->isLocked()) {
+            req->WriteReply(423, R"({"error":"Wallet is locked. Unlock it first."})");
+            return false;
+        }
+        std::string signature;
+        const SigningResult result = w->signMessage(msgVal.get_str(), pkhash, signature);
+        if (result != SigningResult::OK) {
+            const char* err = (result == SigningResult::PRIVATE_KEY_NOT_AVAILABLE)
+                ? "Private key not available for this address"
+                : "Message signing failed";
+            req->WriteReply(HTTP_BAD_REQUEST, std::string{R"({"error":")"} + err + "\"}");
+            return false;
+        }
+        UniValue obj(UniValue::VOBJ);
+        obj.pushKV("address",   addrVal.get_str());
+        obj.pushKV("message",   msgVal.get_str());
+        obj.pushKV("signature", signature);
+        SetJSONHeaders(req, *cors);
+        req->WriteReply(HTTP_OK, obj.write());
+        return true;
+    }
+    req->WriteReply(HTTP_NOT_FOUND, R"({"error":"Wallet not found or not loaded"})");
+    return false;
+}
+
+static bool HandleWalletPSBTCreate(HTTPRequest* req, const std::string& wallet_name)
+{
+    // POST {recipients: [{address, amount, subtractFee}]} → {psbt, fee}
+    if (req->GetRequestMethod() != HTTPRequest::POST) {
+        req->WriteReply(HTTP_BAD_METHOD, "");
+        return false;
+    }
+    if (!CheckWebUIHost(req)) return false;
+    auto cors = CheckWebUICORS(req);
+    if (!cors) return false;
+    if (!CheckWebUIAuth(req)) return false;
+
+    if (!g_node || !g_node->wallet_loader) {
+        req->WriteReply(HTTP_SERVICE_UNAVAILABLE, R"({"error":"Wallet support not available"})");
+        return false;
+    }
+    UniValue body;
+    if (!body.read(req->ReadBody()) || !body.isObject()) {
+        req->WriteReply(HTTP_BAD_REQUEST, R"({"error":"Invalid request body"})");
+        return false;
+    }
+    const UniValue& recipientsVal = body["recipients"];
+    if (!recipientsVal.isArray() || recipientsVal.empty()) {
+        req->WriteReply(HTTP_BAD_REQUEST, R"({"error":"\"recipients\" array required"})");
+        return false;
+    }
+
+    std::vector<wallet::CRecipient> recipients;
+    for (size_t i = 0; i < recipientsVal.size(); ++i) {
+        const UniValue& r = recipientsVal[i];
+        if (!r.isObject()) {
+            req->WriteReply(HTTP_BAD_REQUEST, R"({"error":"Each recipient must be an object"})");
+            return false;
+        }
+        CTxDestination dest = DecodeDestination(r["address"].getValStr());
+        if (!IsValidDestination(dest)) {
+            req->WriteReply(HTTP_BAD_REQUEST, R"({"error":"Invalid recipient address"})");
+            return false;
+        }
+        int64_t amount_raw{0};
+        if (!ParseFixedPoint(r["amount"].getValStr(), 8, &amount_raw) || amount_raw <= 0 || !MoneyRange(amount_raw)) {
+            req->WriteReply(HTTP_BAD_REQUEST, R"({"error":"Invalid or out-of-range amount"})");
+            return false;
+        }
+        const bool subtract_fee = r["subtractFee"].isBool() && r["subtractFee"].get_bool();
+        recipients.push_back({dest, static_cast<CAmount>(amount_raw), subtract_fee, {}});
+    }
+
+    for (auto& w : g_node->wallet_loader->getWallets()) {
+        if (w->getWalletName() != wallet_name) continue;
+
+        // PSBT creation skips signing, so it works even on a locked wallet
+        wallet::CCoinControl coin_control;
+        int change_pos{-1};
+        CAmount fee{0};
+        auto tx_result = w->createTransaction(recipients, coin_control, /*sign=*/false, change_pos, fee);
+        if (!tx_result) {
+            UniValue obj(UniValue::VOBJ);
+            obj.pushKV("success", false);
+            obj.pushKV("error",   util::ErrorString(tx_result).original);
+            SetJSONHeaders(req, *cors);
+            req->WriteReply(HTTP_BAD_REQUEST, obj.write());
+            return false;
+        }
+
+        CMutableTransaction mtx(**tx_result);
+        PartiallySignedTransaction psbtx{mtx};
+        bool complete{false};
+        size_t n_signed{0};
+        auto fill_err = w->fillPSBT(std::nullopt, /*sign=*/false, /*bip32derivs=*/true, &n_signed, psbtx, complete);
+        if (fill_err) {
+            req->WriteReply(HTTP_INTERNAL_SERVER_ERROR, R"({"error":"Failed to build PSBT"})");
+            return false;
+        }
+
+        DataStream ss{};
+        ss << psbtx;
+        UniValue obj(UniValue::VOBJ);
+        obj.pushKV("psbt", EncodeBase64(ss.str()));
+        obj.pushKV("fee",  ValueFromAmount(fee));
+        SetJSONHeaders(req, *cors);
+        req->WriteReply(HTTP_OK, obj.write());
+        return true;
+    }
+    req->WriteReply(HTTP_NOT_FOUND, R"({"error":"Wallet not found or not loaded"})");
+    return false;
+}
+
+static bool HandleWalletPSBTSign(HTTPRequest* req, const std::string& wallet_name)
+{
+    // POST {psbt: "base64..."} → {psbt: "base64...", complete: bool, signed_inputs: n}
+    if (req->GetRequestMethod() != HTTPRequest::POST) {
+        req->WriteReply(HTTP_BAD_METHOD, "");
+        return false;
+    }
+    if (!CheckWebUIHost(req)) return false;
+    auto cors = CheckWebUICORS(req);
+    if (!cors) return false;
+    if (!CheckWebUIAuth(req)) return false;
+
+    if (!g_node || !g_node->wallet_loader) {
+        req->WriteReply(HTTP_SERVICE_UNAVAILABLE, R"({"error":"Wallet support not available"})");
+        return false;
+    }
+    UniValue body;
+    if (!body.read(req->ReadBody()) || !body.isObject()) {
+        req->WriteReply(HTTP_BAD_REQUEST, R"({"error":"Invalid request body"})");
+        return false;
+    }
+    const UniValue& psbtVal = body["psbt"];
+    if (!psbtVal.isStr() || psbtVal.get_str().empty()) {
+        req->WriteReply(HTTP_BAD_REQUEST, R"({"error":"\"psbt\" field required"})");
+        return false;
+    }
+
+    PartiallySignedTransaction psbtx;
+    std::string parse_err;
+    if (!DecodeBase64PSBT(psbtx, psbtVal.get_str(), parse_err)) {
+        req->WriteReply(HTTP_BAD_REQUEST, "{\"error\":\"Invalid PSBT: " + parse_err + "\"}");
+        return false;
+    }
+
+    for (auto& w : g_node->wallet_loader->getWallets()) {
+        if (w->getWalletName() != wallet_name) continue;
+
+        if (w->isCrypted() && w->isLocked()) {
+            req->WriteReply(423, R"({"error":"Wallet is locked. Unlock it first."})");
+            return false;
+        }
+
+        bool complete{false};
+        size_t n_signed{0};
+        auto fill_err = w->fillPSBT(std::nullopt, /*sign=*/true, /*bip32derivs=*/true, &n_signed, psbtx, complete);
+        if (fill_err) {
+            req->WriteReply(HTTP_BAD_REQUEST, R"({"error":"Failed to sign PSBT"})");
+            return false;
+        }
+
+        DataStream ss{};
+        ss << psbtx;
+        UniValue obj(UniValue::VOBJ);
+        obj.pushKV("psbt",          EncodeBase64(ss.str()));
+        obj.pushKV("complete",      complete);
+        obj.pushKV("signed_inputs", static_cast<int>(n_signed));
+        SetJSONHeaders(req, *cors);
+        req->WriteReply(HTTP_OK, obj.write());
+        return true;
+    }
+    req->WriteReply(HTTP_NOT_FOUND, R"({"error":"Wallet not found or not loaded"})");
+    return false;
+}
+
 #endif // ENABLE_WALLET
 
 static bool HandleWalletRoute(HTTPRequest* req, const std::string& path)
@@ -935,6 +1168,9 @@ static bool HandleWalletRoute(HTTPRequest* req, const std::string& path)
     if (action == "send")            return HandleWalletSend(req, wallet_name);
     if (action == "unlock")          return HandleWalletUnlock(req, wallet_name);
     if (action == "lock")            return HandleWalletLock(req, wallet_name);
+    if (action == "signmessage")     return HandleWalletSignMessage(req, wallet_name);
+    if (action == "psbt/create")     return HandleWalletPSBTCreate(req, wallet_name);
+    if (action == "psbt/sign")       return HandleWalletPSBTSign(req, wallet_name);
 #endif
 
     req->WriteReply(HTTP_NOT_FOUND, R"({"error":"not found"})");
@@ -1167,6 +1403,242 @@ static bool HandleANSRoute(HTTPRequest* req, const std::string& path)
     return false;
 }
 
+// ---- PSBT and message API handlers (node-level) ------------------------
+
+static bool HandleVerifyMessage(HTTPRequest* req)
+{
+    // POST {address, signature, message} → {valid: bool}
+    if (req->GetRequestMethod() != HTTPRequest::POST) {
+        req->WriteReply(HTTP_BAD_METHOD, "");
+        return false;
+    }
+    if (!CheckWebUIHost(req)) return false;
+    auto cors = CheckWebUICORS(req);
+    if (!cors) return false;
+    if (!CheckWebUIAuth(req)) return false;
+
+    UniValue body;
+    if (!body.read(req->ReadBody()) || !body.isObject()) {
+        req->WriteReply(HTTP_BAD_REQUEST, R"({"error":"Invalid request body"})");
+        return false;
+    }
+    const UniValue& addrVal = body["address"];
+    const UniValue& sigVal  = body["signature"];
+    const UniValue& msgVal  = body["message"];
+    if (!addrVal.isStr() || !sigVal.isStr() || !msgVal.isStr()) {
+        req->WriteReply(HTTP_BAD_REQUEST,
+            R"({"error":"\"address\", \"signature\", and \"message\" fields required"})");
+        return false;
+    }
+
+    const MessageVerificationResult result = MessageVerify(
+        addrVal.get_str(), sigVal.get_str(), msgVal.get_str());
+
+    UniValue obj(UniValue::VOBJ);
+    if (result == MessageVerificationResult::OK) {
+        obj.pushKV("valid", true);
+    } else {
+        obj.pushKV("valid", false);
+        switch (result) {
+        case MessageVerificationResult::ERR_INVALID_ADDRESS:
+            obj.pushKV("error", "Invalid address"); break;
+        case MessageVerificationResult::ERR_ADDRESS_NO_KEY:
+            obj.pushKV("error", "Address has no key (must be P2PKH legacy address)"); break;
+        case MessageVerificationResult::ERR_MALFORMED_SIGNATURE:
+            obj.pushKV("error", "Malformed signature"); break;
+        case MessageVerificationResult::ERR_PUBKEY_NOT_RECOVERED:
+            obj.pushKV("error", "Public key could not be recovered from signature"); break;
+        case MessageVerificationResult::ERR_NOT_SIGNED:
+            obj.pushKV("error", "Message not signed by this address"); break;
+        default:
+            obj.pushKV("error", "Verification failed"); break;
+        }
+    }
+    SetJSONHeaders(req, *cors);
+    req->WriteReply(HTTP_OK, obj.write());
+    return true;
+}
+
+static bool HandlePSBTDecode(HTTPRequest* req)
+{
+    // POST {psbt: "base64..."} → {inputs, outputs, fee, complete}
+    if (req->GetRequestMethod() != HTTPRequest::POST) {
+        req->WriteReply(HTTP_BAD_METHOD, "");
+        return false;
+    }
+    if (!CheckWebUIHost(req)) return false;
+    auto cors = CheckWebUICORS(req);
+    if (!cors) return false;
+    if (!CheckWebUIAuth(req)) return false;
+
+    UniValue body;
+    if (!body.read(req->ReadBody()) || !body.isObject()) {
+        req->WriteReply(HTTP_BAD_REQUEST, R"({"error":"Invalid request body"})");
+        return false;
+    }
+    const UniValue& psbtVal = body["psbt"];
+    if (!psbtVal.isStr() || psbtVal.get_str().empty()) {
+        req->WriteReply(HTTP_BAD_REQUEST, R"({"error":"\"psbt\" field required"})");
+        return false;
+    }
+
+    PartiallySignedTransaction psbtx;
+    std::string parse_err;
+    if (!DecodeBase64PSBT(psbtx, psbtVal.get_str(), parse_err)) {
+        req->WriteReply(HTTP_BAD_REQUEST, "{\"error\":\"Invalid PSBT: " + parse_err + "\"}");
+        return false;
+    }
+    if (!psbtx.tx) {
+        req->WriteReply(HTTP_BAD_REQUEST, R"({"error":"PSBT has no transaction"})");
+        return false;
+    }
+
+    bool all_amounts_known{true};
+    CAmount total_in{0};
+
+    UniValue inputs_arr(UniValue::VARR);
+    for (size_t i = 0; i < psbtx.tx->vin.size(); ++i) {
+        const CTxIn& txin = psbtx.tx->vin[i];
+        UniValue inp(UniValue::VOBJ);
+        inp.pushKV("txid", txin.prevout.hash.GetHex());
+        inp.pushKV("vout", static_cast<int>(txin.prevout.n));
+
+        if (i < psbtx.inputs.size()) {
+            const PSBTInput& pin = psbtx.inputs[i];
+            // Segwit inputs carry only the output being spent; legacy carry the full prev tx
+            if (!pin.witness_utxo.IsNull()) {
+                inp.pushKV("amount", ValueFromAmount(pin.witness_utxo.nValue));
+                total_in += pin.witness_utxo.nValue;
+            } else if (pin.non_witness_utxo) {
+                const uint32_t vout_idx = txin.prevout.n;
+                if (vout_idx < pin.non_witness_utxo->vout.size()) {
+                    const CAmount amt = pin.non_witness_utxo->vout[vout_idx].nValue;
+                    inp.pushKV("amount", ValueFromAmount(amt));
+                    total_in += amt;
+                } else {
+                    all_amounts_known = false;
+                }
+            } else {
+                all_amounts_known = false;
+            }
+
+            const bool has_sigs = !pin.partial_sigs.empty()
+                || !pin.final_script_sig.empty()
+                || !pin.final_script_witness.stack.empty();
+            inp.pushKV("signed", has_sigs);
+        } else {
+            all_amounts_known = false;
+            inp.pushKV("signed", false);
+        }
+        inputs_arr.push_back(inp);
+    }
+
+    CAmount total_out{0};
+    UniValue outputs_arr(UniValue::VARR);
+    for (const CTxOut& txout : psbtx.tx->vout) {
+        UniValue out(UniValue::VOBJ);
+        CTxDestination dest;
+        if (ExtractDestination(txout.scriptPubKey, dest)) {
+            out.pushKV("address", EncodeDestination(dest));
+        } else {
+            out.pushKV("script", HexStr(txout.scriptPubKey));
+        }
+        out.pushKV("amount", ValueFromAmount(txout.nValue));
+        total_out += txout.nValue;
+        outputs_arr.push_back(out);
+    }
+
+    // Complete = all inputs have final_script_sig or final_script_witness
+    bool complete{!psbtx.inputs.empty()};
+    for (const auto& pin : psbtx.inputs) {
+        if (pin.final_script_sig.empty() && pin.final_script_witness.stack.empty()) {
+            complete = false;
+            break;
+        }
+    }
+
+    UniValue obj(UniValue::VOBJ);
+    obj.pushKV("inputs",   inputs_arr);
+    obj.pushKV("outputs",  outputs_arr);
+    if (all_amounts_known) {
+        obj.pushKV("fee", ValueFromAmount(total_in - total_out));
+    }
+    obj.pushKV("complete", complete);
+    SetJSONHeaders(req, *cors);
+    req->WriteReply(HTTP_OK, obj.write());
+    return true;
+}
+
+static bool HandlePSBTBroadcast(HTTPRequest* req)
+{
+    // POST {psbt: "base64..."} → {txid}
+    if (req->GetRequestMethod() != HTTPRequest::POST) {
+        req->WriteReply(HTTP_BAD_METHOD, "");
+        return false;
+    }
+    if (!CheckWebUIHost(req)) return false;
+    auto cors = CheckWebUICORS(req);
+    if (!cors) return false;
+    if (!CheckWebUIAuth(req)) return false;
+
+    if (!g_node) {
+        req->WriteReply(HTTP_SERVICE_UNAVAILABLE, R"({"error":"Node not ready"})");
+        return false;
+    }
+
+    UniValue body;
+    if (!body.read(req->ReadBody()) || !body.isObject()) {
+        req->WriteReply(HTTP_BAD_REQUEST, R"({"error":"Invalid request body"})");
+        return false;
+    }
+    const UniValue& psbtVal = body["psbt"];
+    if (!psbtVal.isStr() || psbtVal.get_str().empty()) {
+        req->WriteReply(HTTP_BAD_REQUEST, R"({"error":"\"psbt\" field required"})");
+        return false;
+    }
+
+    PartiallySignedTransaction psbtx;
+    std::string parse_err;
+    if (!DecodeBase64PSBT(psbtx, psbtVal.get_str(), parse_err)) {
+        req->WriteReply(HTTP_BAD_REQUEST, "{\"error\":\"Invalid PSBT: " + parse_err + "\"}");
+        return false;
+    }
+
+    CMutableTransaction mtx;
+    if (!FinalizeAndExtractPSBT(psbtx, mtx)) {
+        req->WriteReply(HTTP_BAD_REQUEST,
+            R"({"error":"PSBT is not fully signed and cannot be finalized"})");
+        return false;
+    }
+
+    CTransactionRef tx = MakeTransactionRef(std::move(mtx));
+    std::string err_string;
+    const node::TransactionError broadcast_err = BroadcastTransaction(
+        *g_node, tx, err_string, /*max_tx_fee=*/0, /*relay=*/true, /*wait_callback=*/false);
+    if (broadcast_err != node::TransactionError::OK) {
+        req->WriteReply(HTTP_BAD_REQUEST, "{\"error\":\"" + err_string + "\"}");
+        return false;
+    }
+
+    UniValue obj(UniValue::VOBJ);
+    obj.pushKV("txid", tx->GetHash().GetHex());
+    SetJSONHeaders(req, *cors);
+    req->WriteReply(HTTP_OK, obj.write());
+    return true;
+}
+
+static bool HandlePSBTNodeRoute(HTTPRequest* req, const std::string& path)
+{
+    static constexpr std::string_view PSBT_PREFIX{"/webui/api/psbt/"};
+    const std::string action = path.substr(PSBT_PREFIX.size());
+
+    if (action == "decode")    return HandlePSBTDecode(req);
+    if (action == "broadcast") return HandlePSBTBroadcast(req);
+
+    req->WriteReply(HTTP_NOT_FOUND, R"({"error":"not found"})");
+    return false;
+}
+
 // ---- Static HTML -------------------------------------------------------
 
 static bool HandleRoot(HTTPRequest* req)
@@ -1210,8 +1682,11 @@ static bool WebUIDispatch(HTTPRequest* req, const std::string& /*prefix*/)
     if (path == "/webui/api/wallets/create")     return HandleWalletCreate(req);
     if (path == "/webui/api/wallets/unload")     return HandleWalletUnload(req);
 
+    if (path == "/webui/api/verifymessage")     return HandleVerifyMessage(req);
+
     if (path.starts_with("/webui/api/wallet/")) return HandleWalletRoute(req, path);
     if (path.starts_with("/webui/api/ans/"))    return HandleANSRoute(req, path);
+    if (path.starts_with("/webui/api/psbt/"))   return HandlePSBTNodeRoute(req, path);
 
     req->WriteReply(HTTP_NOT_FOUND, R"({"error":"not found"})");
     return false;
