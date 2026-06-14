@@ -300,7 +300,8 @@ function OverviewTab({ walletName, summary, features, onRefresh }: { walletName:
 
 // ── Transactions ──────────────────────────────────────────────────────────
 
-const TX_PAGE_SIZE = 25
+const TX_PAGE_SIZE    = 25
+const ASSET_PAGE_SIZE = 25
 
 function TransactionsTab({ walletName }: { walletName: string }) {
   const [txs,      setTxs]      = useState<WalletTx[]>([])
@@ -501,10 +502,12 @@ const ASSET_TYPE_BADGE: Record<AssetType, { label: string; cls: string }> = {
 // ── Assets ────────────────────────────────────────────────────────────────
 
 function AssetsTab({ walletName }: { walletName: string }) {
-  const [assets,      setAssets]     = useState<AssetBalance[]>([])
-  const [loading,     setLoading]    = useState(true)
-  const [sending,     setSending]    = useState<string | null>(null)
-  const [showAdmin,   setShowAdmin]  = useState(false)
+  const [assets,    setAssets]   = useState<AssetBalance[]>([])
+  const [loading,   setLoading]  = useState(true)
+  const [sending,   setSending]  = useState<string | null>(null)
+  const [showAdmin, setShowAdmin] = useState(false)
+  const [search,    setSearch]   = useState('')
+  const [page,      setPage]     = useState(0)
 
   const loadAssets = useCallback(() => {
     setLoading(true)
@@ -514,23 +517,37 @@ function AssetsTab({ walletName }: { walletName: string }) {
   }, [walletName])
 
   useEffect(() => { loadAssets() }, [loadAssets])
+  useEffect(() => { setPage(0) }, [search, showAdmin])
 
   if (loading) return <div style={{ display: 'flex', gap: 8, color: 'var(--muted)' }}><span className="spinner" /> Loading…</div>
   if (assets.length === 0) return <div style={{ color: 'var(--muted)' }}>No asset balances.</div>
 
   const adminAssets   = assets.filter(a => getAssetType(a.name) === 'admin')
   const regularAssets = assets.filter(a => getAssetType(a.name) !== 'admin')
-  const visible       = showAdmin ? assets : regularAssets
+  const pool          = showAdmin ? assets : regularAssets
+
+  const q        = search.trim().toUpperCase()
+  const filtered = q ? pool.filter(a => a.name.includes(q)) : pool
+
+  const totalPages = Math.ceil(filtered.length / ASSET_PAGE_SIZE)
+  const pageSlice  = filtered.slice(page * ASSET_PAGE_SIZE, (page + 1) * ASSET_PAGE_SIZE)
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <span style={{ fontSize: 13, color: 'var(--muted)' }}>
-          {regularAssets.length} asset{regularAssets.length !== 1 ? 's' : ''}
-          {adminAssets.length > 0 && ` · ${adminAssets.length} admin token${adminAssets.length !== 1 ? 's' : ''}`}
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <input
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          placeholder="Search assets…"
+          spellCheck={false}
+          style={{ flex: 1 }}
+        />
+        <span style={{ fontSize: 12, color: 'var(--muted)', whiteSpace: 'nowrap' }}>
+          {filtered.length} of {regularAssets.length}
+          {adminAssets.length > 0 && ` · ${adminAssets.length} admin`}
         </span>
         {adminAssets.length > 0 && (
-          <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', color: 'var(--muted2)', margin: 0 }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', color: 'var(--muted2)', margin: 0, whiteSpace: 'nowrap' }}>
             <input type="checkbox" style={{ width: 'auto' }} checked={showAdmin} onChange={e => setShowAdmin(e.target.checked)} />
             Show admin tokens
           </label>
@@ -541,7 +558,7 @@ function AssetsTab({ walletName }: { walletName: string }) {
         <table>
           <thead><tr><th>Asset</th><th>Type</th><th>Balance</th><th></th></tr></thead>
           <tbody>
-            {visible.map(a => {
+            {pageSlice.map(a => {
               const t = getAssetType(a.name)
               const badge = ASSET_TYPE_BADGE[t]
               return (
@@ -563,6 +580,14 @@ function AssetsTab({ walletName }: { walletName: string }) {
           </tbody>
         </table>
       </div>
+
+      {totalPages > 1 && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13 }}>
+          <button className="secondary" disabled={page === 0} onClick={() => setPage(p => p - 1)}>← Prev</button>
+          <span style={{ color: 'var(--muted)' }}>Page {page + 1} / {totalPages}</span>
+          <button className="secondary" disabled={page >= totalPages - 1} onClick={() => setPage(p => p + 1)}>Next →</button>
+        </div>
+      )}
 
       {sending && (
         <AssetSendForm
