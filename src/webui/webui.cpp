@@ -2437,11 +2437,19 @@ void InterruptWebUI()
     if (g_node && g_node->validation_signals && g_webui_notifier) {
         g_node->validation_signals->UnregisterValidationInterface(g_webui_notifier.get());
     }
-    std::lock_guard<std::mutex> lock(g_sse_mutex);
-    for (auto* raw : g_sse_clients) {
+    // Snapshot and clear the client list under the lock, then close connections
+    // outside it. Calling evhttp_send_reply_end() while holding g_sse_mutex would
+    // deadlock: the PushSSEEvent closure also holds g_sse_mutex while calling
+    // evhttp_send_reply_chunk(), and both paths compete for libevent's event base lock.
+    std::vector<evhttp_request*> to_close;
+    {
+        std::lock_guard<std::mutex> lock(g_sse_mutex);
+        to_close = std::move(g_sse_clients);
+        // g_sse_clients is now empty; PushSSEEvent will iterate nothing.
+    }
+    for (auto* raw : to_close) {
         evhttp_send_reply_end(raw);
     }
-    g_sse_clients.clear();
 }
 
 void StopWebUI()

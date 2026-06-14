@@ -374,7 +374,8 @@ function TransactionsTab({ walletName, refreshTick }: { walletName: string; refr
             {pageSlice.map(tx => {
               const isOpen = expanded === tx.txid
               const positive = parseFloat(tx.amount) >= 0
-              const immature = tx.coinbase && tx.confirmations < 101
+              const orphaned = tx.coinbase && tx.confirmations <= 0
+              const immature = tx.coinbase && tx.confirmations > 0 && tx.confirmations < 101
               return (
                 <>
                   <tr
@@ -384,7 +385,9 @@ function TransactionsTab({ walletName, refreshTick }: { walletName: string; refr
                   >
                     <td>
                       {tx.coinbase
-                        ? <span className="badge blue">Coinbase</span>
+                        ? orphaned
+                          ? <span className="badge red">Orphaned</span>
+                          : <span className="badge blue">Coinbase</span>
                         : positive
                           ? <span className="badge green">↗ Received</span>
                           : <span className="badge red">↘ Sent</span>
@@ -394,9 +397,11 @@ function TransactionsTab({ walletName, refreshTick }: { walletName: string; refr
                       {new Date(tx.time * 1000).toLocaleString()}
                     </td>
                     <td style={{ color: positive ? 'var(--green)' : 'var(--red)', fontFamily: 'var(--mono)' }}>
-                      {immature
-                        ? <span className="badge yellow">Immature</span>
-                        : <>{positive ? '+' : ''}{tx.amount}</>}
+                      {orphaned
+                        ? <span style={{ color: 'var(--muted)', fontSize: 12 }}>—</span>
+                        : immature
+                          ? <span className="badge yellow">Immature</span>
+                          : <>{positive ? '+' : ''}{tx.amount}</>}
                     </td>
                     <td>{tx.confirmations}</td>
                     <td className="mono" style={{ fontSize: 11 }}>{tx.txid.slice(0, 16)}…</td>
@@ -439,7 +444,8 @@ function TxDetail({ tx }: { tx: WalletTx }) {
     setTimeout(() => setCopiedTxid(false), 1500)
   }
   const positive = parseFloat(tx.amount) >= 0
-  const immature = tx.coinbase && tx.confirmations < 101
+  const orphaned = tx.coinbase && tx.confirmations <= 0
+  const immature = tx.coinbase && tx.confirmations > 0 && tx.confirmations < 101
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 8, fontSize: 13 }}>
       <div>
@@ -458,7 +464,11 @@ function TxDetail({ tx }: { tx: WalletTx }) {
       <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap' }}>
         <div>
           <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 2 }}>Amount</div>
-          {immature ? (
+          {orphaned ? (
+            <span style={{ color: 'var(--muted)', fontFamily: 'var(--mono)' }}>
+              0 AVN <span style={{ fontSize: 11 }}>(orphaned block)</span>
+            </span>
+          ) : immature ? (
             <span style={{ color: 'var(--yellow)', fontFamily: 'var(--mono)' }}>
               +{tx.credit} AVN <span style={{ color: 'var(--muted)', fontSize: 11 }}>(maturing)</span>
             </span>
@@ -468,13 +478,13 @@ function TxDetail({ tx }: { tx: WalletTx }) {
             </span>
           )}
         </div>
-        {!immature && parseFloat(tx.credit) !== 0 && (
+        {!orphaned && !immature && parseFloat(tx.credit) !== 0 && (
           <div>
             <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 2 }}>Received</div>
             <span style={{ color: 'var(--green)', fontFamily: 'var(--mono)' }}>+{tx.credit} AVN</span>
           </div>
         )}
-        {parseFloat(tx.debit) !== 0 && (
+        {!orphaned && parseFloat(tx.debit) !== 0 && (
           <div>
             <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 2 }}>Sent</div>
             <span style={{ color: 'var(--red)', fontFamily: 'var(--mono)' }}>{tx.debit} AVN</span>
@@ -482,12 +492,14 @@ function TxDetail({ tx }: { tx: WalletTx }) {
         )}
         <div>
           <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 2 }}>Confirmations</div>
-          <span>{tx.confirmations}{immature ? ` / 100` : ''}</span>
+          <span>{orphaned ? 0 : tx.confirmations}{immature ? ` / 100` : ''}</span>
         </div>
         {tx.coinbase && (
           <div>
             <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 2 }}>Type</div>
-            <span className={`badge ${immature ? 'yellow' : 'green'}`}>{immature ? 'Immature' : 'Coinbase'}</span>
+            <span className={`badge ${orphaned ? 'red' : immature ? 'yellow' : 'green'}`}>
+              {orphaned ? 'Orphaned' : immature ? 'Immature' : 'Coinbase'}
+            </span>
           </div>
         )}
       </div>
