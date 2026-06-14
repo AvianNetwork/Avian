@@ -72,7 +72,7 @@ export interface NodeFeatures {
 export interface WalletInfo   { name: string; encrypted: boolean }
 export interface WalletSummary { name: string; encrypted: boolean; locked: boolean; balance: string; unconfirmed: string; immature: string }
 export interface WalletTx     { txid: string; time: number; amount: string; credit: string; debit: string; confirmations: number; coinbase: boolean; addresses: string[] }
-export interface AssetBalance { name: string; balance: string }
+export interface AssetBalance { name: string; balance: string; ipfs?: string }
 
 export interface PSBTInput    { txid: string; vout: number; amount?: string; signed: boolean }
 export interface PSBTOutput   { address?: string; script?: string; amount: string }

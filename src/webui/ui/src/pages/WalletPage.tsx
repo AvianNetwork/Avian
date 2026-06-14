@@ -566,7 +566,18 @@ function AssetsTab({ walletName }: { walletName: string }) {
                   <td style={{ fontFamily: 'var(--mono)', fontSize: 13 }}>{a.name}</td>
                   <td><span className={`badge ${badge.cls}`}>{badge.label}</span></td>
                   <td style={{ fontFamily: 'var(--mono)' }}>{a.balance}</td>
-                  <td style={{ textAlign: 'right' }}>
+                  <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
+                    {a.ipfs && (
+                      <a
+                        href={`https://ipfs.avn.network/ipfs/${a.ipfs}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="secondary"
+                        style={{ padding: '2px 8px', fontSize: 12, display: 'inline-flex', alignItems: 'center', border: '1px solid var(--border)', borderRadius: 'var(--radius)', color: 'var(--accent-bright)', marginRight: 6 }}
+                      >
+                        IPFS
+                      </a>
+                    )}
                     {t !== 'admin' && (
                       <button className="secondary" style={{ padding: '2px 10px', fontSize: 12 }}
                         onClick={() => setSending(sending === a.name ? null : a.name)}>

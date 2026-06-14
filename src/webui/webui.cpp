@@ -1066,11 +1066,21 @@ static bool HandleWalletAssets(HTTPRequest* req, const std::string& wallet_name)
     }
 
     UniValue arr(UniValue::VARR);
-    for (const auto& [name, amount] : asset_balances) {
-        UniValue aobj(UniValue::VOBJ);
-        aobj.pushKV("name",    name);
-        aobj.pushKV("balance", AssetUnitValueFromAmount(amount, name));
-        arr.push_back(aobj);
+    {
+        LOCK(cs_main);
+        for (const auto& [name, amount] : asset_balances) {
+            UniValue aobj(UniValue::VOBJ);
+            aobj.pushKV("name",    name);
+            aobj.pushKV("balance", AssetUnitValueFromAmount(amount, name));
+            if (passets) {
+                CNewAsset meta;
+                if (passets->GetAssetMetaDataIfExists(name, meta) && meta.nHasIPFS && !meta.strIPFSHash.empty()) {
+                    const std::string cid = EncodeAssetData(meta.strIPFSHash);
+                    if (!cid.empty()) aobj.pushKV("ipfs", cid);
+                }
+            }
+            arr.push_back(aobj);
+        }
     }
     UniValue obj(UniValue::VOBJ);
     obj.pushKV("wallet", wallet_name);
