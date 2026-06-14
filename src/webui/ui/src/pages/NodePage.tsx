@@ -1,4 +1,5 @@
 import type { NodeStatus, NodeFeatures } from '../lib/api'
+import { EXPLORER } from '../lib/api'
 
 interface Props {
   status: NodeStatus | null
@@ -27,14 +28,14 @@ export function NodePage({ status, features, onRefresh }: Props) {
       <div className="card" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px 24px' }}>
         <KV label="Version"     value={status.version} />
         <KV label="Network"     value={status.network} />
-        <KV label="Blocks"      value={status.blocks.toLocaleString()} />
+        <ExplorerKV label="Blocks" href={`${EXPLORER}/block/${status.blocks}`} value={status.blocks.toLocaleString()} />
         <KV label="Headers"     value={status.headers.toLocaleString()} />
         <KV label="Connections" value={status.connections.toString()} />
         <KV label="Mempool"     value={`${status.mempoolsize} tx`} />
         <KV label="Sync"        value={`${syncPct}%`} />
         <KV label="IBD"         value={status.initialblockdownload ? 'Yes' : 'No'} />
         <div style={{ gridColumn: '1 / -1' }}>
-          <KV label="Best block" value={status.bestblockhash} mono />
+          <ExplorerKV label="Best block" href={`${EXPLORER}/block/${status.bestblockhash}`} value={status.bestblockhash} mono />
         </div>
       </div>
 
@@ -77,6 +78,19 @@ function KV({ label, value, mono = false }: { label: string; value: string; mono
     <div>
       <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 2 }}>{label}</div>
       <div className={mono ? 'mono' : ''} style={{ wordBreak: 'break-all' }}>{value}</div>
+    </div>
+  )
+}
+
+function ExplorerKV({ label, href, value, mono = false }: { label: string; href: string; value: string; mono?: boolean }) {
+  return (
+    <div>
+      <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 2 }}>{label}</div>
+      <a href={href} target="_blank" rel="noopener noreferrer"
+         className={mono ? 'mono' : ''}
+         style={{ wordBreak: 'break-all', color: 'var(--accent-bright)', fontSize: mono ? 13 : undefined }}>
+        {value}
+      </a>
     </div>
   )
 }

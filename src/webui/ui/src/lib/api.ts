@@ -1,6 +1,8 @@
 // Typed API client for the Avian Core Web UI backend.
 // All endpoints map 1:1 to handlers in src/webui/webui.cpp.
 
+export const EXPLORER = 'https://flightpath.avn.network'
+
 // clipboard.writeText requires a secure context (HTTPS/localhost).
 // Fall back to execCommand for plain-HTTP LAN access.
 export function copyText(text: string): void {
@@ -80,6 +82,9 @@ export interface PSBTDecoded  { inputs: PSBTInput[]; outputs: PSBTOutput[]; fee?
 
 export interface Recipient    { address: string; amount: string; subtractFee?: boolean }
 export interface WalletAddressEntry { address: string; label: string; is_mine: boolean; type: string }
+export interface UTXO              { txid: string; vout: number; address: string; amount: string; confirmations: number; is_spent: boolean; spent_by?: string }
+export interface UTXOSummary       { wallet: string; count: number; total_value: string; utxos: UTXO[] }
+export interface ConsolidateResult { success: boolean; batches: number; utxos_consolidated: number; txids: string[]; error?: string }
 
 // ── API ────────────────────────────────────────────────────────────────────
 
@@ -122,6 +127,16 @@ export const api = {
       post<{ success: boolean }>(`/wallet/${encodeURIComponent(w)}/set-address-label`, { address, label }),
     sendAsset: (w: string, asset: string, address: string, amount: string) =>
       post<{ txid: string; fee: string }>(`/wallet/${encodeURIComponent(w)}/send-asset`, { asset, address, amount }),
+    utxos: (w: string, min_amount?: number, max_amount?: number, all = false) => {
+      const p = [
+        min_amount !== undefined ? `min_amount=${min_amount}` : '',
+        max_amount !== undefined ? `max_amount=${max_amount}` : '',
+        all ? 'all=true' : '',
+      ].filter(Boolean).join('&')
+      return get<UTXOSummary>(`/wallet/${encodeURIComponent(w)}/utxos${p ? '?' + p : ''}`)
+    },
+    consolidate: (w: string, params: { destination: string; min_amount: number; max_amount: number; max_utxos_per_batch: number; max_batches: number }) =>
+      post<ConsolidateResult>(`/wallet/${encodeURIComponent(w)}/consolidate`, params),
   },
 
   psbt: {

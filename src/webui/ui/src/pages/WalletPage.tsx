@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback, useRef, FormEvent } from 'react'
-import { api, ApiError, copyText } from '../lib/api'
-import type { WalletSummary, WalletTx, AssetBalance, NodeFeatures, PSBTDecoded, WalletAddressEntry } from '../lib/api'
+import { api, ApiError, copyText, EXPLORER } from '../lib/api'
+import type { WalletSummary, WalletTx, AssetBalance, NodeFeatures, PSBTDecoded, WalletAddressEntry, UTXO, UTXOSummary, ConsolidateResult } from '../lib/api'
 import { QRModal } from '../components/QRModal'
 
-type Tab = 'overview' | 'transactions' | 'assets' | 'send' | 'psbt' | 'signverify'
+type Tab = 'overview' | 'transactions' | 'utxos' | 'assets' | 'send' | 'psbt' | 'signverify' | 'consolidate'
 
 interface Props {
   walletName: string
@@ -67,10 +67,12 @@ export function WalletPage({ walletName, features, onBack, onRefresh, registerRe
   const tabs: { id: Tab; label: string }[] = [
     { id: 'overview',     label: 'Overview' },
     { id: 'transactions', label: 'Transactions' },
+    { id: 'utxos',        label: 'UTXOs' },
     { id: 'assets',       label: 'Assets' },
     { id: 'send',         label: 'Send' },
     { id: 'psbt',         label: 'PSBT' },
     { id: 'signverify',   label: 'Sign / Verify' },
+    { id: 'consolidate',  label: 'Consolidate' },
   ]
 
   return (
@@ -116,10 +118,12 @@ export function WalletPage({ walletName, features, onBack, onRefresh, registerRe
 
       {tab === 'overview'     && <OverviewTab walletName={walletName} summary={summary} features={features} onRefresh={loadSummary} />}
       {tab === 'transactions' && <TransactionsTab walletName={walletName} refreshTick={refreshTick} />}
+      {tab === 'utxos'        && <UTXOTab walletName={walletName} />}
       {tab === 'assets'       && <AssetsTab walletName={walletName} />}
       {tab === 'send'         && <SendTab walletName={walletName} onRefresh={() => { loadSummary(); onRefresh() }} />}
       {tab === 'psbt'         && <PSBTTab walletName={walletName} />}
       {tab === 'signverify'   && <SignVerifyTab walletName={walletName} features={features} />}
+      {tab === 'consolidate'  && <ConsolidateTab walletName={walletName} />}
     </div>
   )
 }
@@ -326,7 +330,7 @@ function TransactionsTab({ walletName, refreshTick }: { walletName: string; refr
 
   useEffect(() => {
     setLoading(true)
-    api.wallet.transactions(walletName, 500)
+    api.wallet.transactions(walletName, 2000)
       .then(r => { setTxs(r.transactions); setLoading(false) })
       .catch(() => setLoading(false))
   }, [walletName, refreshTick])
@@ -365,12 +369,12 @@ function TransactionsTab({ walletName, refreshTick }: { walletName: string; refr
 
       <div className="card" style={{ padding: 0, overflow: 'auto' }}>
         <table>
-          <thead><tr><th>Time</th><th>Amount (AVN)</th><th>Conf</th><th>TXID</th><th /></tr></thead>
+          <thead><tr><th>Type</th><th>Time</th><th>Amount (AVN)</th><th>Conf</th><th>TXID</th><th /></tr></thead>
           <tbody>
             {pageSlice.map(tx => {
               const isOpen = expanded === tx.txid
               const positive = parseFloat(tx.amount) >= 0
-              const immature = tx.coinbase && tx.confirmations < 100
+              const immature = tx.coinbase && tx.confirmations < 101
               return (
                 <>
                   <tr
@@ -378,6 +382,14 @@ function TransactionsTab({ walletName, refreshTick }: { walletName: string; refr
                     onClick={() => toggle(tx.txid)}
                     style={{ cursor: 'pointer', background: isOpen ? 'var(--surf2)' : undefined }}
                   >
+                    <td>
+                      {tx.coinbase
+                        ? <span className="badge blue">Coinbase</span>
+                        : positive
+                          ? <span className="badge green">↗ Received</span>
+                          : <span className="badge red">↘ Sent</span>
+                      }
+                    </td>
                     <td style={{ whiteSpace: 'nowrap', fontSize: 12, color: 'var(--muted)' }}>
                       {new Date(tx.time * 1000).toLocaleString()}
                     </td>
@@ -392,7 +404,7 @@ function TransactionsTab({ walletName, refreshTick }: { walletName: string; refr
                   </tr>
                   {isOpen && (
                     <tr key={tx.txid + '_detail'} style={{ background: 'var(--surf2)' }}>
-                      <td colSpan={5} style={{ padding: '12px 20px', borderLeft: '3px solid var(--accent-bright)' }}>
+                      <td colSpan={6} style={{ padding: '12px 20px', borderLeft: '3px solid var(--accent-bright)' }}>
                         <TxDetail tx={tx} />
                       </td>
                     </tr>
@@ -427,7 +439,7 @@ function TxDetail({ tx }: { tx: WalletTx }) {
     setTimeout(() => setCopiedTxid(false), 1500)
   }
   const positive = parseFloat(tx.amount) >= 0
-  const immature = tx.coinbase && tx.confirmations < 100
+  const immature = tx.coinbase && tx.confirmations < 101
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 8, fontSize: 13 }}>
       <div>
@@ -437,6 +449,10 @@ function TxDetail({ tx }: { tx: WalletTx }) {
           <button className="secondary" style={{ padding: '2px 8px', fontSize: 11, flexShrink: 0 }} onClick={copyTxid}>
             {copiedTxid ? '✓' : 'Copy'}
           </button>
+          <a href={`${EXPLORER}/tx/${tx.txid}`} target="_blank" rel="noopener noreferrer"
+             className="secondary" style={{ padding: '2px 8px', fontSize: 11, border: '1px solid var(--border)', borderRadius: 'var(--radius)', color: 'var(--accent-bright)', flexShrink: 0 }}>
+            Explorer ↗
+          </a>
         </div>
       </div>
       <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap' }}>
@@ -480,7 +496,8 @@ function TxDetail({ tx }: { tx: WalletTx }) {
           <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 4 }}>Addresses</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
             {tx.addresses.map(a => (
-              <span key={a} className="mono" style={{ fontSize: 11 }}>{a}</span>
+              <a key={a} href={`${EXPLORER}/address/${a}`} target="_blank" rel="noopener noreferrer"
+                 className="mono" style={{ fontSize: 11, color: 'var(--accent-bright)' }}>{a}</a>
             ))}
           </div>
         </div>
@@ -1102,6 +1119,287 @@ function KV({ label, value }: { label: string; value: string }) {
     <div>
       <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 2 }}>{label}</div>
       <div>{value}</div>
+    </div>
+  )
+}
+
+// ── UTXOs ────────────────────────────────────────────────────────────────
+
+const UTXO_PAGE_SIZE = 50
+
+function UTXOTab({ walletName }: { walletName: string }) {
+  const [data,      setData]      = useState<UTXOSummary | null>(null)
+  const [loading,   setLoading]   = useState(true)
+  const [search,    setSearch]    = useState('')
+  const [page,      setPage]      = useState(0)
+  const [sortCol,   setSortCol]   = useState<'amount' | 'confirmations'>('amount')
+  const [sortDir,   setSortDir]   = useState<'asc' | 'desc'>('desc')
+  const [showSpent, setShowSpent] = useState(false)
+
+  useEffect(() => {
+    setLoading(true)
+    api.wallet.utxos(walletName, undefined, undefined, true)
+      .then(r => { setData(r); setLoading(false) })
+      .catch(() => setLoading(false))
+  }, [walletName])
+
+  useEffect(() => setPage(0), [search, showSpent])
+
+  if (loading) return <div style={{ display: 'flex', gap: 8, color: 'var(--muted)' }}><span className="spinner" /> Loading…</div>
+  if (!data || data.utxos.length === 0) return <div style={{ color: 'var(--muted)' }}>No UTXOs.</div>
+
+  const base = showSpent ? data.utxos : data.utxos.filter(u => !u.is_spent)
+  const q = search.toLowerCase()
+  const filtered: UTXO[] = q
+    ? base.filter(u => u.txid.includes(q) || u.address.toLowerCase().includes(q))
+    : base
+
+  const sorted = [...filtered].sort((a, b) => {
+    const diff = sortCol === 'amount'
+      ? parseFloat(a.amount) - parseFloat(b.amount)
+      : (a.confirmations ?? 0) - (b.confirmations ?? 0)
+    return sortDir === 'asc' ? diff : -diff
+  })
+
+  const totalPages = Math.ceil(sorted.length / UTXO_PAGE_SIZE)
+  const pageSlice  = sorted.slice(page * UTXO_PAGE_SIZE, (page + 1) * UTXO_PAGE_SIZE)
+
+  const toggleSort = (col: 'amount' | 'confirmations') => {
+    if (sortCol === col) setSortDir(d => d === 'asc' ? 'desc' : 'asc')
+    else { setSortCol(col); setSortDir('desc') }
+  }
+  const arrow = (col: string) => sortCol === col ? (sortDir === 'asc' ? ' ↑' : ' ↓') : ''
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <input
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          placeholder="Search address or TXID…"
+          spellCheck={false}
+          style={{ flex: 1 }}
+        />
+        <label style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 13, cursor: 'pointer', whiteSpace: 'nowrap' }}>
+          <input type="checkbox" checked={showSpent} onChange={e => setShowSpent(e.target.checked)} />
+          Show spent
+        </label>
+        <span style={{ fontSize: 12, color: 'var(--muted)', whiteSpace: 'nowrap' }}>
+          {filtered.length} UTXOs · {data.total_value} AVN
+        </span>
+      </div>
+
+      <div className="card" style={{ padding: 0, overflow: 'auto' }}>
+        <table>
+          <thead>
+            <tr>
+              <th>Status</th>
+              <th>Address</th>
+              <th style={{ cursor: 'pointer', userSelect: 'none' }} onClick={() => toggleSort('amount')}>
+                Amount{arrow('amount')}
+              </th>
+              <th style={{ cursor: 'pointer', userSelect: 'none' }} onClick={() => toggleSort('confirmations')}>
+                Confs{arrow('confirmations')}
+              </th>
+              <th>TXID / Spent by</th>
+            </tr>
+          </thead>
+          <tbody>
+            {pageSlice.map(u => (
+              <tr key={`${u.txid}:${u.vout}`} style={{ opacity: u.is_spent ? 0.75 : undefined }}>
+                <td style={{ whiteSpace: 'nowrap' }}>
+                  {u.is_spent
+                    ? <span className="badge red">✗ Spent</span>
+                    : <span className="badge green">✓ Unspent</span>
+                  }
+                </td>
+                <td>
+                  <a href={`${EXPLORER}/address/${u.address}`} target="_blank" rel="noopener noreferrer"
+                     className="mono" style={{ fontSize: 11, color: 'var(--accent-bright)' }}>
+                    {u.address}
+                  </a>
+                </td>
+                <td className="mono" style={{ fontSize: 12 }}>{u.amount}</td>
+                <td style={{ fontSize: 12 }}>{u.is_spent ? '—' : u.confirmations}</td>
+                <td>
+                  {u.is_spent && u.spent_by ? (
+                    <div style={{ fontSize: 11 }}>
+                      <a href={`${EXPLORER}/tx/${u.txid}`} target="_blank" rel="noopener noreferrer"
+                         className="mono" style={{ color: 'var(--muted)' }}>
+                        {u.txid.slice(0, 12)}…:{u.vout}
+                      </a>
+                      <div style={{ color: 'var(--muted)', fontSize: 10, marginTop: 2 }}>spent by</div>
+                      <a href={`${EXPLORER}/tx/${u.spent_by}`} target="_blank" rel="noopener noreferrer"
+                         className="mono" style={{ color: 'var(--accent-bright)' }}>
+                        {u.spent_by.slice(0, 16)}…
+                      </a>
+                    </div>
+                  ) : (
+                    <a href={`${EXPLORER}/tx/${u.txid}`} target="_blank" rel="noopener noreferrer"
+                       className="mono" style={{ fontSize: 11, color: 'var(--accent-bright)' }}>
+                      {u.txid.slice(0, 16)}…:{u.vout}
+                    </a>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {totalPages > 1 && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'center' }}>
+          <button className="secondary" onClick={() => setPage(0)}            disabled={page === 0}>«</button>
+          <button className="secondary" onClick={() => setPage(p => p - 1)}  disabled={page === 0}>‹</button>
+          <span style={{ fontSize: 13, color: 'var(--muted)', minWidth: 80, textAlign: 'center' }}>
+            {page + 1} / {totalPages}
+          </span>
+          <button className="secondary" onClick={() => setPage(p => p + 1)}  disabled={page >= totalPages - 1}>›</button>
+          <button className="secondary" onClick={() => setPage(totalPages - 1)} disabled={page >= totalPages - 1}>»</button>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ── Consolidate ───────────────────────────────────────────────────────────
+
+function ConsolidateTab({ walletName }: { walletName: string }) {
+  const [addresses,      setAddresses]      = useState<WalletAddressEntry[]>([])
+  const [destination,    setDestination]    = useState('')
+  const [minAmt,         setMinAmt]         = useState('0.001')
+  const [maxAmt,         setMaxAmt]         = useState('25')
+  const [maxPerBatch,    setMaxPerBatch]    = useState(200)
+  const [maxBatches,     setMaxBatches]     = useState(0)
+  const [preview,        setPreview]        = useState<UTXOSummary | null>(null)
+  const [scanning,       setScanning]       = useState(false)
+  const [busy,           setBusy]           = useState(false)
+  const [result,         setResult]         = useState<ConsolidateResult | null>(null)
+  const [err,            setErr]            = useState('')
+
+  useEffect(() => {
+    api.wallet.addresses(walletName).then(r => {
+      const mine = r.addresses.filter(a => a.is_mine)
+      setAddresses(mine)
+      if (mine.length > 0 && !destination) setDestination(mine[0].address)
+    }).catch(() => {})
+  }, [walletName])
+
+  const toSats = (avn: string) => Math.round(parseFloat(avn || '0') * 1e8)
+
+  const scan = async () => {
+    setScanning(true); setErr(''); setPreview(null)
+    try {
+      setPreview(await api.wallet.utxos(walletName, toSats(minAmt), toSats(maxAmt)))
+    } catch (e) {
+      setErr(e instanceof ApiError ? e.message : 'Scan failed')
+    } finally { setScanning(false) }
+  }
+
+  const consolidate = async (e: FormEvent) => {
+    e.preventDefault()
+    if (!destination) { setErr('Select a destination address'); return }
+    setBusy(true); setErr(''); setResult(null)
+    try {
+      const r = await api.wallet.consolidate(walletName, {
+        destination,
+        min_amount: toSats(minAmt),
+        max_amount: toSats(maxAmt),
+        max_utxos_per_batch: maxPerBatch,
+        max_batches: maxBatches,
+      })
+      setResult(r)
+      setPreview(null)
+      if (r.error) setErr(r.error)
+    } catch (e) {
+      setErr(e instanceof ApiError ? e.message : 'Consolidation failed')
+    } finally { setBusy(false) }
+  }
+
+  return (
+    <div style={{ maxWidth: 600 }}>
+      <p style={{ marginBottom: 16, color: 'var(--muted)', fontSize: 13 }}>
+        Merge small UTXOs into fewer larger outputs to reduce wallet fragmentation and future fee costs.
+      </p>
+
+      <div className="card" style={{ marginBottom: 12 }}>
+        <h3 style={{ fontSize: 14, marginBottom: 12 }}>UTXO Filter</h3>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          <div>
+            <label>Min UTXO (AVN)</label>
+            <input type="number" value={minAmt} step="0.001" min="0"
+              onChange={e => { setMinAmt(e.target.value); setPreview(null) }} />
+          </div>
+          <div>
+            <label>Max UTXO (AVN)</label>
+            <input type="number" value={maxAmt} step="1" min="0"
+              onChange={e => { setMaxAmt(e.target.value); setPreview(null) }} />
+          </div>
+        </div>
+        <button className="secondary" style={{ marginTop: 12 }} onClick={scan} disabled={scanning}>
+          {scanning ? <><span className="spinner" /> Scanning…</> : 'Scan UTXOs'}
+        </button>
+        {preview && (
+          <div style={{ marginTop: 10, fontSize: 13 }}>
+            {preview.count < 2
+              ? <span style={{ color: 'var(--muted)' }}>Wallet is already clean — fewer than 2 matching UTXOs.</span>
+              : <><strong>{preview.count}</strong> UTXOs totaling <strong>{preview.total_value} AVN</strong></>
+            }
+          </div>
+        )}
+      </div>
+
+      <form onSubmit={consolidate}>
+        <div className="card" style={{ marginBottom: 12 }}>
+          <h3 style={{ fontSize: 14, marginBottom: 12 }}>Settings</h3>
+          <div style={{ marginBottom: 12 }}>
+            <label>Destination address</label>
+            {addresses.length > 0 ? (
+              <select value={destination} onChange={e => setDestination(e.target.value)}>
+                {addresses.map(a => (
+                  <option key={a.address} value={a.address}>
+                    {a.label ? `${a.label} — ` : ''}{a.address}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <input value={destination} onChange={e => setDestination(e.target.value)}
+                placeholder="AVN address…" spellCheck={false} />
+            )}
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <div>
+              <label>Max UTXOs per batch</label>
+              <input type="number" value={maxPerBatch} min="2" max="500"
+                onChange={e => setMaxPerBatch(+e.target.value)} />
+            </div>
+            <div>
+              <label>Max batches (0 = unlimited)</label>
+              <input type="number" value={maxBatches} min="0"
+                onChange={e => setMaxBatches(+e.target.value)} />
+            </div>
+          </div>
+        </div>
+
+        {err && <div className="error-box" style={{ marginBottom: 12 }}>{err}</div>}
+
+        {result && (
+          <div className="ok-box" style={{ marginBottom: 12 }}>
+            <div><strong>
+              {result.utxos_consolidated > 0
+                ? `${result.utxos_consolidated} UTXOs consolidated in ${result.batches} ${result.batches === 1 ? 'batch' : 'batches'}`
+                : 'Nothing to consolidate'}
+            </strong></div>
+            {result.txids.map(txid => (
+              <div key={txid} style={{ fontSize: 11, color: 'var(--muted)', fontFamily: 'var(--mono)', marginTop: 4, wordBreak: 'break-all' }}>{txid}</div>
+            ))}
+          </div>
+        )}
+
+        <button type="submit" className="primary" disabled={busy || !destination}>
+          {busy ? <><span className="spinner" /> Consolidating…</> : 'Consolidate UTXOs'}
+        </button>
+      </form>
     </div>
   )
 }
