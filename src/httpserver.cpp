@@ -697,6 +697,27 @@ void HTTPRequest::WriteReply(int nStatus, std::span<const std::byte> reply)
     req = nullptr; // transferred back to main thread
 }
 
+void HTTPRequest::StartChunkedReply(int nStatus)
+{
+    assert(!replySent && req);
+    replySent = true; // prevent destructor double-reply; req stays valid for SendChunk
+    evhttp_send_reply_start(req, nStatus, "OK");
+}
+
+void HTTPRequest::SendChunk(std::string_view data)
+{
+    assert(req);
+    struct evbuffer* buf = evbuffer_new();
+    evbuffer_add(buf, data.data(), data.size());
+    evhttp_send_reply_chunk(req, buf);
+    evbuffer_free(buf);
+}
+
+evhttp_connection* HTTPRequest::GetConnection() const
+{
+    return evhttp_request_get_connection(req);
+}
+
 CService HTTPRequest::GetPeer() const
 {
     evhttp_connection* con = evhttp_request_get_connection(req);

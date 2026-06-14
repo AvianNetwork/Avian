@@ -10,14 +10,17 @@ interface Props {
   features: NodeFeatures | null
   onBack: () => void
   onRefresh: () => void
+  registerRefresh?: (fn: () => void) => void
 }
 
-export function WalletPage({ walletName, features, onBack, onRefresh }: Props) {
+export function WalletPage({ walletName, features, onBack, onRefresh, registerRefresh }: Props) {
   const [tab, setTab] = useState<Tab>('overview')
   const [summary, setSummary] = useState<WalletSummary | null>(null)
   const [err, setErr] = useState('')
   const [unlockPass, setUnlockPass] = useState('')
   const [unlocking, setUnlocking] = useState(false)
+
+  const [refreshTick, setRefreshTick] = useState(0)
 
   const loadSummary = useCallback(async () => {
     try {
@@ -30,6 +33,17 @@ export function WalletPage({ walletName, features, onBack, onRefresh }: Props) {
   }, [walletName])
 
   useEffect(() => { loadSummary() }, [loadSummary])
+
+  // Register with App-level SSE so new blocks refresh balance + transactions.
+  const onBlock = useCallback(() => {
+    loadSummary()
+    setRefreshTick(t => t + 1)
+  }, [loadSummary])
+
+  useEffect(() => {
+    registerRefresh?.(onBlock)
+    return () => registerRefresh?.(() => {})
+  }, [registerRefresh, onBlock])
 
   const handleUnlock = async (e: FormEvent) => {
     e.preventDefault()
@@ -101,7 +115,7 @@ export function WalletPage({ walletName, features, onBack, onRefresh }: Props) {
       </div>
 
       {tab === 'overview'     && <OverviewTab walletName={walletName} summary={summary} features={features} onRefresh={loadSummary} />}
-      {tab === 'transactions' && <TransactionsTab walletName={walletName} />}
+      {tab === 'transactions' && <TransactionsTab walletName={walletName} refreshTick={refreshTick} />}
       {tab === 'assets'       && <AssetsTab walletName={walletName} />}
       {tab === 'send'         && <SendTab walletName={walletName} onRefresh={() => { loadSummary(); onRefresh() }} />}
       {tab === 'psbt'         && <PSBTTab walletName={walletName} />}
@@ -303,7 +317,7 @@ function OverviewTab({ walletName, summary, features, onRefresh }: { walletName:
 const TX_PAGE_SIZE    = 25
 const ASSET_PAGE_SIZE = 25
 
-function TransactionsTab({ walletName }: { walletName: string }) {
+function TransactionsTab({ walletName, refreshTick }: { walletName: string; refreshTick?: number }) {
   const [txs,      setTxs]      = useState<WalletTx[]>([])
   const [loading,  setLoading]  = useState(true)
   const [search,   setSearch]   = useState('')
@@ -315,7 +329,7 @@ function TransactionsTab({ walletName }: { walletName: string }) {
     api.wallet.transactions(walletName, 500)
       .then(r => { setTxs(r.transactions); setLoading(false) })
       .catch(() => setLoading(false))
-  }, [walletName])
+  }, [walletName, refreshTick])
 
   useEffect(() => { setPage(0) }, [search])
 

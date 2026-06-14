@@ -299,6 +299,9 @@ void Interrupt(NodeContext& node)
 #endif
     // Wake any threads that may be waiting for the tip to change.
     if (node.notifications) WITH_LOCK(node.notifications->m_tip_block_mutex, node.notifications->m_tip_block_cv.notify_all());
+#ifdef ENABLE_WEBUI
+    InterruptWebUI();
+#endif
     InterruptHTTPServer();
     InterruptHTTPRPC();
     InterruptRPC();

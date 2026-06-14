@@ -29,6 +29,7 @@ static const int DEFAULT_HTTP_WORKQUEUE=64;
 static const int DEFAULT_HTTP_SERVER_TIMEOUT=30;
 
 struct evhttp_request;
+struct evhttp_connection;
 struct event_base;
 class CService;
 class HTTPRequest;
@@ -150,6 +151,17 @@ public:
         WriteReply(nStatus, std::as_bytes(std::span{reply}));
     }
     void WriteReply(int nStatus, std::span<const std::byte> reply);
+
+    /** Begin a streaming (chunked transfer) reply. Marks replySent so the
+     *  destructor will not attempt a second reply. Call WriteHeader() for any
+     *  response headers before calling this. */
+    void StartChunkedReply(int nStatus);
+    /** Send one chunk of data in an active streaming reply. */
+    void SendChunk(std::string_view data);
+    /** Return the underlying evhttp connection (for close callbacks). */
+    struct evhttp_connection* GetConnection() const;
+    /** Return the raw evhttp_request pointer (for SSE streaming). */
+    struct evhttp_request* GetRaw() const { return req; }
 };
 
 /** Get the query parameter value from request uri for a specified key, or std::nullopt if the key

@@ -50,10 +50,16 @@
 #include <wallet/walletutil.h>
 #endif
 
+#include <event2/buffer.h>
+#include <event2/http.h>
+#include <kernel/mempool_entry.h>
+#include <validationinterface.h>
+
 #include <algorithm>
 #include <chrono>
 #include <fstream>
 #include <map>
+#include <mutex>
 #include <optional>
 #include <set>
 #include <string>
@@ -153,16 +159,8 @@ static bool CheckWebUIHost(HTTPRequest* req)
     return false;
 }
 
-static bool CheckWebUIAuth(HTTPRequest* req)
+static bool CheckWebUIToken(const std::string& submitted)
 {
-    auto [present, auth] = req->GetHeader("authorization");
-    if (!present || auth.substr(0, 7) != "Bearer ") {
-        req->WriteHeader("WWW-Authenticate", "Bearer realm=\"aviand-webui\"");
-        req->WriteReply(HTTP_UNAUTHORIZED, R"({"error":"unauthorized"})");
-        return false;
-    }
-    std::string submitted = auth.substr(7);
-
     bool ok = false;
     if (g_webui_use_password) {
         HashWriter h{};
@@ -172,9 +170,19 @@ static bool CheckWebUIAuth(HTTPRequest* req)
     } else {
         ok = TimingResistantEqual(submitted, g_webui_token);
     }
+    if (!ok) UninterruptibleSleep(std::chrono::milliseconds{250});
+    return ok;
+}
 
-    if (!ok) {
-        UninterruptibleSleep(std::chrono::milliseconds{250});
+static bool CheckWebUIAuth(HTTPRequest* req)
+{
+    auto [present, auth] = req->GetHeader("authorization");
+    if (!present || auth.substr(0, 7) != "Bearer ") {
+        req->WriteHeader("WWW-Authenticate", "Bearer realm=\"aviand-webui\"");
+        req->WriteReply(HTTP_UNAUTHORIZED, R"({"error":"unauthorized"})");
+        return false;
+    }
+    if (!CheckWebUIToken(auth.substr(7))) {
         req->WriteHeader("WWW-Authenticate", "Bearer realm=\"aviand-webui\"");
         req->WriteReply(HTTP_UNAUTHORIZED, R"({"error":"unauthorized"})");
         return false;
@@ -2008,6 +2016,112 @@ static bool HandleStaticFile(HTTPRequest* req, const std::string& path)
     return false;
 }
 
+// ---- Server-Sent Events ------------------------------------------------
+
+static std::mutex g_sse_mutex;
+static std::vector<evhttp_request*> g_sse_clients;
+
+static void OnSSEClose(evhttp_connection* /*conn*/, void* ctx)
+{
+    auto* raw = static_cast<evhttp_request*>(ctx);
+    std::lock_guard<std::mutex> lock(g_sse_mutex);
+    auto& v = g_sse_clients;
+    v.erase(std::remove(v.begin(), v.end(), raw), v.end());
+}
+
+static void PushSSEEvent(const std::string& event_name, const std::string& json_data)
+{
+    struct event_base* base = EventBase();
+    if (!base) return;
+    const std::string frame = "event: " + event_name + "\ndata: " + json_data + "\n\n";
+    // Must write to evhttp connections on the libevent thread.
+    HTTPEvent* ev = new HTTPEvent(base, /*deleteWhenTriggered=*/true, [frame]() {
+        std::lock_guard<std::mutex> lock(g_sse_mutex);
+        for (auto* raw : g_sse_clients) {
+            evbuffer* buf = evbuffer_new();
+            evbuffer_add(buf, frame.data(), frame.size());
+            evhttp_send_reply_chunk(raw, buf);
+            evbuffer_free(buf);
+        }
+    });
+    struct timeval zero{0, 0};
+    ev->trigger(&zero);
+}
+
+class WebUINotifier : public CValidationInterface
+{
+public:
+    void UpdatedBlockTip(const CBlockIndex* pindexNew, const CBlockIndex*, bool fInitialDownload) override
+    {
+        if (fInitialDownload || !pindexNew) return;
+        UniValue data(UniValue::VOBJ);
+        data.pushKV("height", pindexNew->nHeight);
+        data.pushKV("hash",   pindexNew->GetBlockHash().GetHex());
+        data.pushKV("time",   static_cast<int64_t>(pindexNew->GetBlockTime()));
+        PushSSEEvent("block", data.write());
+    }
+
+    void TransactionAddedToMempool(const NewMempoolTransactionInfo& tx, uint64_t /*seq*/) override
+    {
+        UniValue data(UniValue::VOBJ);
+        data.pushKV("txid", tx.info.m_tx->GetHash().GetHex());
+        PushSSEEvent("mempool", data.write());
+    }
+};
+
+static std::unique_ptr<WebUINotifier> g_webui_notifier;
+
+static bool HandleSSEEvents(HTTPRequest* req, const std::string&)
+{
+    if (req->GetRequestMethod() != HTTPRequest::GET) {
+        req->WriteReply(HTTP_BAD_METHOD, "");
+        return false;
+    }
+    if (!CheckWebUIHost(req)) return false;
+
+    // EventSource API cannot set Authorization headers — auth via query param.
+    const auto token_param = req->GetQueryParameter("token");
+    if (!token_param || !CheckWebUIToken(*token_param)) {
+        req->WriteReply(HTTP_UNAUTHORIZED, R"({"error":"unauthorized"})");
+        return false;
+    }
+
+    // CORS: check Origin against allowed hosts; echo it back if allowed.
+    auto [hasOrigin, origin] = req->GetHeader("Origin");
+    if (hasOrigin) {
+        std::string hostname = origin;
+        const auto scheme_end = hostname.find("://");
+        if (scheme_end != std::string::npos) hostname = hostname.substr(scheme_end + 3);
+        const auto colon = hostname.find(':');
+        if (colon != std::string::npos) hostname = hostname.substr(0, colon);
+        if (!g_webui_allowed_hosts.count(hostname)) {
+            req->WriteReply(HTTP_FORBIDDEN, R"({"error":"origin not allowed"})");
+            return false;
+        }
+        req->WriteHeader("Access-Control-Allow-Origin", origin);
+    }
+
+    req->WriteHeader("Content-Type",      "text/event-stream");
+    req->WriteHeader("Cache-Control",     "no-cache");
+    req->WriteHeader("X-Accel-Buffering", "no");
+    req->WriteHeader("Connection",        "keep-alive");
+
+    evhttp_connection* conn = req->GetConnection();
+    evhttp_request*    raw  = req->GetRaw();
+
+    req->StartChunkedReply(200);
+    req->SendChunk(": connected\n\n");  // flush proxy buffers
+
+    if (conn) evhttp_connection_set_closecb(conn, OnSSEClose, raw);
+
+    {
+        std::lock_guard<std::mutex> lock(g_sse_mutex);
+        g_sse_clients.push_back(raw);
+    }
+
+    return true;
+}
+
 // ---- Main dispatcher ---------------------------------------------------
 
 static bool WebUIDispatch(HTTPRequest* req, const std::string& /*prefix*/)
@@ -2020,6 +2134,7 @@ static bool WebUIDispatch(HTTPRequest* req, const std::string& /*prefix*/)
     if (path.starts_with("/webui/api/")) {
         // Unauthenticated meta-endpoint: lets the login page know which auth mode is active.
         if (path == "/webui/api/auth/info")        return HandleAuthInfo(req);
+        if (path == "/webui/api/events")           return HandleSSEEvents(req, path);
         if (path == "/webui/api/node/status")      return HandleNodeStatus(req);
         if (path == "/webui/api/node/features")     return HandleNodeFeatures(req);
         if (path == "/webui/api/wallets/loaded")    return HandleWalletsLoaded(req);
@@ -2071,6 +2186,11 @@ void StartWebUI(NodeContext& node)
         }
     }
 
+    g_webui_notifier = std::make_unique<WebUINotifier>();
+    if (node.validation_signals) {
+        node.validation_signals->RegisterValidationInterface(g_webui_notifier.get());
+    }
+
     RegisterHTTPHandler("/webui/", false, WebUIDispatch);
 
     if (gArgs.IsArgSet("-webuiport") || gArgs.IsArgSet("-webuibind")) {
@@ -2086,11 +2206,20 @@ void StartWebUI(NodeContext& node)
 
 void InterruptWebUI()
 {
-    // No async operations to interrupt in Phase 1.
+    // Stop receiving validation events so no new SSE frames are queued.
+    if (g_node && g_node->validation_signals && g_webui_notifier) {
+        g_node->validation_signals->UnregisterValidationInterface(g_webui_notifier.get());
+    }
+    std::lock_guard<std::mutex> lock(g_sse_mutex);
+    for (auto* raw : g_sse_clients) {
+        evhttp_send_reply_end(raw);
+    }
+    g_sse_clients.clear();
 }
 
 void StopWebUI()
 {
+    g_webui_notifier.reset();
     UnregisterHTTPHandler("/webui/", false);
     if (g_webui_cookie_generated) {
         try {

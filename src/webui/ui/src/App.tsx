@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { api, getToken, setToken, clearToken, ApiError } from './lib/api'
 import type { NodeStatus, NodeFeatures, WalletInfo } from './lib/api'
 import { LoginPage }   from './pages/LoginPage'
@@ -58,6 +58,18 @@ export default function App() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  // SSE: subscribe to block/mempool events while authenticated
+  const walletRefreshRef = useRef<(() => void) | null>(null)
+  useEffect(() => {
+    if (!state.authed) return
+    const token = getToken()
+    if (!token) return
+    const es = new EventSource(`/webui/api/events?token=${encodeURIComponent(token)}`)
+    es.addEventListener('block', () => { refreshNodeData(); walletRefreshRef.current?.() })
+    es.addEventListener('mempool', () => { refreshNodeData() })
+    return () => es.close()
+  }, [state.authed, refreshNodeData])
+
   const handleLogin = async (token: string) => {
     setToken(token)
     await refreshNodeData()
@@ -101,6 +113,7 @@ export default function App() {
             features={state.features}
             onBack={() => setPage({ name: 'wallets' })}
             onRefresh={refreshNodeData}
+            registerRefresh={(fn) => { walletRefreshRef.current = fn }}
           />
         )}
         {page.name === 'ans' && <ANSPage />}
