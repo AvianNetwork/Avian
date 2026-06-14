@@ -527,7 +527,7 @@ function AssetsTab({ walletName }: { walletName: string }) {
   const pool          = showAdmin ? assets : regularAssets
 
   const q        = search.trim().toUpperCase()
-  const filtered = q ? pool.filter(a => a.name.includes(q)) : pool
+  const filtered = q ? pool.filter(a => a.name.toUpperCase().includes(q)) : pool
 
   const totalPages = Math.ceil(filtered.length / ASSET_PAGE_SIZE)
   const pageSlice  = filtered.slice(page * ASSET_PAGE_SIZE, (page + 1) * ASSET_PAGE_SIZE)
