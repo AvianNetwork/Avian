@@ -254,6 +254,8 @@ std::string RequestMethodString(HTTPRequest::RequestMethod m)
         return "HEAD";
     case HTTPRequest::PUT:
         return "PUT";
+    case HTTPRequest::OPTIONS:
+        return "OPTIONS";
     case HTTPRequest::UNKNOWN:
         return "unknown";
     } // no default case, so the compiler can warn about missing cases
@@ -759,6 +761,8 @@ HTTPRequest::RequestMethod HTTPRequest::GetRequestMethod() const
         return HEAD;
     case EVHTTP_REQ_PUT:
         return PUT;
+    case EVHTTP_REQ_OPTIONS:
+        return OPTIONS;
     default:
         return UNKNOWN;
     }

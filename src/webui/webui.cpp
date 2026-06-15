@@ -161,6 +161,24 @@ static bool WebUIDispatch(HTTPRequest* req, const std::string& /*prefix*/)
     const size_t qmark = uri.find('?');
     const std::string path = (qmark != std::string::npos) ? uri.substr(0, qmark) : uri;
 
+    // ── CORS preflight ────────────────────────────────────────────────
+    // Authorization: Bearer triggers a preflight OPTIONS from the browser.
+    // Validate Host and Origin with the same rules as real requests, then
+    // respond 204 with the full set of CORS headers. No auth token needed.
+    if (req->GetRequestMethod() == HTTPRequest::OPTIONS && path.starts_with("/webui/api/")) {
+        if (!CheckWebUIHost(req)) return false;
+        auto cors = CheckWebUICORS(req);
+        if (!cors) return false;
+        if (!cors->empty()) {
+            req->WriteHeader("Access-Control-Allow-Origin",  *cors);
+            req->WriteHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+            req->WriteHeader("Access-Control-Allow-Headers", "Authorization, Content-Type");
+            req->WriteHeader("Access-Control-Max-Age",       "600");
+        }
+        req->WriteReply(204);
+        return true;
+    }
+
     // ── API routes (require auth) ──────────────────────────────────────
     if (path.starts_with("/webui/api/")) {
         // Unauthenticated meta-endpoint: lets the login page know which auth mode is active.
