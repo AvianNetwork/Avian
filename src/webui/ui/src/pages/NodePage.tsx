@@ -18,6 +18,15 @@ export function NodePage({ status, features, onRefresh }: Props) {
 
   const syncPct = Math.round(status.verificationprogress * 10000) / 100
 
+  function formatUptime(seconds: number): string {
+    const d = Math.floor(seconds / 86400)
+    const h = Math.floor((seconds % 86400) / 3600)
+    const m = Math.floor((seconds % 3600) / 60)
+    if (d > 0) return `${d}d ${h}h ${m}m`
+    if (h > 0) return `${h}h ${m}m`
+    return `${m}m`
+  }
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16, maxWidth: 960, margin: '0 auto', width: '100%' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -34,6 +43,7 @@ export function NodePage({ status, features, onRefresh }: Props) {
         <KV label="Mempool"     value={`${status.mempoolsize} tx`} />
         <KV label="Sync"        value={`${syncPct}%`} />
         <KV label="IBD"         value={status.initialblockdownload ? 'Yes' : 'No'} />
+        <KV label="Uptime"      value={formatUptime(status.uptime ?? 0)} />
         <div style={{ gridColumn: '1 / -1' }}>
           <ExplorerKV label="Best block" href={`${EXPLORER}/block/${status.bestblockhash}`} value={status.bestblockhash} mono />
         </div>

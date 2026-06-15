@@ -11,6 +11,7 @@
 #include <assets/assetdb.h>
 #include <clientversion.h>
 #include <common/signmessage.h>
+#include <common/system.h>
 #include <common/url.h>
 #include <core_io.h>
 #include <httpserver.h>
@@ -27,6 +28,7 @@
 #include <uint256.h>
 #include <util/moneystr.h>
 #include <util/strencodings.h>
+#include <util/time.h>
 #include <validation.h>
 #include <kernel/mempool_entry.h>
 #include <validationinterface.h>
@@ -84,6 +86,7 @@ static bool HandleNodeStatus(HTTPRequest* req)
         g_node->connman ? static_cast<int>(g_node->connman->GetNodeCount(ConnectionDirection::Both)) : 0);
     obj.pushKV("mempoolsize",
         g_node->mempool ? static_cast<int>(g_node->mempool->size()) : 0);
+    obj.pushKV("uptime", GetTime() - GetStartupTime());
 
     SetJSONHeaders(req, *cors);
     req->WriteReply(HTTP_OK, obj.write());
@@ -564,13 +567,255 @@ static bool HandlePSBTBroadcast(HTTPRequest* req)
     return true;
 }
 
+// ---- Peer API handlers -------------------------------------------------
+
+static bool HandlePeerList(HTTPRequest* req)
+{
+    if (req->GetRequestMethod() != HTTPRequest::GET) {
+        req->WriteReply(HTTP_BAD_METHOD, "");
+        return false;
+    }
+    if (!CheckWebUIHost(req)) return false;
+    auto cors = CheckWebUICORS(req);
+    if (!cors) return false;
+    if (!CheckWebUIAuth(req)) return false;
+
+    JSONRPCRequest jreq;
+    jreq.context = g_node;
+    jreq.strMethod = "getpeerinfo";
+    jreq.params = UniValue(UniValue::VARR);
+
+    try {
+        UniValue result = tableRPC.execute(jreq);
+        UniValue obj(UniValue::VOBJ);
+        obj.pushKV("peers", result);
+        SetJSONHeaders(req, *cors);
+        req->WriteReply(HTTP_OK, obj.write());
+        return true;
+    } catch (const UniValue& e) {
+        const std::string msg = e["message"].isStr() ? e["message"].get_str() : "RPC error";
+        req->WriteReply(HTTP_INTERNAL_SERVER_ERROR, JsonError(msg));
+        return false;
+    }
+}
+
+static bool HandleBannedList(HTTPRequest* req)
+{
+    if (req->GetRequestMethod() != HTTPRequest::GET) {
+        req->WriteReply(HTTP_BAD_METHOD, "");
+        return false;
+    }
+    if (!CheckWebUIHost(req)) return false;
+    auto cors = CheckWebUICORS(req);
+    if (!cors) return false;
+    if (!CheckWebUIAuth(req)) return false;
+
+    JSONRPCRequest jreq;
+    jreq.context = g_node;
+    jreq.strMethod = "listbanned";
+    jreq.params = UniValue(UniValue::VARR);
+
+    try {
+        UniValue result = tableRPC.execute(jreq);
+        UniValue obj(UniValue::VOBJ);
+        obj.pushKV("banned", result);
+        SetJSONHeaders(req, *cors);
+        req->WriteReply(HTTP_OK, obj.write());
+        return true;
+    } catch (const UniValue& e) {
+        const std::string msg = e["message"].isStr() ? e["message"].get_str() : "RPC error";
+        req->WriteReply(HTTP_INTERNAL_SERVER_ERROR, JsonError(msg));
+        return false;
+    }
+}
+
+static bool HandlePeerBan(HTTPRequest* req)
+{
+    if (req->GetRequestMethod() != HTTPRequest::POST) {
+        req->WriteReply(HTTP_BAD_METHOD, "");
+        return false;
+    }
+    if (!CheckWebUIHost(req)) return false;
+    auto cors = CheckWebUICORS(req);
+    if (!cors) return false;
+    if (!CheckWebUIAuth(req)) return false;
+
+    UniValue body;
+    if (!body.read(req->ReadBody()) || !body.isObject()) {
+        req->WriteReply(HTTP_BAD_REQUEST, R"({"error":"Invalid request body"})");
+        return false;
+    }
+    const UniValue& subnetVal = body["subnet"];
+    if (!subnetVal.isStr() || subnetVal.get_str().empty()) {
+        req->WriteReply(HTTP_BAD_REQUEST, R"({"error":"\"subnet\" field required"})");
+        return false;
+    }
+    const int64_t bantime = body["bantime"].isNum() ? body["bantime"].getInt<int64_t>() : 86400;
+
+    JSONRPCRequest jreq;
+    jreq.context = g_node;
+    jreq.strMethod = "setban";
+    jreq.params = UniValue(UniValue::VARR);
+    jreq.params.push_back(subnetVal.get_str());
+    jreq.params.push_back("add");
+    jreq.params.push_back(bantime);
+
+    try {
+        tableRPC.execute(jreq);
+        UniValue obj(UniValue::VOBJ);
+        obj.pushKV("success", true);
+        SetJSONHeaders(req, *cors);
+        req->WriteReply(HTTP_OK, obj.write());
+        return true;
+    } catch (const UniValue& e) {
+        const std::string msg = e["message"].isStr() ? e["message"].get_str() : "RPC error";
+        req->WriteReply(HTTP_BAD_REQUEST, JsonError(msg));
+        return false;
+    }
+}
+
+static bool HandlePeerUnban(HTTPRequest* req)
+{
+    if (req->GetRequestMethod() != HTTPRequest::POST) {
+        req->WriteReply(HTTP_BAD_METHOD, "");
+        return false;
+    }
+    if (!CheckWebUIHost(req)) return false;
+    auto cors = CheckWebUICORS(req);
+    if (!cors) return false;
+    if (!CheckWebUIAuth(req)) return false;
+
+    UniValue body;
+    if (!body.read(req->ReadBody()) || !body.isObject()) {
+        req->WriteReply(HTTP_BAD_REQUEST, R"({"error":"Invalid request body"})");
+        return false;
+    }
+    const UniValue& subnetVal = body["subnet"];
+    if (!subnetVal.isStr() || subnetVal.get_str().empty()) {
+        req->WriteReply(HTTP_BAD_REQUEST, R"({"error":"\"subnet\" field required"})");
+        return false;
+    }
+
+    JSONRPCRequest jreq;
+    jreq.context = g_node;
+    jreq.strMethod = "setban";
+    jreq.params = UniValue(UniValue::VARR);
+    jreq.params.push_back(subnetVal.get_str());
+    jreq.params.push_back("remove");
+
+    try {
+        tableRPC.execute(jreq);
+        UniValue obj(UniValue::VOBJ);
+        obj.pushKV("success", true);
+        SetJSONHeaders(req, *cors);
+        req->WriteReply(HTTP_OK, obj.write());
+        return true;
+    } catch (const UniValue& e) {
+        const std::string msg = e["message"].isStr() ? e["message"].get_str() : "RPC error";
+        req->WriteReply(HTTP_BAD_REQUEST, JsonError(msg));
+        return false;
+    }
+}
+
+static bool HandlePeerAdd(HTTPRequest* req)
+{
+    if (req->GetRequestMethod() != HTTPRequest::POST) {
+        req->WriteReply(HTTP_BAD_METHOD, "");
+        return false;
+    }
+    if (!CheckWebUIHost(req)) return false;
+    auto cors = CheckWebUICORS(req);
+    if (!cors) return false;
+    if (!CheckWebUIAuth(req)) return false;
+
+    UniValue body;
+    if (!body.read(req->ReadBody()) || !body.isObject()) {
+        req->WriteReply(HTTP_BAD_REQUEST, R"({"error":"Invalid request body"})");
+        return false;
+    }
+    const UniValue& addrVal = body["addr"];
+    if (!addrVal.isStr() || addrVal.get_str().empty()) {
+        req->WriteReply(HTTP_BAD_REQUEST, R"({"error":"\"addr\" field required"})");
+        return false;
+    }
+
+    JSONRPCRequest jreq;
+    jreq.context = g_node;
+    jreq.strMethod = "addnode";
+    jreq.params = UniValue(UniValue::VARR);
+    jreq.params.push_back(addrVal.get_str());
+    jreq.params.push_back("add");
+
+    try {
+        tableRPC.execute(jreq);
+        UniValue obj(UniValue::VOBJ);
+        obj.pushKV("success", true);
+        SetJSONHeaders(req, *cors);
+        req->WriteReply(HTTP_OK, obj.write());
+        return true;
+    } catch (const UniValue& e) {
+        const std::string msg = e["message"].isStr() ? e["message"].get_str() : "RPC error";
+        req->WriteReply(HTTP_BAD_REQUEST, JsonError(msg));
+        return false;
+    }
+}
+
+static bool HandlePeerDisconnect(HTTPRequest* req)
+{
+    if (req->GetRequestMethod() != HTTPRequest::POST) {
+        req->WriteReply(HTTP_BAD_METHOD, "");
+        return false;
+    }
+    if (!CheckWebUIHost(req)) return false;
+    auto cors = CheckWebUICORS(req);
+    if (!cors) return false;
+    if (!CheckWebUIAuth(req)) return false;
+
+    UniValue body;
+    if (!body.read(req->ReadBody()) || !body.isObject()) {
+        req->WriteReply(HTTP_BAD_REQUEST, R"({"error":"Invalid request body"})");
+        return false;
+    }
+    const UniValue& idVal = body["id"];
+    if (!idVal.isNum()) {
+        req->WriteReply(HTTP_BAD_REQUEST, R"({"error":"\"id\" (numeric peer id) required"})");
+        return false;
+    }
+
+    JSONRPCRequest jreq;
+    jreq.context = g_node;
+    jreq.strMethod = "disconnectnode";
+    jreq.params = UniValue(UniValue::VARR);
+    jreq.params.push_back(std::string{});           // address — empty, use nodeid
+    jreq.params.push_back(idVal.getInt<int>());
+
+    try {
+        tableRPC.execute(jreq);
+        UniValue obj(UniValue::VOBJ);
+        obj.pushKV("success", true);
+        SetJSONHeaders(req, *cors);
+        req->WriteReply(HTTP_OK, obj.write());
+        return true;
+    } catch (const UniValue& e) {
+        const std::string msg = e["message"].isStr() ? e["message"].get_str() : "RPC error";
+        req->WriteReply(HTTP_BAD_REQUEST, JsonError(msg));
+        return false;
+    }
+}
+
 // ---- Node API route dispatcher -----------------------------------------
 
 bool WebUINodeAPIRoute(HTTPRequest* req, const std::string& path)
 {
-    if (path == "/webui/api/node/status")   return HandleNodeStatus(req);
-    if (path == "/webui/api/node/features") return HandleNodeFeatures(req);
-    if (path == "/webui/api/verifymessage") return HandleVerifyMessage(req);
+    if (path == "/webui/api/node/status")             return HandleNodeStatus(req);
+    if (path == "/webui/api/node/features")           return HandleNodeFeatures(req);
+    if (path == "/webui/api/node/peers")              return HandlePeerList(req);
+    if (path == "/webui/api/node/banned")             return HandleBannedList(req);
+    if (path == "/webui/api/node/peers/ban")          return HandlePeerBan(req);
+    if (path == "/webui/api/node/peers/unban")        return HandlePeerUnban(req);
+    if (path == "/webui/api/node/peers/add")          return HandlePeerAdd(req);
+    if (path == "/webui/api/node/peers/disconnect")   return HandlePeerDisconnect(req);
+    if (path == "/webui/api/verifymessage")           return HandleVerifyMessage(req);
 
     if (path.starts_with("/webui/api/ans/")) {
         if (req->GetRequestMethod() != HTTPRequest::GET) {

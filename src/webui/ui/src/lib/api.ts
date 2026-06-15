@@ -63,6 +63,31 @@ export interface NodeStatus {
   initialblockdownload: boolean
   connections: number
   mempoolsize: number
+  uptime: number
+}
+
+export interface Peer {
+  id: number
+  addr: string
+  network: string
+  inbound: boolean
+  version: number
+  subver: string
+  pingtime?: number
+  minping?: number
+  synced_headers: number
+  synced_blocks: number
+  conntime: number
+  connection_type: string
+  bytessent: number
+  bytesrecv: number
+}
+
+export interface BannedEntry {
+  address: string
+  banned_until: number
+  ban_created: number
+  ban_reason: string
 }
 
 export interface FeatureFlag { compiled: boolean; active: boolean }
@@ -93,6 +118,15 @@ export const api = {
   node: {
     status:   () => get<NodeStatus>('/node/status'),
     features: () => get<NodeFeatures>('/node/features'),
+  },
+
+  peers: {
+    list:       () => get<{ peers: Peer[] }>('/node/peers'),
+    banned:     () => get<{ banned: BannedEntry[] }>('/node/banned'),
+    ban:        (subnet: string, bantime: number) => post<{ success: boolean }>('/node/peers/ban', { subnet, bantime }),
+    unban:      (subnet: string) => post<{ success: boolean }>('/node/peers/unban', { subnet }),
+    add:        (addr: string)   => post<{ success: boolean }>('/node/peers/add', { addr }),
+    disconnect: (id: number)     => post<{ success: boolean }>('/node/peers/disconnect', { id }),
   },
 
   wallets: {
