@@ -3,6 +3,12 @@
 # file COPYING or https://opensource.org/license/mit/.
 
 add_library(bitcoin_webui STATIC EXCLUDE_FROM_ALL
+  auth.cpp
+  assets_api.cpp
+  json.cpp
+  node_api.cpp
+  static.cpp
+  wallet_api.cpp
   webui.cpp
 )
 target_compile_definitions(bitcoin_webui
