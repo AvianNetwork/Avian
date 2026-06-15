@@ -13,7 +13,7 @@ struct NodeContext;
 } // namespace node
 
 static constexpr bool DEFAULT_WEBUI_ENABLE{false};
-static constexpr uint16_t DEFAULT_WEBUI_PORT{8766};
+static constexpr uint16_t DEFAULT_WEBUI_PORT{7897};
 inline const std::string DEFAULT_WEBUI_BIND{"127.0.0.1"};
 inline const std::string WEBUI_COOKIE_FILE{"webui.cookie"};
 

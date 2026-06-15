@@ -1479,7 +1479,10 @@ function SignVerifyTab({ walletName, features }: { walletName: string; features:
           {sErr && <div className="error-box">{sErr}</div>}
           {sSig && (
             <div>
-              <label>Signature</label>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+                <label style={{ marginBottom: 0 }}>Signature</label>
+                <button type="button" className="secondary" style={{ padding: '2px 10px', fontSize: 12 }} onClick={() => copyText(sSig)}>Copy</button>
+              </div>
               <textarea rows={3} readOnly value={sSig} style={{ fontSize: 11 }} />
             </div>
           )}
@@ -1498,12 +1501,12 @@ function SignVerifyTab({ walletName, features }: { walletName: string; features:
             <input value={vAddr} onChange={e => setVAddr(e.target.value)} placeholder={hasAns ? 'AVN address or name.avian…' : 'AVN address…'} spellCheck={false} />
           </div>
           <div>
-            <label>Signature (base64)</label>
-            <textarea rows={3} value={vSig} onChange={e => setVSig(e.target.value)} style={{ fontSize: 11 }} />
-          </div>
-          <div>
             <label>Message</label>
             <textarea rows={3} value={vMsg} onChange={e => setVMsg(e.target.value)} />
+          </div>
+          <div>
+            <label>Signature (base64)</label>
+            <textarea rows={3} value={vSig} onChange={e => setVSig(e.target.value)} style={{ fontSize: 11 }} />
           </div>
           {vRes && (
             <div className={vRes.valid ? 'ok-box' : 'error-box'}>
