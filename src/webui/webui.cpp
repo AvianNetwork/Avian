@@ -27,6 +27,8 @@
 #include <psbt.h>
 #include <random.h>
 #include <rpc/protocol.h>
+#include <rpc/request.h>
+#include <rpc/server.h>
 #include <script/solver.h>
 #include <streams.h>
 #include <sync.h>
@@ -51,6 +53,7 @@
 #endif
 
 #include <event2/buffer.h>
+#include <event2/event.h>
 #include <event2/http.h>
 #include <kernel/mempool_entry.h>
 #include <validationinterface.h>
@@ -63,7 +66,6 @@
 #include <optional>
 #include <set>
 #include <string>
-#include <thread>
 #include <vector>
 
 using node::NodeContext;
@@ -620,12 +622,25 @@ static bool HandleWalletSummary(HTTPRequest* req, const std::string& wallet_name
 
         interfaces::WalletBalances bal = w->getBalances();
         UniValue obj(UniValue::VOBJ);
-        obj.pushKV("name",        wallet_name);
-        obj.pushKV("encrypted",   w->isCrypted());
-        obj.pushKV("locked",      w->isCrypted() && w->isLocked());
-        obj.pushKV("balance",     ValueFromAmount(bal.balance));
-        obj.pushKV("unconfirmed", ValueFromAmount(bal.unconfirmed_balance));
-        obj.pushKV("immature",    ValueFromAmount(bal.immature_balance));
+        const bool is_locked = w->isCrypted() && w->isLocked();
+        int64_t relock_at_val{0};
+        if (!is_locked) {
+            wallet::WalletContext* wctx = g_node->wallet_loader->context();
+            if (wctx) {
+                auto pwallet = wallet::GetWallet(*wctx, wallet_name);
+                if (pwallet) {
+                    LOCK(pwallet->cs_wallet);
+                    relock_at_val = pwallet->nRelockTime;
+                }
+            }
+        }
+        obj.pushKV("name",           wallet_name);
+        obj.pushKV("encrypted",      w->isCrypted());
+        obj.pushKV("locked",         is_locked);
+        if (!is_locked && relock_at_val > 0) obj.pushKV("unlocked_until", relock_at_val);
+        obj.pushKV("balance",        ValueFromAmount(bal.balance));
+        obj.pushKV("unconfirmed",    ValueFromAmount(bal.unconfirmed_balance));
+        obj.pushKV("immature",       ValueFromAmount(bal.immature_balance));
         SetJSONHeaders(req, *cors);
         req->WriteReply(HTTP_OK, obj.write());
         return true;
@@ -1123,47 +1138,41 @@ static bool HandleWalletUnlock(HTTPRequest* req, const std::string& wallet_name)
         req->WriteReply(HTTP_BAD_REQUEST, R"({"error":"\"passphrase\" field required"})");
         return false;
     }
-    SecureString passphrase;
-    const std::string& ps = passVal.get_str();
-    passphrase.assign(ps.begin(), ps.end());
 
-    int64_t timeout{0};
+    int64_t timeout{300};
     if (body["timeout"].isNum()) {
         timeout = body["timeout"].getInt<int64_t>();
         if (timeout < 0) timeout = 0;
-        if (timeout > 86400) timeout = 86400; // cap at 24 h
+        if (timeout > 86400) timeout = 86400;
     }
 
-    for (auto& w : g_node->wallet_loader->getWallets()) {
-        if (w->getWalletName() != wallet_name) continue;
+    UniValue params(UniValue::VARR);
+    params.push_back(passVal.get_str());
+    params.push_back(timeout);
 
-        if (!w->isCrypted()) {
-            req->WriteReply(HTTP_BAD_REQUEST, R"({"error":"Wallet is not encrypted"})");
-            return false;
-        }
-        if (!w->unlock(passphrase)) {
-            UninterruptibleSleep(std::chrono::milliseconds{250});
-            req->WriteReply(HTTP_BAD_REQUEST, R"({"error":"Incorrect passphrase"})");
-            return false;
-        }
-        if (timeout > 0) {
-            wallet::WalletContext* wctx = g_node->wallet_loader->context();
-            std::thread([wctx, wallet_name, timeout]() {
-                std::this_thread::sleep_for(std::chrono::seconds(timeout));
-                if (!wctx) return;
-                auto pwallet = wallet::GetWallet(*wctx, wallet_name);
-                if (pwallet) pwallet->Lock();
-            }).detach();
-        }
-        UniValue obj(UniValue::VOBJ);
-        obj.pushKV("success", true);
-        if (timeout > 0) obj.pushKV("relock_in", timeout);
-        SetJSONHeaders(req, *cors);
-        req->WriteReply(HTTP_OK, obj.write());
-        return true;
+    JSONRPCRequest jreq;
+    jreq.strMethod = "walletpassphrase";
+    jreq.params    = std::move(params);
+    jreq.URI       = "/wallet/" + wallet_name;
+
+    try {
+        tableRPC.execute(jreq);
+    } catch (const UniValue& objError) {
+        UninterruptibleSleep(std::chrono::milliseconds{250});
+        const UniValue& msg = objError.exists("message") ? objError["message"] : objError;
+        req->WriteReply(HTTP_BAD_REQUEST, "{\"error\":" + msg.write() + "}");
+        return false;
+    } catch (const std::exception& e) {
+        req->WriteReply(HTTP_INTERNAL_SERVER_ERROR, "{\"error\":\"" + std::string(e.what()) + "\"}");
+        return false;
     }
-    req->WriteReply(HTTP_NOT_FOUND, R"({"error":"Wallet not found or not loaded"})");
-    return false;
+
+    UniValue obj(UniValue::VOBJ);
+    obj.pushKV("success", true);
+    if (timeout > 0) obj.pushKV("relock_in", timeout);
+    SetJSONHeaders(req, *cors);
+    req->WriteReply(HTTP_OK, obj.write());
+    return true;
 }
 
 static bool HandleWalletLock(HTTPRequest* req, const std::string& wallet_name)
@@ -1181,22 +1190,27 @@ static bool HandleWalletLock(HTTPRequest* req, const std::string& wallet_name)
         req->WriteReply(HTTP_SERVICE_UNAVAILABLE, R"({"error":"Wallet support not available"})");
         return false;
     }
-    for (auto& w : g_node->wallet_loader->getWallets()) {
-        if (w->getWalletName() != wallet_name) continue;
+    JSONRPCRequest jreq;
+    jreq.strMethod = "walletlock";
+    jreq.params    = UniValue(UniValue::VARR);
+    jreq.URI       = "/wallet/" + wallet_name;
 
-        if (!w->isCrypted()) {
-            req->WriteReply(HTTP_BAD_REQUEST, R"({"error":"Wallet is not encrypted"})");
-            return false;
-        }
-        w->lock();
-        UniValue obj(UniValue::VOBJ);
-        obj.pushKV("success", true);
-        SetJSONHeaders(req, *cors);
-        req->WriteReply(HTTP_OK, obj.write());
-        return true;
+    try {
+        tableRPC.execute(jreq);
+    } catch (const UniValue& objError) {
+        const UniValue& msg = objError.exists("message") ? objError["message"] : objError;
+        req->WriteReply(HTTP_BAD_REQUEST, "{\"error\":" + msg.write() + "}");
+        return false;
+    } catch (const std::exception& e) {
+        req->WriteReply(HTTP_INTERNAL_SERVER_ERROR, "{\"error\":\"" + std::string(e.what()) + "\"}");
+        return false;
     }
-    req->WriteReply(HTTP_NOT_FOUND, R"({"error":"Wallet not found or not loaded"})");
-    return false;
+
+    UniValue obj(UniValue::VOBJ);
+    obj.pushKV("success", true);
+    SetJSONHeaders(req, *cors);
+    req->WriteReply(HTTP_OK, obj.write());
+    return true;
 }
 
 static bool HandleWalletSignMessage(HTTPRequest* req, const std::string& wallet_name)
@@ -1443,6 +1457,54 @@ static bool HandleWalletPSBTSign(HTTPRequest* req, const std::string& wallet_nam
     }
     req->WriteReply(HTTP_NOT_FOUND, R"({"error":"Wallet not found or not loaded"})");
     return false;
+}
+
+static bool HandleWalletPSBTFund(HTTPRequest* req, const std::string& wallet_name)
+{
+    // POST {inputs, outputs, locktime?, options?} → raw walletcreatefundedpsbt result
+    if (req->GetRequestMethod() != HTTPRequest::POST) {
+        req->WriteReply(HTTP_BAD_METHOD, "");
+        return false;
+    }
+    if (!CheckWebUIHost(req)) return false;
+    auto cors = CheckWebUICORS(req);
+    if (!cors) return false;
+    if (!CheckWebUIAuth(req)) return false;
+
+    UniValue body;
+    if (!body.read(req->ReadBody()) || !body.isObject()) {
+        req->WriteReply(HTTP_BAD_REQUEST, R"({"error":"Invalid request body"})");
+        return false;
+    }
+    if (!body.exists("outputs") || !body["outputs"].isArray()) {
+        req->WriteReply(HTTP_BAD_REQUEST, R"({"error":"\"outputs\" array required"})");
+        return false;
+    }
+
+    UniValue params(UniValue::VARR);
+    params.push_back(body.exists("inputs")   ? body["inputs"]   : UniValue(UniValue::VARR));
+    params.push_back(body["outputs"]);
+    params.push_back(body.exists("locktime") ? body["locktime"] : UniValue(0));
+    params.push_back(body.exists("options")  ? body["options"]  : UniValue(UniValue::VOBJ));
+
+    JSONRPCRequest jreq;
+    jreq.strMethod = "walletcreatefundedpsbt";
+    jreq.params    = std::move(params);
+    jreq.URI       = "/wallet/" + wallet_name;
+
+    try {
+        UniValue result = tableRPC.execute(jreq);
+        SetJSONHeaders(req, *cors);
+        req->WriteReply(HTTP_OK, result.write());
+        return true;
+    } catch (const UniValue& objError) {
+        const UniValue& msg = objError.exists("message") ? objError["message"] : objError;
+        req->WriteReply(HTTP_BAD_REQUEST, "{\"error\":" + msg.write() + "}");
+        return false;
+    } catch (const std::exception& e) {
+        req->WriteReply(HTTP_INTERNAL_SERVER_ERROR, "{\"error\":\"" + std::string(e.what()) + "\"}");
+        return false;
+    }
 }
 
 static bool HandleWalletUTXOs(HTTPRequest* req, const std::string& wallet_name)
@@ -1698,6 +1760,7 @@ static bool HandleWalletRoute(HTTPRequest* req, const std::string& path)
     if (action == "signmessage")     return HandleWalletSignMessage(req, wallet_name);
     if (action == "psbt/create")     return HandleWalletPSBTCreate(req, wallet_name);
     if (action == "psbt/sign")       return HandleWalletPSBTSign(req, wallet_name);
+    if (action == "psbt/fund")       return HandleWalletPSBTFund(req, wallet_name);
     if (action == "utxos")           return HandleWalletUTXOs(req, wallet_name);
     if (action == "consolidate")     return HandleWalletConsolidate(req, wallet_name);
 #endif
@@ -2248,12 +2311,17 @@ static bool HandleStaticFile(HTTPRequest* req, const std::string& path)
 static std::mutex g_sse_mutex;
 static std::vector<evhttp_request*> g_sse_clients;
 
-static void OnSSEClose(evhttp_connection* /*conn*/, void* ctx)
+static void OnSSEClose(evhttp_connection* conn, void* ctx)
 {
     auto* raw = static_cast<evhttp_request*>(ctx);
-    std::lock_guard<std::mutex> lock(g_sse_mutex);
-    auto& v = g_sse_clients;
-    v.erase(std::remove(v.begin(), v.end(), raw), v.end());
+    {
+        std::lock_guard<std::mutex> lock(g_sse_mutex);
+        auto& v = g_sse_clients;
+        v.erase(std::remove(v.begin(), v.end(), raw), v.end());
+    }
+    // Our close callback replaces the one httpserver installs, so forward to it
+    // so that StopHTTPServer's WaitUntilEmpty() can unblock on shutdown.
+    HTTPNotifyConnectionClose(conn);
 }
 
 static void PushSSEEvent(const std::string& event_name, const std::string& json_data)
@@ -2437,19 +2505,35 @@ void InterruptWebUI()
     if (g_node && g_node->validation_signals && g_webui_notifier) {
         g_node->validation_signals->UnregisterValidationInterface(g_webui_notifier.get());
     }
-    // Snapshot and clear the client list under the lock, then close connections
-    // outside it. Calling evhttp_send_reply_end() while holding g_sse_mutex would
-    // deadlock: the PushSSEEvent closure also holds g_sse_mutex while calling
-    // evhttp_send_reply_chunk(), and both paths compete for libevent's event base lock.
+    // Snapshot and clear under the lock; PushSSEEvent closures will see an empty list.
     std::vector<evhttp_request*> to_close;
     {
         std::lock_guard<std::mutex> lock(g_sse_mutex);
         to_close = std::move(g_sse_clients);
-        // g_sse_clients is now empty; PushSSEEvent will iterate nothing.
     }
-    for (auto* raw : to_close) {
-        evhttp_send_reply_end(raw);
-    }
+    if (to_close.empty()) return;
+
+    struct event_base* base = EventBase();
+    if (!base) return;
+
+    // SSE connections are long-lived: evhttp_send_reply_end() alone does not close
+    // the underlying TCP connection, so StopHTTPServer's WaitUntilEmpty() would hang
+    // waiting for g_requests to drain.  Schedule evhttp_connection_free() on the
+    // libevent thread (the only thread where evhttp calls are safe).  That triggers
+    // OnSSEClose → HTTPNotifyConnectionClose → g_requests.RemoveConnection(), which
+    // unblocks WaitUntilEmpty().  Clear the on_complete_cb first so it cannot fire
+    // concurrently and attempt to access the connection while it is being freed.
+    auto* clients = new std::vector<evhttp_request*>(std::move(to_close));
+    event_base_once(base, -1, EV_TIMEOUT, [](evutil_socket_t, short, void* arg) {
+        auto* vec = static_cast<std::vector<evhttp_request*>*>(arg);
+        for (auto* raw : *vec) {
+            evhttp_request_set_on_complete_cb(raw, nullptr, nullptr);
+            if (evhttp_connection* conn = evhttp_request_get_connection(raw)) {
+                evhttp_connection_free(conn);
+            }
+        }
+        delete vec;
+    }, clients, nullptr);
 }
 
 void StopWebUI()

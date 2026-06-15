@@ -61,6 +61,11 @@ void RegisterHTTPHandler(const std::string &prefix, bool exactMatch, const HTTPR
 /** Unregister handler for prefix */
 void UnregisterHTTPHandler(const std::string &prefix, bool exactMatch);
 
+/** Notify the HTTP request tracker that a connection has closed.
+ *  Call this when a close callback set by non-httpserver code replaces the
+ *  one httpserver installs, so WaitUntilEmpty() can still unblock on shutdown. */
+void HTTPNotifyConnectionClose(evhttp_connection* conn);
+
 /** Bind an additional listening socket on the HTTP server.
  * Must be called after InitHTTPServer(). Returns false if the server is not
  * yet initialised or the bind fails.

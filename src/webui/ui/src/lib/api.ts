@@ -18,6 +18,7 @@ function _fallbackCopy(text: string): void {
   ta.style.cssText = 'position:fixed;opacity:0;pointer-events:none'
   document.body.appendChild(ta)
   ta.focus(); ta.select()
+  // eslint-disable-next-line @typescript-eslint/no-deprecated
   try { document.execCommand('copy') } finally { document.body.removeChild(ta) }
 }
 
@@ -72,7 +73,7 @@ export interface NodeFeatures {
 }
 
 export interface WalletInfo   { name: string; encrypted: boolean }
-export interface WalletSummary { name: string; encrypted: boolean; locked: boolean; balance: string; unconfirmed: string; immature: string }
+export interface WalletSummary { name: string; encrypted: boolean; locked: boolean; unlocked_until?: number; balance: string; unconfirmed: string; immature: string }
 export interface WalletTx     { txid: string; time: number; amount: string; credit: string; debit: string; confirmations: number; coinbase: boolean; addresses: string[] }
 export interface AssetBalance { name: string; balance: string; ipfs?: string }
 
@@ -123,6 +124,8 @@ export const api = {
       post<{ psbt: string; fee: string }>(`/wallet/${encodeURIComponent(w)}/psbt/create`, { recipients }),
     psbtSign:     (w: string, psbt: string, sighash?: string) =>
       post<{ psbt: string; complete: boolean; signed_inputs: number }>(`/wallet/${encodeURIComponent(w)}/psbt/sign`, { psbt, ...(sighash ? { sighash } : {}) }),
+    psbtFund:     (w: string, inputs: unknown[], outputs: unknown[], locktime: number, options: Record<string, unknown>) =>
+      post<{ psbt: string; fee: string; changepos: number }>(`/wallet/${encodeURIComponent(w)}/psbt/fund`, { inputs, outputs, locktime, options }),
     setAddressLabel: (w: string, address: string, label: string) =>
       post<{ success: boolean }>(`/wallet/${encodeURIComponent(w)}/set-address-label`, { address, label }),
     sendAsset: (w: string, asset: string, address: string, amount: string) =>

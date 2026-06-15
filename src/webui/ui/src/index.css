@@ -21,6 +21,9 @@
   --green:       #5e8c41;
   --red:         #a84832;
   --yellow:      #c79304;
+  --cyan:        #18a7b7;
+  --orange:      #e06b52;
+  --purple:      #9b59b6;
   --radius:      4px;
   --font:        "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --mono:        "Roboto Mono", ui-monospace, SFMono-Regular, Consolas, monospace;
@@ -112,6 +115,9 @@ label { display: block; font-size: 13px; color: var(--muted2); margin-bottom: 4p
 .badge.red    { background: rgba(168,72,50,.2);  color: #e06b52; border: 1px solid rgba(168,72,50,.5); }
 .badge.yellow { background: rgba(199,147,4,.2);  color: var(--yellow); border: 1px solid rgba(199,147,4,.5); }
 .badge.blue   { background: rgba(24,167,183,.15);color: var(--accent-bright); border: 1px solid rgba(24,167,183,.4); }
+.badge.cyan   { background: rgba(24,167,183,.15);color: var(--cyan); border: 1px solid rgba(24,167,183,.4); }
+.badge.orange { background: rgba(224,107,82,.15);color: var(--orange); border: 1px solid rgba(255, 47, 0, 0.4); }
+.badge.purple { background: rgba(155,89,182,.15);color: var(--purple); border: 1px solid rgba(155,89,182,.4); }
 
 .error-box { padding: 10px 14px; background: rgba(168,72,50,.15); border: 1px solid rgba(168,72,50,.5); border-radius: var(--radius); color: #e06b52; }
 .info-box  { padding: 10px 14px; background: rgba(43,115,127,.15); border: 1px solid var(--border-teal); border-radius: var(--radius); color: var(--accent-bright); }

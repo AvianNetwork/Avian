@@ -22,7 +22,7 @@ export function WalletsPage({ loaded, onRefresh, onOpenWallet }: Props) {
 
   // Load-from-disk form
   const [loadName, setLoadName] = useState('')
-  const [loading, setLoading] = useState(false)
+  const [loadingName, setLoadingName] = useState<string | null>(null)
 
   useEffect(() => {
     api.wallets.available()
@@ -34,14 +34,14 @@ export function WalletsPage({ loaded, onRefresh, onOpenWallet }: Props) {
 
   const handleLoad = async (name: string) => {
     setLoadErr('')
-    setLoading(true)
+    setLoadingName(name)
     try {
       await api.wallets.load(name)
       onRefresh()
     } catch (e) {
       setLoadErr(e instanceof ApiError ? e.message : 'Failed to load wallet')
     } finally {
-      setLoading(false)
+      setLoadingName(null)
     }
   }
 
@@ -130,7 +130,9 @@ export function WalletsPage({ loaded, onRefresh, onOpenWallet }: Props) {
                   <tr key={n}>
                     <td style={{ fontFamily: 'var(--mono)', fontSize: 13 }}>{n}</td>
                     <td style={{ textAlign: 'right' }}>
-                      <button onClick={() => handleLoad(n)} disabled={loading}>Load</button>
+                      <button onClick={() => handleLoad(n)} disabled={loadingName !== null}>
+                        {loadingName === n ? <><span className="spinner" /> Loading…</> : 'Load'}
+                      </button>
                     </td>
                   </tr>
                 ))}
@@ -153,9 +155,11 @@ export function WalletsPage({ loaded, onRefresh, onOpenWallet }: Props) {
             />
             <button
               onClick={() => { if (loadName.trim()) handleLoad(loadName.trim()) }}
-              disabled={loading || !loadName.trim()}
+              disabled={loadingName !== null || !loadName.trim()}
             >
-              Load
+              {loadingName !== null && loadingName === loadName.trim()
+                ? <><span className="spinner" /> Loading…</>
+                : 'Load'}
             </button>
           </div>
         </div>

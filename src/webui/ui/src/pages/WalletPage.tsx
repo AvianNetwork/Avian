@@ -13,14 +13,45 @@ interface Props {
   registerRefresh?: (fn: () => void) => void
 }
 
+function useCountdown(unlockedUntil?: number): string | null {
+  const [remaining, setRemaining] = useState<number | null>(null)
+
+  useEffect(() => {
+    if (!unlockedUntil) { setRemaining(null); return }
+    const tick = () => {
+      const secs = Math.max(0, unlockedUntil - Math.floor(Date.now() / 1000))
+      setRemaining(secs)
+    }
+    tick()
+    const id = setInterval(tick, 1000)
+    return () => clearInterval(id)
+  }, [unlockedUntil])
+
+  if (remaining === null || remaining <= 0) return null
+  const m = Math.floor(remaining / 60)
+  const s = remaining % 60
+  return m > 0 ? `${m}m ${s}s` : `${s}s`
+}
+
 export function WalletPage({ walletName, features, onBack, onRefresh, registerRefresh }: Props) {
   const [tab, setTab] = useState<Tab>('overview')
   const [summary, setSummary] = useState<WalletSummary | null>(null)
   const [err, setErr] = useState('')
-  const [unlockPass, setUnlockPass] = useState('')
-  const [unlocking, setUnlocking] = useState(false)
+  const [unlockPass,     setUnlockPass]     = useState('')
+  const [unlocking,      setUnlocking]      = useState(false)
+  const [unlockDuration, setUnlockDuration] = useState(300)
+
+  const countdown = useCountdown(summary?.unlocked_until)
 
   const [refreshTick, setRefreshTick] = useState(0)
+
+  const [toasts, setToasts] = useState<{ id: number; txid: string; amount: string }[]>([])
+  const toastId = useRef(0)
+  const addToast = useCallback((txid: string, amount: string) => {
+    const id = ++toastId.current
+    setToasts(t => [...t, { id, txid, amount }])
+    setTimeout(() => setToasts(t => t.filter(x => x.id !== id)), 5000)
+  }, [])
 
   const loadSummary = useCallback(async () => {
     try {
@@ -45,11 +76,26 @@ export function WalletPage({ walletName, features, onBack, onRefresh, registerRe
     return () => registerRefresh?.(() => {})
   }, [registerRefresh, onBlock])
 
+  // Re-fetch when the unlock timer expires so the badge flips to "locked"
+  useEffect(() => {
+    if (!summary?.unlocked_until) return
+    const ms = summary.unlocked_until * 1000 - Date.now()
+    if (ms <= 0) return
+    const id = setTimeout(() => loadSummary(), ms + 500)
+    return () => clearTimeout(id)
+  }, [summary?.unlocked_until, loadSummary])
+
+  // Poll every 30s to detect external lock/unlock changes (Qt, CLI)
+  useEffect(() => {
+    const id = setInterval(loadSummary, 30_000)
+    return () => clearInterval(id)
+  }, [loadSummary])
+
   const handleUnlock = async (e: FormEvent) => {
     e.preventDefault()
     setUnlocking(true)
     try {
-      await api.wallet.unlock(walletName, unlockPass, 300)
+      await api.wallet.unlock(walletName, unlockPass, unlockDuration)
       setUnlockPass('')
       await loadSummary()
     } catch (ex) {
@@ -85,6 +131,11 @@ export function WalletPage({ walletName, features, onBack, onRefresh, registerRe
             {summary.locked ? 'locked' : 'unlocked'}
           </span>
         )}
+        {countdown && (
+          <span style={{ fontSize: 12, color: 'var(--muted)', fontVariantNumeric: 'tabular-nums' }}>
+            locks in {countdown}
+          </span>
+        )}
         <div style={{ flex: 1 }} />
         {summary && !summary.locked && (
           <button className="secondary" onClick={handleLock}>Lock wallet</button>
@@ -95,11 +146,21 @@ export function WalletPage({ walletName, features, onBack, onRefresh, registerRe
       {err && <div className="error-box" style={{ marginBottom: 12 }}>{err}</div>}
 
       {summary?.locked && tab !== 'psbt' && (
-        <div className="card" style={{ marginBottom: 16, maxWidth: 520 }}>
+        <div className="card" style={{ marginBottom: 16, maxWidth: 560 }}>
           <form onSubmit={handleUnlock} style={{ display: 'flex', gap: 8, alignItems: 'flex-end' }}>
             <div style={{ flex: 1 }}>
-              <label>Unlock wallet (300 s)</label>
+              <label>Unlock wallet</label>
               <input type="password" value={unlockPass} onChange={e => setUnlockPass(e.target.value)} placeholder="Passphrase…" />
+            </div>
+            <div style={{ flexShrink: 0 }}>
+              <label>Duration</label>
+              <select value={unlockDuration} onChange={e => setUnlockDuration(Number(e.target.value))} style={{ width: 'auto' }}>
+                <option value={60}>1 min</option>
+                <option value={300}>5 min</option>
+                <option value={1800}>30 min</option>
+                <option value={3600}>1 hour</option>
+                <option value={28800}>8 hours</option>
+              </select>
             </div>
             <button type="submit" className="primary" disabled={unlocking || !unlockPass}>
               {unlocking ? <span className="spinner" /> : 'Unlock'}
@@ -117,13 +178,28 @@ export function WalletPage({ walletName, features, onBack, onRefresh, registerRe
       </div>
 
       {tab === 'overview'     && <OverviewTab walletName={walletName} summary={summary} features={features} onRefresh={loadSummary} />}
-      {tab === 'transactions' && <TransactionsTab walletName={walletName} refreshTick={refreshTick} />}
+      {tab === 'transactions' && <TransactionsTab walletName={walletName} refreshTick={refreshTick} onNewReceived={addToast} />}
       {tab === 'utxos'        && <UTXOTab walletName={walletName} />}
-      {tab === 'assets'       && <AssetsTab walletName={walletName} />}
-      {tab === 'send'         && <SendTab walletName={walletName} onRefresh={() => { loadSummary(); onRefresh() }} />}
-      {tab === 'psbt'         && <PSBTTab walletName={walletName} />}
+      {tab === 'assets'       && <AssetsTab walletName={walletName} features={features} />}
+      {tab === 'send'         && <SendTab walletName={walletName} features={features} onRefresh={() => { loadSummary(); onRefresh() }} />}
+      {tab === 'psbt'         && <PSBTTab walletName={walletName} features={features} />}
       {tab === 'signverify'   && <SignVerifyTab walletName={walletName} features={features} />}
       {tab === 'consolidate'  && <ConsolidateTab walletName={walletName} />}
+
+      {toasts.length > 0 && (
+        <div style={{ position: 'fixed', bottom: 24, right: 24, display: 'flex', flexDirection: 'column', gap: 8, zIndex: 1000 }}>
+          {toasts.map(t => (
+            <div key={t.id} style={{ background: 'var(--card)', border: '1px solid var(--green)', borderRadius: 8, padding: '10px 14px', display: 'flex', gap: 12, alignItems: 'center', minWidth: 280, boxShadow: '0 4px 16px rgba(0,0,0,0.4)' }}>
+              <span style={{ fontSize: 18 }}>↙</span>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontWeight: 600, color: 'var(--green)', fontSize: 13 }}>Received {t.amount} AVN</div>
+                <div style={{ fontSize: 11, color: 'var(--muted)', fontFamily: 'var(--mono)' }}>{t.txid.slice(0, 20)}…</div>
+              </div>
+              <button style={{ background: 'none', border: 'none', color: 'var(--muted)', cursor: 'pointer', padding: 0, fontSize: 16, lineHeight: 1 }} onClick={() => setToasts(ts => ts.filter(x => x.id !== t.id))}>✕</button>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   )
 }
@@ -133,25 +209,48 @@ export function WalletPage({ walletName, features, onBack, onRefresh, registerRe
 const PAGE_SIZE = 20
 
 function OverviewTab({ walletName, summary, features, onRefresh }: { walletName: string; summary: WalletSummary | null; features: NodeFeatures | null; onRefresh: () => void }) {
-  const [addresses, setAddresses] = useState<WalletAddressEntry[]>([])
-  const [search,    setSearch]    = useState('')
-  const [page,      setPage]      = useState(0)
-  const [copied,     setCopied]    = useState('')
-  const [qrAddr,     setQrAddr]    = useState<string | null>(null)
-  const [editing,    setEditing]   = useState<string | null>(null)
-  const [editVal,    setEditVal]   = useState('')
-  const [newOpen,    setNewOpen]   = useState(false)
-  const [newType,    setNewType]   = useState('')
-  const [newLabel,   setNewLabel]  = useState('')
-  const [newBusy,    setNewBusy]   = useState(false)
-  const [newResult,  setNewResult] = useState<string | null>(null)
+  const [addresses,    setAddresses]    = useState<WalletAddressEntry[]>([])
+  const [addrBalances, setAddrBalances] = useState<Map<string, number>>(new Map())
+  const [search,       setSearch]       = useState('')
+  const [page,         setPage]         = useState(0)
+  const [copied,       setCopied]       = useState('')
+  const [qrAddr,       setQrAddr]       = useState<string | null>(null)
+  const [editing,      setEditing]      = useState<string | null>(null)
+  const [editVal,      setEditVal]      = useState('')
+  const [newOpen,      setNewOpen]      = useState(false)
+  const [newType,      setNewType]      = useState('')
+  const [newLabel,     setNewLabel]     = useState('')
+  const [newBusy,      setNewBusy]      = useState(false)
+  const [newResult,    setNewResult]    = useState<string | null>(null)
+  const [sortCol,      setSortCol]      = useState<'address' | 'label' | 'balance' | null>(null)
+  const [sortDir,      setSortDir]      = useState<'asc' | 'desc'>('asc')
   const editRef = useRef<HTMLInputElement>(null)
+
+  const handleSort = (col: 'address' | 'label' | 'balance') => {
+    if (sortCol === col) setSortDir(d => d === 'asc' ? 'desc' : 'asc')
+    else { setSortCol(col); setSortDir('asc') }
+    setPage(0)
+  }
+  const sortIcon = (col: 'address' | 'label' | 'balance') =>
+    sortCol === col ? (sortDir === 'asc' ? ' ▲' : ' ▼') : ''
 
   const loadAddresses = useCallback(() => {
     api.wallet.addresses(walletName).then(r => setAddresses(r.addresses)).catch(() => {})
   }, [walletName])
 
-  useEffect(() => { loadAddresses() }, [loadAddresses])
+  const loadBalances = useCallback(() => {
+    api.wallet.utxos(walletName, undefined, undefined, false)
+      .then(r => {
+        const map = new Map<string, number>()
+        for (const u of r.utxos) {
+          map.set(u.address, (map.get(u.address) ?? 0) + parseFloat(u.amount))
+        }
+        setAddrBalances(map)
+      })
+      .catch(() => {})
+  }, [walletName])
+
+  useEffect(() => { loadAddresses(); loadBalances() }, [loadAddresses, loadBalances])
   useEffect(() => { setPage(0) }, [search])
   useEffect(() => { if (editing && editRef.current) editRef.current.focus() }, [editing])
 
@@ -189,8 +288,15 @@ function OverviewTab({ walletName, summary, features, onRefresh }: { walletName:
   const filtered = q
     ? addresses.filter(a => a.address.toLowerCase().includes(q) || a.label.toLowerCase().includes(q))
     : addresses
-  const totalPages = Math.ceil(filtered.length / PAGE_SIZE)
-  const pageSlice  = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE)
+  const sorted = sortCol ? [...filtered].sort((a, b) => {
+    let cmp = 0
+    if (sortCol === 'address') cmp = a.address.localeCompare(b.address)
+    else if (sortCol === 'label') cmp = a.label.localeCompare(b.label)
+    else cmp = (addrBalances.get(a.address) ?? 0) - (addrBalances.get(b.address) ?? 0)
+    return sortDir === 'asc' ? cmp : -cmp
+  }) : filtered
+  const totalPages = Math.ceil(sorted.length / PAGE_SIZE)
+  const pageSlice  = sorted.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE)
 
   if (!summary) return <div style={{ color: 'var(--muted)' }}>Loading…</div>
 
@@ -204,7 +310,7 @@ function OverviewTab({ walletName, summary, features, onRefresh }: { walletName:
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
         <h3 style={{ fontSize: 14, color: 'var(--muted2)', whiteSpace: 'nowrap' }}>
-          Receiving addresses ({filtered.length}{q ? `/${addresses.length}` : ''})
+          Receiving addresses ({sorted.length}{q ? `/${addresses.length}` : ''})
         </h3>
         <input
           placeholder="Filter by address or label…"
@@ -213,7 +319,7 @@ function OverviewTab({ walletName, summary, features, onRefresh }: { walletName:
           style={{ maxWidth: 280 }}
         />
         <div style={{ flex: 1 }} />
-        <button className="secondary" onClick={() => { loadAddresses(); onRefresh() }}>↻</button>
+        <button className="secondary" onClick={() => { loadAddresses(); loadBalances(); onRefresh() }}>↻</button>
         <button onClick={() => { setNewOpen(o => !o); setNewResult(null) }}>+ New address</button>
       </div>
 
@@ -263,11 +369,33 @@ function OverviewTab({ walletName, summary, features, onRefresh }: { walletName:
         <>
           <div className="card" style={{ padding: 0, overflow: 'auto' }}>
             <table>
-              <thead><tr><th>Address</th><th>Label</th><th></th></tr></thead>
+              <thead>
+                <tr>
+                  {(['address', 'label'] as const).map(col => (
+                    <th key={col} onClick={() => handleSort(col)}
+                      style={{ cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap' }}>
+                      {col.charAt(0).toUpperCase() + col.slice(1)}{sortIcon(col)}
+                    </th>
+                  ))}
+                  <th onClick={() => handleSort('balance')}
+                    style={{ cursor: 'pointer', userSelect: 'none', textAlign: 'right', whiteSpace: 'nowrap' }}>
+                    Balance{sortIcon('balance')}
+                  </th>
+                  <th></th>
+                </tr>
+              </thead>
               <tbody>
-                {pageSlice.map(a => (
+                {pageSlice.map(a => {
+                  const bal = addrBalances.get(a.address)
+                  const balStr = bal ? bal.toFixed(8).replace(/\.?0+$/, '') + ' AVN' : null
+                  return (
                   <tr key={a.address}>
-                    <td className="mono" style={{ fontSize: 12 }}>{a.address}</td>
+                    <td className="mono" style={{ fontSize: 12 }}>
+                      <a href={`${EXPLORER}/address/${a.address}`} target="_blank" rel="noopener noreferrer"
+                         style={{ color: 'var(--accent-bright)' }}>
+                        {a.address}
+                      </a>
+                    </td>
                     <td style={{ minWidth: 140 }}>
                       {editing === a.address ? (
                         <input
@@ -288,6 +416,9 @@ function OverviewTab({ walletName, summary, features, onRefresh }: { walletName:
                         </span>
                       )}
                     </td>
+                    <td style={{ textAlign: 'right', whiteSpace: 'nowrap', fontSize: 12, color: balStr ? 'var(--text)' : 'var(--muted)' }}>
+                      {balStr ?? '—'}
+                    </td>
                     <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
                       <button className="secondary" style={{ padding: '2px 8px', fontSize: 12 }} onClick={() => setQrAddr(a.address)} title="QR code">▣</button>
                       {' '}
@@ -296,7 +427,8 @@ function OverviewTab({ walletName, summary, features, onRefresh }: { walletName:
                       </button>
                     </td>
                   </tr>
-                ))}
+                  )
+                })}
               </tbody>
             </table>
           </div>
@@ -321,19 +453,41 @@ function OverviewTab({ walletName, summary, features, onRefresh }: { walletName:
 const TX_PAGE_SIZE    = 25
 const ASSET_PAGE_SIZE = 25
 
-function TransactionsTab({ walletName, refreshTick }: { walletName: string; refreshTick?: number }) {
+function TransactionsTab({ walletName, refreshTick, onNewReceived }: {
+  walletName: string
+  refreshTick?: number
+  onNewReceived?: (txid: string, amount: string) => void
+}) {
   const [txs,      setTxs]      = useState<WalletTx[]>([])
   const [loading,  setLoading]  = useState(true)
   const [search,   setSearch]   = useState('')
   const [page,     setPage]     = useState(0)
   const [expanded, setExpanded] = useState<string | null>(null)
 
+  const knownTxids  = useRef<Set<string>>(new Set())
+  const initialized = useRef(false)
+
+  useEffect(() => { initialized.current = false; knownTxids.current = new Set() }, [walletName])
+
   useEffect(() => {
     setLoading(true)
     api.wallet.transactions(walletName, 2000)
-      .then(r => { setTxs(r.transactions); setLoading(false) })
+      .then(r => {
+        const newTxs = r.transactions
+        if (initialized.current && onNewReceived) {
+          for (const tx of newTxs) {
+            if (!knownTxids.current.has(tx.txid) && parseFloat(tx.credit) > 0) {
+              onNewReceived(tx.txid, tx.credit)
+            }
+          }
+        }
+        knownTxids.current = new Set(newTxs.map(t => t.txid))
+        initialized.current = true
+        setTxs(newTxs)
+        setLoading(false)
+      })
       .catch(() => setLoading(false))
-  }, [walletName, refreshTick])
+  }, [walletName, refreshTick, onNewReceived])
 
   useEffect(() => { setPage(0) }, [search])
 
@@ -520,13 +674,14 @@ function TxDetail({ tx }: { tx: WalletTx }) {
 
 // ── Asset type helpers ────────────────────────────────────────────────────
 
-type AssetType = 'root' | 'sub' | 'unique' | 'qualifier' | 'restricted' | 'admin' | 'ans'
+type AssetType = 'root' | 'sub' | 'unique' | 'qualifier' | 'restricted' | 'admin' | 'channel' | 'ans'
 
 function getAssetType(name: string): AssetType {
   if (name.endsWith('!'))                             return 'admin'
   if (name.startsWith('#'))                           return 'qualifier'
   if (name.startsWith('$'))                           return 'restricted'
   if (name.includes('#'))                             return 'unique'
+  if (name.includes('~'))                             return 'channel'
   if (name.includes('/'))                             return 'sub'
   if (name.endsWith('.AVN'))                          return 'ans'
   return 'root'
@@ -534,17 +689,18 @@ function getAssetType(name: string): AssetType {
 
 const ASSET_TYPE_BADGE: Record<AssetType, { label: string; cls: string }> = {
   root:       { label: 'Root',       cls: 'blue'   },
-  sub:        { label: 'Sub',        cls: 'blue'   },
+  sub:        { label: 'Sub',        cls: 'orange'   },
   unique:     { label: 'Unique',     cls: 'yellow' },
   qualifier:  { label: 'Qualifier',  cls: 'yellow' },
   restricted: { label: 'Restricted', cls: 'red'    },
   admin:      { label: 'Admin',      cls: 'red'    },
+  channel:    { label: 'Channel',    cls: 'purple' },
   ans:        { label: 'ANS',        cls: 'green'  },
 }
 
 // ── Assets ────────────────────────────────────────────────────────────────
 
-function AssetsTab({ walletName }: { walletName: string }) {
+function AssetsTab({ walletName, features }: { walletName: string; features: NodeFeatures | null }) {
   const [assets,    setAssets]   = useState<AssetBalance[]>([])
   const [loading,   setLoading]  = useState(true)
   const [sending,   setSending]  = useState<string | null>(null)
@@ -648,6 +804,7 @@ function AssetsTab({ walletName }: { walletName: string }) {
           walletName={walletName}
           assetName={sending}
           maxBalance={assets.find(a => a.name === sending)?.balance ?? '0'}
+          features={features}
           onDone={() => { setSending(null); loadAssets() }}
           onCancel={() => setSending(null)}
         />
@@ -656,8 +813,8 @@ function AssetsTab({ walletName }: { walletName: string }) {
   )
 }
 
-function AssetSendForm({ walletName, assetName, maxBalance, onDone, onCancel }: {
-  walletName: string; assetName: string; maxBalance: string; onDone: () => void; onCancel: () => void
+function AssetSendForm({ walletName, assetName, maxBalance, features, onDone, onCancel }: {
+  walletName: string; assetName: string; maxBalance: string; features: NodeFeatures | null; onDone: () => void; onCancel: () => void
 }) {
   const [addr,   setAddr]   = useState('')
   const [amount, setAmount] = useState('')
@@ -665,11 +822,15 @@ function AssetSendForm({ walletName, assetName, maxBalance, onDone, onCancel }: 
   const [result, setResult] = useState<{ txid: string; fee: string } | null>(null)
   const [err,    setErr]    = useState('')
 
+  const ansActive = features?.features['ans']?.active ?? false
+  const ans = useAnsResolve(addr, ansActive)
+  const sendAddr = ans.resolved ?? addr
+
   const submit = async (e: FormEvent) => {
     e.preventDefault()
     setBusy(true); setErr(''); setResult(null)
     try {
-      const r = await api.wallet.sendAsset(walletName, assetName, addr, amount)
+      const r = await api.wallet.sendAsset(walletName, assetName, sendAddr, amount)
       setResult(r)
       setTimeout(onDone, 2000)
     } catch (ex) { setErr(ex instanceof ApiError ? ex.message : 'Send failed') }
@@ -685,7 +846,13 @@ function AssetSendForm({ walletName, assetName, maxBalance, onDone, onCancel }: 
       <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
         <div>
           <label>Recipient address</label>
-          <input value={addr} onChange={e => setAddr(e.target.value)} placeholder="AVN address…" spellCheck={false} />
+          <input value={addr} onChange={e => setAddr(e.target.value)} placeholder={ansActive ? 'AVN address or ANS name…' : 'AVN address…'} spellCheck={false} />
+          {ansActive && addr.includes('.') && (
+            ans.loading  ? <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 4 }}>Resolving…</div>
+            : ans.resolved ? <div style={{ fontSize: 12, color: 'var(--green, #4caf50)', marginTop: 4 }}>→ {ans.resolved}</div>
+            : ans.error   ? <div style={{ fontSize: 12, color: 'var(--red, #e57373)', marginTop: 4 }}>{ans.error}</div>
+            : null
+          )}
         </div>
         <div>
           <label>Amount (available: {maxBalance})</label>
@@ -693,7 +860,7 @@ function AssetSendForm({ walletName, assetName, maxBalance, onDone, onCancel }: 
         </div>
         {err    && <div className="error-box">{err}</div>}
         {result && <div className="ok-box">Sent! TXID: <span className="mono" style={{ fontSize: 11 }}>{result.txid}</span></div>}
-        <button type="submit" className="primary" disabled={busy || !addr || !amount}>
+        <button type="submit" className="primary" disabled={busy || !sendAddr || !amount || ans.loading || (addr.includes('.') && ansActive && !ans.resolved)}>
           {busy ? <><span className="spinner" /> Sending…</> : `Send ${assetName}`}
         </button>
       </form>
@@ -701,9 +868,38 @@ function AssetSendForm({ walletName, assetName, maxBalance, onDone, onCancel }: 
   )
 }
 
+// ── ANS resolution hook ────────────────────────────────────────────────────
+
+function useAnsResolve(addr: string, ansActive: boolean) {
+  const [resolved, setResolved] = useState<string | null>(null)
+  const [loading,  setLoading]  = useState(false)
+  const [error,    setError]    = useState('')
+
+  useEffect(() => {
+    if (!ansActive || !addr.includes('.')) {
+      setResolved(null); setError(''); setLoading(false)
+      return
+    }
+    setLoading(true); setError(''); setResolved(null)
+    const timer = setTimeout(async () => {
+      try {
+        const r = await api.ans.resolve(addr)
+        setResolved(r.address)
+      } catch {
+        setError('Name not found')
+      } finally {
+        setLoading(false)
+      }
+    }, 400)
+    return () => { clearTimeout(timer); setLoading(false) }
+  }, [addr, ansActive])
+
+  return { resolved, loading, error }
+}
+
 // ── Send ──────────────────────────────────────────────────────────────────
 
-function SendTab({ walletName, onRefresh }: { walletName: string; onRefresh: () => void }) {
+function SendTab({ walletName, features, onRefresh }: { walletName: string; features: NodeFeatures | null; onRefresh: () => void }) {
   const [addr, setAddr] = useState('')
   const [amount, setAmount] = useState('')
   const [subtractFee, setSubtractFee] = useState(false)
@@ -711,13 +907,17 @@ function SendTab({ walletName, onRefresh }: { walletName: string; onRefresh: () 
   const [result, setResult] = useState<{ txid: string; fee: string } | null>(null)
   const [err, setErr] = useState('')
 
+  const ansActive = features?.features['ans']?.active ?? false
+  const ans = useAnsResolve(addr, ansActive)
+  const sendAddr = ans.resolved ?? addr
+
   const submit = async (e: FormEvent) => {
     e.preventDefault()
     setSending(true)
     setErr('')
     setResult(null)
     try {
-      const r = await api.wallet.send(walletName, addr, amount, subtractFee)
+      const r = await api.wallet.send(walletName, sendAddr, amount, subtractFee)
       setResult(r)
       setAddr('')
       setAmount('')
@@ -734,7 +934,13 @@ function SendTab({ walletName, onRefresh }: { walletName: string; onRefresh: () 
       <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
         <div>
           <label>Recipient address</label>
-          <input value={addr} onChange={e => setAddr(e.target.value)} placeholder="AVN address…" spellCheck={false} />
+          <input value={addr} onChange={e => setAddr(e.target.value)} placeholder={ansActive ? 'AVN address or ANS name…' : 'AVN address…'} spellCheck={false} />
+          {ansActive && addr.includes('.') && (
+            ans.loading  ? <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 4 }}>Resolving…</div>
+            : ans.resolved ? <div style={{ fontSize: 12, color: 'var(--green, #4caf50)', marginTop: 4 }}>→ {ans.resolved}</div>
+            : ans.error   ? <div style={{ fontSize: 12, color: 'var(--red, #e57373)', marginTop: 4 }}>{ans.error}</div>
+            : null
+          )}
         </div>
         <div>
           <label>Amount (AVN)</label>
@@ -752,7 +958,7 @@ function SendTab({ walletName, onRefresh }: { walletName: string; onRefresh: () 
             <div style={{ marginTop: 4, fontSize: 12 }}>Fee: {result.fee} AVN</div>
           </div>
         )}
-        <button type="submit" className="primary" disabled={sending || !addr || !amount}>
+        <button type="submit" className="primary" disabled={sending || !sendAddr || !amount || ans.loading || (addr.includes('.') && ansActive && !ans.resolved)}>
           {sending ? <><span className="spinner" /> Sending…</> : 'Send'}
         </button>
       </form>
@@ -762,13 +968,14 @@ function SendTab({ walletName, onRefresh }: { walletName: string; onRefresh: () 
 
 // ── PSBT ──────────────────────────────────────────────────────────────────
 
-type PSBTSubTab = 'create' | 'sign' | 'decode' | 'broadcast'
+type PSBTSubTab = 'create' | 'fund' | 'sign' | 'decode' | 'broadcast'
 
-function PSBTTab({ walletName }: { walletName: string }) {
+function PSBTTab({ walletName, features }: { walletName: string; features: NodeFeatures | null }) {
   const [sub, setSub] = useState<PSBTSubTab>('create')
 
   const subTabs: { id: PSBTSubTab; label: string }[] = [
     { id: 'create',    label: 'Create' },
+    { id: 'fund',      label: 'Fund' },
     { id: 'sign',      label: 'Sign' },
     { id: 'decode',    label: 'Decode' },
     { id: 'broadcast', label: 'Broadcast' },
@@ -787,7 +994,8 @@ function PSBTTab({ walletName }: { walletName: string }) {
           </button>
         ))}
       </div>
-      {sub === 'create'    && <PSBTCreate walletName={walletName} />}
+      {sub === 'create'    && <PSBTCreate walletName={walletName} features={features} />}
+      {sub === 'fund'      && <PSBTFund walletName={walletName} />}
       {sub === 'sign'      && <PSBTSign walletName={walletName} />}
       {sub === 'decode'    && <PSBTDecode />}
       {sub === 'broadcast' && <PSBTBroadcast />}
@@ -795,18 +1003,101 @@ function PSBTTab({ walletName }: { walletName: string }) {
   )
 }
 
-function PSBTCreate({ walletName }: { walletName: string }) {
+function parseFundCmd(cmd: string): { inputs: unknown[]; outputs: unknown[]; locktime: number; options: Record<string, unknown> } {
+  const rest = cmd.trim().replace(/^walletcreatefundedpsbt\s+/, '')
+  const parts: string[] = []
+  let i = 0
+  while (i < rest.length) {
+    if (rest[i] === "'") {
+      const end = rest.indexOf("'", i + 1)
+      if (end === -1) throw new Error('Unclosed single quote')
+      parts.push(rest.slice(i + 1, end))
+      i = end + 1
+    } else if (rest[i] === ' ' || rest[i] === '\t') {
+      i++
+    } else {
+      const end = rest.indexOf(' ', i)
+      parts.push(end === -1 ? rest.slice(i) : rest.slice(i, end))
+      i = end === -1 ? rest.length : end
+    }
+  }
+  if (parts.length < 2) throw new Error('Expected at least inputs and outputs arguments')
+  return {
+    inputs:   JSON.parse(parts[0] || '[]'),
+    outputs:  JSON.parse(parts[1]),
+    locktime: parts[2] ? parseInt(parts[2], 10) : 0,
+    options:  parts[3] ? JSON.parse(parts[3]) : {},
+  }
+}
+
+function PSBTFund({ walletName }: { walletName: string }) {
+  const [cmd,    setCmd]    = useState('')
+  const [busy,   setBusy]   = useState(false)
+  const [result, setResult] = useState<{ psbt: string; fee: string; changepos: number } | null>(null)
+  const [err,    setErr]    = useState('')
+
+  const submit = async (e: FormEvent) => {
+    e.preventDefault()
+    setBusy(true); setErr(''); setResult(null)
+    try {
+      const { inputs, outputs, locktime, options } = parseFundCmd(cmd)
+      const r = await api.wallet.psbtFund(walletName, inputs, outputs, locktime, options)
+      setResult(r)
+    } catch (ex) {
+      setErr(ex instanceof ApiError ? ex.message : (ex instanceof Error ? ex.message : 'Failed'))
+    } finally {
+      setBusy(false) }
+  }
+
+  return (
+    <div className="card" style={{ maxWidth: 680 }}>
+      <div style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 12 }}>
+        Paste a <code>walletcreatefundedpsbt</code> command from the Avian Marketplace (or another source) and run it with this wallet.
+      </div>
+      <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <div>
+          <label>Command</label>
+          <textarea
+            rows={5}
+            value={cmd}
+            onChange={e => setCmd(e.target.value)}
+            placeholder={"walletcreatefundedpsbt '[{\"txid\":\"...\",\"vout\":0}]' '[{\"address\":amount}]' 0 '{\"add_inputs\":true,\"fee_rate\":2}'"}
+            style={{ fontSize: 12 }}
+            spellCheck={false}
+          />
+        </div>
+        {err    && <div className="error-box">{err}</div>}
+        {result && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <div style={{ fontSize: 12, color: 'var(--muted)' }}>Fee: {result.fee} AVN · change at output {result.changepos === -1 ? 'none' : result.changepos}</div>
+            <textarea rows={4} readOnly value={result.psbt} style={{ fontSize: 11 }} />
+            <button type="button" onClick={() => copyText(result.psbt)}>Copy PSBT</button>
+          </div>
+        )}
+        <button type="submit" className="primary" disabled={busy || !cmd.trim()}>
+          {busy ? <><span className="spinner" /> Creating…</> : 'Create Funded PSBT'}
+        </button>
+      </form>
+    </div>
+  )
+}
+
+function PSBTCreate({ walletName, features }: { walletName: string; features: NodeFeatures | null }) {
   const [addr, setAddr] = useState('')
   const [amount, setAmount] = useState('')
   const [busy, setBusy] = useState(false)
   const [result, setResult] = useState<{ psbt: string; fee: string } | null>(null)
   const [err, setErr] = useState('')
 
+  const ansActive = features?.features['ans']?.active ?? false
+  const ans = useAnsResolve(addr, ansActive)
+  const sendAddr = ans.resolved ?? addr
+
   const submit = async (e: FormEvent) => {
     e.preventDefault()
     setBusy(true); setErr(''); setResult(null)
     try {
-      const r = await api.wallet.psbtCreate(walletName, [{ address: addr, amount }])
+      const r = await api.wallet.psbtCreate(walletName, [{ address: sendAddr, amount }])
       setResult(r)
     } catch (ex) { setErr(ex instanceof ApiError ? ex.message : 'Failed') }
     finally { setBusy(false) }
@@ -817,7 +1108,13 @@ function PSBTCreate({ walletName }: { walletName: string }) {
       <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
         <div>
           <label>Recipient address</label>
-          <input value={addr} onChange={e => setAddr(e.target.value)} placeholder="AVN address…" spellCheck={false} />
+          <input value={addr} onChange={e => setAddr(e.target.value)} placeholder={ansActive ? 'AVN address or ANS name…' : 'AVN address…'} spellCheck={false} />
+          {ansActive && addr.includes('.') && (
+            ans.loading  ? <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 4 }}>Resolving…</div>
+            : ans.resolved ? <div style={{ fontSize: 12, color: 'var(--green, #4caf50)', marginTop: 4 }}>→ {ans.resolved}</div>
+            : ans.error   ? <div style={{ fontSize: 12, color: 'var(--red, #e57373)', marginTop: 4 }}>{ans.error}</div>
+            : null
+          )}
         </div>
         <div>
           <label>Amount (AVN)</label>
@@ -831,7 +1128,7 @@ function PSBTCreate({ walletName }: { walletName: string }) {
             <button type="button" onClick={() => copyText(result.psbt)}>Copy PSBT</button>
           </div>
         )}
-        <button type="submit" className="primary" disabled={busy || !addr || !amount}>
+        <button type="submit" className="primary" disabled={busy || !sendAddr || !amount || ans.loading || (addr.includes('.') && ansActive && !ans.resolved)}>
           {busy ? <><span className="spinner" /> Creating…</> : 'Create PSBT'}
         </button>
       </form>
@@ -1013,6 +1310,103 @@ function PSBTBroadcast() {
   )
 }
 
+// ── Searchable address picker ──────────────────────────────────────────────
+
+function SearchableSelect({ value, onChange, options, placeholder = 'Search address…' }: {
+  value: string
+  onChange: (v: string) => void
+  options: { value: string; label: string }[]
+  placeholder?: string
+}) {
+  const [query,  setQuery]  = useState('')
+  const [open,   setOpen]   = useState(false)
+  const [hovered, setHovered] = useState(-1)
+  const containerRef = useRef<HTMLDivElement>(null)
+  const listRef      = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setOpen(false); setQuery('')
+      }
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [])
+
+  const filtered = query
+    ? options.filter(o => o.label.toLowerCase().includes(query.toLowerCase()))
+    : options
+
+  const selected = options.find(o => o.value === value)
+
+  const select = (opt: { value: string; label: string }) => {
+    onChange(opt.value); setOpen(false); setQuery('')
+  }
+
+  const onKeyDown = (e: React.KeyboardEvent) => {
+    if (!open) { if (e.key === 'ArrowDown' || e.key === 'Enter') setOpen(true); return }
+    if (e.key === 'Escape') { setOpen(false); setQuery(''); return }
+    if (e.key === 'ArrowDown') { e.preventDefault(); setHovered(h => Math.min(h + 1, filtered.length - 1)) }
+    if (e.key === 'ArrowUp')   { e.preventDefault(); setHovered(h => Math.max(h - 1, 0)) }
+    if (e.key === 'Enter' && hovered >= 0 && hovered < filtered.length) { e.preventDefault(); select(filtered[hovered]) }
+  }
+
+  useEffect(() => {
+    if (!open) setHovered(-1)
+  }, [open])
+
+  useEffect(() => {
+    if (hovered >= 0 && listRef.current) {
+      const el = listRef.current.children[hovered] as HTMLElement
+      el?.scrollIntoView({ block: 'nearest' })
+    }
+  }, [hovered])
+
+  return (
+    <div ref={containerRef} style={{ position: 'relative' }}>
+      <input
+        value={open ? query : (selected?.label ?? '')}
+        onChange={e => { setQuery(e.target.value); setOpen(true); setHovered(-1) }}
+        onFocus={() => { setQuery(''); setOpen(true) }}
+        onKeyDown={onKeyDown}
+        placeholder={placeholder}
+        spellCheck={false}
+        style={{ paddingRight: 28 }}
+      />
+      <span style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: 'var(--muted)', fontSize: 11 }}>▾</span>
+      {open && (
+        <div
+          ref={listRef}
+          style={{
+            position: 'absolute', top: 'calc(100% + 2px)', left: 0, right: 0, zIndex: 200,
+            background: 'var(--surf2)', border: '1px solid var(--border)',
+            borderRadius: 'var(--radius)', maxHeight: 220, overflowY: 'auto',
+            boxShadow: '0 6px 16px rgba(0,0,0,0.4)'
+          }}
+        >
+          {filtered.length === 0 ? (
+            <div style={{ padding: '8px 12px', fontSize: 12, color: 'var(--muted)' }}>No matches</div>
+          ) : filtered.map((o, i) => (
+            <div
+              key={o.value}
+              onMouseDown={() => select(o)}
+              onMouseEnter={() => setHovered(i)}
+              style={{
+                padding: '7px 12px', cursor: 'pointer', fontSize: 12,
+                background: i === hovered ? 'var(--selection)' : (o.value === value ? 'rgba(43,115,127,0.15)' : undefined),
+                borderLeft: o.value === value ? '2px solid var(--accent)' : '2px solid transparent',
+              }}
+            >
+              {o.label}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ── Sign / Verify ─────────────────────────────────────────────────────────
 
 function SignVerifyTab({ walletName, features }: { walletName: string; features: NodeFeatures | null }) {
@@ -1068,13 +1462,12 @@ function SignVerifyTab({ walletName, features }: { walletName: string; features:
           <div>
             <label>Address (from this wallet)</label>
             {myAddrs.length > 0 ? (
-              <select value={sAddr} onChange={e => setSAddr(e.target.value)}>
-                {myAddrs.map(a => (
-                  <option key={a.address} value={a.address}>
-                    {a.label ? `${a.label} — ` : ''}{a.address}
-                  </option>
-                ))}
-              </select>
+              <SearchableSelect
+                value={sAddr}
+                onChange={setSAddr}
+                options={myAddrs.map(a => ({ value: a.address, label: a.label ? `${a.label} — ${a.address}` : a.address }))}
+                placeholder="Search label or address…"
+              />
             ) : (
               <input value={sAddr} onChange={e => setSAddr(e.target.value)} placeholder="AVN address…" spellCheck={false} />
             )}
@@ -1180,7 +1573,7 @@ function UTXOTab({ walletName }: { walletName: string }) {
     if (sortCol === col) setSortDir(d => d === 'asc' ? 'desc' : 'asc')
     else { setSortCol(col); setSortDir('desc') }
   }
-  const arrow = (col: string) => sortCol === col ? (sortDir === 'asc' ? ' ↑' : ' ↓') : ''
+  const arrow = (col: string) => sortCol === col ? (sortDir === 'asc' ? ' ▲' : ' ▼') : ''
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -1367,13 +1760,12 @@ function ConsolidateTab({ walletName }: { walletName: string }) {
           <div style={{ marginBottom: 12 }}>
             <label>Destination address</label>
             {addresses.length > 0 ? (
-              <select value={destination} onChange={e => setDestination(e.target.value)}>
-                {addresses.map(a => (
-                  <option key={a.address} value={a.address}>
-                    {a.label ? `${a.label} — ` : ''}{a.address}
-                  </option>
-                ))}
-              </select>
+              <SearchableSelect
+                value={destination}
+                onChange={setDestination}
+                options={addresses.map(a => ({ value: a.address, label: a.label ? `${a.label} — ${a.address}` : a.address }))}
+                placeholder="Search label or address…"
+              />
             ) : (
               <input value={destination} onChange={e => setDestination(e.target.value)}
                 placeholder="AVN address…" spellCheck={false} />

@@ -521,6 +521,11 @@ void InterruptHTTPServer()
     }
 }
 
+void HTTPNotifyConnectionClose(evhttp_connection* conn)
+{
+    g_requests.RemoveConnection(conn);
+}
+
 void StopHTTPServer()
 {
     LogDebug(BCLog::HTTP, "Stopping HTTP server\n");
