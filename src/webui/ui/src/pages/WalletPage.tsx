@@ -813,24 +813,71 @@ function AssetsTab({ walletName, features }: { walletName: string; features: Nod
   )
 }
 
+// ── Confirm send modal ────────────────────────────────────────────────────
+
+function ConfirmSendModal({ address, ansName, amount, unit, subtractFee, onConfirm, onCancel, busy, err }: {
+  address: string
+  ansName?: string
+  amount: string
+  unit: string
+  subtractFee?: boolean
+  onConfirm: () => void
+  onCancel: () => void
+  busy?: boolean
+  err?: string
+}) {
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.65)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000 }}>
+      <div className="card" style={{ maxWidth: 460, width: '90%', padding: 24 }}>
+        <h3 style={{ fontSize: 16, marginBottom: 20 }}>Confirm send</h3>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginBottom: 24 }}>
+          <div>
+            <div style={{ color: 'var(--muted)', fontSize: 12, marginBottom: 2 }}>Amount</div>
+            <div style={{ fontWeight: 700, fontSize: 20 }}>{amount} <span style={{ color: 'var(--muted)' }}>{unit}</span></div>
+            {subtractFee && <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>Fee subtracted from amount</div>}
+          </div>
+          <div>
+            <div style={{ color: 'var(--muted)', fontSize: 12, marginBottom: 2 }}>To</div>
+            {ansName && <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 2 }}>{ansName}</div>}
+            <div style={{ fontFamily: 'var(--mono)', fontSize: 12, wordBreak: 'break-all', color: ansName ? 'var(--muted)' : 'var(--text)' }}>{address}</div>
+          </div>
+          <div style={{ fontSize: 12, color: 'var(--muted)', borderTop: '1px solid var(--border)', paddingTop: 12 }}>
+            Network fee will be calculated and deducted from your wallet balance.
+          </div>
+        </div>
+        {err && <div className="error-box" style={{ marginBottom: 12 }}>{err}</div>}
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button className="primary" onClick={onConfirm} disabled={busy} style={{ flex: 1 }}>
+            {busy ? <><span className="spinner" /> Sending…</> : 'Confirm & Send'}
+          </button>
+          <button onClick={onCancel} disabled={busy} style={{ flex: 1 }}>Cancel</button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function AssetSendForm({ walletName, assetName, maxBalance, features, onDone, onCancel }: {
   walletName: string; assetName: string; maxBalance: string; features: NodeFeatures | null; onDone: () => void; onCancel: () => void
 }) {
-  const [addr,   setAddr]   = useState('')
-  const [amount, setAmount] = useState('')
-  const [busy,   setBusy]   = useState(false)
-  const [result, setResult] = useState<{ txid: string; fee: string } | null>(null)
-  const [err,    setErr]    = useState('')
+  const [addr,        setAddr]        = useState('')
+  const [amount,      setAmount]      = useState('')
+  const [busy,        setBusy]        = useState(false)
+  const [confirming,  setConfirming]  = useState(false)
+  const [result,      setResult]      = useState<{ txid: string; fee: string } | null>(null)
+  const [err,         setErr]         = useState('')
 
   const ansActive = features?.features['ans']?.active ?? false
   const ans = useAnsResolve(addr, ansActive)
   const sendAddr = ans.resolved ?? addr
 
-  const submit = async (e: FormEvent) => {
-    e.preventDefault()
-    setBusy(true); setErr(''); setResult(null)
+  const submit = (e: FormEvent) => { e.preventDefault(); setErr(''); setConfirming(true) }
+
+  const doSend = async () => {
+    setBusy(true); setErr('')
     try {
       const r = await api.wallet.sendAsset(walletName, assetName, sendAddr, amount)
+      setConfirming(false)
       setResult(r)
       setTimeout(onDone, 2000)
     } catch (ex) { setErr(ex instanceof ApiError ? ex.message : 'Send failed') }
@@ -861,9 +908,21 @@ function AssetSendForm({ walletName, assetName, maxBalance, features, onDone, on
         {err    && <div className="error-box">{err}</div>}
         {result && <div className="ok-box">Sent! TXID: <span className="mono" style={{ fontSize: 11 }}>{result.txid}</span></div>}
         <button type="submit" className="primary" disabled={busy || !sendAddr || !amount || ans.loading || (addr.includes('.') && ansActive && !ans.resolved)}>
-          {busy ? <><span className="spinner" /> Sending…</> : `Send ${assetName}`}
+          Review send
         </button>
       </form>
+      {confirming && (
+        <ConfirmSendModal
+          address={sendAddr}
+          ansName={ans.resolved ? addr : undefined}
+          amount={amount}
+          unit={assetName}
+          onConfirm={doSend}
+          onCancel={() => { setConfirming(false); setErr('') }}
+          busy={busy}
+          err={err}
+        />
+      )}
     </div>
   )
 }
@@ -903,24 +962,24 @@ function SendTab({ walletName, features, onRefresh }: { walletName: string; feat
   const [addr, setAddr] = useState('')
   const [amount, setAmount] = useState('')
   const [subtractFee, setSubtractFee] = useState(false)
-  const [sending, setSending] = useState(false)
-  const [result, setResult] = useState<{ txid: string; fee: string } | null>(null)
-  const [err, setErr] = useState('')
+  const [sending,    setSending]    = useState(false)
+  const [confirming, setConfirming] = useState(false)
+  const [result,     setResult]     = useState<{ txid: string; fee: string } | null>(null)
+  const [err,        setErr]        = useState('')
 
   const ansActive = features?.features['ans']?.active ?? false
   const ans = useAnsResolve(addr, ansActive)
   const sendAddr = ans.resolved ?? addr
 
-  const submit = async (e: FormEvent) => {
-    e.preventDefault()
-    setSending(true)
-    setErr('')
-    setResult(null)
+  const submit = (e: FormEvent) => { e.preventDefault(); setErr(''); setResult(null); setConfirming(true) }
+
+  const doSend = async () => {
+    setSending(true); setErr('')
     try {
       const r = await api.wallet.send(walletName, sendAddr, amount, subtractFee)
+      setConfirming(false)
       setResult(r)
-      setAddr('')
-      setAmount('')
+      setAddr(''); setAmount('')
       onRefresh()
     } catch (ex) {
       setErr(ex instanceof ApiError ? ex.message : 'Send failed')
@@ -959,9 +1018,22 @@ function SendTab({ walletName, features, onRefresh }: { walletName: string; feat
           </div>
         )}
         <button type="submit" className="primary" disabled={sending || !sendAddr || !amount || ans.loading || (addr.includes('.') && ansActive && !ans.resolved)}>
-          {sending ? <><span className="spinner" /> Sending…</> : 'Send'}
+          Review send
         </button>
       </form>
+      {confirming && (
+        <ConfirmSendModal
+          address={sendAddr}
+          ansName={ans.resolved ? addr : undefined}
+          amount={amount}
+          unit="AVN"
+          subtractFee={subtractFee}
+          onConfirm={doSend}
+          onCancel={() => { setConfirming(false); setErr('') }}
+          busy={sending}
+          err={err}
+        />
+      )}
     </div>
   )
 }
@@ -1272,40 +1344,100 @@ function PSBTDecode() {
 }
 
 function PSBTBroadcast() {
-  const [psbt, setPsbt] = useState('')
-  const [busy, setBusy] = useState(false)
-  const [txid, setTxid] = useState('')
-  const [err, setErr] = useState('')
+  const [psbt,     setPsbt]     = useState('')
+  const [decoded,  setDecoded]  = useState<PSBTDecoded | null>(null)
+  const [decoding, setDecoding] = useState(false)
+  const [busy,     setBusy]     = useState(false)
+  const [txid,     setTxid]     = useState('')
+  const [err,      setErr]      = useState('')
 
-  const submit = async (e: FormEvent) => {
+  const handleChange = (v: string) => { setPsbt(v); setDecoded(null); setErr(''); setTxid('') }
+
+  const preview = async (e: FormEvent) => {
     e.preventDefault()
-    setBusy(true); setErr(''); setTxid('')
+    setDecoding(true); setErr('')
+    try { setDecoded(await api.psbt.decode(psbt.trim())) }
+    catch (ex) { setErr(ex instanceof ApiError ? ex.message : 'Decode failed') }
+    finally { setDecoding(false) }
+  }
+
+  const broadcast = async () => {
+    setBusy(true); setErr('')
     try {
       const r = await api.psbt.broadcast(psbt.trim())
-      setTxid(r.txid)
-      setPsbt('')
+      setTxid(r.txid); setPsbt(''); setDecoded(null)
     } catch (ex) { setErr(ex instanceof ApiError ? ex.message : 'Broadcast failed') }
     finally { setBusy(false) }
   }
 
   return (
-    <div className="card" style={{ maxWidth: 600 }}>
-      <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+    <div className="card" style={{ maxWidth: 600, display: 'flex', flexDirection: 'column', gap: 12 }}>
+      <form onSubmit={preview} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
         <div>
           <label>Signed PSBT (base64)</label>
-          <textarea rows={4} value={psbt} onChange={e => setPsbt(e.target.value)} placeholder="Paste fully-signed PSBT…" style={{ fontSize: 11 }} />
+          <textarea rows={4} value={psbt} onChange={e => handleChange(e.target.value)} placeholder="Paste fully-signed PSBT…" style={{ fontSize: 11 }} />
         </div>
-        {err  && <div className="error-box">{err}</div>}
-        {txid && (
-          <div className="ok-box">
-            <div>Broadcast successful. TXID:</div>
-            <div className="mono" style={{ marginTop: 4 }}>{txid}</div>
-          </div>
+        {!decoded && (
+          <button type="submit" className="primary" disabled={decoding || !psbt.trim()}>
+            {decoding ? <><span className="spinner" /> Decoding…</> : 'Preview PSBT'}
+          </button>
         )}
-        <button type="submit" className="primary" disabled={busy || !psbt.trim()}>
-          {busy ? <><span className="spinner" /> Broadcasting…</> : 'Broadcast'}
-        </button>
       </form>
+
+      {err  && <div className="error-box">{err}</div>}
+      {txid && <div className="ok-box"><div>Broadcast successful. TXID:</div><div className="mono" style={{ marginTop: 4 }}>{txid}</div></div>}
+
+      {decoded && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+            <span className={`badge ${decoded.complete ? 'green' : 'yellow'}`}>
+              {decoded.complete ? 'fully signed' : 'not fully signed'}
+            </span>
+            {decoded.fee && <span style={{ fontSize: 13, color: 'var(--muted)' }}>fee: {decoded.fee} AVN</span>}
+          </div>
+          <div>
+            <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 6 }}>Inputs</div>
+            <table style={{ fontSize: 13 }}>
+              <thead><tr><th>#</th><th>TXID</th><th>Vout</th><th>Amount</th><th>Signed</th></tr></thead>
+              <tbody>
+                {decoded.inputs.map((inp, i) => (
+                  <tr key={i}>
+                    <td>{i}</td>
+                    <td className="mono" style={{ fontSize: 11 }}>{inp.txid.slice(0, 12)}…</td>
+                    <td>{inp.vout}</td>
+                    <td>{inp.amount ?? '?'}</td>
+                    <td><span className={`badge ${inp.signed ? 'green' : 'yellow'}`}>{inp.signed ? 'yes' : 'no'}</span></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div>
+            <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 6 }}>Outputs</div>
+            <table style={{ fontSize: 13 }}>
+              <thead><tr><th>#</th><th>Address / Script</th><th>Amount</th></tr></thead>
+              <tbody>
+                {decoded.outputs.map((out, i) => (
+                  <tr key={i}>
+                    <td>{i}</td>
+                    <td className="mono" style={{ fontSize: 11 }}>{out.address ?? out.script ?? '?'}</td>
+                    <td>{out.amount}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          {!decoded.complete && (
+            <div className="error-box">Warning: PSBT is not fully signed and may be rejected by the network.</div>
+          )}
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button className="primary" onClick={broadcast} disabled={busy} style={{ flex: 1 }}>
+              {busy ? <><span className="spinner" /> Broadcasting…</> : 'Broadcast to network'}
+            </button>
+            <button onClick={() => { setDecoded(null); setErr('') }} disabled={busy}>← Edit</button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
