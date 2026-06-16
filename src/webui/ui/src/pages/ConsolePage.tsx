@@ -1,6 +1,6 @@
-import { useState, useRef, useEffect, useCallback } from 'react'
+import { useState, useRef, useEffect, useCallback, FormEvent } from 'react'
 import { api, ApiError } from '../lib/api'
-import type { WalletInfo } from '../lib/api'
+import type { WalletInfo, WalletSummary } from '../lib/api'
 
 interface ConsoleLine {
   id: number
@@ -75,8 +75,36 @@ export function ConsolePage({ loadedWallets }: { loadedWallets: WalletInfo[] }) 
   const [histIdx,     setHistIdx]     = useState(-1)
   const [busy,        setBusy]        = useState(false)
 
+  const [summary,        setSummary]        = useState<WalletSummary | null>(null)
+  const [unlockPass,      setUnlockPass]     = useState('')
+  const [unlocking,       setUnlocking]      = useState(false)
+  const [unlockDuration,  setUnlockDuration] = useState(300)
+  const [unlockErr,       setUnlockErr]      = useState('')
+
   const outputRef = useRef<HTMLDivElement>(null)
   const inputRef  = useRef<HTMLInputElement>(null)
+
+  const loadSummary = useCallback(async (w: string) => {
+    if (!w) { setSummary(null); return }
+    try { setSummary(await api.wallet.summary(w)) } catch { setSummary(null) }
+  }, [])
+
+  useEffect(() => { loadSummary(wallet) }, [wallet, loadSummary])
+
+  const handleUnlock = async (e: FormEvent) => {
+    e.preventDefault()
+    setUnlocking(true); setUnlockErr('')
+    try {
+      await api.wallet.unlock(wallet, unlockPass, unlockDuration)
+      setUnlockPass('')
+      await loadSummary(wallet)
+      inputRef.current?.focus()
+    } catch (ex) {
+      setUnlockErr(ex instanceof ApiError ? ex.message : 'Unlock failed')
+    } finally {
+      setUnlocking(false)
+    }
+  }
 
   // Fetch method list from help on mount
   useEffect(() => {
@@ -153,9 +181,10 @@ export function ConsolePage({ loadedWallets }: { loadedWallets: WalletInfo[] }) 
       pushLines([{ type: 'error', text: e instanceof ApiError ? e.message : String(e) }])
     } finally {
       setBusy(false)
+      if (wallet) loadSummary(wallet)
       setTimeout(() => inputRef.current?.focus(), 0)
     }
-  }, [input, wallet, busy])  // eslint-disable-line react-hooks/exhaustive-deps
+  }, [input, wallet, busy, loadSummary])  // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (suggestions.length > 0) {
@@ -204,6 +233,31 @@ export function ConsolePage({ loadedWallets }: { loadedWallets: WalletInfo[] }) 
         <button className="secondary" style={{ fontSize: 12 }} onClick={() => setLines([])}>Clear</button>
       </div>
 
+      {wallet && summary?.locked && (
+        <div className="card" style={{ marginBottom: 10, maxWidth: 560 }}>
+          <form onSubmit={handleUnlock} style={{ display: 'flex', gap: 8, alignItems: 'flex-end' }}>
+            <div style={{ flex: 1 }}>
+              <label>Unlock "{wallet}" to run wallet RPCs</label>
+              <input type="password" value={unlockPass} onChange={e => setUnlockPass(e.target.value)} placeholder="Passphrase…" />
+            </div>
+            <div style={{ flexShrink: 0 }}>
+              <label>Duration</label>
+              <select value={unlockDuration} onChange={e => setUnlockDuration(Number(e.target.value))} style={{ width: 'auto' }}>
+                <option value={60}>1 min</option>
+                <option value={300}>5 min</option>
+                <option value={1800}>30 min</option>
+                <option value={3600}>1 hour</option>
+                <option value={28800}>8 hours</option>
+              </select>
+            </div>
+            <button type="submit" className="primary" disabled={unlocking || !unlockPass}>
+              {unlocking ? <span className="spinner" /> : 'Unlock'}
+            </button>
+          </form>
+          {unlockErr && <div className="error-box" style={{ marginTop: 8, fontSize: 12 }}>{unlockErr}</div>}
+        </div>
+      )}
+
       {/* Terminal wrapper — single bordered box */}
       <div style={{
         flex: 1, display: 'flex', flexDirection: 'column',
@@ -216,7 +270,13 @@ export function ConsolePage({ loadedWallets }: { loadedWallets: WalletInfo[] }) 
         {/* Output area */}
         <div
           ref={outputRef}
-          onClick={() => inputRef.current?.focus()}
+          onMouseUp={() => {
+            // Don't steal focus (and thereby clear the selection) if the user
+            // just finished dragging to select/copy output text.
+            const sel = window.getSelection()
+            if (sel && sel.toString().length > 0) return
+            inputRef.current?.focus()
+          }}
           style={{
             flex: 1,
             overflowY: 'auto',
@@ -309,6 +369,12 @@ export function ConsolePage({ loadedWallets }: { loadedWallets: WalletInfo[] }) 
                 <option key={w.name} value={w.name}>{w.name || '(default)'}</option>
               ))}
             </select>
+          )}
+
+          {wallet && summary && (
+            <span className={`badge ${summary.locked ? 'yellow' : 'green'}`} style={{ flexShrink: 0 }}>
+              {summary.locked ? 'locked' : 'unlocked'}
+            </span>
           )}
 
           <span style={{ color: 'var(--accent-bright)', fontFamily: 'var(--mono)', fontWeight: 700, fontSize: 16, flexShrink: 0, userSelect: 'none' }}>›</span>

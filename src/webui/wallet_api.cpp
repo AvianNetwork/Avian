@@ -1194,10 +1194,12 @@ bool WebUIWalletRoute(HTTPRequest* req, const std::string& path)
     if (action == "psbt/sign")          return HandleWalletPSBTSign(req, wallet_name);
     if (action == "psbt/fund")          return HandleWalletPSBTFund(req, wallet_name);
     // Asset-related actions delegated to assets_api.cpp
-    if (action == "send-asset" ||
-        action == "assets"     ||
-        action == "utxos"      ||
-        action == "consolidate")        return WebUIAssetsRoute(req, wallet_name, action);
+    if (action == "send-asset"    ||
+        action == "assets"         ||
+        action == "utxos"          ||
+        action == "consolidate"    ||
+        action == "issue-asset"    ||
+        action == "reissue-asset")      return WebUIAssetsRoute(req, wallet_name, action);
 #endif
 
     req->WriteReply(HTTP_NOT_FOUND, R"({"error":"not found"})");

@@ -343,6 +343,66 @@ static bool HandleANSWhois(HTTPRequest* req, const std::string& address)
     return true;
 }
 
+static bool HandleAssetCheck(HTTPRequest* req)
+{
+    // GET ?name=NAME -> { name, valid, error? } or { name, valid, type, exists }
+    if (req->GetRequestMethod() != HTTPRequest::GET) {
+        req->WriteReply(HTTP_BAD_METHOD, "");
+        return false;
+    }
+    if (!CheckWebUIHost(req)) return false;
+    auto cors = CheckWebUICORS(req);
+    if (!cors) return false;
+    if (!CheckWebUIAuth(req)) return false;
+
+    auto nameParam = req->GetQueryParameter("name");
+    if (!nameParam || nameParam->empty()) {
+        req->WriteReply(HTTP_BAD_REQUEST, R"({"error":"Missing \"name\" query parameter"})");
+        return false;
+    }
+    const std::string& name = *nameParam;
+
+    UniValue obj(UniValue::VOBJ);
+    obj.pushKV("name", name);
+
+    AssetType assetType;
+    std::string error;
+    if (!IsAssetNameValid(name, assetType, error)) {
+        obj.pushKV("valid", false);
+        obj.pushKV("error", error);
+        SetJSONHeaders(req, *cors);
+        req->WriteReply(HTTP_OK, obj.write());
+        return true;
+    }
+    obj.pushKV("valid", true);
+
+    std::string typeStr;
+    switch (assetType) {
+    case AssetType::ROOT:   typeStr = "ROOT";   break;
+    case AssetType::SUB:    typeStr = "SUB";    break;
+    case AssetType::UNIQUE: typeStr = "UNIQUE"; break;
+    default:                typeStr = "OTHER";  break;
+    }
+    obj.pushKV("type", typeStr);
+
+    LOCK(cs_main);
+    CNewAsset asset;
+    const bool exists = passets && passets->GetAssetMetaDataIfExists(name, asset);
+    obj.pushKV("exists", exists);
+    if (exists) {
+        obj.pushKV("reissuable", static_cast<bool>(asset.nReissuable));
+        obj.pushKV("units", asset.units);
+        obj.pushKV("quantity", AssetUnitValueFromAmount(asset.nAmount, name));
+        if (asset.nHasIPFS && !asset.strIPFSHash.empty()) {
+            const std::string cid = EncodeAssetData(asset.strIPFSHash);
+            if (!cid.empty()) obj.pushKV("ipfs_hash", cid);
+        }
+    }
+    SetJSONHeaders(req, *cors);
+    req->WriteReply(HTTP_OK, obj.write());
+    return true;
+}
+
 // ---- PSBT and message API handlers (node-level) ------------------------
 
 static bool HandleVerifyMessage(HTTPRequest* req)
@@ -871,6 +931,7 @@ bool WebUINodeAPIRoute(HTTPRequest* req, const std::string& path)
     if (path == "/webui/api/node/peers/add")          return HandlePeerAdd(req);
     if (path == "/webui/api/node/peers/disconnect")   return HandlePeerDisconnect(req);
     if (path == "/webui/api/verifymessage")           return HandleVerifyMessage(req);
+    if (path == "/webui/api/assets/check")            return HandleAssetCheck(req);
 
     if (path.starts_with("/webui/api/ans/")) {
         if (req->GetRequestMethod() != HTTPRequest::GET) {

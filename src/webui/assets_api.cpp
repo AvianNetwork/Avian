@@ -33,6 +33,9 @@
 #include <wallet/wallet.h>
 #endif
 
+#include <rpc/request.h>
+#include <rpc/server.h>
+
 #include <event2/http.h>
 
 #include <map>
@@ -422,15 +425,153 @@ static bool HandleWalletConsolidate(HTTPRequest* req, const std::string& wallet_
     return false;
 }
 
+static bool HandleIssueAsset(HTTPRequest* req, const std::string& wallet_name)
+{
+    if (req->GetRequestMethod() != HTTPRequest::POST) {
+        req->WriteReply(HTTP_BAD_METHOD, "");
+        return false;
+    }
+    if (!CheckWebUIHost(req)) return false;
+    auto cors = CheckWebUICORS(req);
+    if (!cors) return false;
+    if (!CheckWebUIAuth(req)) return false;
+
+    UniValue body;
+    if (!body.read(req->ReadBody()) || !body.isObject()) {
+        req->WriteReply(HTTP_BAD_REQUEST, R"({"error":"Invalid JSON"})");
+        return false;
+    }
+    const UniValue& nameVal = body["name"];
+    const UniValue& qtyVal  = body["qty"];
+    if (!nameVal.isStr() || nameVal.get_str().empty()) {
+        req->WriteReply(HTTP_BAD_REQUEST, R"({"error":"\"name\" required"})");
+        return false;
+    }
+    if (!qtyVal.isNum()) {
+        req->WriteReply(HTTP_BAD_REQUEST, R"({"error":"\"qty\" required"})");
+        return false;
+    }
+
+    const std::string to_addr     = body["to_address"].isStr()     ? body["to_address"].get_str()     : "";
+    const std::string change_addr = body["change_address"].isStr() ? body["change_address"].get_str() : "";
+    const int         units       = body["units"].isNum()          ? body["units"].getInt<int>()       : 0;
+    const bool        reissuable  = !body["reissuable"].isBool()   || body["reissuable"].get_bool();
+    const std::string ipfs_hash   = body["ipfs_hash"].isStr()      ? body["ipfs_hash"].get_str()      : "";
+    const bool        has_ipfs    = !ipfs_hash.empty();
+
+    JSONRPCRequest jreq;
+    jreq.context   = g_node;
+    jreq.URI       = "/wallet/" + wallet_name;
+    jreq.strMethod = "issue";
+    jreq.params    = UniValue(UniValue::VARR);
+    jreq.params.push_back(nameVal.get_str());
+    jreq.params.push_back(qtyVal);
+    jreq.params.push_back(to_addr);
+    jreq.params.push_back(change_addr);
+    jreq.params.push_back(units);
+    jreq.params.push_back(reissuable);
+    jreq.params.push_back(has_ipfs);
+    if (has_ipfs) jreq.params.push_back(ipfs_hash);
+
+    try {
+        UniValue result = tableRPC.execute(jreq);
+        UniValue obj(UniValue::VOBJ);
+        obj.pushKV("success", true);
+        if (result.isStr())                        obj.pushKV("txid", result);
+        else if (result.isArray() && result.size()) obj.pushKV("txid", result[0]);
+        SetJSONHeaders(req, *cors);
+        req->WriteReply(HTTP_OK, obj.write());
+        return true;
+    } catch (const UniValue& e) {
+        const std::string msg = e["message"].isStr() ? e["message"].get_str() : "RPC error";
+        req->WriteReply(HTTP_BAD_REQUEST, JsonError(msg));
+        return false;
+    } catch (const std::exception& e) {
+        req->WriteReply(HTTP_INTERNAL_SERVER_ERROR, JsonError(e.what()));
+        return false;
+    }
+}
+
+static bool HandleReissueAsset(HTTPRequest* req, const std::string& wallet_name)
+{
+    if (req->GetRequestMethod() != HTTPRequest::POST) {
+        req->WriteReply(HTTP_BAD_METHOD, "");
+        return false;
+    }
+    if (!CheckWebUIHost(req)) return false;
+    auto cors = CheckWebUICORS(req);
+    if (!cors) return false;
+    if (!CheckWebUIAuth(req)) return false;
+
+    UniValue body;
+    if (!body.read(req->ReadBody()) || !body.isObject()) {
+        req->WriteReply(HTTP_BAD_REQUEST, R"({"error":"Invalid JSON"})");
+        return false;
+    }
+    const UniValue& nameVal  = body["name"];
+    const UniValue& qtyVal   = body["qty"];
+    const UniValue& addrVal  = body["to_address"];
+    if (!nameVal.isStr() || nameVal.get_str().empty()) {
+        req->WriteReply(HTTP_BAD_REQUEST, R"({"error":"\"name\" required"})");
+        return false;
+    }
+    if (!qtyVal.isNum()) {
+        req->WriteReply(HTTP_BAD_REQUEST, R"({"error":"\"qty\" required"})");
+        return false;
+    }
+    if (!addrVal.isStr() || addrVal.get_str().empty()) {
+        req->WriteReply(HTTP_BAD_REQUEST, R"({"error":"\"to_address\" required"})");
+        return false;
+    }
+
+    const std::string change_addr = body["change_address"].isStr() ? body["change_address"].get_str() : "";
+    const bool        reissuable  = !body["reissuable"].isBool()   || body["reissuable"].get_bool();
+    const int         new_units   = body["new_units"].isNum()      ? body["new_units"].getInt<int>()  : -1;
+    const std::string new_ipfs    = body["new_ipfs"].isStr()       ? body["new_ipfs"].get_str()       : "";
+
+    JSONRPCRequest jreq;
+    jreq.context   = g_node;
+    jreq.URI       = "/wallet/" + wallet_name;
+    jreq.strMethod = "reissue";
+    jreq.params    = UniValue(UniValue::VARR);
+    jreq.params.push_back(nameVal.get_str());
+    jreq.params.push_back(qtyVal);
+    jreq.params.push_back(addrVal.get_str());
+    jreq.params.push_back(change_addr);
+    jreq.params.push_back(reissuable);
+    jreq.params.push_back(new_units);
+    if (!new_ipfs.empty()) jreq.params.push_back(new_ipfs);
+
+    try {
+        UniValue result = tableRPC.execute(jreq);
+        UniValue obj(UniValue::VOBJ);
+        obj.pushKV("success", true);
+        if (result.isStr())                        obj.pushKV("txid", result);
+        else if (result.isArray() && result.size()) obj.pushKV("txid", result[0]);
+        SetJSONHeaders(req, *cors);
+        req->WriteReply(HTTP_OK, obj.write());
+        return true;
+    } catch (const UniValue& e) {
+        const std::string msg = e["message"].isStr() ? e["message"].get_str() : "RPC error";
+        req->WriteReply(HTTP_BAD_REQUEST, JsonError(msg));
+        return false;
+    } catch (const std::exception& e) {
+        req->WriteReply(HTTP_INTERNAL_SERVER_ERROR, JsonError(e.what()));
+        return false;
+    }
+}
+
 #endif // ENABLE_WALLET
 
 bool WebUIAssetsRoute(HTTPRequest* req, const std::string& wallet_name, const std::string& action)
 {
 #ifdef ENABLE_WALLET
-    if (action == "send-asset")  return HandleWalletSendAsset(req, wallet_name);
-    if (action == "assets")      return HandleWalletAssets(req, wallet_name);
-    if (action == "utxos")       return HandleWalletUTXOs(req, wallet_name);
-    if (action == "consolidate") return HandleWalletConsolidate(req, wallet_name);
+    if (action == "send-asset")    return HandleWalletSendAsset(req, wallet_name);
+    if (action == "assets")        return HandleWalletAssets(req, wallet_name);
+    if (action == "utxos")         return HandleWalletUTXOs(req, wallet_name);
+    if (action == "consolidate")   return HandleWalletConsolidate(req, wallet_name);
+    if (action == "issue-asset")   return HandleIssueAsset(req, wallet_name);
+    if (action == "reissue-asset") return HandleReissueAsset(req, wallet_name);
 #endif
     req->WriteReply(HTTP_NOT_FOUND, R"({"error":"not found"})");
     return false;

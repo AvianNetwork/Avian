@@ -3,7 +3,7 @@ import { api, ApiError, copyText, EXPLORER } from '../lib/api'
 import type { WalletSummary, WalletTx, AssetBalance, NodeFeatures, PSBTDecoded, WalletAddressEntry, UTXO, UTXOSummary, ConsolidateResult } from '../lib/api'
 import { QRModal } from '../components/QRModal'
 
-type Tab = 'overview' | 'transactions' | 'utxos' | 'assets' | 'send' | 'psbt' | 'signverify' | 'consolidate' | 'security'
+type Tab = 'overview' | 'transactions' | 'utxos' | 'assets' | 'send' | 'issue' | 'psbt' | 'signverify' | 'consolidate' | 'security'
 
 interface Props {
   walletName: string
@@ -116,6 +116,7 @@ export function WalletPage({ walletName, features, onBack, onRefresh, registerRe
     { id: 'utxos',        label: 'UTXOs' },
     { id: 'assets',       label: 'Assets' },
     { id: 'send',         label: 'Send' },
+    { id: 'issue',        label: 'Issue Asset' },
     { id: 'psbt',         label: 'PSBT' },
     { id: 'signverify',   label: 'Sign / Verify' },
     { id: 'consolidate',  label: 'Consolidate' },
@@ -183,6 +184,7 @@ export function WalletPage({ walletName, features, onBack, onRefresh, registerRe
       {tab === 'utxos'        && <UTXOTab walletName={walletName} />}
       {tab === 'assets'       && <AssetsTab walletName={walletName} features={features} />}
       {tab === 'send'         && <SendTab walletName={walletName} features={features} onRefresh={() => { loadSummary(); onRefresh() }} />}
+      {tab === 'issue'        && <IssueTab walletName={walletName} features={features} />}
       {tab === 'psbt'         && <PSBTTab walletName={walletName} features={features} />}
       {tab === 'signverify'   && <SignVerifyTab walletName={walletName} features={features} />}
       {tab === 'consolidate'  && <ConsolidateTab walletName={walletName} />}
@@ -1446,11 +1448,15 @@ function PSBTBroadcast() {
 
 // ── Searchable address picker ──────────────────────────────────────────────
 
-function SearchableSelect({ value, onChange, options, placeholder = 'Search address…' }: {
+function SearchableSelect({ value, onChange, options, placeholder = 'Search address…', freeText = false, disabled = false }: {
   value: string
   onChange: (v: string) => void
   options: { value: string; label: string }[]
   placeholder?: string
+  // When true, typed text commits straight to onChange (so the field also accepts
+  // addresses that aren't in `options`, e.g. external/third-party addresses).
+  freeText?: boolean
+  disabled?: boolean
 }) {
   const [query,  setQuery]  = useState('')
   const [open,   setOpen]   = useState(false)
@@ -1468,8 +1474,9 @@ function SearchableSelect({ value, onChange, options, placeholder = 'Search addr
     return () => document.removeEventListener('mousedown', handler)
   }, [])
 
-  const filtered = query
-    ? options.filter(o => o.label.toLowerCase().includes(query.toLowerCase()))
+  const filterText = freeText ? value : query
+  const filtered = filterText
+    ? options.filter(o => o.label.toLowerCase().includes(filterText.toLowerCase()))
     : options
 
   const selected = options.find(o => o.value === value)
@@ -1500,13 +1507,18 @@ function SearchableSelect({ value, onChange, options, placeholder = 'Search addr
   return (
     <div ref={containerRef} style={{ position: 'relative' }}>
       <input
-        value={open ? query : (selected?.label ?? '')}
-        onChange={e => { setQuery(e.target.value); setOpen(true); setHovered(-1) }}
-        onFocus={() => { setQuery(''); setOpen(true) }}
+        value={freeText ? value : (open ? query : (selected?.label ?? ''))}
+        onChange={e => {
+          if (freeText) onChange(e.target.value)
+          else setQuery(e.target.value)
+          setOpen(true); setHovered(-1)
+        }}
+        onFocus={() => { if (!freeText) setQuery(''); setOpen(true) }}
         onKeyDown={onKeyDown}
         placeholder={placeholder}
         spellCheck={false}
-        style={{ paddingRight: 28 }}
+        disabled={disabled}
+        style={{ paddingRight: 28, fontFamily: freeText ? 'var(--mono)' : undefined }}
       />
       <span style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: 'var(--muted)', fontSize: 11 }}>▾</span>
       {open && (
@@ -2063,5 +2075,590 @@ function SecurityTab({ walletName, summary, onRefresh }: {
         </div>
       )}
     </div>
+  )
+}
+
+// ── Issue / Reissue Asset Tab ─────────────────────────────────────────────────
+
+type IssueSubTab = 'issue' | 'reissue'
+
+function IssueTab({ walletName, features }: { walletName: string; features: NodeFeatures | null }) {
+  const assetsActive = features?.features['assets']?.active ?? false
+  const [subTab, setSubTab] = useState<IssueSubTab>('issue')
+
+  if (!assetsActive) {
+    return <div className="info-box">Assets are not active on this network.</div>
+  }
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16, maxWidth: 560 }}>
+      <div className="tabs" style={{ marginBottom: 0 }}>
+        <button className={`tab${subTab === 'issue'   ? ' active' : ''}`} onClick={() => setSubTab('issue')}>Issue New Asset</button>
+        <button className={`tab${subTab === 'reissue' ? ' active' : ''}`} onClick={() => setSubTab('reissue')}>Reissue Asset</button>
+      </div>
+      {subTab === 'issue'   && <IssueNewAssetForm walletName={walletName} />}
+      {subTab === 'reissue' && <ReissueAssetForm walletName={walletName} />}
+    </div>
+  )
+}
+
+type IssueAssetType = 'ROOT' | 'SUB' | 'UNIQUE'
+
+const ISSUE_TYPE_INFO: Record<IssueAssetType, { label: string; cost: string; sep: string }> = {
+  ROOT:   { label: 'Main Asset',   cost: '500 AVN', sep: '' },
+  SUB:    { label: 'Sub Asset',    cost: '100 AVN', sep: '/' },
+  UNIQUE: { label: 'Unique Asset', cost: '5 AVN',   sep: '#' },
+}
+
+// Owner tokens (names ending in "!") mark assets this wallet can issue
+// sub/unique children of, or reissue. Unique assets never have an owner
+// token, so they naturally never appear in either list.
+function useOwnedOwnerAssets(walletName: string) {
+  const [assets,  setAssets]  = useState<string[]>([])
+  const [loading, setLoading] = useState(true)
+  useEffect(() => {
+    setLoading(true)
+    api.wallet.assets(walletName)
+      .then(r => {
+        setAssets(r.assets.filter(a => a.name.endsWith('!')).map(a => a.name.slice(0, -1)).sort())
+        setLoading(false)
+      })
+      .catch(() => setLoading(false))
+  }, [walletName])
+  return { assets, loading }
+}
+
+function useOwnAddresses(walletName: string) {
+  const [addresses, setAddresses] = useState<WalletAddressEntry[]>([])
+  const [loading,   setLoading]   = useState(true)
+  useEffect(() => {
+    setLoading(true)
+    api.wallet.addresses(walletName)
+      .then(r => { setAddresses(r.addresses.filter(a => a.is_mine)); setLoading(false) })
+      .catch(() => setLoading(false))
+  }, [walletName])
+  return { addresses, loading }
+}
+
+function IssueNewAssetForm({ walletName }: { walletName: string }) {
+  const [assetType,     setAssetType]     = useState<IssueAssetType>('ROOT')
+  const { assets: parents, loading: parentsLoading } = useOwnedOwnerAssets(walletName)
+  const { addresses: ownAddresses } = useOwnAddresses(walletName)
+  const [parent,        setParent]        = useState('')
+  const [name,          setName]          = useState('')
+  const [qty,           setQty]           = useState('')
+  const [units,         setUnits]         = useState(0)
+  const [reissuable,    setReissuable]    = useState(true)
+  const [toAddress,     setToAddress]     = useState('')
+  const [changeAddress, setChangeAddress] = useState('')
+  const [ipfsHash,      setIpfsHash]      = useState('')
+  const [showConfirm,   setShowConfirm]   = useState(false)
+  const [busy,          setBusy]          = useState(false)
+  const [err,           setErr]           = useState('')
+  const [txid,          setTxid]          = useState('')
+
+  const [checking,    setChecking]    = useState(false)
+  const [checkedName, setCheckedName] = useState('')
+  const [checkResult, setCheckResult] = useState<{ ok: boolean; msg: string } | null>(null)
+
+  const isUnique    = assetType === 'UNIQUE'
+  const needsParent = assetType !== 'ROOT'
+  const sep          = ISSUE_TYPE_INFO[assetType].sep
+  const fullName      = needsParent ? (parent ? `${parent}${sep}${name}` : '') : name
+
+  useEffect(() => {
+    if (parents.length && !parent) setParent(parents[0])
+  }, [parents, parent])
+
+  // Unique assets are always qty=1, units=0, non-reissuable — enforced server-side too.
+  useEffect(() => {
+    if (isUnique) { setQty('1'); setUnits(0); setReissuable(false) }
+  }, [isUnique])
+
+  // Any change to the composed name invalidates a previous availability check.
+  useEffect(() => { setCheckResult(null); setCheckedName('') }, [assetType, parent, name])
+
+  const checkAvailability = async () => {
+    if (!fullName) return
+    setChecking(true)
+    setCheckResult(null)
+    try {
+      const res = await api.assets.check(fullName)
+      if (!res.valid) {
+        setCheckResult({ ok: false, msg: res.error ?? 'Invalid asset name' })
+      } else if (res.exists) {
+        setCheckResult({ ok: false, msg: 'Name already in use' })
+      } else {
+        setCheckResult({ ok: true, msg: 'Available' })
+        setCheckedName(fullName)
+      }
+    } catch (ex) {
+      setCheckResult({ ok: false, msg: ex instanceof ApiError ? ex.message : 'Check failed' })
+    } finally {
+      setChecking(false)
+    }
+  }
+
+  const ready = checkResult?.ok === true && checkedName === fullName && !!qty
+
+  const handleSubmit = (e: FormEvent) => {
+    e.preventDefault()
+    setErr('')
+    if (!ready) return
+    setShowConfirm(true)
+  }
+
+  const confirm = async () => {
+    setBusy(true)
+    setErr('')
+    try {
+      const res = await api.wallet.issueAsset(walletName, {
+        name: fullName,
+        qty: parseFloat(qty),
+        units,
+        reissuable,
+        ...(toAddress.trim()     ? { to_address:     toAddress.trim() }     : {}),
+        ...(changeAddress.trim() ? { change_address: changeAddress.trim() } : {}),
+        ...(ipfsHash.trim()      ? { ipfs_hash:      ipfsHash.trim() }      : {}),
+      })
+      setTxid(res.txid ?? '')
+      setShowConfirm(false)
+      setName(''); setQty(isUnique ? '1' : ''); setUnits(0); setReissuable(!isUnique)
+      setToAddress(''); setChangeAddress(''); setIpfsHash('')
+      setCheckResult(null); setCheckedName('')
+    } catch (ex) {
+      setErr(ex instanceof ApiError ? ex.message : 'Issue failed')
+      setShowConfirm(false)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <>
+      {txid && (
+        <div className="ok-box">
+          Asset issued!{' '}
+          <a href={`${EXPLORER}/tx/${txid}`} target="_blank" rel="noopener noreferrer"
+             style={{ fontFamily: 'var(--mono)', fontSize: 12 }}>
+            {txid.slice(0, 16)}…
+          </a>
+        </div>
+      )}
+
+      <div className="info-box" style={{ fontSize: 12 }}>
+        <strong>{ISSUE_TYPE_INFO[assetType].label}</strong> costs <strong>{ISSUE_TYPE_INFO[assetType].cost}</strong>.
+        {assetType === 'SUB'    && <> Created as <code>PARENT/NAME</code>.</>}
+        {assetType === 'UNIQUE' && <> Created as <code>PARENT#TAG</code> — quantity is always 1, with no decimal places, and cannot be reissued.</>}
+      </div>
+
+      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <div>
+          <label>Asset Type</label>
+          <select value={assetType} onChange={e => { setAssetType(e.target.value as IssueAssetType); setErr('') }}>
+            <option value="ROOT">Main Asset — 500 AVN</option>
+            <option value="SUB">Sub Asset — 100 AVN</option>
+            <option value="UNIQUE">Unique Asset — 5 AVN</option>
+          </select>
+        </div>
+
+        {needsParent && (
+          <div>
+            <label>Parent Asset</label>
+            {parentsLoading ? (
+              <div style={{ color: 'var(--muted)', fontSize: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span className="spinner" /> Loading your assets…
+              </div>
+            ) : parents.length === 0 ? (
+              <div className="error-box" style={{ fontSize: 12 }}>
+                You don't own any asset's owner token yet. Issue a Main Asset first.
+              </div>
+            ) : (
+              <select value={parent} onChange={e => { setParent(e.target.value); setErr('') }} style={{ fontFamily: 'var(--mono)' }}>
+                {parents.map(p => <option key={p} value={p}>{p}</option>)}
+              </select>
+            )}
+          </div>
+        )}
+
+        <div>
+          <label>{isUnique ? 'Unique Tag' : 'Asset Name'}</label>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            {needsParent && parent && (
+              <span style={{ fontFamily: 'var(--mono)', fontSize: 13, color: 'var(--muted)', whiteSpace: 'nowrap' }}>
+                {parent}{sep}
+              </span>
+            )}
+            <input
+              value={name}
+              onChange={e => { setName(isUnique ? e.target.value : e.target.value.toUpperCase()); setErr('') }}
+              placeholder={isUnique ? 'SERIAL1' : 'SUBNAME'}
+              spellCheck={false}
+              style={{ fontFamily: 'var(--mono)', flex: 1 }}
+            />
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <button type="button" className="secondary" disabled={!fullName || checking || (needsParent && !parent)}
+                  onClick={checkAvailability} style={{ fontSize: 12, padding: '4px 10px' }}>
+            {checking ? <><span className="spinner" /> Checking…</> : 'Check Availability'}
+          </button>
+          {checkResult && (
+            <span style={{ fontSize: 12, color: checkResult.ok ? '#7ec95a' : '#e06b52' }}>
+              {checkResult.ok ? `✓ ${fullName} is available` : checkResult.msg}
+            </span>
+          )}
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          <div>
+            <label>Quantity</label>
+            <input type="number" min="1" step="any" value={qty} disabled={isUnique}
+                   onChange={e => { setQty(e.target.value); setErr('') }} placeholder="1000" />
+            <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 4 }}>
+              How many of this asset to create right now.
+            </div>
+          </div>
+          <div>
+            <label>Decimal Places (Units)</label>
+            <select value={units} disabled={isUnique} onChange={e => setUnits(Number(e.target.value))}>
+              {[0,1,2,3,4,5,6,7,8].map(u => <option key={u} value={u}>{u}</option>)}
+            </select>
+            <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 4 }}>
+              How divisible it is. 0 = whole units only; 8 = down to 0.00000001. Can only be raised later, never lowered.
+            </div>
+          </div>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <input type="checkbox" id="reissuable-chk" checked={reissuable} disabled={isUnique}
+                 onChange={e => setReissuable(e.target.checked)}
+                 style={{ width: 'auto', minHeight: 'unset' }} />
+          <label htmlFor="reissuable-chk" style={{ margin: 0, color: 'var(--text)' }}>
+            Reissuable
+            {isUnique && <span style={{ color: 'var(--muted)', fontWeight: 400 }}> (unique assets are never reissuable)</span>}
+          </label>
+        </div>
+        <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: -6 }}>
+          Lets you create more later, raise decimal places, or update IPFS metadata — as long as you keep the owner token.
+          This is permanent once turned off: an asset issued as non-reissuable can never be reissued again.
+        </div>
+        <div>
+          <label>To Address <span style={{ color: 'var(--muted)', fontWeight: 400 }}>(optional — defaults to own wallet)</span></label>
+          {ownAddresses.length > 0 ? (
+            <SearchableSelect
+              value={toAddress}
+              onChange={setToAddress}
+              freeText
+              options={ownAddresses.map(a => ({ value: a.address, label: a.label ? `${a.label} — ${a.address}` : a.address }))}
+              placeholder="Own address, or paste any address…"
+            />
+          ) : (
+            <input value={toAddress} onChange={e => setToAddress(e.target.value)} placeholder="Rxxxxxx…" style={{ fontFamily: 'var(--mono)', fontSize: 12 }} />
+          )}
+        </div>
+        <div>
+          <label>IPFS / TXID Hash <span style={{ color: 'var(--muted)', fontWeight: 400 }}>(optional)</span></label>
+          <input value={ipfsHash} onChange={e => setIpfsHash(e.target.value)} placeholder="Qm… or CID" style={{ fontFamily: 'var(--mono)', fontSize: 12 }} />
+        </div>
+        {err && <div className="error-box" style={{ fontSize: 12 }}>{err}</div>}
+        <button type="submit" disabled={!ready}>Preview &amp; Issue</button>
+      </form>
+
+      {showConfirm && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.65)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000 }}>
+          <div className="card" style={{ width: 400, display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <h3 style={{ fontSize: 15, margin: 0 }}>Confirm Asset Issuance</h3>
+            <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr', gap: '6px 12px', fontSize: 13 }}>
+              <span style={{ color: 'var(--muted)' }}>Type</span>
+              <span>{ISSUE_TYPE_INFO[assetType].label} ({ISSUE_TYPE_INFO[assetType].cost})</span>
+              <span style={{ color: 'var(--muted)' }}>Asset Name</span>
+              <span style={{ fontFamily: 'var(--mono)', fontWeight: 600 }}>{fullName}</span>
+              <span style={{ color: 'var(--muted)' }}>Quantity</span>
+              <span>{qty} (×10<sup>-{units}</sup> precision)</span>
+              <span style={{ color: 'var(--muted)' }}>Reissuable</span>
+              <span>{reissuable ? 'Yes' : 'No'}</span>
+              {ipfsHash && <><span style={{ color: 'var(--muted)' }}>IPFS Hash</span><span style={{ fontFamily: 'var(--mono)', fontSize: 12, wordBreak: 'break-all' }}>{ipfsHash}</span></>}
+              {toAddress && <><span style={{ color: 'var(--muted)' }}>To Address</span><span style={{ fontFamily: 'var(--mono)', fontSize: 12 }}>{toAddress}</span></>}
+            </div>
+            <div style={{ fontSize: 12, color: 'var(--muted)' }}>
+              This will broadcast a transaction and spend the required AVN fee. This action cannot be undone.
+            </div>
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+              <button className="secondary" onClick={() => setShowConfirm(false)} disabled={busy}>Cancel</button>
+              <button onClick={confirm} disabled={busy}>
+                {busy ? <><span className="spinner" /> Issuing…</> : 'Confirm & Issue'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  )
+}
+
+function fmtQty(n: number): string {
+  if (!isFinite(n)) return '—'
+  return (Math.round(n * 1e8) / 1e8).toString()
+}
+
+function CompareRow({ label, value, highlight = false, mono = false }: { label: string; value: string; highlight?: boolean; mono?: boolean }) {
+  return (
+    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, padding: '3px 0', borderBottom: '1px solid var(--border)' }}>
+      <span style={{ color: 'var(--muted)' }}>{label}</span>
+      <span style={{
+        fontFamily: mono ? 'var(--mono)' : undefined,
+        fontSize: mono ? 11 : 12,
+        wordBreak: 'break-all',
+        textAlign: 'right',
+        color: highlight ? '#7ec95a' : undefined,
+        fontWeight: highlight ? 600 : undefined,
+      }}>
+        {value}
+      </span>
+    </div>
+  )
+}
+
+// Mirrors the Qt ReissueAssetDialog's side-by-side "Current"/"Updated" settings panel.
+function ReissuePreviewPanel({ name, currentInfo, qty, reissuable, newUnits, newIpfs }: {
+  name: string
+  currentInfo: { units: number; reissuable: boolean; quantity?: string; ipfsHash?: string }
+  qty: string
+  reissuable: boolean
+  newUnits: number
+  newIpfs: string
+}) {
+  const addQty = parseFloat(qty || '0')
+  const curQty = parseFloat(currentInfo.quantity ?? '0')
+  const totalQty = qty && !isNaN(addQty) ? fmtQty(curQty + addQty) : (currentInfo.quantity ?? '—')
+  const updatedUnits = newUnits >= 0 ? newUnits : currentInfo.units
+  const trimmedIpfs = newIpfs.trim()
+  const updatedIpfs = trimmedIpfs || currentInfo.ipfsHash || '—'
+
+  const qtyChanged        = !!qty && addQty > 0
+  const unitsChanged      = updatedUnits !== currentInfo.units
+  const reissuableChanged = reissuable !== currentInfo.reissuable
+  const ipfsChanged       = trimmedIpfs !== '' && trimmedIpfs !== (currentInfo.ipfsHash ?? '')
+
+  return (
+    <div className="card" style={{ padding: 12 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, fontSize: 12 }}>
+        <div>
+          <div style={{ fontWeight: 600, marginBottom: 6, color: 'var(--muted)' }}>Current Asset Settings</div>
+          <CompareRow label="Name" value={name} />
+          <CompareRow label="Quantity" value={currentInfo.quantity ?? '—'} />
+          <CompareRow label="Units" value={String(currentInfo.units)} />
+          <CompareRow label="Can Reissue" value={currentInfo.reissuable ? 'Yes' : 'No'} />
+          <CompareRow label="IPFS Hash" value={currentInfo.ipfsHash ?? '—'} mono />
+        </div>
+        <div>
+          <div style={{ fontWeight: 600, marginBottom: 6, color: 'var(--muted)' }}>Updated Asset Settings</div>
+          <CompareRow label="Name" value={name} />
+          <CompareRow label="Total Quantity" value={totalQty} highlight={qtyChanged} />
+          <CompareRow label="Units" value={String(updatedUnits)} highlight={unitsChanged} />
+          <CompareRow label="Can Reissue" value={reissuable ? 'Yes' : 'No'} highlight={reissuableChanged} />
+          <CompareRow label="IPFS Hash" value={updatedIpfs} mono highlight={ipfsChanged} />
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function ReissueAssetForm({ walletName }: { walletName: string }) {
+  const { assets: ownedAssets, loading: assetsLoading } = useOwnedOwnerAssets(walletName)
+  const { addresses: ownAddresses } = useOwnAddresses(walletName)
+  const [name,          setName]          = useState('')
+  const [currentInfo,   setCurrentInfo]   = useState<{ units: number; reissuable: boolean; quantity?: string; ipfsHash?: string } | null>(null)
+  const [qty,           setQty]           = useState('')
+  const [toAddress,     setToAddress]     = useState('')
+  const [changeAddress, setChangeAddress] = useState('')
+  const [reissuable,    setReissuable]    = useState(true)
+  const [newUnits,      setNewUnits]      = useState(-1)
+  const [newIpfs,       setNewIpfs]       = useState('')
+  const [showConfirm,   setShowConfirm]   = useState(false)
+  const [busy,          setBusy]          = useState(false)
+  const [err,           setErr]           = useState('')
+  const [txid,          setTxid]          = useState('')
+
+  useEffect(() => {
+    if (ownedAssets.length && !name) setName(ownedAssets[0])
+  }, [ownedAssets, name])
+
+  useEffect(() => {
+    if (ownAddresses.length > 0 && !toAddress) setToAddress(ownAddresses[0].address)
+  }, [ownAddresses, toAddress])
+
+  useEffect(() => {
+    if (!name) { setCurrentInfo(null); return }
+    let cancelled = false
+    api.assets.check(name).then(r => {
+      if (cancelled) return
+      if (r.exists) {
+        const info = { units: r.units ?? 0, reissuable: r.reissuable ?? false, quantity: r.quantity, ipfsHash: r.ipfs_hash }
+        setCurrentInfo(info)
+        setReissuable(info.reissuable)
+      } else {
+        setCurrentInfo(null)
+      }
+    }).catch(() => {})
+    return () => { cancelled = true }
+  }, [name])
+
+  const locked = currentInfo !== null && !currentInfo.reissuable
+
+  const handleSubmit = (e: FormEvent) => {
+    e.preventDefault()
+    setErr('')
+    if (!name.trim() || !qty || !toAddress.trim() || locked) return
+    setShowConfirm(true)
+  }
+
+  const confirm = async () => {
+    setBusy(true)
+    setErr('')
+    try {
+      const res = await api.wallet.reissueAsset(walletName, {
+        name: name.trim(),
+        qty: parseFloat(qty),
+        to_address: toAddress.trim(),
+        ...(changeAddress.trim() ? { change_address: changeAddress.trim() } : {}),
+        reissuable,
+        new_units: newUnits,
+        ...(newIpfs.trim() ? { new_ipfs: newIpfs.trim() } : {}),
+      })
+      setTxid(res.txid ?? '')
+      setShowConfirm(false)
+      setQty(''); setToAddress(''); setChangeAddress('')
+      setNewUnits(-1); setNewIpfs('')
+    } catch (ex) {
+      setErr(ex instanceof ApiError ? ex.message : 'Reissue failed')
+      setShowConfirm(false)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <>
+      {txid && (
+        <div className="ok-box">
+          Asset reissued!{' '}
+          <a href={`${EXPLORER}/tx/${txid}`} target="_blank" rel="noopener noreferrer"
+             style={{ fontFamily: 'var(--mono)', fontSize: 12 }}>
+            {txid.slice(0, 16)}…
+          </a>
+        </div>
+      )}
+
+      <div className="info-box" style={{ fontSize: 12 }}>
+        Reissuing requires the wallet to hold the owner token (<code>ASSETNAME!</code>). Reissue cost is <strong>100 AVN</strong>.
+        Unique assets have no owner token and can never be reissued, so they don't appear below.
+      </div>
+
+      {assetsLoading ? (
+        <div style={{ color: 'var(--muted)', fontSize: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span className="spinner" /> Loading your assets…
+        </div>
+      ) : ownedAssets.length === 0 ? (
+        <div className="error-box" style={{ fontSize: 12 }}>
+          You don't currently own the owner token for any asset.
+        </div>
+      ) : (
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div>
+            <label>Asset</label>
+            <select value={name} onChange={e => { setName(e.target.value); setErr('') }} style={{ fontFamily: 'var(--mono)' }}>
+              {ownedAssets.map(a => <option key={a} value={a}>{a}</option>)}
+            </select>
+          </div>
+          {currentInfo && (
+            <ReissuePreviewPanel name={name} currentInfo={currentInfo} qty={qty} reissuable={reissuable} newUnits={newUnits} newIpfs={newIpfs} />
+          )}
+          {locked && (
+            <div className="error-box" style={{ fontSize: 12 }}>
+              This asset was issued as non-reissuable and can no longer be reissued.
+            </div>
+          )}
+          <div>
+            <label>Additional Quantity</label>
+            <input type="number" min="0.00000001" step="any" value={qty} disabled={locked}
+                   onChange={e => { setQty(e.target.value); setErr('') }} placeholder="1000" />
+            <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 4 }}>
+              How many more of this asset to mint, on top of what already exists.
+            </div>
+          </div>
+          <div>
+            <label>To Address</label>
+            {ownAddresses.length > 0 ? (
+              <SearchableSelect
+                value={toAddress}
+                onChange={setToAddress}
+                freeText
+                disabled={locked}
+                options={ownAddresses.map(a => ({ value: a.address, label: a.label ? `${a.label} — ${a.address}` : a.address }))}
+                placeholder="Own address, or paste any address…"
+              />
+            ) : (
+              <input value={toAddress} disabled={locked} onChange={e => setToAddress(e.target.value)} placeholder="Rxxxxxx…" style={{ fontFamily: 'var(--mono)', fontSize: 12 }} />
+            )}
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <input type="checkbox" id="reissue-reissuable-chk" checked={reissuable} disabled={locked}
+                   onChange={e => setReissuable(e.target.checked)}
+                   style={{ width: 'auto', minHeight: 'unset' }} />
+            <label htmlFor="reissue-reissuable-chk" style={{ margin: 0, color: 'var(--text)' }}>Still Reissuable</label>
+          </div>
+          <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: -6 }}>
+            Leave checked to keep the ability to reissue again later. Unchecking this is permanent — you will never be able to reissue this asset again.
+          </div>
+          <div>
+            <label>New Decimal Places <span style={{ color: 'var(--muted)', fontWeight: 400 }}>(optional — cannot decrease)</span></label>
+            <select value={newUnits} disabled={locked} onChange={e => setNewUnits(Number(e.target.value))}>
+              <option value={-1}>No change</option>
+              {[0,1,2,3,4,5,6,7,8].filter(u => !currentInfo || u >= currentInfo.units).map(u => <option key={u} value={u}>{u}</option>)}
+            </select>
+            <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 4 }}>
+              Divisibility can only be raised, never lowered — existing holders may have balances at the old precision.
+            </div>
+          </div>
+          <div>
+            <label>New IPFS / TXID Hash <span style={{ color: 'var(--muted)', fontWeight: 400 }}>(optional)</span></label>
+            <input value={newIpfs} disabled={locked} onChange={e => setNewIpfs(e.target.value)} placeholder="Qm… or CID" style={{ fontFamily: 'var(--mono)', fontSize: 12 }} />
+          </div>
+          {err && <div className="error-box" style={{ fontSize: 12 }}>{err}</div>}
+          <button type="submit" disabled={!name.trim() || !qty || !toAddress.trim() || locked}>Preview &amp; Reissue</button>
+        </form>
+      )}
+
+      {showConfirm && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.65)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000 }}>
+          <div className="card" style={{ width: 400, display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <h3 style={{ fontSize: 15, margin: 0 }}>Confirm Asset Reissuance</h3>
+            <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr', gap: '6px 12px', fontSize: 13 }}>
+              <span style={{ color: 'var(--muted)' }}>Asset Name</span>
+              <span style={{ fontFamily: 'var(--mono)', fontWeight: 600 }}>{name}</span>
+              <span style={{ color: 'var(--muted)' }}>Add Quantity</span>
+              <span>{qty}</span>
+              <span style={{ color: 'var(--muted)' }}>To Address</span>
+              <span style={{ fontFamily: 'var(--mono)', fontSize: 12 }}>{toAddress}</span>
+              <span style={{ color: 'var(--muted)' }}>Reissuable</span>
+              <span>{reissuable ? 'Yes' : 'No'}</span>
+              {newUnits >= 0 && <><span style={{ color: 'var(--muted)' }}>New Units</span><span>{newUnits}</span></>}
+              {newIpfs && <><span style={{ color: 'var(--muted)' }}>New IPFS</span><span style={{ fontFamily: 'var(--mono)', fontSize: 12, wordBreak: 'break-all' }}>{newIpfs}</span></>}
+            </div>
+            <div style={{ fontSize: 12, color: 'var(--muted)' }}>
+              This will broadcast a transaction and spend the required AVN fee. This action cannot be undone.
+            </div>
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+              <button className="secondary" onClick={() => setShowConfirm(false)} disabled={busy}>Cancel</button>
+              <button onClick={confirm} disabled={busy}>
+                {busy ? <><span className="spinner" /> Reissuing…</> : 'Confirm & Reissue'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   )
 }

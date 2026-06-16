@@ -178,6 +178,14 @@ export const api = {
     },
     consolidate: (w: string, params: { destination: string; min_amount: number; max_amount: number; max_utxos_per_batch: number; max_batches: number }) =>
       post<ConsolidateResult>(`/wallet/${encodeURIComponent(w)}/consolidate`, params),
+    issueAsset: (w: string, params: {
+      name: string; qty: number; units?: number; reissuable?: boolean
+      to_address?: string; change_address?: string; ipfs_hash?: string
+    }) => post<{ success: boolean; txid?: string }>(`/wallet/${encodeURIComponent(w)}/issue-asset`, params),
+    reissueAsset: (w: string, params: {
+      name: string; qty: number; to_address: string
+      change_address?: string; reissuable?: boolean; new_units?: number; new_ipfs?: string
+    }) => post<{ success: boolean; txid?: string }>(`/wallet/${encodeURIComponent(w)}/reissue-asset`, params),
   },
 
   psbt: {
@@ -195,6 +203,14 @@ export const api = {
   message: {
     verify: (address: string, signature: string, message: string) =>
       post<{ valid: boolean; error?: string }>('/verifymessage', { address, signature, message }),
+  },
+
+  assets: {
+    check: (name: string) =>
+      get<{
+        name: string; valid: boolean; error?: string; type?: 'ROOT' | 'SUB' | 'UNIQUE' | 'OTHER'
+        exists?: boolean; reissuable?: boolean; units?: number; quantity?: string; ipfs_hash?: string
+      }>(`/assets/check?name=${encodeURIComponent(name)}`),
   },
 
   ans: {

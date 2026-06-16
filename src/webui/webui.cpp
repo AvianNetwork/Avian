@@ -189,6 +189,7 @@ static bool WebUIDispatch(HTTPRequest* req, const std::string& /*prefix*/)
         if (path == "/webui/api/verifymessage")    return WebUINodeAPIRoute(req, path);
         if (path.starts_with("/webui/api/ans/"))   return WebUINodeAPIRoute(req, path);
         if (path.starts_with("/webui/api/psbt/"))  return WebUINodeAPIRoute(req, path);
+        if (path.starts_with("/webui/api/assets/")) return WebUINodeAPIRoute(req, path);
         if (path.starts_with("/webui/api/wallets/")) return WebUIWalletsRoute(req, path);
         if (path.starts_with("/webui/api/wallet/")) return WebUIWalletRoute(req, path);
         req->WriteReply(HTTP_NOT_FOUND, R"({"error":"not found"})");
