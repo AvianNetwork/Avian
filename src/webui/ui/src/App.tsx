@@ -4,6 +4,7 @@ import type { NodeStatus, NodeFeatures, WalletInfo } from './lib/api'
 import { LoginPage }   from './pages/LoginPage'
 import { NodePage }    from './pages/NodePage'
 import { PeersPage }   from './pages/PeersPage'
+import { ConsolePage } from './pages/ConsolePage'
 import { WalletsPage } from './pages/WalletsPage'
 import { WalletPage }  from './pages/WalletPage'
 import { ANSPage }     from './pages/ANSPage'
@@ -13,6 +14,7 @@ export type Page =
   | { name: 'login' }
   | { name: 'node' }
   | { name: 'peers' }
+  | { name: 'console' }
   | { name: 'wallets' }
   | { name: 'wallet'; walletName: string }
   | { name: 'ans' }
@@ -102,7 +104,8 @@ export default function App() {
         {page.name === 'node' && (
           <NodePage status={state.status} features={state.features} onRefresh={refreshNodeData} />
         )}
-        {page.name === 'peers' && <PeersPage />}
+        {page.name === 'peers'   && <PeersPage />}
+        {page.name === 'console' && <ConsolePage loadedWallets={state.loadedWallets} />}
         {page.name === 'wallets' && (
           <WalletsPage
             loaded={state.loadedWallets}
@@ -152,8 +155,9 @@ function NavBar({
           </span>
         )}
         <NavLink active={page.name === 'node'} onClick={() => onNav({ name: 'node' })}>Node</NavLink>
-        <NavLink active={page.name === 'peers'} onClick={() => onNav({ name: 'peers' })}>Peers</NavLink>
+        <NavLink active={page.name === 'peers'}   onClick={() => onNav({ name: 'peers' })}>Peers</NavLink>
         <NavLink active={page.name === 'wallets' || page.name === 'wallet'} onClick={() => onNav({ name: 'wallets' })}>Wallets</NavLink>
+        <NavLink active={page.name === 'console'} onClick={() => onNav({ name: 'console' })}>Console</NavLink>
         {ansActive && (
           <NavLink active={page.name === 'ans'} onClick={() => onNav({ name: 'ans' })}>ANS</NavLink>
         )}

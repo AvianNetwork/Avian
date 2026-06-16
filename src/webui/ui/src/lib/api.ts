@@ -154,6 +154,10 @@ export const api = {
     lock:         (w: string) => post<{ success: boolean }>(`/wallet/${encodeURIComponent(w)}/lock`, {}),
     signMessage:  (w: string, address: string, message: string) =>
       post<{ address: string; message: string; signature: string }>(`/wallet/${encodeURIComponent(w)}/signmessage`, { address, message }),
+    changePassphrase: (w: string, old_passphrase: string, new_passphrase: string) =>
+      post<{ success: boolean }>(`/wallet/${encodeURIComponent(w)}/change-passphrase`, { old_passphrase, new_passphrase }),
+    encrypt: (w: string, passphrase: string) =>
+      post<{ success: boolean; message?: string }>(`/wallet/${encodeURIComponent(w)}/encrypt`, { passphrase }),
     psbtCreate:   (w: string, recipients: Recipient[]) =>
       post<{ psbt: string; fee: string }>(`/wallet/${encodeURIComponent(w)}/psbt/create`, { recipients }),
     psbtSign:     (w: string, psbt: string, sighash?: string) =>
@@ -179,6 +183,13 @@ export const api = {
   psbt: {
     decode:    (psbt: string) => post<PSBTDecoded>('/psbt/decode',    { psbt }),
     broadcast: (psbt: string) => post<{ txid: string }>('/psbt/broadcast', { psbt }),
+  },
+
+  rpc: {
+    execute: (method: string, params: unknown[] = [], wallet?: string) =>
+      post<{ result: unknown; error: { code?: number; message: string } | null }>(
+        '/rpc', { method, params, ...(wallet ? { wallet } : {}) }
+      ),
   },
 
   message: {

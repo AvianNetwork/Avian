@@ -3,7 +3,7 @@ import { api, ApiError, copyText, EXPLORER } from '../lib/api'
 import type { WalletSummary, WalletTx, AssetBalance, NodeFeatures, PSBTDecoded, WalletAddressEntry, UTXO, UTXOSummary, ConsolidateResult } from '../lib/api'
 import { QRModal } from '../components/QRModal'
 
-type Tab = 'overview' | 'transactions' | 'utxos' | 'assets' | 'send' | 'psbt' | 'signverify' | 'consolidate'
+type Tab = 'overview' | 'transactions' | 'utxos' | 'assets' | 'send' | 'psbt' | 'signverify' | 'consolidate' | 'security'
 
 interface Props {
   walletName: string
@@ -119,6 +119,7 @@ export function WalletPage({ walletName, features, onBack, onRefresh, registerRe
     { id: 'psbt',         label: 'PSBT' },
     { id: 'signverify',   label: 'Sign / Verify' },
     { id: 'consolidate',  label: 'Consolidate' },
+    { id: 'security',     label: 'Security' },
   ]
 
   return (
@@ -185,6 +186,7 @@ export function WalletPage({ walletName, features, onBack, onRefresh, registerRe
       {tab === 'psbt'         && <PSBTTab walletName={walletName} features={features} />}
       {tab === 'signverify'   && <SignVerifyTab walletName={walletName} features={features} />}
       {tab === 'consolidate'  && <ConsolidateTab walletName={walletName} />}
+      {tab === 'security'     && <SecurityTab walletName={walletName} summary={summary} onRefresh={loadSummary} />}
 
       {toasts.length > 0 && (
         <div style={{ position: 'fixed', bottom: 24, right: 24, display: 'flex', flexDirection: 'column', gap: 8, zIndex: 1000 }}>
@@ -1939,6 +1941,127 @@ function ConsolidateTab({ walletName }: { walletName: string }) {
           {busy ? <><span className="spinner" /> Consolidating…</> : 'Consolidate UTXOs'}
         </button>
       </form>
+    </div>
+  )
+}
+
+// ── Security Tab ──────────────────────────────────────────────────────────────
+
+function SecurityTab({ walletName, summary, onRefresh }: {
+  walletName: string
+  summary: WalletSummary | null
+  onRefresh: () => void
+}) {
+  const encrypted = summary?.encrypted ?? false
+
+  // Change passphrase state
+  const [oldPass,  setOldPass]  = useState('')
+  const [newPass,  setNewPass]  = useState('')
+  const [confPass, setConfPass] = useState('')
+  const [cpBusy,   setCpBusy]   = useState(false)
+  const [cpErr,    setCpErr]    = useState('')
+  const [cpOk,     setCpOk]     = useState(false)
+
+  // Encrypt wallet state
+  const [encPass,  setEncPass]  = useState('')
+  const [encConf,  setEncConf]  = useState('')
+  const [encBusy,  setEncBusy]  = useState(false)
+  const [encErr,   setEncErr]   = useState('')
+  const [encDone,  setEncDone]  = useState('')
+
+  const handleChangePassphrase = async (e: FormEvent) => {
+    e.preventDefault()
+    setCpErr(''); setCpOk(false)
+    if (newPass !== confPass) { setCpErr('New passphrases do not match'); return }
+    if (newPass.length < 1)   { setCpErr('New passphrase must not be empty'); return }
+    setCpBusy(true)
+    try {
+      await api.wallet.changePassphrase(walletName, oldPass, newPass)
+      setOldPass(''); setNewPass(''); setConfPass('')
+      setCpOk(true)
+    } catch (ex) {
+      setCpErr(ex instanceof ApiError ? ex.message : 'Failed to change passphrase')
+    } finally {
+      setCpBusy(false)
+    }
+  }
+
+  const handleEncrypt = async (e: FormEvent) => {
+    e.preventDefault()
+    setEncErr('')
+    if (encPass !== encConf) { setEncErr('Passphrases do not match'); return }
+    if (encPass.length < 1)  { setEncErr('Passphrase must not be empty'); return }
+    setEncBusy(true)
+    try {
+      const res = await api.wallet.encrypt(walletName, encPass)
+      setEncDone(res.message ?? 'Wallet encrypted. The node will shut down — please restart it.')
+      onRefresh()
+    } catch (ex) {
+      setEncErr(ex instanceof ApiError ? ex.message : 'Encryption failed')
+    } finally {
+      setEncBusy(false)
+    }
+  }
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 20, maxWidth: 520 }}>
+
+      {/* Change passphrase — only for encrypted wallets */}
+      {encrypted && (
+        <div className="card">
+          <h3 style={{ fontSize: 14, marginBottom: 14 }}>Change Passphrase</h3>
+          <form onSubmit={handleChangePassphrase} style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <div>
+              <label>Current Passphrase</label>
+              <input type="password" value={oldPass} onChange={e => { setOldPass(e.target.value); setCpErr(''); setCpOk(false) }} />
+            </div>
+            <div>
+              <label>New Passphrase</label>
+              <input type="password" value={newPass} onChange={e => { setNewPass(e.target.value); setCpErr(''); setCpOk(false) }} />
+            </div>
+            <div>
+              <label>Confirm New Passphrase</label>
+              <input type="password" value={confPass} onChange={e => { setConfPass(e.target.value); setCpErr(''); setCpOk(false) }} />
+            </div>
+            {cpErr && <div className="error-box" style={{ fontSize: 12 }}>{cpErr}</div>}
+            {cpOk  && <div className="ok-box"    style={{ fontSize: 12 }}>Passphrase changed successfully.</div>}
+            <button type="submit" disabled={cpBusy || !oldPass || !newPass || !confPass}>
+              {cpBusy ? <><span className="spinner" /> Changing…</> : 'Change Passphrase'}
+            </button>
+          </form>
+        </div>
+      )}
+
+      {/* Encrypt wallet — only for unencrypted wallets */}
+      {!encrypted && (
+        <div className="card">
+          <h3 style={{ fontSize: 14, marginBottom: 6 }}>Encrypt Wallet</h3>
+          {encDone ? (
+            <div className="ok-box" style={{ fontSize: 13 }}>{encDone}</div>
+          ) : (
+            <>
+              <div className="info-box" style={{ fontSize: 12, marginBottom: 14 }}>
+                This wallet is not encrypted. Encrypting it will protect your keys with a passphrase.
+                <strong> The node will shut down after encryption — you will need to restart it.</strong>
+              </div>
+              <form onSubmit={handleEncrypt} style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <div>
+                  <label>Passphrase</label>
+                  <input type="password" value={encPass} onChange={e => { setEncPass(e.target.value); setEncErr('') }} />
+                </div>
+                <div>
+                  <label>Confirm Passphrase</label>
+                  <input type="password" value={encConf} onChange={e => { setEncConf(e.target.value); setEncErr('') }} />
+                </div>
+                {encErr && <div className="error-box" style={{ fontSize: 12 }}>{encErr}</div>}
+                <button type="submit" disabled={encBusy || !encPass || !encConf}>
+                  {encBusy ? <><span className="spinner" /> Encrypting…</> : 'Encrypt Wallet'}
+                </button>
+              </form>
+            </>
+          )}
+        </div>
+      )}
     </div>
   )
 }

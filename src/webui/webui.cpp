@@ -184,6 +184,7 @@ static bool WebUIDispatch(HTTPRequest* req, const std::string& /*prefix*/)
         // Unauthenticated meta-endpoint: lets the login page know which auth mode is active.
         if (path == "/webui/api/auth/info")        return HandleAuthInfo(req);
         if (path == "/webui/api/events")           return HandleSSEEvents(req, path);
+        if (path == "/webui/api/rpc")              return WebUINodeAPIRoute(req, path);
         if (path.starts_with("/webui/api/node/"))    return WebUINodeAPIRoute(req, path);
         if (path == "/webui/api/verifymessage")    return WebUINodeAPIRoute(req, path);
         if (path.starts_with("/webui/api/ans/"))   return WebUINodeAPIRoute(req, path);

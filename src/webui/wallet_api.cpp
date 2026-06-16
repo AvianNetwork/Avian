@@ -759,6 +759,104 @@ static bool HandleWalletLock(HTTPRequest* req, const std::string& wallet_name)
     return true;
 }
 
+static bool HandleWalletChangePassphrase(HTTPRequest* req, const std::string& wallet_name)
+{
+    if (req->GetRequestMethod() != HTTPRequest::POST) {
+        req->WriteReply(HTTP_BAD_METHOD, "");
+        return false;
+    }
+    if (!CheckWebUIHost(req)) return false;
+    auto cors = CheckWebUICORS(req);
+    if (!cors) return false;
+    if (!CheckWebUIAuth(req)) return false;
+
+    UniValue body;
+    if (!body.read(req->ReadBody()) || !body.isObject()) {
+        req->WriteReply(HTTP_BAD_REQUEST, R"({"error":"Invalid request body"})");
+        return false;
+    }
+    const UniValue& oldPass = body["old_passphrase"];
+    const UniValue& newPass = body["new_passphrase"];
+    if (!oldPass.isStr() || !newPass.isStr()) {
+        req->WriteReply(HTTP_BAD_REQUEST,
+            R"({"error":"\"old_passphrase\" and \"new_passphrase\" required"})");
+        return false;
+    }
+
+    JSONRPCRequest jreq;
+    jreq.context   = g_node;
+    jreq.strMethod = "walletpassphrasechange";
+    jreq.URI       = "/wallet/" + wallet_name;
+    jreq.params    = UniValue(UniValue::VARR);
+    jreq.params.push_back(oldPass.get_str());
+    jreq.params.push_back(newPass.get_str());
+
+    try {
+        tableRPC.execute(jreq);
+    } catch (const UniValue& e) {
+        const std::string msg = e["message"].isStr() ? e["message"].get_str() : "RPC error";
+        req->WriteReply(HTTP_BAD_REQUEST, JsonError(msg));
+        return false;
+    } catch (const std::exception& e) {
+        req->WriteReply(HTTP_INTERNAL_SERVER_ERROR, JsonError(e.what()));
+        return false;
+    }
+
+    UniValue obj(UniValue::VOBJ);
+    obj.pushKV("success", true);
+    SetJSONHeaders(req, *cors);
+    req->WriteReply(HTTP_OK, obj.write());
+    return true;
+}
+
+static bool HandleWalletEncrypt(HTTPRequest* req, const std::string& wallet_name)
+{
+    if (req->GetRequestMethod() != HTTPRequest::POST) {
+        req->WriteReply(HTTP_BAD_METHOD, "");
+        return false;
+    }
+    if (!CheckWebUIHost(req)) return false;
+    auto cors = CheckWebUICORS(req);
+    if (!cors) return false;
+    if (!CheckWebUIAuth(req)) return false;
+
+    UniValue body;
+    if (!body.read(req->ReadBody()) || !body.isObject()) {
+        req->WriteReply(HTTP_BAD_REQUEST, R"({"error":"Invalid request body"})");
+        return false;
+    }
+    const UniValue& passVal = body["passphrase"];
+    if (!passVal.isStr() || passVal.get_str().empty()) {
+        req->WriteReply(HTTP_BAD_REQUEST, R"({"error":"\"passphrase\" required"})");
+        return false;
+    }
+
+    JSONRPCRequest jreq;
+    jreq.context   = g_node;
+    jreq.strMethod = "encryptwallet";
+    jreq.URI       = "/wallet/" + wallet_name;
+    jreq.params    = UniValue(UniValue::VARR);
+    jreq.params.push_back(passVal.get_str());
+
+    try {
+        UniValue result = tableRPC.execute(jreq);
+        UniValue obj(UniValue::VOBJ);
+        obj.pushKV("success", true);
+        // encryptwallet returns a shutdown message; relay it so the UI can show it
+        if (result.isStr()) obj.pushKV("message", result.get_str());
+        SetJSONHeaders(req, *cors);
+        req->WriteReply(HTTP_OK, obj.write());
+        return true;
+    } catch (const UniValue& e) {
+        const std::string msg = e["message"].isStr() ? e["message"].get_str() : "RPC error";
+        req->WriteReply(HTTP_BAD_REQUEST, JsonError(msg));
+        return false;
+    } catch (const std::exception& e) {
+        req->WriteReply(HTTP_INTERNAL_SERVER_ERROR, JsonError(e.what()));
+        return false;
+    }
+}
+
 static bool HandleWalletSignMessage(HTTPRequest* req, const std::string& wallet_name)
 {
     // POST {address, message} → {address, message, signature}
@@ -1089,6 +1187,8 @@ bool WebUIWalletRoute(HTTPRequest* req, const std::string& path)
     if (action == "send")               return HandleWalletSend(req, wallet_name);
     if (action == "unlock")             return HandleWalletUnlock(req, wallet_name);
     if (action == "lock")               return HandleWalletLock(req, wallet_name);
+    if (action == "change-passphrase")  return HandleWalletChangePassphrase(req, wallet_name);
+    if (action == "encrypt")            return HandleWalletEncrypt(req, wallet_name);
     if (action == "signmessage")        return HandleWalletSignMessage(req, wallet_name);
     if (action == "psbt/create")        return HandleWalletPSBTCreate(req, wallet_name);
     if (action == "psbt/sign")          return HandleWalletPSBTSign(req, wallet_name);

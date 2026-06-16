@@ -567,6 +567,60 @@ static bool HandlePSBTBroadcast(HTTPRequest* req)
     return true;
 }
 
+// ---- RPC console handler -----------------------------------------------
+
+static bool HandleRPCExecute(HTTPRequest* req)
+{
+    if (req->GetRequestMethod() != HTTPRequest::POST) {
+        req->WriteReply(HTTP_BAD_METHOD, "");
+        return false;
+    }
+    if (!CheckWebUIHost(req)) return false;
+    auto cors = CheckWebUICORS(req);
+    if (!cors) return false;
+    if (!CheckWebUIAuth(req)) return false;
+
+    UniValue body;
+    if (!body.read(req->ReadBody()) || !body.isObject()) {
+        req->WriteReply(HTTP_BAD_REQUEST, R"({"error":"Invalid request body"})");
+        return false;
+    }
+    const UniValue& methodVal = body["method"];
+    if (!methodVal.isStr() || methodVal.get_str().empty()) {
+        req->WriteReply(HTTP_BAD_REQUEST, R"({"error":"\"method\" field required"})");
+        return false;
+    }
+
+    JSONRPCRequest jreq;
+    jreq.context   = g_node;
+    jreq.strMethod = methodVal.get_str();
+    jreq.params    = body["params"].isArray() ? body["params"] : UniValue(UniValue::VARR);
+
+    const UniValue& walletVal = body["wallet"];
+    if (walletVal.isStr() && !walletVal.get_str().empty()) {
+        jreq.URI = "/wallet/" + walletVal.get_str();
+    }
+
+    // Follow JSON-RPC convention: always return 200, put errors in "error" field.
+    UniValue obj(UniValue::VOBJ);
+    try {
+        UniValue result = tableRPC.execute(jreq);
+        obj.pushKV("result", result);
+        obj.pushKV("error",  UniValue{});
+    } catch (const UniValue& e) {
+        obj.pushKV("result", UniValue{});
+        obj.pushKV("error",  e);
+    } catch (const std::exception& e) {
+        UniValue err(UniValue::VOBJ);
+        err.pushKV("message", e.what());
+        obj.pushKV("result", UniValue{});
+        obj.pushKV("error",  err);
+    }
+    SetJSONHeaders(req, *cors);
+    req->WriteReply(HTTP_OK, obj.write());
+    return true;
+}
+
 // ---- Peer API handlers -------------------------------------------------
 
 static bool HandlePeerList(HTTPRequest* req)
@@ -807,6 +861,7 @@ static bool HandlePeerDisconnect(HTTPRequest* req)
 
 bool WebUINodeAPIRoute(HTTPRequest* req, const std::string& path)
 {
+    if (path == "/webui/api/rpc")                     return HandleRPCExecute(req);
     if (path == "/webui/api/node/status")             return HandleNodeStatus(req);
     if (path == "/webui/api/node/features")           return HandleNodeFeatures(req);
     if (path == "/webui/api/node/peers")              return HandlePeerList(req);
