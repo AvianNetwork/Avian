@@ -140,7 +140,12 @@ export function ConsolePage({ loadedWallets }: { loadedWallets: WalletInfo[] }) 
     try {
       const res = await api.rpc.execute(method, params, wallet || undefined)
       if (res.error) {
-        pushLines([{ type: 'error', text: formatOutput(res.error) }])
+        // Show message text directly so embedded \n renders as real newlines.
+        // (JSON.stringify would escape them; error.message is the human-readable part.)
+        const errText = (res.error && typeof res.error === 'object' && 'message' in res.error)
+          ? String((res.error as { message: unknown }).message)
+          : formatOutput(res.error)
+        pushLines([{ type: 'error', text: errText }])
       } else {
         pushLines([{ type: 'result', text: formatOutput(res.result) }])
       }
