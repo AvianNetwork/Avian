@@ -396,12 +396,18 @@ static bool HandleWalletTransactions(HTTPRequest* req, const std::string& wallet
 
             const Txid& txid = wtx->tx->GetHash();
             interfaces::WalletTxStatus status{};
+            interfaces::WalletOrderForm order_form;
+            bool in_mempool{false};
             int num_blocks{0};
-            int64_t block_time{0};
-            int confirmations{0};
-            if (w->tryGetTxStatus(txid, status, num_blocks, block_time)) {
-                confirmations = status.depth_in_main_chain;
-            }
+            // tryGetTxStatus() is a non-blocking, best-effort lookup meant for
+            // polling UIs that just retry on the next tick (see
+            // transactiontablemodel.cpp); a one-shot HTTP response has no next
+            // tick, so a single lost lock race would silently report
+            // confirmations=0 for every transaction. getWalletTxDetails() takes
+            // a real lock instead, same as the one-shot tx detail view does
+            // (transactiondesc.cpp).
+            w->getWalletTxDetails(txid, status, order_form, in_mempool, num_blocks);
+            int confirmations = status.depth_in_main_chain;
 
             UniValue tobj(UniValue::VOBJ);
             tobj.pushKV("txid",          txid.GetHex());

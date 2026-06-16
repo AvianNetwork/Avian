@@ -69,18 +69,38 @@ export interface NodeStatus {
 export interface Peer {
   id: number
   addr: string
+  addrlocal?: string
   network: string
   inbound: boolean
+  connection_type: string
+  transport_protocol_type: string
+  session_id: string
   version: number
   subver: string
+  services: string
+  servicesnames: string[]
+  relaytxes: boolean
   pingtime?: number
   minping?: number
+  pingwait?: number
   synced_headers: number
   synced_blocks: number
+  startingheight: number
   conntime: number
-  connection_type: string
+  lastsend: number
+  lastrecv: number
+  last_transaction: number
+  last_block: number
+  timeoffset: number
   bytessent: number
   bytesrecv: number
+  mapped_as?: number
+  bip152_hb_to: boolean
+  bip152_hb_from: boolean
+  addr_relay_enabled: boolean
+  addr_processed: number
+  addr_rate_limited: number
+  permissions: string[]
 }
 
 export interface BannedEntry {
@@ -115,6 +135,18 @@ export interface ConsolidateResult { success: boolean; batches: number; utxos_co
 // ── API ────────────────────────────────────────────────────────────────────
 
 export const api = {
+  auth: {
+    login:  (password: string) => post<{ success: boolean; token: string }>('/auth/login', { password }),
+    logout: () => post<{ success: boolean }>('/auth/logout', {}),
+  },
+
+  events: {
+    // EventSource can't send an Authorization header, so this exchanges the
+    // real bearer token for a single-use, short-lived ticket to put in the
+    // SSE URL instead — see HandleSSETicket in src/webui/auth.cpp.
+    ticket: () => post<{ ticket: string }>('/events/ticket', {}),
+  },
+
   node: {
     status:   () => get<NodeStatus>('/node/status'),
     features: () => get<NodeFeatures>('/node/features'),

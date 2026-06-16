@@ -84,6 +84,7 @@ The Avian repo's [root README](/README.md) contains relevant information on the 
 - [Reduce Traffic](reduce-traffic.md)
 - [Tor Support](tor.md)
 - [Transaction Relay Policy](policy/README.md)
+- [Web UI](webui.md)
 - [ZMQ](zmq.md)
 
 License

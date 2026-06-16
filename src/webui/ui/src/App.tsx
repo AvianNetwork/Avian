@@ -66,12 +66,37 @@ export default function App() {
   const walletRefreshRef = useRef<(() => void) | null>(null)
   useEffect(() => {
     if (!state.authed) return
-    const token = getToken()
-    if (!token) return
-    const es = new EventSource(`/webui/api/events?token=${encodeURIComponent(token)}`)
-    es.addEventListener('block', () => { refreshNodeData(); walletRefreshRef.current?.() })
-    es.addEventListener('mempool', () => { refreshNodeData() })
-    return () => es.close()
+    let es: EventSource | null = null
+    let reconnectTimer: ReturnType<typeof setTimeout> | null = null
+    let stopped = false
+
+    const connect = async () => {
+      if (stopped) return
+      try {
+        const { ticket } = await api.events.ticket()
+        if (stopped) return
+        es = new EventSource(`/webui/api/events?ticket=${encodeURIComponent(ticket)}`)
+        es.addEventListener('block', () => { refreshNodeData(); walletRefreshRef.current?.() })
+        es.addEventListener('mempool', () => { refreshNodeData() })
+        // Tickets are single-use, so the browser's built-in reconnect (which
+        // just replays the same URL) can never succeed once this connection
+        // drops — mint a fresh ticket and reconnect ourselves instead.
+        es.addEventListener('error', () => {
+          es?.close()
+          if (!stopped) reconnectTimer = setTimeout(connect, 3000)
+        })
+      } catch {
+        if (!stopped) reconnectTimer = setTimeout(connect, 3000)
+      }
+    }
+
+    connect()
+
+    return () => {
+      stopped = true
+      if (reconnectTimer) clearTimeout(reconnectTimer)
+      es?.close()
+    }
   }, [state.authed, refreshNodeData])
 
   const handleLogin = async (token: string) => {
@@ -81,6 +106,7 @@ export default function App() {
   }
 
   const handleLogout = () => {
+    api.auth.logout().catch(() => {})
     clearToken()
     setState({ authed: false, status: null, features: null, loadedWallets: [] })
     setPage({ name: 'login' })

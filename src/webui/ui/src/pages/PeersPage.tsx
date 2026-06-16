@@ -35,6 +35,29 @@ function peerSubnet(addr: string): string {
   return addr.replace(/:\d+$/, '')
 }
 
+function transportBadgeClass(t: string): string {
+  if (t === 'v2') return 'blue'
+  if (t === 'v1') return 'yellow'
+  return 'red'
+}
+
+function formatUnixTime(secs: number): string {
+  if (!secs) return 'Never'
+  return new Date(secs * 1000).toLocaleString()
+}
+
+function formatTimeOffset(secs: number): string {
+  if (secs === 0) return '0s'
+  return secs > 0 ? `+${secs}s` : `${secs}s`
+}
+
+function highBandwidth(to: boolean, from: boolean): string {
+  if (to && from) return 'To / From'
+  if (to) return 'To'
+  if (from) return 'From'
+  return 'No'
+}
+
 export function PeersPage() {
   const [peers, setPeers] = useState<Peer[]>([])
   const [banned, setBanned] = useState<BannedEntry[]>([])
@@ -48,6 +71,8 @@ export function PeersPage() {
   const [addOk, setAddOk]       = useState(false)
 
   const [actionBusy, setActionBusy] = useState<number | null>(null)
+  const [expanded, setExpanded] = useState<number | null>(null)
+  const toggle = (id: number) => setExpanded(e => e === id ? null : id)
 
   const [banPeer, setBanPeer]       = useState<{ id: number; addr: string } | null>(null)
   const [banDuration, setBanDuration] = useState(86400)
@@ -174,8 +199,10 @@ export function PeersPage() {
           <table>
             <thead>
               <tr>
+                <th style={{ width: 24 }} />
                 <th style={{ width: 40 }}>ID</th>
                 <th>Address</th>
+                <th style={{ width: 64 }}>Transport</th>
                 <th style={{ width: 48 }}>Dir</th>
                 <th>Agent</th>
                 <th style={{ width: 70 }}>Ping</th>
@@ -187,62 +214,85 @@ export function PeersPage() {
             <tbody>
               {peers.length === 0 ? (
                 <tr>
-                  <td colSpan={8} style={{ textAlign: 'center', color: 'var(--muted)', padding: 24 }}>
+                  <td colSpan={10} style={{ textAlign: 'center', color: 'var(--muted)', padding: 24 }}>
                     No peers connected
                   </td>
                 </tr>
-              ) : peers.map(peer => (
-                <tr key={peer.id}>
-                  <td style={{ fontFamily: 'var(--mono)', fontSize: 12, color: 'var(--muted)' }}>
-                    {peer.id}
-                  </td>
-                  <td>
-                    <span
-                      style={{ fontFamily: 'var(--mono)', fontSize: 12, cursor: 'pointer' }}
-                      onClick={() => copyText(peer.addr)}
-                      title="Click to copy"
+              ) : peers.map(peer => {
+                const isOpen = expanded === peer.id
+                return (
+                <>
+                  <tr key={peer.id} style={{ background: isOpen ? 'var(--surf2)' : undefined }}>
+                    <td
+                      style={{ width: 24, color: 'var(--muted)', fontSize: 12, cursor: 'pointer', textAlign: 'center' }}
+                      onClick={() => toggle(peer.id)}
                     >
-                      {peer.addr}
-                    </span>
-                  </td>
-                  <td>
-                    <span className={`badge ${peer.inbound ? 'yellow' : 'green'}`}>
-                      {peer.inbound ? 'IN' : 'OUT'}
-                    </span>
-                  </td>
-                  <td
-                    style={{ fontSize: 12, maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
-                    title={peer.subver}
-                  >
-                    {stripSlashes(peer.subver)}
-                  </td>
-                  <td style={{ fontSize: 12 }}>{formatPing(peer.pingtime)}</td>
-                  <td style={{ fontSize: 12 }}>{peer.synced_blocks?.toLocaleString() ?? '—'}</td>
-                  <td style={{ fontSize: 12, color: 'var(--muted)' }}>{formatConnected(peer.conntime)}</td>
-                  <td>
-                    <div style={{ display: 'flex', gap: 6 }}>
-                      <button
-                        className="secondary"
-                        style={{ padding: '2px 8px', fontSize: 12 }}
-                        disabled={actionBusy === peer.id}
-                        onClick={() => disconnect(peer)}
-                        title="Disconnect this peer"
+                      {isOpen ? '▲' : '▼'}
+                    </td>
+                    <td style={{ fontFamily: 'var(--mono)', fontSize: 12, color: 'var(--muted)' }}>
+                      {peer.id}
+                    </td>
+                    <td>
+                      <span
+                        style={{ fontFamily: 'var(--mono)', fontSize: 12, cursor: 'pointer' }}
+                        onClick={() => copyText(peer.addr)}
+                        title="Click to copy"
                       >
-                        {actionBusy === peer.id ? '…' : 'Disconnect'}
-                      </button>
-                      <button
-                        className="danger"
-                        style={{ padding: '2px 8px', fontSize: 12 }}
-                        disabled={actionBusy === peer.id}
-                        onClick={() => startBan(peer)}
-                        title="Disconnect and ban this IP"
-                      >
-                        Ban
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
+                        {peer.addr}
+                      </span>
+                    </td>
+                    <td>
+                      <span className={`badge ${transportBadgeClass(peer.transport_protocol_type)}`}>
+                        {peer.transport_protocol_type}
+                      </span>
+                    </td>
+                    <td>
+                      <span className={`badge ${peer.inbound ? 'yellow' : 'green'}`}>
+                        {peer.inbound ? 'IN' : 'OUT'}
+                      </span>
+                    </td>
+                    <td
+                      style={{ fontSize: 12, maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                      title={peer.subver}
+                    >
+                      {stripSlashes(peer.subver)}
+                    </td>
+                    <td style={{ fontSize: 12 }}>{formatPing(peer.pingtime)}</td>
+                    <td style={{ fontSize: 12 }}>{peer.synced_blocks?.toLocaleString() ?? '—'}</td>
+                    <td style={{ fontSize: 12, color: 'var(--muted)' }}>{formatConnected(peer.conntime)}</td>
+                    <td>
+                      <div style={{ display: 'flex', gap: 6 }}>
+                        <button
+                          className="secondary"
+                          style={{ padding: '2px 8px', fontSize: 12 }}
+                          disabled={actionBusy === peer.id}
+                          onClick={() => disconnect(peer)}
+                          title="Disconnect this peer"
+                        >
+                          {actionBusy === peer.id ? '…' : 'Disconnect'}
+                        </button>
+                        <button
+                          className="danger"
+                          style={{ padding: '2px 8px', fontSize: 12 }}
+                          disabled={actionBusy === peer.id}
+                          onClick={() => startBan(peer)}
+                          title="Disconnect and ban this IP"
+                        >
+                          Ban
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                  {isOpen && (
+                    <tr key={peer.id + '_detail'} style={{ background: 'var(--surf2)' }}>
+                      <td colSpan={10} style={{ padding: '12px 20px', borderLeft: '3px solid var(--accent-bright)' }}>
+                        <PeerDetail peer={peer} />
+                      </td>
+                    </tr>
+                  )}
+                </>
+                )
+              })}
             </tbody>
           </table>
         </div>
@@ -330,6 +380,49 @@ export function PeersPage() {
               </button>
             </div>
           </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function PeerDetail({ peer }: { peer: Peer }) {
+  const field = (label: string, value: React.ReactNode) => (
+    <div>
+      <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 2 }}>{label}</div>
+      <div style={{ fontFamily: 'var(--mono)', fontSize: 12 }}>{value}</div>
+    </div>
+  )
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 8, fontSize: 13 }}>
+      <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap' }}>
+        {field('Services', peer.servicesnames.length ? peer.servicesnames.join(', ') : 'None')}
+        {field('Permissions', peer.permissions.length ? peer.permissions.join(' & ') : 'N/A')}
+        {peer.transport_protocol_type === 'v2' && field('Session ID', peer.session_id || 'N/A')}
+        {field('Transaction Relay', peer.relaytxes ? 'Yes' : 'No')}
+        {field('High Bandwidth', highBandwidth(peer.bip152_hb_to, peer.bip152_hb_from))}
+      </div>
+      <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap' }}>
+        {field('Starting Block', peer.startingheight.toLocaleString())}
+        {field('Synced Headers', peer.synced_headers === -1 ? 'Unknown' : peer.synced_headers.toLocaleString())}
+        {field('Last Block', formatUnixTime(peer.last_block))}
+        {field('Last Transaction', formatUnixTime(peer.last_transaction))}
+      </div>
+      <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap' }}>
+        {field('Last Send', formatUnixTime(peer.lastsend))}
+        {field('Last Receive', formatUnixTime(peer.lastrecv))}
+        {field('Time Offset', formatTimeOffset(peer.timeoffset))}
+        {field('Mapped AS', peer.mapped_as ? peer.mapped_as.toLocaleString() : 'N/A')}
+      </div>
+      <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap' }}>
+        {field('Sent', `${(peer.bytessent / 1024).toFixed(1)} KB`)}
+        {field('Received', `${(peer.bytesrecv / 1024).toFixed(1)} KB`)}
+        {field('Address Relay', peer.addr_relay_enabled ? 'Yes' : 'No')}
+        {field('Addresses Processed', `${peer.addr_processed.toLocaleString()} (${peer.addr_rate_limited.toLocaleString()} rate-limited)`)}
+      </div>
+      {peer.addrlocal && (
+        <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap' }}>
+          {field('Local Address', peer.addrlocal)}
         </div>
       )}
     </div>

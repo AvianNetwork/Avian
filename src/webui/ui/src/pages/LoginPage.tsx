@@ -1,5 +1,5 @@
 import { useState, useEffect, FormEvent } from 'react'
-import { ApiError, setToken } from '../lib/api'
+import { api, ApiError, setToken } from '../lib/api'
 
 type AuthMode = 'cookie' | 'password' | null
 
@@ -35,15 +35,24 @@ export function LoginPage({ onLogin }: { onLogin: (token: string) => Promise<voi
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  const isPassword = authMode === 'password'
+
   const submit = async (e: FormEvent) => {
     e.preventDefault()
     const v = value.trim()
     if (!v) return
     setError('')
     setLoading(true)
-    setToken(v)
     try {
-      await onLogin(v)
+      if (isPassword) {
+        // Exchange the password for an opaque session token — the password
+        // itself is never stored or resent on subsequent requests.
+        const { token } = await api.auth.login(v)
+        await onLogin(token)
+      } else {
+        setToken(v)
+        await onLogin(v)
+      }
     } catch (err) {
       setToken('')
       setError(err instanceof ApiError ? 'Incorrect credential' : 'Connection failed — is aviand running?')
@@ -51,8 +60,6 @@ export function LoginPage({ onLogin }: { onLogin: (token: string) => Promise<voi
       setLoading(false)
     }
   }
-
-  const isPassword = authMode === 'password'
 
   return (
     <div style={{

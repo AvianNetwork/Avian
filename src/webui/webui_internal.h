@@ -21,6 +21,13 @@ bool CheckWebUIHost(HTTPRequest* req);
 std::optional<std::string> CheckWebUICORS(HTTPRequest* req);
 bool CheckWebUIAuth(HTTPRequest* req);
 bool CheckWebUIToken(const std::string& submitted);
+bool CheckWebUIPassword(const std::string& submitted);
+std::string CreateWebUISessionToken();
+void RevokeWebUISessionToken(const std::string& token);
+bool ConsumeWebUISSETicket(const std::string& ticket);
+bool HandleAuthLogin(HTTPRequest* req);
+bool HandleAuthLogout(HTTPRequest* req);
+bool HandleSSETicket(HTTPRequest* req);
 void SetJSONHeaders(HTTPRequest* req, const std::string& origin);
 
 // json.cpp

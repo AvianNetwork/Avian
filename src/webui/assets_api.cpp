@@ -125,7 +125,7 @@ static bool HandleWalletSendAsset(HTTPRequest* req, const std::string& wallet_na
 
     UniValue obj(UniValue::VOBJ);
     obj.pushKV("txid", txid);
-    obj.pushKV("fee",  ValueFromAmount(nFeeRequired).write());
+    obj.pushKV("fee",  ValueFromAmount(nFeeRequired));
     SetJSONHeaders(req, *cors);
     req->WriteReply(HTTP_OK, obj.write());
     return true;

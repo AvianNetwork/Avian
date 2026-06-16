@@ -39,7 +39,10 @@ node::NodeContext* g_node{nullptr};
 std::string g_webui_token;
 bool g_webui_cookie_generated{false};
 bool g_webui_use_password{false};
-std::string g_webui_password_hash; // hex-encoded SHA256 of configured password
+std::string g_webui_password_hash;          // hex-encoded PBKDF2-HMAC-SHA256 of configured password
+std::vector<unsigned char> g_webui_password_salt; // random per-process salt for the above
+std::mutex g_webui_session_mutex;
+std::set<std::string> g_webui_session_tokens; // opaque tokens minted by successful /auth/login calls
 std::set<std::string> g_webui_allowed_hosts; // populated in StartWebUI()
 
 // ---- Server-Sent Events ------------------------------------------------
@@ -110,9 +113,11 @@ static bool HandleSSEEvents(HTTPRequest* req, const std::string&)
     }
     if (!CheckWebUIHost(req)) return false;
 
-    // EventSource API cannot set Authorization headers — auth via query param.
-    const auto token_param = req->GetQueryParameter("token");
-    if (!token_param || !CheckWebUIToken(*token_param)) {
+    // EventSource API cannot set Authorization headers, so this is authenticated
+    // via a single-use, short-lived ticket (minted by HandleSSETicket) passed in
+    // the query string instead of the long-lived bearer token — see auth.cpp.
+    const auto ticket_param = req->GetQueryParameter("ticket");
+    if (!ticket_param || !ConsumeWebUISSETicket(*ticket_param)) {
         req->WriteReply(HTTP_UNAUTHORIZED, R"({"error":"unauthorized"})");
         return false;
     }
@@ -183,6 +188,9 @@ static bool WebUIDispatch(HTTPRequest* req, const std::string& /*prefix*/)
     if (path.starts_with("/webui/api/")) {
         // Unauthenticated meta-endpoint: lets the login page know which auth mode is active.
         if (path == "/webui/api/auth/info")        return HandleAuthInfo(req);
+        if (path == "/webui/api/auth/login")       return HandleAuthLogin(req);
+        if (path == "/webui/api/auth/logout")      return HandleAuthLogout(req);
+        if (path == "/webui/api/events/ticket")    return HandleSSETicket(req);
         if (path == "/webui/api/events")           return HandleSSEEvents(req, path);
         if (path == "/webui/api/rpc")              return WebUINodeAPIRoute(req, path);
         if (path.starts_with("/webui/api/node/"))    return WebUINodeAPIRoute(req, path);
