@@ -1779,9 +1779,12 @@ RPCHelpMan getblockchaininfo()
 
 namespace {
 const std::vector<RPCResult> RPCHelpForDeployment{
-    {RPCResult::Type::STR, "type", "one of \"buried\", \"bip9\""},
-    {RPCResult::Type::NUM, "height", /*optional=*/true, "height of the first block which the rules are or will be enforced (only for \"buried\" type, or \"bip9\" type with \"active\" status)"},
+    {RPCResult::Type::STR, "type", "one of \"buried\", \"bip9\", \"timestamp\""},
+    {RPCResult::Type::NUM, "height", /*optional=*/true, "height of the first block which the rules are or will be enforced (only for \"buried\" type, \"bip9\" type with \"active\" status, or \"timestamp\" type when active)"},
     {RPCResult::Type::BOOL, "active", "true if the rules are enforced for the mempool and the next block"},
+    {RPCResult::Type::NUM_TIME, "activation_time", /*optional=*/true, "the UNIX timestamp at which the upgrade activates (only for \"timestamp\" type; absent if not yet scheduled)"},
+    {RPCResult::Type::STR, "activation_datetime", /*optional=*/true, "the UTC datetime of activation in ISO 8601 format (only for \"timestamp\" type; absent if not yet scheduled)"},
+    {RPCResult::Type::STR, "superseded_by", /*optional=*/true, "name of the deployment that supersedes this one (only present when applicable)"},
     {RPCResult::Type::OBJ, "bip9", /*optional=*/true, "status of bip9 softforks (only for \"bip9\" type)",
     {
         {RPCResult::Type::NUM, "bit", /*optional=*/true, "the bit (0-28) in the block version field used to signal this softfork (only for \"started\" and \"locked_in\" status)"},
@@ -1803,7 +1806,56 @@ const std::vector<RPCResult> RPCHelpForDeployment{
     }},
 };
 
-UniValue DeploymentInfo(const CBlockIndex* blockindex, const ChainstateManager& chainman)
+// Returns the height of the first block on the active chain whose nTime > nTimestamp,
+// which is when a timestamp-based upgrade first takes effect.
+static std::optional<int> FindUpgradeActivationHeight(const CChain& chain, uint32_t nTimestamp)
+{
+    if (chain.Height() < 0 || chain.Tip()->nTime <= nTimestamp) return std::nullopt;
+
+    // Binary search — timestamps are not guaranteed monotonic but are close enough in practice.
+    int lo = 0, hi = chain.Height();
+    while (lo < hi) {
+        int mid = lo + (hi - lo) / 2;
+        if (chain[mid]->nTime <= nTimestamp)
+            lo = mid + 1;
+        else
+            hi = mid;
+    }
+    // Walk back to catch any earlier blocks with the same or higher timestamp.
+    while (lo > 0 && chain[lo - 1]->nTime > nTimestamp)
+        --lo;
+    return lo;
+}
+
+static void UpgradeDescPushBack(const CBlockIndex* blockindex, UniValue& softforks,
+                                const ChainstateManager& chainman, const CChain& active_chain,
+                                Consensus::UpgradeIndex idx, const std::string& name,
+                                const std::string& superseded_by = "")
+{
+    const auto& upgrade = chainman.GetConsensus().vUpgrades[idx];
+    const bool scheduled = (upgrade.nTimestamp != UINT32_MAX);
+
+    UniValue rv(UniValue::VOBJ);
+    rv.pushKV("type", "timestamp");
+    if (scheduled) {
+        rv.pushKV("activation_time",     (int64_t)upgrade.nTimestamp);
+        rv.pushKV("activation_datetime", FormatISO8601DateTime((int64_t)upgrade.nTimestamp));
+    }
+    const bool active = scheduled && blockindex != nullptr && blockindex->nTime > upgrade.nTimestamp;
+    rv.pushKV("active", active);
+    if (active) {
+        auto height = FindUpgradeActivationHeight(active_chain, upgrade.nTimestamp);
+        if (height.has_value()) {
+            rv.pushKV("height", height.value());
+        }
+    }
+    if (!superseded_by.empty()) {
+        rv.pushKV("superseded_by", superseded_by);
+    }
+    softforks.pushKV(name, std::move(rv));
+}
+
+UniValue DeploymentInfo(const CBlockIndex* blockindex, const ChainstateManager& chainman, const CChain& active_chain)
 {
     UniValue softforks(UniValue::VOBJ);
     SoftForkDescPushBack(blockindex, softforks, chainman, Consensus::DEPLOYMENT_HEIGHTINCB);
@@ -1811,10 +1863,14 @@ UniValue DeploymentInfo(const CBlockIndex* blockindex, const ChainstateManager& 
     SoftForkDescPushBack(blockindex, softforks, chainman, Consensus::DEPLOYMENT_CLTV);
     SoftForkDescPushBack(blockindex, softforks, chainman, Consensus::DEPLOYMENT_CSV);
     SoftForkDescPushBack(blockindex, softforks, chainman, Consensus::DEPLOYMENT_SEGWIT);
-    SoftForkDescPushBack(blockindex, softforks, chainman, Consensus::DEPLOYMENT_TESTDUMMY);
     SoftForkDescPushBack(blockindex, softforks, chainman, Consensus::DEPLOYMENT_TAPROOT);
     SoftForkDescPushBack(blockindex, softforks, chainman, Consensus::DEPLOYMENT_MLDSA44);
     SoftForkDescPushBack(blockindex, softforks, chainman, Consensus::DEPLOYMENT_ANS_V2);
+    UpgradeDescPushBack(blockindex, softforks, chainman, active_chain, Consensus::UPGRADE_X16RT_SWITCH,         "x16rt");
+    UpgradeDescPushBack(blockindex, softforks, chainman, active_chain, Consensus::UPGRADE_DUAL_ALGO,            "dual_algo");
+    UpgradeDescPushBack(blockindex, softforks, chainman, active_chain, Consensus::UPGRADE_AVIAN_ASSETS,         "assets");
+    UpgradeDescPushBack(blockindex, softforks, chainman, active_chain, Consensus::UPGRADE_AVIAN_FLIGHT_PLANS,   "flight_plans");
+    UpgradeDescPushBack(blockindex, softforks, chainman, active_chain, Consensus::UPGRADE_AVIAN_NAME_SYSTEM,    "ans_v1", "ans_v2");
     return softforks;
 }
 } // anon namespace
@@ -1856,7 +1912,7 @@ RPCHelpMan getdeploymentinfo()
             UniValue deploymentinfo(UniValue::VOBJ);
             deploymentinfo.pushKV("hash", blockindex->GetBlockHash().ToString());
             deploymentinfo.pushKV("height", blockindex->nHeight);
-            deploymentinfo.pushKV("deployments", DeploymentInfo(blockindex, chainman));
+            deploymentinfo.pushKV("deployments", DeploymentInfo(blockindex, chainman, active_chainstate.m_chain));
             return deploymentinfo;
         },
     };

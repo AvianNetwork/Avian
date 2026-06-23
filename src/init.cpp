@@ -1977,8 +1977,23 @@ bool AppInitMain(NodeContext& node, interfaces::BlockAndHeaderTipInfo* tip_info)
                 passets = new CAssetsCache();
                 do_reindex_assets = true;
             } else if (!coinsBestBlock.IsNull() && !hasAssetBestBlock) {
-                // Empty DB with no marker (fresh start) — record tip
-                passetsdb->WriteBestBlock(coinsBestBlock);
+                // Empty asset DB with a synced UTXO — not a fresh start.
+                // Historical asset issuances would be missing without a rebuild.
+                LogPrintf("Asset DB is empty with no best block marker but UTXO tip is %s. "
+                          "Triggering automatic asset reindex to recover historical asset data.\n",
+                          coinsBestBlock.ToString());
+                delete passets;
+                delete passetsdb;
+                delete prestricteddb;
+                passetsCache->Clear();
+                passetsVerifierCache->Clear();
+                passetsQualifierCache->Clear();
+                passetsRestrictionCache->Clear();
+                passetsGlobalRestrictionCache->Clear();
+                passetsdb = new CAssetsDB(args.GetDataDirNet(), nAssetDBCache, false, true /* wipe */);
+                prestricteddb = new CRestrictedDB(args.GetDataDirNet(), nAssetDBCache, false, true /* wipe */);
+                passets = new CAssetsCache();
+                do_reindex_assets = true;
             }
         }
 

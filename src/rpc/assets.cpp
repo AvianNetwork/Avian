@@ -1314,11 +1314,61 @@ static RPCHelpMan whoisavn()
     };
 }
 
+static RPCHelpMan getburnaddresses()
+{
+    return RPCHelpMan{
+        "getburnaddresses",
+        "Returns the burn addresses and fees (in AVN) for each asset operation type.\n",
+        {},
+        RPCResult{
+            RPCResult::Type::OBJ, "", "",
+            {
+                {RPCResult::Type::OBJ, "issue",              "", {{RPCResult::Type::STR, "address", ""}, {RPCResult::Type::NUM, "fee", ""}}},
+                {RPCResult::Type::OBJ, "issue_sub",          "", {{RPCResult::Type::STR, "address", ""}, {RPCResult::Type::NUM, "fee", ""}}},
+                {RPCResult::Type::OBJ, "issue_unique",       "", {{RPCResult::Type::STR, "address", ""}, {RPCResult::Type::NUM, "fee", ""}}},
+                {RPCResult::Type::OBJ, "issue_msgchannel",   "", {{RPCResult::Type::STR, "address", ""}, {RPCResult::Type::NUM, "fee", ""}}},
+                {RPCResult::Type::OBJ, "issue_qualifier",    "", {{RPCResult::Type::STR, "address", ""}, {RPCResult::Type::NUM, "fee", ""}}},
+                {RPCResult::Type::OBJ, "issue_sub_qualifier","", {{RPCResult::Type::STR, "address", ""}, {RPCResult::Type::NUM, "fee", ""}}},
+                {RPCResult::Type::OBJ, "issue_restricted",   "", {{RPCResult::Type::STR, "address", ""}, {RPCResult::Type::NUM, "fee", ""}}},
+                {RPCResult::Type::OBJ, "reissue",            "", {{RPCResult::Type::STR, "address", ""}, {RPCResult::Type::NUM, "fee", ""}}},
+                {RPCResult::Type::OBJ, "add_tag",            "", {{RPCResult::Type::STR, "address", ""}, {RPCResult::Type::NUM, "fee", ""}}},
+            }
+        },
+        RPCExamples{
+            HelpExampleCli("getburnaddresses", "") +
+            HelpExampleRpc("getburnaddresses", "")
+        },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue {
+            struct { const char* key; AssetType type; } ops[] = {
+                {"issue",               AssetType::ROOT},
+                {"issue_sub",           AssetType::SUB},
+                {"issue_unique",        AssetType::UNIQUE},
+                {"issue_msgchannel",    AssetType::MSGCHANNEL},
+                {"issue_qualifier",     AssetType::QUALIFIER},
+                {"issue_sub_qualifier", AssetType::SUB_QUALIFIER},
+                {"issue_restricted",    AssetType::RESTRICTED},
+                {"reissue",             AssetType::REISSUE},
+                {"add_tag",             AssetType::NULL_ADD_QUALIFIER},
+            };
+
+            UniValue result(UniValue::VOBJ);
+            for (const auto& op : ops) {
+                UniValue entry(UniValue::VOBJ);
+                entry.pushKV("address", GetBurnAddress(op.type));
+                entry.pushKV("fee",     ValueFromAmount(GetBurnAmount(op.type)));
+                result.pushKV(op.key, entry);
+            }
+            return result;
+        },
+    };
+}
+
 void RegisterAssetRPCCommands(CRPCTable& t)
 {
     static const CRPCCommand commands[]{
         {"assets", &listassets},
         {"assets", &getassetdata},
+        {"assets", &getburnaddresses},
         {"assets", &getcacheinfo},
         {"assets", &listassetbalancesbyaddress},
         {"assets", &listaddressesbyasset},
