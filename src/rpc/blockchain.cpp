@@ -1620,9 +1620,20 @@ static void SoftForkDescPushBack(const CBlockIndex* blockindex, UniValue& softfo
 
 static void SoftForkDescPushBack(const CBlockIndex* blockindex, UniValue& softforks, const ChainstateManager& chainman, Consensus::DeploymentPos id)
 {
-    // For BIP9 deployments.
-    if (!DeploymentEnabled(chainman, id)) return;
     if (blockindex == nullptr) return;
+
+    // NEVER_ACTIVE deployments exist in the codebase but are not scheduled for this network.
+    // Show them with a minimal entry rather than silently omitting them.
+    if (!DeploymentEnabled(chainman, id)) {
+        UniValue rv(UniValue::VOBJ);
+        rv.pushKV("type", "bip9");
+        rv.pushKV("active", false);
+        UniValue bip9(UniValue::VOBJ);
+        bip9.pushKV("status", "never_active");
+        rv.pushKV("bip9", std::move(bip9));
+        softforks.pushKV(DeploymentName(id), std::move(rv));
+        return;
+    }
 
     const auto& depparams{chainman.GetConsensus().vDeployments[id]};
 
@@ -1791,7 +1802,7 @@ const std::vector<RPCResult> RPCHelpForDeployment{
         {RPCResult::Type::NUM_TIME, "start_time", "the minimum median time past of a block at which the bit gains its meaning"},
         {RPCResult::Type::NUM_TIME, "timeout", "the median time past of a block at which the deployment is considered failed if not yet locked in"},
         {RPCResult::Type::NUM, "min_activation_height", "minimum height of blocks for which the rules may be enforced"},
-        {RPCResult::Type::STR, "status", "status of deployment at specified block (one of \"defined\", \"started\", \"locked_in\", \"active\", \"failed\")"},
+        {RPCResult::Type::STR, "status", "status of deployment at specified block (one of \"defined\", \"started\", \"locked_in\", \"active\", \"failed\", \"never_active\")"},
         {RPCResult::Type::NUM, "since", "height of the first block to which the status applies"},
         {RPCResult::Type::STR, "status_next", "status of deployment at the next block"},
         {RPCResult::Type::OBJ, "statistics", /*optional=*/true, "numeric statistics about signalling for a softfork (only for \"started\" and \"locked_in\" status)",
@@ -1830,7 +1841,7 @@ static std::optional<int> FindUpgradeActivationHeight(const CChain& chain, uint3
 static void UpgradeDescPushBack(const CBlockIndex* blockindex, UniValue& softforks,
                                 const ChainstateManager& chainman, const CChain& active_chain,
                                 Consensus::UpgradeIndex idx, const std::string& name,
-                                const std::string& superseded_by = "")
+                                std::optional<Consensus::DeploymentPos> superseded_by_dep = std::nullopt)
 {
     const auto& upgrade = chainman.GetConsensus().vUpgrades[idx];
     const bool scheduled = (upgrade.nTimestamp != UINT32_MAX);
@@ -1849,8 +1860,8 @@ static void UpgradeDescPushBack(const CBlockIndex* blockindex, UniValue& softfor
             rv.pushKV("height", height.value());
         }
     }
-    if (!superseded_by.empty()) {
-        rv.pushKV("superseded_by", superseded_by);
+    if (superseded_by_dep.has_value() && DeploymentEnabled(chainman.GetConsensus(), *superseded_by_dep)) {
+        rv.pushKV("superseded_by", DeploymentName(*superseded_by_dep));
     }
     softforks.pushKV(name, std::move(rv));
 }
@@ -1870,7 +1881,7 @@ UniValue DeploymentInfo(const CBlockIndex* blockindex, const ChainstateManager& 
     UpgradeDescPushBack(blockindex, softforks, chainman, active_chain, Consensus::UPGRADE_DUAL_ALGO,            "dual_algo");
     UpgradeDescPushBack(blockindex, softforks, chainman, active_chain, Consensus::UPGRADE_AVIAN_ASSETS,         "assets");
     UpgradeDescPushBack(blockindex, softforks, chainman, active_chain, Consensus::UPGRADE_AVIAN_FLIGHT_PLANS,   "flight_plans");
-    UpgradeDescPushBack(blockindex, softforks, chainman, active_chain, Consensus::UPGRADE_AVIAN_NAME_SYSTEM,    "ans_v1", "ans_v2");
+    UpgradeDescPushBack(blockindex, softforks, chainman, active_chain, Consensus::UPGRADE_AVIAN_NAME_SYSTEM,    "ans_v1", Consensus::DEPLOYMENT_ANS_V2);
     return softforks;
 }
 } // anon namespace
