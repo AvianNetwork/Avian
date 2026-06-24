@@ -117,6 +117,44 @@ export interface NodeFeatures {
   features: Record<string, FeatureFlag>
 }
 
+export interface MiningInfo {
+  blocks: number
+  difficulty: number
+  difficulty_x16rt: number
+  difficulty_minotaurx: number
+  networkhashps: number
+  networkhashps_x16rt: number
+  networkhashps_minotaurx: number
+  pooledtx: number
+  chain: string
+  warnings?: string[]
+}
+
+export interface BIP9Info {
+  status: string
+  bit?: number
+  start_time?: number
+  timeout?: number
+  since?: number
+  statistics?: { period: number; threshold: number; elapsed: number; count: number; possible: boolean }
+}
+
+export interface DeploymentEntry {
+  type: 'buried' | 'bip9' | 'timestamp'
+  active: boolean
+  height?: number
+  bip9?: BIP9Info
+  activation_time?: number
+  activation_datetime?: string
+  superseded_by?: string
+}
+
+export interface DeploymentInfo {
+  hash: string
+  height: number
+  deployments: Record<string, DeploymentEntry>
+}
+
 export interface WalletInfo   { name: string; encrypted: boolean }
 export interface WalletSummary { name: string; encrypted: boolean; locked: boolean; unlocked_until?: number; balance: string; unconfirmed: string; immature: string }
 export interface WalletTx     { txid: string; time: number; amount: string; credit: string; debit: string; confirmations: number; coinbase: boolean; addresses: string[] }
@@ -148,8 +186,10 @@ export const api = {
   },
 
   node: {
-    status:   () => get<NodeStatus>('/node/status'),
-    features: () => get<NodeFeatures>('/node/features'),
+    status:      () => get<NodeStatus>('/node/status'),
+    features:    () => get<NodeFeatures>('/node/features'),
+    mining:      () => get<MiningInfo>('/node/mining'),
+    deployments: () => get<DeploymentInfo>('/node/deployments'),
   },
 
   peers: {
@@ -210,6 +250,8 @@ export const api = {
     },
     consolidate: (w: string, params: { destination: string; min_amount: number; max_amount: number; max_utxos_per_batch: number; max_batches: number }) =>
       post<ConsolidateResult>(`/wallet/${encodeURIComponent(w)}/consolidate`, params),
+    backup: (w: string, destination: string) =>
+      post<{ success: boolean }>(`/wallet/${encodeURIComponent(w)}/backup`, { destination }),
     issueAsset: (w: string, params: {
       name: string; qty: number; units?: number; reissuable?: boolean
       to_address?: string; change_address?: string; ipfs_hash?: string
@@ -243,6 +285,8 @@ export const api = {
         name: string; valid: boolean; error?: string; type?: 'ROOT' | 'SUB' | 'UNIQUE' | 'OTHER'
         exists?: boolean; reissuable?: boolean; units?: number; quantity?: string; ipfs_hash?: string
       }>(`/assets/check?name=${encodeURIComponent(name)}`),
+    search: (q: string) =>
+      get<{ results: string[] }>(`/assets/search?q=${encodeURIComponent(q)}`),
   },
 
   ans: {

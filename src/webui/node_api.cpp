@@ -343,6 +343,64 @@ static bool HandleANSWhois(HTTPRequest* req, const std::string& address)
     return true;
 }
 
+static UniValue CallInternalRPC(const std::string& method, UniValue params = UniValue(UniValue::VARR))
+{
+    JSONRPCRequest jreq;
+    jreq.context   = g_node;
+    jreq.strMethod = method;
+    jreq.params    = std::move(params);
+    return tableRPC.execute(jreq);
+}
+
+static bool HandleAssetSearch(HTTPRequest* req)
+{
+    // GET ?q=prefix → { results: ["NAME1", ...] }  (up to 15, wildcard via listassets)
+    if (req->GetRequestMethod() != HTTPRequest::GET) {
+        req->WriteReply(HTTP_BAD_METHOD, "");
+        return false;
+    }
+    if (!CheckWebUIHost(req)) return false;
+    auto cors = CheckWebUICORS(req);
+    if (!cors) return false;
+    if (!CheckWebUIAuth(req)) return false;
+
+    auto qParam = req->GetQueryParameter("q");
+    if (!qParam || qParam->size() < 2) {
+        req->WriteReply(HTTP_BAD_REQUEST, R"({"error":"Query must be at least 2 characters"})");
+        return false;
+    }
+
+    // Uppercase the root part only; preserve case of unique suffix (ROOT#suffix)
+    std::string pattern = *qParam;
+    {
+        const size_t hashPos = pattern.find('#');
+        const size_t rootEnd = (hashPos != std::string::npos) ? hashPos : pattern.size();
+        for (size_t i = 0; i < rootEnd; ++i)
+            pattern[i] = static_cast<char>(toupper(static_cast<unsigned char>(pattern[i])));
+    }
+    pattern += '*';
+
+    try {
+        UniValue params(UniValue::VARR);
+        params.push_back(pattern);
+        params.push_back(false);   // not verbose
+        params.push_back(15);      // count
+        params.push_back(0);       // start
+        UniValue result = CallInternalRPC("listassets", std::move(params));
+
+        UniValue obj(UniValue::VOBJ);
+        obj.pushKV("results", result);
+        SetJSONHeaders(req, *cors);
+        req->WriteReply(HTTP_OK, obj.write());
+    } catch (const UniValue& e) {
+        const std::string msg = e["message"].isStr() ? e["message"].get_str() : "RPC error";
+        req->WriteReply(HTTP_INTERNAL_SERVER_ERROR, JsonError(msg));
+    } catch (const std::exception& e) {
+        req->WriteReply(HTTP_INTERNAL_SERVER_ERROR, JsonError(e.what()));
+    }
+    return true;
+}
+
 static bool HandleAssetCheck(HTTPRequest* req)
 {
     // GET ?name=NAME -> { name, valid, error? } or { name, valid, type, exists }
@@ -360,7 +418,14 @@ static bool HandleAssetCheck(HTTPRequest* req)
         req->WriteReply(HTTP_BAD_REQUEST, R"({"error":"Missing \"name\" query parameter"})");
         return false;
     }
-    const std::string& name = *nameParam;
+    // Uppercase the root part; preserve suffix case for unique assets (ROOT#suffix)
+    std::string name = *nameParam;
+    {
+        const size_t hashPos = name.find('#');
+        const size_t rootEnd = (hashPos != std::string::npos) ? hashPos : name.size();
+        for (size_t i = 0; i < rootEnd; ++i)
+            name[i] = static_cast<char>(toupper(static_cast<unsigned char>(name[i])));
+    }
 
     UniValue obj(UniValue::VOBJ);
     obj.pushKV("name", name);
@@ -917,6 +982,56 @@ static bool HandlePeerDisconnect(HTTPRequest* req)
     }
 }
 
+// ---- Mining and deployment info handlers --------------------------------
+
+static bool HandleMiningInfo(HTTPRequest* req)
+{
+    if (req->GetRequestMethod() != HTTPRequest::GET) {
+        req->WriteReply(HTTP_BAD_METHOD, "");
+        return false;
+    }
+    if (!CheckWebUIHost(req)) return false;
+    auto cors = CheckWebUICORS(req);
+    if (!cors) return false;
+    if (!CheckWebUIAuth(req)) return false;
+
+    try {
+        UniValue result = CallInternalRPC("getmininginfo");
+        SetJSONHeaders(req, *cors);
+        req->WriteReply(HTTP_OK, result.write());
+    } catch (const UniValue& e) {
+        const std::string msg = e["message"].isStr() ? e["message"].get_str() : "RPC error";
+        req->WriteReply(HTTP_INTERNAL_SERVER_ERROR, JsonError(msg));
+    } catch (const std::exception& e) {
+        req->WriteReply(HTTP_INTERNAL_SERVER_ERROR, JsonError(e.what()));
+    }
+    return true;
+}
+
+static bool HandleDeploymentInfo(HTTPRequest* req)
+{
+    if (req->GetRequestMethod() != HTTPRequest::GET) {
+        req->WriteReply(HTTP_BAD_METHOD, "");
+        return false;
+    }
+    if (!CheckWebUIHost(req)) return false;
+    auto cors = CheckWebUICORS(req);
+    if (!cors) return false;
+    if (!CheckWebUIAuth(req)) return false;
+
+    try {
+        UniValue result = CallInternalRPC("getdeploymentinfo");
+        SetJSONHeaders(req, *cors);
+        req->WriteReply(HTTP_OK, result.write());
+    } catch (const UniValue& e) {
+        const std::string msg = e["message"].isStr() ? e["message"].get_str() : "RPC error";
+        req->WriteReply(HTTP_INTERNAL_SERVER_ERROR, JsonError(msg));
+    } catch (const std::exception& e) {
+        req->WriteReply(HTTP_INTERNAL_SERVER_ERROR, JsonError(e.what()));
+    }
+    return true;
+}
+
 // ---- Node API route dispatcher -----------------------------------------
 
 bool WebUINodeAPIRoute(HTTPRequest* req, const std::string& path)
@@ -924,6 +1039,8 @@ bool WebUINodeAPIRoute(HTTPRequest* req, const std::string& path)
     if (path == "/webui/api/rpc")                     return HandleRPCExecute(req);
     if (path == "/webui/api/node/status")             return HandleNodeStatus(req);
     if (path == "/webui/api/node/features")           return HandleNodeFeatures(req);
+    if (path == "/webui/api/node/mining")             return HandleMiningInfo(req);
+    if (path == "/webui/api/node/deployments")        return HandleDeploymentInfo(req);
     if (path == "/webui/api/node/peers")              return HandlePeerList(req);
     if (path == "/webui/api/node/banned")             return HandleBannedList(req);
     if (path == "/webui/api/node/peers/ban")          return HandlePeerBan(req);
@@ -932,6 +1049,7 @@ bool WebUINodeAPIRoute(HTTPRequest* req, const std::string& path)
     if (path == "/webui/api/node/peers/disconnect")   return HandlePeerDisconnect(req);
     if (path == "/webui/api/verifymessage")           return HandleVerifyMessage(req);
     if (path == "/webui/api/assets/check")            return HandleAssetCheck(req);
+    if (path == "/webui/api/assets/search")           return HandleAssetSearch(req);
 
     if (path.starts_with("/webui/api/ans/")) {
         if (req->GetRequestMethod() != HTTPRequest::GET) {

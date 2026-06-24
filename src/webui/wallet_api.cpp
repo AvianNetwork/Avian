@@ -1157,6 +1157,53 @@ static bool HandleWalletPSBTFund(HTTPRequest* req, const std::string& wallet_nam
     }
 }
 
+static bool HandleWalletBackup(HTTPRequest* req, const std::string& wallet_name)
+{
+    if (req->GetRequestMethod() != HTTPRequest::POST) {
+        req->WriteReply(HTTP_BAD_METHOD, "");
+        return false;
+    }
+    if (!CheckWebUIHost(req)) return false;
+    auto cors = CheckWebUICORS(req);
+    if (!cors) return false;
+    if (!CheckWebUIAuth(req)) return false;
+
+    if (!g_node || !g_node->wallet_loader) {
+        req->WriteReply(HTTP_SERVICE_UNAVAILABLE, R"({"error":"Wallet support not available"})");
+        return false;
+    }
+    UniValue body;
+    if (!body.read(req->ReadBody()) || !body.isObject()) {
+        req->WriteReply(HTTP_BAD_REQUEST, R"({"error":"Invalid request body"})");
+        return false;
+    }
+    const UniValue& destVal = body["destination"];
+    if (!destVal.isStr() || destVal.get_str().empty()) {
+        req->WriteReply(HTTP_BAD_REQUEST, R"({"error":"\"destination\" field required"})");
+        return false;
+    }
+    const std::string destination = destVal.get_str();
+
+    for (auto& w : g_node->wallet_loader->getWallets()) {
+        if (w->getWalletName() != wallet_name) continue;
+        UniValue obj(UniValue::VOBJ);
+        if (!w->backupWallet(destination)) {
+            obj.pushKV("success", false);
+            obj.pushKV("error", "Failed to write backup. Check the path is valid and writable.");
+            SetJSONHeaders(req, *cors);
+            req->WriteReply(HTTP_BAD_REQUEST, obj.write());
+            return false;
+        }
+        obj.pushKV("success",     true);
+        obj.pushKV("destination", destination);
+        SetJSONHeaders(req, *cors);
+        req->WriteReply(HTTP_OK, obj.write());
+        return true;
+    }
+    req->WriteReply(HTTP_NOT_FOUND, R"({"error":"Wallet not found or not loaded"})");
+    return false;
+}
+
 #endif // ENABLE_WALLET
 
 // ---- Route dispatchers -------------------------------------------------
@@ -1195,6 +1242,7 @@ bool WebUIWalletRoute(HTTPRequest* req, const std::string& path)
     if (action == "lock")               return HandleWalletLock(req, wallet_name);
     if (action == "change-passphrase")  return HandleWalletChangePassphrase(req, wallet_name);
     if (action == "encrypt")            return HandleWalletEncrypt(req, wallet_name);
+    if (action == "backup")             return HandleWalletBackup(req, wallet_name);
     if (action == "signmessage")        return HandleWalletSignMessage(req, wallet_name);
     if (action == "psbt/create")        return HandleWalletPSBTCreate(req, wallet_name);
     if (action == "psbt/sign")          return HandleWalletPSBTSign(req, wallet_name);

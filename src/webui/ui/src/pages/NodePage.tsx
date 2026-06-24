@@ -1,13 +1,22 @@
-import type { NodeStatus, NodeFeatures } from '../lib/api'
-import { EXPLORER } from '../lib/api'
+import { useState, useEffect } from 'react'
+import type { NodeStatus, MiningInfo, DeploymentInfo, DeploymentEntry } from '../lib/api'
+import { api, EXPLORER } from '../lib/api'
 
 interface Props {
   status: NodeStatus | null
-  features: NodeFeatures | null
+  features: unknown
   onRefresh: () => void
 }
 
 export function NodePage({ status, features, onRefresh }: Props) {
+  const [mining,      setMining]      = useState<MiningInfo | null>(null)
+  const [deployInfo,  setDeployInfo]  = useState<DeploymentInfo | null>(null)
+
+  useEffect(() => {
+    api.node.mining().then(setMining).catch(() => {})
+    api.node.deployments().then(setDeployInfo).catch(() => {})
+  }, [])
+
   if (!status) {
     return (
       <div style={{ display: 'flex', gap: 12, alignItems: 'center', color: 'var(--muted)' }}>
@@ -49,30 +58,45 @@ export function NodePage({ status, features, onRefresh }: Props) {
         </div>
       </div>
 
-      {features && (
+      {mining && (
         <>
-          <h3 style={{ fontSize: 15, marginTop: 4 }}>Network Features</h3>
+          <h3 style={{ fontSize: 15, marginTop: 4 }}>Mining</h3>
+          <div className="card" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px 24px' }}>
+            <KV label="Pooled Tx" value={mining.pooledtx.toString()} />
+            <div />
+            <div />
+            <KV label="x16rt Difficulty"    value={mining.difficulty_x16rt.toLocaleString(undefined, { maximumFractionDigits: 4 })} />
+            <KV label="x16rt Hashrate"      value={formatHashrate(mining.networkhashps_x16rt)} />
+            <div />
+            <KV label="MinotaurX Difficulty" value={mining.difficulty_minotaurx.toLocaleString(undefined, { maximumFractionDigits: 6 })} />
+            <KV label="MinotaurX Hashrate"   value={formatHashrate(mining.networkhashps_minotaurx)} />
+            <div />
+            {mining.warnings && mining.warnings.length > 0 && (
+              <div style={{ gridColumn: '1 / -1', fontSize: 12, color: 'var(--warn)' }}>
+                {mining.warnings.join(' ')}
+              </div>
+            )}
+          </div>
+        </>
+      )}
+
+      {deployInfo && (
+        <>
+          <h3 style={{ fontSize: 15, marginTop: 4 }}>Deployments</h3>
           <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
             <table>
               <thead>
                 <tr>
-                  <th>Feature</th>
+                  <th>Name</th>
+                  <th>Type</th>
                   <th>Status</th>
+                  <th>Height</th>
+                  <th>Activation</th>
                 </tr>
               </thead>
               <tbody>
-                {Object.entries(features.features).map(([key, f]) => (
-                  <tr key={key}>
-                    <td style={{ fontFamily: 'var(--mono)', fontSize: 13 }}>{key}</td>
-                    <td>
-                      <span className={`badge ${f.active ? 'green' : 'red'}`}>
-                        {f.active ? 'active' : 'inactive'}
-                      </span>
-                      {!f.compiled && (
-                        <span className="badge yellow" style={{ marginLeft: 6 }}>not compiled</span>
-                      )}
-                    </td>
-                  </tr>
+                {Object.entries(deployInfo.deployments ?? {}).map(([name, d]) => (
+                  <DeploymentRow key={name} name={name} d={d} />
                 ))}
               </tbody>
             </table>
@@ -81,6 +105,40 @@ export function NodePage({ status, features, onRefresh }: Props) {
       )}
     </div>
   )
+}
+
+function DeploymentRow({ name, d }: { name: string; d: DeploymentEntry }) {
+  const bip9Status = d.bip9?.status ?? null
+  const statusLabel = bip9Status ?? (d.active ? 'active' : 'inactive')
+  const badgeClass = d.active ? 'green' : bip9Status === 'never_active' ? 'red' : 'yellow'
+
+  return (
+    <tr>
+      <td style={{ fontFamily: 'var(--mono)', fontSize: 13 }}>{name}</td>
+      <td style={{ fontSize: 12, color: 'var(--muted)' }}>{d.type}</td>
+      <td>
+        <span className={`badge ${badgeClass}`}>{statusLabel.replace(/_/g, ' ')}</span>
+        {d.superseded_by && (
+          <span style={{ fontSize: 11, color: 'var(--muted)', marginLeft: 6 }}>→ {d.superseded_by}</span>
+        )}
+      </td>
+      <td style={{ fontFamily: 'var(--mono)', fontSize: 13 }}>
+        {d.height != null ? d.height.toLocaleString() : '—'}
+      </td>
+      <td style={{ fontSize: 12, color: 'var(--muted)' }}>
+        {d.activation_datetime ?? (d.bip9?.since != null ? `since block ${d.bip9.since.toLocaleString()}` : '—')}
+      </td>
+    </tr>
+  )
+}
+
+function formatHashrate(h: number): string {
+  if (h >= 1e15) return `${(h / 1e15).toFixed(2)} PH/s`
+  if (h >= 1e12) return `${(h / 1e12).toFixed(2)} TH/s`
+  if (h >= 1e9)  return `${(h / 1e9).toFixed(2)} GH/s`
+  if (h >= 1e6)  return `${(h / 1e6).toFixed(2)} MH/s`
+  if (h >= 1e3)  return `${(h / 1e3).toFixed(2)} KH/s`
+  return `${h.toFixed(2)} H/s`
 }
 
 function KV({ label, value, mono = false }: { label: string; value: string; mono?: boolean }) {

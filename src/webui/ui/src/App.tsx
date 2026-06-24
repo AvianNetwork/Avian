@@ -8,6 +8,7 @@ import { ConsolePage } from './pages/ConsolePage'
 import { WalletsPage } from './pages/WalletsPage'
 import { WalletPage }  from './pages/WalletPage'
 import { ANSPage }     from './pages/ANSPage'
+import { AssetsPage }  from './pages/AssetsPage'
 import avianLogo from './assets/images/avianlogo.png'
 
 export type Page =
@@ -18,6 +19,7 @@ export type Page =
   | { name: 'wallets' }
   | { name: 'wallet'; walletName: string }
   | { name: 'ans' }
+  | { name: 'assets' }
 
 export interface AppState {
   authed: boolean
@@ -148,7 +150,8 @@ export default function App() {
             registerRefresh={(fn) => { walletRefreshRef.current = fn }}
           />
         )}
-        {page.name === 'ans' && <ANSPage />}
+        {page.name === 'ans'    && <ANSPage />}
+        {page.name === 'assets' && <AssetsPage />}
       </main>
     </div>
   )
@@ -164,7 +167,8 @@ function NavBar({
   onLogout: () => void
   onRefresh: () => void
 }) {
-  const ansActive = features?.features['ans']?.active ?? false
+  const ansActive    = features?.features['ans']?.active    ?? false
+  const assetsActive = features?.features['assets']?.active ?? false
   return (
     <nav style={{
       background: 'var(--surf3)', borderBottom: '1px solid var(--border-teal)',
@@ -184,6 +188,9 @@ function NavBar({
         <NavLink active={page.name === 'peers'}   onClick={() => onNav({ name: 'peers' })}>Peers</NavLink>
         <NavLink active={page.name === 'wallets' || page.name === 'wallet'} onClick={() => onNav({ name: 'wallets' })}>Wallets</NavLink>
         <NavLink active={page.name === 'console'} onClick={() => onNav({ name: 'console' })}>Console</NavLink>
+        {assetsActive && (
+          <NavLink active={page.name === 'assets'} onClick={() => onNav({ name: 'assets' })}>Assets</NavLink>
+        )}
         {ansActive && (
           <NavLink active={page.name === 'ans'} onClick={() => onNav({ name: 'ans' })}>ANS</NavLink>
         )}

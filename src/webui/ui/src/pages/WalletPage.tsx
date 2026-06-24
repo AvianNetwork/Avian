@@ -2074,6 +2074,54 @@ function SecurityTab({ walletName, summary, onRefresh }: {
           )}
         </div>
       )}
+      {/* Backup wallet */}
+      <BackupCard walletName={walletName} />
+    </div>
+  )
+}
+
+function BackupCard({ walletName }: { walletName: string }) {
+  const [dest,    setDest]    = useState('')
+  const [busy,    setBusy]    = useState(false)
+  const [err,     setErr]     = useState('')
+  const [ok,      setOk]      = useState(false)
+
+  const handleBackup = async (e: FormEvent) => {
+    e.preventDefault()
+    setErr(''); setOk(false)
+    setBusy(true)
+    try {
+      await api.wallet.backup(walletName, dest)
+      setOk(true)
+    } catch (ex) {
+      setErr(ex instanceof ApiError ? ex.message : 'Backup failed')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <div className="card">
+      <h3 style={{ fontSize: 14, marginBottom: 6 }}>Backup Wallet</h3>
+      <div className="info-box" style={{ fontSize: 12, marginBottom: 14 }}>
+        Copies the wallet file to the specified path on the node's filesystem.
+      </div>
+      <form onSubmit={handleBackup} style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <div>
+          <label>Destination path</label>
+          <input
+            type="text"
+            placeholder="/path/to/wallet-backup.dat"
+            value={dest}
+            onChange={e => { setDest(e.target.value); setErr(''); setOk(false) }}
+          />
+        </div>
+        {err && <div className="error-box" style={{ fontSize: 12 }}>{err}</div>}
+        {ok  && <div className="ok-box"    style={{ fontSize: 12 }}>Backup saved to {dest}</div>}
+        <button type="submit" disabled={busy || !dest.trim()}>
+          {busy ? <><span className="spinner" /> Backing up…</> : 'Backup Wallet'}
+        </button>
+      </form>
     </div>
   )
 }
