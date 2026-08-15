@@ -238,10 +238,14 @@ bool CreateAssetTransaction(
     //   must be pinned to position 0 so it cannot displace either of the last two outputs.
     CTxDestination assetDest = DecodeDestination(address);
     for (const auto& asset : assets) {
-        // Owner token output (will be second-to-last) — NOT for restricted assets.
-        // Restricted assets ($TOKEN) must NOT have an explicit $TOKEN! creation output;
-        // the validated transaction structure is: burn, ROOT! transfer, verifier, $TOKEN.
-        if (assetType != AssetType::RESTRICTED) {
+        // Owner token output (second-to-last) — ONLY root and sub assets get their own NAME! owner
+        // token. UNIQUE, MSGCHANNEL, QUALIFIER and RESTRICTED assets must NOT have an explicit owner
+        // creation output: uniques/qualifiers/msgchannels have no owner token at all, and a restricted
+        // $TOKEN is governed by the root TOKEN! owner (only transferred, section 4). Emitting an owner
+        // token for these types builds a transaction consensus rejects (VerifyNew*Asset: nOwners must
+        // be 0) — for uniques it caused the chain split. Was `!= RESTRICTED`, which wrongly created
+        // owner tokens for unique and message-channel issuance.
+        if (assetType == AssetType::ROOT || assetType == AssetType::SUB) {
             CScript scriptOwnerNew = GetScriptForDestination(assetDest);
             asset.ConstructOwnerTransaction(scriptOwnerNew);
 
