@@ -366,6 +366,15 @@ bool Consensus::CheckTxAssets(const CTransaction& tx, TxValidationState& state, 
 
     if (assetCache) {
         if (IsNewAsset(tx)) {
+            // Restore the structural validation layer that 4.2.0 runs in CheckTransaction but the
+            // Bitcoin Core 30.2 rewrite left as dead code (VerifyNewAsset had no call sites in 5.x).
+            // It enforces the issuance burn, that the owner-token name matches the asset, the output
+            // counts, and — for sub-assets — that the parent ROOT! owner token is held. Without it,
+            // 5.x accepted issuances with no burn / a mismatched owner / no parent owner that 4.2.0
+            // rejects, which both splits the chain and allows free/unauthorized issuance.
+            if (!VerifyNewAsset(tx, strError))
+                return state.Invalid(TxValidationResult::TX_CONSENSUS, strError);
+
             CNewAsset asset;
             std::string address;
             if (!AssetFromScript(tx.vout[tx.vout.size() - 1].scriptPubKey, asset, address)) {
@@ -380,6 +389,13 @@ bool Consensus::CheckTxAssets(const CTransaction& tx, TxValidationState& state, 
                 return state.Invalid(TxValidationResult::TX_CONSENSUS, strError);
 
         } else if (IsReissueAsset(tx)) {
+            // Structural check (restored from 4.2.0): requires the NAME! owner-token transfer and the
+            // reissue burn output, and enforces the reissue output counts. Without it, 5.x let anyone
+            // reissue (mint more of) any reissuable asset they do NOT own, paying no burn — a
+            // consensus split and an unauthorized-inflation bug.
+            if (!VerifyReissueAsset(tx, strError))
+                return state.Invalid(TxValidationResult::TX_CONSENSUS, strError);
+
             CReissueAsset reissue_asset;
             std::string address;
             if (!ReissueAssetFromScript(tx.vout[tx.vout.size() - 1].scriptPubKey, reissue_asset, address)) {
@@ -389,6 +405,12 @@ bool Consensus::CheckTxAssets(const CTransaction& tx, TxValidationState& state, 
             if (!ContextualCheckReissueAsset(assetCache, reissue_asset, strError, tx))
                 return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-txns-reissue-contextual-" + strError);
         } else if (IsNewUniqueAsset(tx)) {
+            // Structural check (restored from 4.2.0): requires the 5-AVN unique burn and that the
+            // parent ROOT! owner token is held, and rejects any owner-token creation output. This
+            // subsumes the explicit owner-output guard below, which is kept for defence in depth.
+            if (!VerifyNewUniqueAsset(tx, strError))
+                return state.Invalid(TxValidationResult::TX_CONSENSUS, strError);
+
             // Unique asset creation txs must NOT contain an owner token creation output
             // (TX_NEW_ASSET, fIsOwner=true). A unique asset has no owner token of its own; it
             // inherits authority from its parent root ROOT! owner, which is *transferred* (not newly
@@ -414,6 +436,10 @@ bool Consensus::CheckTxAssets(const CTransaction& tx, TxValidationState& state, 
             if (!AreMessagesDeployed())
                 return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-txns-issue-msgchannel-before-messaging-is-active");
 
+            // Structural check (restored from 4.2.0): burn output present and output counts.
+            if (!VerifyNewMsgChannelAsset(tx, strError))
+                return state.Invalid(TxValidationResult::TX_CONSENSUS, strError);
+
             CNewAsset asset;
             std::string strAddress;
             if (!MsgChannelAssetFromTransaction(tx, asset, strAddress))
@@ -424,6 +450,10 @@ bool Consensus::CheckTxAssets(const CTransaction& tx, TxValidationState& state, 
         } else if (IsNewQualifierAsset(tx)) {
             if (!AreRestrictedAssetsDeployed())
                 return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-txns-issue-qualifier-before-it-is-active");
+
+            // Structural check (restored from 4.2.0): burn output present and output counts.
+            if (!VerifyNewQualfierAsset(tx, strError))
+                return state.Invalid(TxValidationResult::TX_CONSENSUS, strError);
 
             CNewAsset asset;
             std::string strAddress;
@@ -436,6 +466,12 @@ bool Consensus::CheckTxAssets(const CTransaction& tx, TxValidationState& state, 
         } else if (IsNewRestrictedAsset(tx)) {
             if (!AreRestrictedAssetsDeployed())
                 return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-txns-issue-restricted-before-it-is-active");
+
+            // Structural check (restored from 4.2.0): burn output present, output counts, and the
+            // root TOKEN! owner transfer. Subsumes the explicit owner-output guard below, which is
+            // kept for defence in depth.
+            if (!VerifyNewRestrictedAsset(tx, strError))
+                return state.Invalid(TxValidationResult::TX_CONSENSUS, strError);
 
             // Restricted asset creation txs must NOT contain an owner token creation output (TX_NEW_ASSET, fIsOwner=true).
             // The root TOKEN! owner is transferred (not newly created) in these transactions. Any tx with an
