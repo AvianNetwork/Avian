@@ -389,6 +389,25 @@ bool Consensus::CheckTxAssets(const CTransaction& tx, TxValidationState& state, 
             if (!ContextualCheckReissueAsset(assetCache, reissue_asset, strError, tx))
                 return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-txns-reissue-contextual-" + strError);
         } else if (IsNewUniqueAsset(tx)) {
+            // Unique asset creation txs must NOT contain an owner token creation output
+            // (TX_NEW_ASSET, fIsOwner=true). A unique asset has no owner token of its own; it
+            // inherits authority from its parent root ROOT! owner, which is *transferred* (not newly
+            // created) in the transaction. Any tx with an extra NAME#unique! creation output is
+            // malformed. This mirrors the restricted-asset guard below and restores the rule that
+            // VerifyNewUniqueAsset enforced (nOwners > 0 -> reject); that validator was left
+            // disconnected from consensus during the Bitcoin Core rewrite, and its absence let 5.0.x
+            // accept a unique issuance carrying an owner token that 4.2.0 rejects — splitting the chain.
+            for (const auto& vout : tx.vout) {
+                int nOutType = 0;
+                bool fOutIsOwner = false;
+                if (vout.scriptPubKey.IsAssetScript(nOutType, fOutIsOwner)) {
+                    if (nOutType == TX_NEW_ASSET && fOutIsOwner) {
+                        return state.Invalid(TxValidationResult::TX_CONSENSUS,
+                                             "bad-txns-issue-unique-has-owner-creation-output");
+                    }
+                }
+            }
+
             if (!ContextualCheckUniqueAssetTx(assetCache, strError, tx))
                 return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-txns-issue-unique-contextual-" + strError);
         } else if (IsNewMsgChannelAsset(tx)) {
