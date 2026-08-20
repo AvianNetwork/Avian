@@ -446,6 +446,13 @@ else()
   try_append_cxx_flags("-Wall" TARGET warn_interface SKIP_LINK)
   try_append_cxx_flags("-Wextra" TARGET warn_interface SKIP_LINK)
   try_append_cxx_flags("-Wgnu" TARGET warn_interface SKIP_LINK)
+  # -Wgnu (Clang) includes -Wzero-length-array, which fires on the intentionally
+  # empty chainparams_seed_* arrays (Avian ships no fixed seeds; DNS seeds only).
+  # A zero-length array is a GNU extension GCC accepts silently, so exempt just
+  # this sub-warning to keep -Wgnu and WERROR everywhere else.
+  try_append_cxx_flags("-Wzero-length-array" TARGET warn_interface SKIP_LINK
+    IF_CHECK_PASSED "-Wno-zero-length-array"
+  )
   # Some compilers will ignore -Wformat-security without -Wformat, so just combine the two here.
   try_append_cxx_flags("-Wformat -Wformat-security" TARGET warn_interface SKIP_LINK)
   try_append_cxx_flags("-Wvla" TARGET warn_interface SKIP_LINK)
