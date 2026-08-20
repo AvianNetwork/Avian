@@ -29,7 +29,7 @@ get_directory_property(precious_variables CACHE_VARIABLES)
 set(CLIENT_NAME "Avian Core")
 set(CLIENT_VERSION_MAJOR 5)
 set(CLIENT_VERSION_MINOR 0)
-set(CLIENT_VERSION_BUILD 3)
+set(CLIENT_VERSION_BUILD 4)
 set(CLIENT_VERSION_RC 0)
 set(CLIENT_VERSION_IS_RELEASE "true")
 set(COPYRIGHT_YEAR "2026")
@@ -446,6 +446,13 @@ else()
   try_append_cxx_flags("-Wall" TARGET warn_interface SKIP_LINK)
   try_append_cxx_flags("-Wextra" TARGET warn_interface SKIP_LINK)
   try_append_cxx_flags("-Wgnu" TARGET warn_interface SKIP_LINK)
+  # -Wgnu (Clang) includes -Wzero-length-array, which fires on the intentionally
+  # empty chainparams_seed_* arrays (Avian ships no fixed seeds; DNS seeds only).
+  # A zero-length array is a GNU extension GCC accepts silently, so exempt just
+  # this sub-warning to keep -Wgnu and WERROR everywhere else.
+  try_append_cxx_flags("-Wzero-length-array" TARGET warn_interface SKIP_LINK
+    IF_CHECK_PASSED "-Wno-zero-length-array"
+  )
   # Some compilers will ignore -Wformat-security without -Wformat, so just combine the two here.
   try_append_cxx_flags("-Wformat -Wformat-security" TARGET warn_interface SKIP_LINK)
   try_append_cxx_flags("-Wvla" TARGET warn_interface SKIP_LINK)

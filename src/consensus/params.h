@@ -196,6 +196,8 @@ struct Params {
     bool nSegwitEnabled{true};
     bool nCSVEnabled{true};
 
+    int nAssetTransferOverflowFixHeight{std::numeric_limits<int>::max()};
+
     /** Max reorg protection */
     int nMaxReorganizationDepth{60};
     int nMinReorganizationPeers{4};
