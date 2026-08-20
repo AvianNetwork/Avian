@@ -1,6 +1,7 @@
 .NOTPARALLEL :
 
 SOURCES_PATH ?= $(BASEDIR)/sources
+FALLBACK_DOWNLOAD_PATH ?= https://bitcoincore.org/depends-sources
 BASE_CACHE ?= $(BASEDIR)/built
 SDK_PATH ?= $(BASEDIR)/SDKs
 NO_QT ?=

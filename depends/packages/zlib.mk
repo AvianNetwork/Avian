@@ -1,6 +1,6 @@
 package=zlib
 $(package)_version=1.3.1
-$(package)_download_path=http://www.zlib.net
+$(package)_download_path=https://github.com/madler/zlib/releases/download/v$($(package)_version)
 $(package)_file_name=$(package)-$($(package)_version).tar.gz
 $(package)_sha256_hash=9a93b2b7dfdac77ceba5a558a580e74667dd6fede4585b91eefb60f03b72df23
 
