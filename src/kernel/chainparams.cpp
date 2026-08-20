@@ -161,15 +161,15 @@ public:
         consensus.powTypeLimits.emplace_back(uint256{"00000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"}); // X16RT limit
         consensus.powTypeLimits.emplace_back(uint256{"000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"}); // MinotaurX limit
 
-        consensus.nMinimumChainWork = uint256{"000000000000000000000000000000000000000000000000467aa1ce12211f7a"};  // Block 4909756
-        consensus.defaultAssumeValid = uint256{"000000000afe7564cd746a69c516b407e3aa0357e95f5dc853b58d6bd9a98339"}; // Block 4909756
+        consensus.nMinimumChainWork = uint256{"0000000000000000000000000000000000000000000000004690cd3cda006245"};  // Block 5140000
+        consensus.defaultAssumeValid = uint256{"000000000a095023e60fce2539c16e02832ab19782c87bdae4556c493b77c95b"}; // Block 5140000
 
         // Founder payment
         consensus.founderAddress = "rPC7kPCNPAVnUvQs4fWEvnFwJ4yfKvArXM";
         consensus.founderStartBlock = 1121000;
         consensus.founderRewardStructures = {{std::numeric_limits<int>::max(), 5}}; // 5% forever
 
-        consensus.nAssetTransferOverflowFixHeight = std::numeric_limits<int>::max(); // TODO: Set to actual activation height once determined --- IGNORE ---
+        consensus.nAssetTransferOverflowFixHeight = 5270000; // Asset transfer amount overflow check
 
         // Max reorg protection
         consensus.nMaxReorganizationDepth = 60;
@@ -213,9 +213,9 @@ public:
         m_assumeutxo_data = {};
 
         chainTxData = ChainTxData{
-            .nTime    = 1779966188, // UNIX timestamp of last known number of transactions
-            .tx_count = 5610165,    // total number of transactions between genesis and that timestamp
-            .dTxRate  = 0.034,      // estimated number of transactions per second
+            .nTime    = 1787048172, // UNIX timestamp of last known number of transactions
+            .tx_count = 5847417,    // total number of transactions between genesis and that timestamp
+            .dTxRate  = 0.032,      // estimated number of transactions per second
         };
     }
 };
@@ -306,7 +306,7 @@ public:
         consensus.founderStartBlock = 10;
         consensus.founderRewardStructures = {{std::numeric_limits<int>::max(), 5}}; // 5% forever
 
-        consensus.nAssetTransferOverflowFixHeight = 0; 
+        consensus.nAssetTransferOverflowFixHeight = 0;
 
         // Max reorg protection
         consensus.nMaxReorganizationDepth = 60;
@@ -434,6 +434,8 @@ public:
         consensus.founderAddress = "2MvpouPdDEujBZg5eZnLNv5bCn78EE2bi65"; // P2SH testnet
         consensus.founderStartBlock = 10;
         consensus.founderRewardStructures = {{std::numeric_limits<int>::max(), 5}}; // 5% forever
+
+        consensus.nAssetTransferOverflowFixHeight = 0; // Active from genesis on testnet4
 
         // Max reorg protection
         consensus.nMaxReorganizationDepth = 60;
