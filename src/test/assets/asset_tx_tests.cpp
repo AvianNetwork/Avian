@@ -8,6 +8,8 @@
 
 #include <boost/test/unit_test.hpp>
 
+#include <limits>
+
 #include <amount.h>
 #include <script/standard.h>
 #include <base58.h>
@@ -606,5 +608,122 @@ BOOST_FIXTURE_TEST_SUITE(asset_tx_tests, BasicTestingSetup)
         bitdb.Reset();
     }
 #endif
+
+
+    // ---------------------------------------------------------------------
+    // Asset transfer amount overflow (nAssetTransferOverflowFixHeight gate)
+    // ---------------------------------------------------------------------
+    //
+    // Regression tests for the integer-overflow inflation bug: an unbounded
+    // per-asset accumulator let a transfer carry an nAmount beyond MAX_MONEY,
+    // wrapping the int64 total so that input == output held and tokens were
+    // created from nothing. The fix range-checks each amount and guards the
+    // running total, gated on nAssetTransferOverflowFixHeight so it activates
+    // identically to Avian Core 5.x. MAIN activates at height 5,270,000.
+
+    static const int OVF_FIX_HEIGHT = 5270000;
+
+    static CScript OverflowAssetScript(CAmount amount)
+    {
+        // Arbitrary P2PKH base; ConstructTransaction appends the asset portion.
+        CAssetTransfer a("OVERFLOWTEST", amount);
+        CScript s = GetScriptForDestination(DecodeDestination(Params().GlobalBurnAddress()));
+        a.ConstructTransaction(s);
+        return s;
+    }
+
+    // 1-in/1-out transfer of `amount` units where the input coin holds exactly
+    // the same amount, so the transaction is balanced (input == output).
+    static CTransaction BuildBalancedTransfer(CAmount amount, CCoinsViewCache& coins)
+    {
+        CTxOut coinOut;
+        coinOut.nValue = 0;
+        coinOut.scriptPubKey = OverflowAssetScript(amount);
+
+        uint256 hash = uint256S("BF50CB9A63BE0019171456252989A459A7D0A5F494735278290079D22AB704A2");
+        COutPoint outpoint(hash, 1);
+        coins.AddCoin(outpoint, Coin(coinOut, 10, 0), true);
+
+        CTxOut txOut;
+        txOut.nValue = 0;
+        txOut.scriptPubKey = OverflowAssetScript(amount);
+
+        CMutableTransaction mutTx;
+        CTxIn in;
+        in.prevout = outpoint;
+        mutTx.vin.emplace_back(in);
+        mutTx.vout.emplace_back(txOut);
+        return CTransaction(mutTx);
+    }
+
+    BOOST_AUTO_TEST_CASE(asset_transfer_overflow_gate_flips_by_height)
+    {
+        BOOST_TEST_MESSAGE("Running Asset Transfer Overflow Height-Gate Test");
+        SelectParams(CBaseChainParams::MAIN);
+
+        // A balanced transfer of an out-of-range amount. Pre-fork this is the
+        // exploit: input == output == the value, so it validates. Post-fork the
+        // range check must reject it.
+        const CAmount evil = std::numeric_limits<int64_t>::max();
+
+        // Below the activation height: legacy behaviour, tx is (wrongly) valid.
+        {
+            CCoinsView view; CCoinsViewCache coins(&view);
+            CTransaction tx = BuildBalancedTransfer(evil, coins);
+            CValidationState state;
+            std::vector<std::pair<std::string, uint256>> vReissueAssets;
+            BOOST_CHECK_MESSAGE(
+                Consensus::CheckTxAssets(tx, state, coins, nullptr, false, vReissueAssets,
+                                         true, nullptr, 0, nullptr, OVF_FIX_HEIGHT - 1),
+                "Pre-activation: overflow transfer should pass (legacy behaviour preserved)");
+        }
+
+        // At/after the activation height: the same tx must be rejected.
+        {
+            CCoinsView view; CCoinsViewCache coins(&view);
+            CTransaction tx = BuildBalancedTransfer(evil, coins);
+            CValidationState state;
+            std::vector<std::pair<std::string, uint256>> vReissueAssets;
+            BOOST_CHECK_MESSAGE(
+                !Consensus::CheckTxAssets(tx, state, coins, nullptr, false, vReissueAssets,
+                                          true, nullptr, 0, nullptr, OVF_FIX_HEIGHT),
+                "Post-activation: overflow transfer must be rejected");
+            BOOST_CHECK_EQUAL(state.GetRejectReason(), "bad-txns-asset-input-amount-out-of-range");
+        }
+    }
+
+    BOOST_AUTO_TEST_CASE(asset_transfer_overflow_output_accumulation)
+    {
+        BOOST_TEST_MESSAGE("Running Asset Transfer Output Accumulation Overflow Test");
+        SelectParams(CBaseChainParams::MAIN);
+
+        // One in-range input, two in-range outputs whose SUM exceeds MAX_MONEY.
+        // Each amount passes MoneyRange individually, so only the running-total
+        // guard on the output side can catch this.
+        CCoinsView view; CCoinsViewCache coins(&view);
+
+        CTxOut coinOut; coinOut.nValue = 0; coinOut.scriptPubKey = OverflowAssetScript(MAX_MONEY);
+        uint256 hash = uint256S("BF50CB9A63BE0019171456252989A459A7D0A5F494735278290079D22AB704A2");
+        COutPoint outpoint(hash, 1);
+        coins.AddCoin(outpoint, Coin(coinOut, 10, 0), true);
+
+        CMutableTransaction mutTx;
+        CTxIn in; in.prevout = outpoint;
+        mutTx.vin.emplace_back(in);
+
+        CTxOut o1; o1.nValue = 0; o1.scriptPubKey = OverflowAssetScript(MAX_MONEY);
+        CTxOut o2; o2.nValue = 0; o2.scriptPubKey = OverflowAssetScript(1 * COIN);
+        mutTx.vout.emplace_back(o1);
+        mutTx.vout.emplace_back(o2);
+        CTransaction tx(mutTx);
+
+        CValidationState state;
+        std::vector<std::pair<std::string, uint256>> vReissueAssets;
+        BOOST_CHECK_MESSAGE(
+            !Consensus::CheckTxAssets(tx, state, coins, nullptr, false, vReissueAssets,
+                                      true, nullptr, 0, nullptr, OVF_FIX_HEIGHT),
+            "Post-activation: output total exceeding MAX_MONEY must be rejected");
+        BOOST_CHECK_EQUAL(state.GetRejectReason(), "bad-txns-asset-outputs-amount-overflow");
+    }
 
 BOOST_AUTO_TEST_SUITE_END()

@@ -7,6 +7,7 @@
 #include "script/sigcache.h"
 #include "test/test_avian.h"
 #include "random.h"
+#include <deque>
 #include <thread>
 
 /** Test Suite for CuckooCache

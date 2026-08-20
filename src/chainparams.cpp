@@ -167,6 +167,8 @@ public:
         // By default assume that the signatures in ancestors of this block are valid.
         consensus.defaultAssumeValid = uint256S("0x00000000005ab90c287e481b1f2911228d26723ac07bcadd65031158ad733316"); // Block 1072359
 
+        consensus.nAssetTransferOverflowFixHeight = 5270000; // Asset transfer amount overflow check (must match Avian Core 5.x)
+
         /**
          * The message start string is designed to be unlikely to occur in normal data.
          * The characters are rarely used upper ASCII, not valid as UTF-8, and produce
@@ -321,6 +323,8 @@ public:
         // By default assume that the signatures in ancestors of this block are valid.
         consensus.defaultAssumeValid = uint256S("0x00016603365e3252687eeb7a309d9d6b903b81239d9bce670286a7a9d26131b9");
 
+        consensus.nAssetTransferOverflowFixHeight = 0; // Active from genesis on testnet
+
 
         pchMessageStart[0] = 0x52; // R
         pchMessageStart[1] = 0x56; // V
@@ -453,6 +457,8 @@ public:
 
         // By default assume that the signatures in ancestors of this block are valid.
         consensus.defaultAssumeValid = uint256S("0x00");
+
+        consensus.nAssetTransferOverflowFixHeight = 0; // Active from genesis on regtest
 
         pchMessageStart[0] = 0x52; // R
         pchMessageStart[1] = 0x56; // V
