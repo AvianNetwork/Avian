@@ -613,7 +613,7 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, CValidationState& state, c
 }
 
 //! Check to make sure that the inputs and outputs CAmount match exactly.
-bool Consensus::CheckTxAssets(const CTransaction& tx, CValidationState& state, const CCoinsViewCache& inputs, CAssetsCache* assetCache, bool fCheckMempool, std::vector<std::pair<std::string, uint256> >& vPairReissueAssets, const bool fRunningUnitTests, std::set<CMessage>* setMessages, int64_t nBlocktime,   std::vector<std::pair<std::string, CNullAssetTxData>>* myNullAssetData)
+bool Consensus::CheckTxAssets(const CTransaction& tx, CValidationState& state, const CCoinsViewCache& inputs, CAssetsCache* assetCache, bool fCheckMempool, std::vector<std::pair<std::string, uint256> >& vPairReissueAssets, const bool fRunningUnitTests, std::set<CMessage>* setMessages, int64_t nBlocktime,   std::vector<std::pair<std::string, CNullAssetTxData>>* myNullAssetData, int nSpendHeight)
 {
     // are the actual inputs available?
     if (!inputs.HaveInputs(tx)) {
@@ -637,10 +637,19 @@ bool Consensus::CheckTxAssets(const CTransaction& tx, CValidationState& state, c
                 return state.DoS(100, false, REJECT_INVALID, "bad-txns-failed-to-get-asset-from-script", false, "", tx.GetHash());
 
             // Add to the total value of assets in the inputs
-            if (totalInputs.count(data.assetName))
-                totalInputs.at(data.assetName) += data.nAmount;
-            else
-                totalInputs.insert(make_pair(data.assetName, data.nAmount));
+            if (nSpendHeight >= Params().GetConsensus().nAssetTransferOverflowFixHeight) {
+                if (!MoneyRange(data.nAmount))
+                    return state.DoS(100, false, REJECT_INVALID, "bad-txns-asset-input-amount-out-of-range", false, "", tx.GetHash());
+                CAmount current = totalInputs[data.assetName];
+                if (data.nAmount > MAX_MONEY - current)
+                    return state.DoS(100, false, REJECT_INVALID, "bad-txns-asset-inputs-amount-overflow", false, "", tx.GetHash());
+                totalInputs[data.assetName] = current + data.nAmount;
+            } else {
+                if (totalInputs.count(data.assetName))
+                    totalInputs.at(data.assetName) += data.nAmount;
+                else
+                    totalInputs.insert(make_pair(data.assetName, data.nAmount));
+            }
 
             if (AreMessagesDeployed()) {
                 mapAddresses.insert(make_pair(data.assetName,EncodeDestination(data.destination)));
@@ -702,10 +711,19 @@ bool Consensus::CheckTxAssets(const CTransaction& tx, CValidationState& state, c
                 return state.DoS(100, false, REJECT_INVALID, strError, false, "", tx.GetHash());
 
             // Add to the total value of assets in the outputs
-            if (totalOutputs.count(transfer.strName))
-                totalOutputs.at(transfer.strName) += transfer.nAmount;
-            else
-                totalOutputs.insert(make_pair(transfer.strName, transfer.nAmount));
+            if (nSpendHeight >= Params().GetConsensus().nAssetTransferOverflowFixHeight) {
+                if (!MoneyRange(transfer.nAmount))
+                    return state.DoS(100, false, REJECT_INVALID, "bad-txns-asset-transfer-amount-out-of-range", false, "", tx.GetHash());
+                CAmount current = totalOutputs[transfer.strName];
+                if (transfer.nAmount > MAX_MONEY - current)
+                    return state.DoS(100, false, REJECT_INVALID, "bad-txns-asset-outputs-amount-overflow", false, "", tx.GetHash());
+                totalOutputs[transfer.strName] = current + transfer.nAmount;
+            } else {
+                if (totalOutputs.count(transfer.strName))
+                    totalOutputs.at(transfer.strName) += transfer.nAmount;
+                else
+                    totalOutputs.insert(make_pair(transfer.strName, transfer.nAmount));
+            }
 
             if (!fRunningUnitTests) {
                 if (IsAssetNameAnOwner(transfer.strName)) {

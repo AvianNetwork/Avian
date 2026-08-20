@@ -108,6 +108,10 @@ struct ConsensusParams {
     int64_t lwmaAveragingWindow;        // Averaging window size for LWMA diff adjust
     std::vector<uint256> powTypeLimits; // Limits for each pow type (with future-proofing space; can't pick up NUM_BLOCK_TYPES here)
 
+    // Height at which the asset transfer amount overflow check activates.
+    // Must match the value used by Avian Core 5.x (nAssetTransferOverflowFixHeight).
+    int nAssetTransferOverflowFixHeight;
+
     // AVN Founder Payment
     FounderPayment nFounderPayment;
 };
