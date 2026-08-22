@@ -119,7 +119,7 @@ Consequence: **RIP-25 outputs created before activation are not secure and must 
 hold value on mainnet.** The wallet enforces this by refusing to generate `pq` addresses until the
 deployment is active (`src/wallet/rpc/addresses.cpp:69-75`).
 
-### Key derivation (OPEN)
+### Key derivation
 
 Wallets derive ML-DSA-44 keys through a descriptor:
 
@@ -128,17 +128,40 @@ mldsa44(<xpub>/25h/921h/0h/<0h|1h>/*h)         (purpose 25 = RIP-25, coin type 9
 ```
 
 All steps are hardened; the final step must be `/*h` (`src/script/descriptor.cpp:2678-2717`,
-`src/wallet/walletutil.cpp:63-75`). The 32-byte hardened BIP32 child private key at the leaf is
-used as the ML-DSA-44 seed.
+`src/wallet/walletutil.cpp:63-75`). Let `leaf` be the 32-byte hardened BIP32 child private key at
+the leaf. The keypair is then derived by this exact, normative algorithm:
 
-> **OPEN (must resolve before freeze).** The current seed-to-keypair step is not a
-> FIPS-204-standard derandomized keygen. Because liboqs 0.12.0 does not export a public
-> derandomized keypair function, `src/crypto/mldsa.cpp:36-82` temporarily replaces liboqs's global
-> RNG with a SHA256 counter-mode KDF to force determinism. This couples every address to liboqs's
-> internal RNG call pattern and has no known-answer coverage. Before freeze this MUST be replaced
-> with a written, standards-aligned derandomized keygen (upgrade liboqs to expose
-> `OQS_SIG_ml_dsa_44_keypair_derand`, or vendor a minimal FIPS-204 keygen) and pinned with the
-> test vectors below. The exact byte-level derivation becomes normative here.
+```
+DST = "AVN/RIP-25/ML-DSA-44/keygen/v1"        (30 ASCII bytes, no trailing NUL)
+xi  = SHA256( DST || leaf )                    32-byte ML-DSA seed
+(public_key, secret_key) = ML-DSA.KeyGen_internal(xi)   (FIPS 204 Algorithm 6)
+```
+
+`ML-DSA.KeyGen_internal` is the standard derandomized FIPS-204 key generation: `xi` is expanded as
+`SHAKE256(xi || IntToBytes(k=4,1) || IntToBytes(l=4,1))` into `(rho, rho', K)`, the matrix `A` is
+expanded from `rho`, the short vectors `s1, s2` are sampled from `rho'`, `t = A*s1 + s2` is split
+into `(t1, t0)`, and `public_key = pkEncode(rho, t1)`,
+`secret_key = skEncode(rho, tr, K, s1, s2, t0)` with `tr = SHAKE256(public_key)`. Because the
+result is a standard function of `xi`, any compliant ML-DSA implementation reproduces the same
+keypair; the derivation is independent of how randomness is drawn.
+
+The versioned domain-separation tag (`.../v1`) makes the derivation explicit and lets any future
+change be unambiguous (`.../v2`). The mapping is pinned by the known-answer vector below and by
+`derivation_known_answer_vector` in `src/test/pqkey_tests.cpp`, so it cannot drift silently across a
+liboqs upgrade, a struct-ABI change, or a change to the tag or the expansion.
+
+Implementation: `src/crypto/mldsa.cpp` `KeyGenFromSeed` computes `xi` and runs `KeyGen_internal` by
+calling the pinned liboqs reference primitives (`pqcrystals_ml_dsa_44_ref_*`) directly with `xi`,
+with no process-global RNG state and no mutex. This replaces the earlier approach, which forced
+determinism by temporarily swapping liboqs's global RNG for a SHA256 counter-mode KDF and so coupled
+every address to liboqs's internal RNG call order.
+
+Reference known-answer vector (`leaf = 0x00,0x01,...,0x1f`):
+
+```
+witness_program = SHA256(public_key) = e7fb04e58cb66a825e9f045ea60e6a6d72bbefddb93343321bc64cd03c4265b2
+SHA256(secret_key)                   = 5e6259e974035d534b5007ee56b08beaf8d91a31d593cb786c8eede792e1b1c8
+```
 
 ## Activation
 
@@ -186,8 +209,9 @@ evidence of consensus validity before activation.
 
 ## Open decisions (consolidated, must resolve before freeze)
 
-1. **Key derivation:** replace the liboqs-RNG-hijack with a written derandomized keygen and pin it
-   with vectors (see Key derivation).
+1. **Key derivation:** RESOLVED. The liboqs-RNG-hijack is replaced by an explicit, versioned,
+   standards-aligned derandomized keygen (`xi = SHA256(DST || leaf)`, then FIPS-204
+   `KeyGen_internal(xi)`), pinned by a known-answer vector (see Key derivation).
 2. **Domain separation:** add an explicit context/network separator (see Domain separation).
 3. **Resource limits:** define per-transaction and per-block PQ verification and size limits (see
    Resource limits).
