@@ -79,8 +79,14 @@ scriptCode = OP_2 <program>                    (34 bytes)
 sighash    = SignatureHash(scriptCode, tx, nIn, 0x41, amount, SigVersion::WITNESS_V0, txdata)
 ```
 
-- The sighash type is hardcoded to `SIGHASH_ALL | SIGHASH_FORKID` (`0x41`). No other sighash modes
-  are supported, and no sighash byte is carried in the witness. See **OPEN: sighash policy**.
+- The sighash type is fixed to `SIGHASH_ALL | SIGHASH_FORKID` (`0x41`) and is not encoded anywhere
+  in the transaction. No other sighash mode is valid, and unlike ECDSA/Schnorr the witness carries
+  **no** trailing sighash-type byte: the signature element is the bare `SIG_SIZE` (2420-byte) ML-DSA
+  signature. A verifier MUST reject any witness whose signature element is not exactly 2420 bytes
+  (`SCRIPT_ERR_PQ_SIGNATURE_SIZE`), which is what enforces the "no carried byte" half of this rule;
+  a signature computed over any other hashtype's digest fails verification
+  (`SCRIPT_ERR_PQ_SIGNATURE_VERIFY_FAILED`). Both halves are locked by
+  `mldsa44_sighash_tests.cpp`.
 - `amount` is the value of the output being spent (BIP143).
 - Using the 34-byte `OP_2 <program>` scriptCode distinguishes a RIP-25 preimage from a witness v0
   (P2WPKH/P2WSH) preimage, because a v0 scriptCode can never take that shape.
@@ -215,7 +221,10 @@ evidence of consensus validity before activation.
 2. **Domain separation:** add an explicit context/network separator (see Domain separation).
 3. **Resource limits:** define per-transaction and per-block PQ verification and size limits (see
    Resource limits).
-4. **Sighash policy:** confirm `SIGHASH_ALL | SIGHASH_FORKID` only is the permanent rule.
+4. **Sighash policy:** RESOLVED. `SIGHASH_ALL | SIGHASH_FORKID` is the permanent and only rule; no
+   sighash-type byte is carried in the witness. The two magic `0x41` literals are replaced by the
+   named `SIGHASH_ALL | SIGHASH_FORKID` on both the signing and verifying sides, and the rule is
+   locked behaviorally by `mldsa44_sighash_tests.cpp` (see Signature message).
 5. **liboqs requirement:** PARTIALLY RESOLVED. The build no longer silently downgrades: with
    `WITH_LIBOQS` ON (the default) a missing liboqs is now a `FATAL_ERROR`, and disabling
    post-quantum support requires an explicit `-DWITH_LIBOQS=OFF` (`cmake/liboqs.cmake`). The stub

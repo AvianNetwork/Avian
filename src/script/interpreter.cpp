@@ -1742,9 +1742,13 @@ bool GenericTransactionSignatureChecker<T>::CheckECDSASignature(const std::vecto
 template <class T>
 uint256 GenericTransactionSignatureChecker<T>::GetMLDsa44SigHash(const CScript& scriptCode) const
 {
-    // RIP-25: Compute a BIP143-style sighash for ML-DSA-44 witness v2 inputs.
-    // SIGHASH_ALL | SIGHASH_FORKID (Avian replay protection, value 0x41).
-    constexpr int32_t nHashType = 0x41; // SIGHASH_ALL | SIGHASH_FORKID
+    // RIP-25 (normative, see doc/rip-25.md): ML-DSA-44 witness v2 inputs always
+    // commit to SIGHASH_ALL | SIGHASH_FORKID and nothing else. Unlike ECDSA and
+    // Schnorr, no sighash-type byte is carried in the witness: the signature
+    // element is the bare 2420-byte ML-DSA signature and the type is fixed here.
+    // The exact-length check in the verify branch enforces the "no carried byte"
+    // half of this rule; this constant enforces the "only this type" half.
+    constexpr int32_t nHashType = SIGHASH_ALL | SIGHASH_FORKID;
     return SignatureHash(scriptCode, *txTo, nIn, nHashType, amount, SigVersion::WITNESS_V0, txdata);
 }
 
@@ -2043,6 +2047,8 @@ static bool VerifyWitnessProgram(const CScriptWitness& witness, int witversion, 
         if (pk_bytes.size() != CPQPubKey::SIZE) {
             return set_error(serror, SCRIPT_ERR_PQ_PUBKEY_SIZE);
         }
+        // Exactly SIG_SIZE: the signature is the raw ML-DSA-44 signature with no
+        // trailing sighash-type byte (RIP-25 carries no hashtype in the witness).
         if (sig_bytes.size() != mldsa::SIG_SIZE) {
             return set_error(serror, SCRIPT_ERR_PQ_SIGNATURE_SIZE);
         }

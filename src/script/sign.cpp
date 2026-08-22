@@ -106,7 +106,10 @@ bool MutableTransactionSignatureCreator::CreateMLDsa44Sig(const SigningProvider&
     CScript scriptCode;
     scriptCode << OP_2 << std::vector<unsigned char>(program.begin(), program.end());
 
-    constexpr int32_t nHashType = 0x41; // SIGHASH_ALL | SIGHASH_FORKID
+    // RIP-25 (normative): sign SIGHASH_ALL | SIGHASH_FORKID only, and emit the bare
+    // 2420-byte ML-DSA signature with no appended sighash-type byte. Must stay in
+    // lockstep with GenericTransactionSignatureChecker::GetMLDsa44SigHash.
+    constexpr int32_t nHashType = SIGHASH_ALL | SIGHASH_FORKID;
     uint256 sighash = SignatureHash(scriptCode, m_txto, nIn, nHashType, amount, SigVersion::WITNESS_V0, m_txdata);
 
     sig_out.resize(mldsa::SIG_SIZE);

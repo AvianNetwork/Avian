@@ -55,6 +55,7 @@ add_executable(test_bitcoin
   key_io_tests.cpp
   key_tests.cpp
   pqkey_tests.cpp
+  mldsa44_sighash_tests.cpp
   logging_tests.cpp
   mempool_tests.cpp
   merkle_tests.cpp
