@@ -216,10 +216,13 @@ evidence of consensus validity before activation.
 3. **Resource limits:** define per-transaction and per-block PQ verification and size limits (see
    Resource limits).
 4. **Sighash policy:** confirm `SIGHASH_ALL | SIGHASH_FORKID` only is the permanent rule.
-5. **liboqs requirement:** an activated node built without liboqs currently fails every PQ
-   signature (`src/crypto/mldsa.cpp:120-137` stub returns `false`), and the build silently
-   downgrades `WITH_LIBOQS=OFF` on a warning (`cmake/liboqs.cmake`). Before freeze, liboqs MUST be
-   a hard build requirement for any release capable of activation, and its exact revision pinned.
+5. **liboqs requirement:** PARTIALLY RESOLVED. The build no longer silently downgrades: with
+   `WITH_LIBOQS` ON (the default) a missing liboqs is now a `FATAL_ERROR`, and disabling
+   post-quantum support requires an explicit `-DWITH_LIBOQS=OFF` (`cmake/liboqs.cmake`). The stub
+   verifier still returns `false` when built that way (`src/crypto/mldsa.cpp`), so such a binary
+   must not act as a validating node after activation. Remaining before freeze: pin liboqs to an
+   exact revision (currently the 0.12.0 tag plus sha256 in `depends/packages/liboqs.mk`) and assert
+   the release build cannot reach the stub path.
 
 ## Test vectors
 
