@@ -273,6 +273,23 @@ public:
 template <class T>
 uint256 SignatureHash(const CScript& scriptCode, const T& txTo, unsigned int nIn, int32_t nHashType, const CAmount& amount, SigVersion sigversion, const PrecomputedTransactionData* cache = nullptr, SigHashCache* sighash_cache = nullptr);
 
+/**
+ * RIP-25 ML-DSA-44 domain-separation context (see doc/rip-25.md).
+ *
+ * The context is bound into every ML-DSA-44 signature via FIPS 204's context
+ * string, so a signature is valid only for the RIP-25 scheme on the network it
+ * was made for. It is set once from the active network in SelectParams() and
+ * read by both the consensus verifier (this library) and the signer. This
+ * lives in bitcoin_consensus because the verifier cannot depend on chainparams;
+ * the higher layer that owns the network selection pushes the value in.
+ *
+ * Must be set before any script validation. If left unset the context is empty,
+ * which is self-consistent (signer and verifier agree) but provides no
+ * separation; production and tests both set it through SelectParams().
+ */
+void SetMLDsa44DomainContext(std::span<const unsigned char> ctx);
+std::span<const unsigned char> GetMLDsa44DomainContext();
+
 class BaseSignatureChecker
 {
 public:

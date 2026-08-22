@@ -16,6 +16,23 @@
 
 typedef std::vector<unsigned char> valtype;
 
+// RIP-25 ML-DSA-44 domain-separation context. Set once at startup from
+// SelectParams() (single-threaded, before any validation) and thereafter read
+// only, so no synchronisation is needed. See interpreter.h for the rationale.
+namespace {
+std::vector<unsigned char> g_mldsa44_domain_ctx;
+} // namespace
+
+void SetMLDsa44DomainContext(std::span<const unsigned char> ctx)
+{
+    g_mldsa44_domain_ctx.assign(ctx.begin(), ctx.end());
+}
+
+std::span<const unsigned char> GetMLDsa44DomainContext()
+{
+    return g_mldsa44_domain_ctx;
+}
+
 namespace {
 
 inline bool set_success(ScriptError* ret)
@@ -2067,8 +2084,11 @@ static bool VerifyWitnessProgram(const CScriptWitness& witness, int witversion, 
         const uint256 sighash = checker.GetMLDsa44SigHash(scriptCode);
 
         CPQPubKey pq_pubkey(std::span<const uint8_t, CPQPubKey::SIZE>(pk_bytes.data(), CPQPubKey::SIZE));
+        // Domain-separated (RIP-25): the signature must be bound to this
+        // network's ML-DSA-44 context, not merely to the sighash.
         if (!pq_pubkey.Verify(std::span<const uint8_t>(sig_bytes.data(), sig_bytes.size()),
-                              std::span<const uint8_t>(sighash.begin(), 32))) {
+                              std::span<const uint8_t>(sighash.begin(), 32),
+                              GetMLDsa44DomainContext())) {
             return set_error(serror, SCRIPT_ERR_PQ_SIGNATURE_VERIFY_FAILED);
         }
         return set_success(serror);

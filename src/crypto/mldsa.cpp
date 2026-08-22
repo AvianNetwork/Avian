@@ -82,6 +82,20 @@ extern "C" {
     // Top-level liboqs SHAKE256 (FIPS 202 XOF).  Exported by liboqs.a but not
     // present in the installed public headers, so declared here.
     void OQS_SHA3_shake256(uint8_t* output, size_t outlen, const uint8_t* input, size_t inlen);
+
+    // Context-aware ML-DSA-44 sign/verify (FIPS 204 "pure" mode). liboqs 0.12.0
+    // exposes no context parameter through OQS_SIG_sign/verify, so we call the
+    // reference primitives directly. They prepend the standard domain framing
+    // pre = 0x00 || ctxlen || ctx before the message; with an empty ctx this is
+    // byte-identical to OQS_SIG_sign/verify. Both return 0 on success.
+    int pqcrystals_ml_dsa_44_ref_signature(uint8_t* sig, size_t* siglen,
+                                           const uint8_t* m, size_t mlen,
+                                           const uint8_t* ctx, size_t ctxlen,
+                                           const uint8_t* sk);
+    int pqcrystals_ml_dsa_44_ref_verify(const uint8_t* sig, size_t siglen,
+                                        const uint8_t* m, size_t mlen,
+                                        const uint8_t* ctx, size_t ctxlen,
+                                        const uint8_t* pk);
 }
 
 } // namespace
@@ -167,29 +181,31 @@ bool KeyGenRandom(std::span<uint8_t, PUBKEY_SIZE> pubkey,
 
 bool Sign(std::span<uint8_t, SIG_SIZE> sig,
           std::span<const uint8_t> msg,
+          std::span<const uint8_t> ctx,
           std::span<const uint8_t, SECRETKEY_SIZE> seckey)
 {
-    OqsSig ctx;
-    if (!ctx.ok()) return false;
-    size_t sig_len = SIG_SIZE;
-    OQS_STATUS rc = OQS_SIG_sign(ctx.sig,
-                                 sig.data(), &sig_len,
-                                 msg.data(), msg.size(),
-                                 seckey.data());
-    return rc == OQS_SUCCESS && sig_len == SIG_SIZE;
+    if (ctx.size() > 255) return false;  // FIPS 204 context-string limit
+    size_t sig_len = 0;
+    int rc = pqcrystals_ml_dsa_44_ref_signature(
+        sig.data(), &sig_len,
+        msg.data(), msg.size(),
+        ctx.data(), ctx.size(),
+        seckey.data());
+    return rc == 0 && sig_len == SIG_SIZE;
 }
 
 bool Verify(std::span<const uint8_t, SIG_SIZE> sig,
             std::span<const uint8_t> msg,
+            std::span<const uint8_t> ctx,
             std::span<const uint8_t, PUBKEY_SIZE> pubkey)
 {
-    OqsSig ctx;
-    if (!ctx.ok()) return false;
-    OQS_STATUS rc = OQS_SIG_verify(ctx.sig,
-                                   msg.data(), msg.size(),
-                                   sig.data(), SIG_SIZE,
-                                   pubkey.data());
-    return rc == OQS_SUCCESS;
+    if (ctx.size() > 255) return false;
+    int rc = pqcrystals_ml_dsa_44_ref_verify(
+        sig.data(), SIG_SIZE,
+        msg.data(), msg.size(),
+        ctx.data(), ctx.size(),
+        pubkey.data());
+    return rc == 0;
 }
 
 #else // HAVE_LIBOQS not defined — stub implementations
@@ -202,11 +218,11 @@ bool KeyGenRandom(std::span<uint8_t, PUBKEY_SIZE>, std::span<uint8_t, SECRETKEY_
 { return false; }
 
 bool Sign(std::span<uint8_t, SIG_SIZE>, std::span<const uint8_t>,
-          std::span<const uint8_t, SECRETKEY_SIZE>)
+          std::span<const uint8_t>, std::span<const uint8_t, SECRETKEY_SIZE>)
 { return false; }
 
 bool Verify(std::span<const uint8_t, SIG_SIZE>, std::span<const uint8_t>,
-            std::span<const uint8_t, PUBKEY_SIZE>)
+            std::span<const uint8_t>, std::span<const uint8_t, PUBKEY_SIZE>)
 { return false; }
 
 #endif // HAVE_LIBOQS

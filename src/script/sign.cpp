@@ -113,8 +113,11 @@ bool MutableTransactionSignatureCreator::CreateMLDsa44Sig(const SigningProvider&
     uint256 sighash = SignatureHash(scriptCode, m_txto, nIn, nHashType, amount, SigVersion::WITNESS_V0, m_txdata);
 
     sig_out.resize(mldsa::SIG_SIZE);
+    // Bind to this network's RIP-25 ML-DSA-44 context; must match the verifier
+    // (VerifyWitnessProgram), which uses the same GetMLDsa44DomainContext().
     if (!pq_key.Sign(sig_out,
-                     std::span<const uint8_t>(sighash.begin(), 32))) {
+                     std::span<const uint8_t>(sighash.begin(), 32),
+                     GetMLDsa44DomainContext())) {
         return false;
     }
 

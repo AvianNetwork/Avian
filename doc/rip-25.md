@@ -90,8 +90,9 @@ sighash    = SignatureHash(scriptCode, tx, nIn, 0x41, amount, SigVersion::WITNES
 - `amount` is the value of the output being spent (BIP143).
 - Using the 34-byte `OP_2 <program>` scriptCode distinguishes a RIP-25 preimage from a witness v0
   (P2WPKH/P2WSH) preimage, because a v0 scriptCode can never take that shape.
-- The 32-byte `sighash` is passed to ML-DSA-44 as a plain message (the caller pre-hashes; ML-DSA's
-  own HashML-DSA mode is not used). See **OPEN: domain separation**.
+- The 32-byte `sighash` is passed to ML-DSA-44 as the message in "pure" mode (the caller pre-hashes;
+  ML-DSA's own HashML-DSA mode is not used), together with a non-empty FIPS-204 context string for
+  domain separation. See **Domain separation**.
 
 ### Verification algorithm
 
@@ -203,22 +204,42 @@ evidence of consensus validity before activation.
 > mempool admission caps, and a minimum relay fee floor sized so a ~3.7 KB spend plus its
 > verification cannot be purchased too cheaply.
 
-## Domain separation (OPEN)
+## Domain separation
 
-> **OPEN (must resolve before freeze).** Separation currently rests only on the 34-byte scriptCode
-> shape and the `SIGHASH_FORKID` bit. The ML-DSA-44 verify call uses the context-free API with an
-> empty context string (`src/crypto/mldsa.cpp:113-116`). Before freeze the specification SHOULD
-> adopt an explicit domain separator (a non-empty ML-DSA context string such as
-> `"AVN-RIP25-mldsa44"` combined with a network tag, or a tagged prehash) so a signature cannot be
-> replayed across networks (mainnet vs testnet) or, in a future asset-enabled revision, between AVN
-> and asset spends.
+Every ML-DSA-44 signature is bound to an explicit domain-separation **context** through FIPS 204's
+native context string (the `pre = 0x00 || len(ctx) || ctx` prefix prepended to the message before
+signing and verification). The context is:
+
+```
+ctx = "AVN/RIP-25/ML-DSA-44/v1/" || genesis_block_hash        (24 + 32 = 56 bytes)
+```
+
+The genesis block hash is the canonical, immutable per-network identifier, so a signature made for
+one network (e.g. testnet) can never verify on another (mainnet), independently of the transaction
+contents. The versioned prefix separates RIP-25 from any other ML-DSA use and lets a future context
+change be unambiguous (`.../v2`), and reserves room for a distinct context in a future asset-enabled
+revision (AVN vs asset spends).
+
+The context is a single process value, set once from the active network in `SelectParams()` and read
+by both the consensus verifier and the signer via `GetMLDsa44DomainContext()`
+(`src/script/interpreter.h`). It lives in the `bitcoin_consensus` layer because the script verifier
+cannot depend on chainparams; the network-selection layer pushes the value in. Signing and verifying
+therefore always agree, and there is no per-call-site value that could drift between mempool and
+consensus. Enforced by `mldsa44_sighash_tests.cpp` (`domain_separation_binds_the_network`).
+
+> Note: this is defence in depth. BIP143 already binds each input to its prevout, so a spend built on
+> one chain does not have a valid preimage on another; the context makes the network binding explicit
+> and independent of that, and generalises to non-network contexts.
 
 ## Open decisions (consolidated, must resolve before freeze)
 
 1. **Key derivation:** RESOLVED. The liboqs-RNG-hijack is replaced by an explicit, versioned,
    standards-aligned derandomized keygen (`xi = SHA256(DST || leaf)`, then FIPS-204
    `KeyGen_internal(xi)`), pinned by a known-answer vector (see Key derivation).
-2. **Domain separation:** add an explicit context/network separator (see Domain separation).
+2. **Domain separation:** RESOLVED. Every signature is bound to a FIPS-204 context string
+   `"AVN/RIP-25/ML-DSA-44/v1/" || genesis_block_hash`, set once from the active network in
+   `SelectParams()` and shared by signer and verifier, giving explicit per-network binding (see
+   Domain separation).
 3. **Resource limits:** define per-transaction and per-block PQ verification and size limits (see
    Resource limits).
 4. **Sighash policy:** RESOLVED. `SIGHASH_ALL | SIGHASH_FORKID` is the permanent and only rule; no

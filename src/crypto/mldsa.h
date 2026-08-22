@@ -51,22 +51,26 @@ bool KeyGenRandom(std::span<uint8_t, PUBKEY_SIZE> pubkey,
  * Sign a message with an ML-DSA-44 secret key.
  * @param[out] sig     Signature buffer, must be SIG_SIZE bytes.
  * @param[in]  msg     Message bytes.
+ * @param[in]  ctx     FIPS 204 context string (domain separation), 0..255 bytes.
  * @param[in]  seckey  Secret key, must be SECRETKEY_SIZE bytes.
  * @return true on success.
  */
 bool Sign(std::span<uint8_t, SIG_SIZE> sig,
           std::span<const uint8_t> msg,
+          std::span<const uint8_t> ctx,
           std::span<const uint8_t, SECRETKEY_SIZE> seckey);
 
 /**
  * Verify an ML-DSA-44 signature.
  * @param[in] sig     Signature, must be SIG_SIZE bytes.
  * @param[in] msg     Message bytes.
+ * @param[in] ctx     FIPS 204 context string; must match the one used to sign.
  * @param[in] pubkey  Public key, must be PUBKEY_SIZE bytes.
  * @return true if signature is valid.
  */
 bool Verify(std::span<const uint8_t, SIG_SIZE> sig,
             std::span<const uint8_t> msg,
+            std::span<const uint8_t> ctx,
             std::span<const uint8_t, PUBKEY_SIZE> pubkey);
 
 } // namespace mldsa

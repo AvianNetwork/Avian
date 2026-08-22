@@ -59,9 +59,13 @@ public:
      * Verify an ML-DSA-44 signature over msg.
      * @param sig  Must be exactly mldsa::SIG_SIZE bytes.
      * @param msg  Message that was signed.
+     * @param ctx  FIPS 204 domain-separation context; must match signing.
+     *             Consensus spends pass GetMLDsa44DomainContext(); the default
+     *             empty context is for standalone crypto round-trips only.
      */
     bool Verify(std::span<const uint8_t> sig,
-                std::span<const uint8_t> msg) const;
+                std::span<const uint8_t> msg,
+                std::span<const uint8_t> ctx = {}) const;
 
     bool operator==(const CPQPubKey& other) const
     {
@@ -156,10 +160,14 @@ public:
      * Sign a message with this key.
      * @param sig_out  Receives the signature; resized to mldsa::SIG_SIZE.
      * @param msg      Message to sign.
+     * @param ctx      FIPS 204 domain-separation context; must match verify.
+     *                 Consensus spends pass GetMLDsa44DomainContext(); the
+     *                 default empty context is for standalone crypto only.
      * @return true on success.
      */
     bool Sign(std::vector<uint8_t>& sig_out,
-              std::span<const uint8_t> msg) const;
+              std::span<const uint8_t> msg,
+              std::span<const uint8_t> ctx = {}) const;
 
     /** Return a read-only view of the raw secret key bytes. */
     std::span<const uint8_t, SIZE> GetData() const
