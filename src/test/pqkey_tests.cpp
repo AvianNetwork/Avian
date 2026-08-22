@@ -63,7 +63,7 @@ BOOST_AUTO_TEST_CASE(deterministic_keygen_from_seed)
 BOOST_AUTO_TEST_CASE(derivation_known_answer_vector)
 {
     // RIP-25 key-derivation known-answer vector.  This pins the exact mapping
-    //   seed -> xi = SHA256("AVN/RIP-25/ML-DSA-44/keygen/v1" || seed)
+    //   seed -> xi = SHA256("AVN/ML-DSA-44/keygen/v1" || seed)
     //        -> (pk, sk) = ML-DSA.KeyGen_internal(xi)
     // so the derivation can never silently drift (liboqs upgrade, struct-ABI
     // change, DST change, or expansion change all break these values).  If this
@@ -81,7 +81,7 @@ BOOST_AUTO_TEST_CASE(derivation_known_answer_vector)
     // Witness program is SHA256(pubkey); this is the on-chain commitment.
     const uint256 wp = key.GetPubKey().GetWitnessProgram();
     BOOST_CHECK_EQUAL(HexStr(wp),
-        "e7fb04e58cb66a825e9f045ea60e6a6d72bbefddb93343321bc64cd03c4265b2");
+        "a7da36522f995f7a2ccba0e8d10f6b7d2dcd7882486a38462176ba720823a0fb");
 
     // Sanity: the witness program equals SHA256 over the raw public key bytes.
     auto pk = key.GetPubKey().GetData();
@@ -94,7 +94,7 @@ BOOST_AUTO_TEST_CASE(derivation_known_answer_vector)
     uint256 skh;
     CSHA256().Write(sk.data(), sk.size()).Finalize(skh.begin());
     BOOST_CHECK_EQUAL(HexStr(skh),
-        "5e6259e974035d534b5007ee56b08beaf8d91a31d593cb786c8eede792e1b1c8");
+        "f59fd75b78cb6727f9c626dc82898ce6b5f8794418708330e686a1e1a5fc4099");
 
     // And the derived keypair must be internally consistent: a signature made
     // with sk verifies under pk.  This proves the packed sk matches the pk.

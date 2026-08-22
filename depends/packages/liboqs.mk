@@ -7,10 +7,10 @@
 # Ported from Ravencoin RIP-25 <https://github.com/RavenProject/Ravencoin/pull/1281>
 
 package=liboqs
-$(package)_version=0.12.0
+$(package)_version=0.16.0
 $(package)_download_path=https://github.com/open-quantum-safe/liboqs/archive/refs/tags/
 $(package)_file_name=$($(package)_version).tar.gz
-$(package)_sha256_hash=df999915204eb1eba311d89e83d1edd3a514d5a07374745d6a9e5b2dd0d59c08
+$(package)_sha256_hash=162d5b510518ee5f285f82fa1f16402a885176e818bf1b1a4c3c91c9a2f01eae
 $(package)_dependencies=
 
 define $(package)_set_vars

@@ -26,7 +26,7 @@ static constexpr size_t SEED_SIZE      = 32;   // Deterministic keygen seed
 /**
  * Deterministically derive an ML-DSA-44 keypair from a 32-byte seed.
  * The seed is domain-separated and expanded to the FIPS 204 keygen seed xi
- * (xi = SHA256("AVN/RIP-25/ML-DSA-44/keygen/v1" || seed)), then run through
+ * (xi = SHA256("AVN/ML-DSA-44/keygen/v1" || seed)), then run through
  * ML-DSA.KeyGen_internal; see doc/rip-25.md. The mapping is stable and pinned
  * by a known-answer vector, so the same seed always yields the same keypair.
  * @param[out] pubkey  Output buffer, must be PUBKEY_SIZE bytes.

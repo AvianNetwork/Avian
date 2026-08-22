@@ -139,7 +139,7 @@ All steps are hardened; the final step must be `/*h` (`src/script/descriptor.cpp
 the leaf. The keypair is then derived by this exact, normative algorithm:
 
 ```
-DST = "AVN/RIP-25/ML-DSA-44/keygen/v1"        (30 ASCII bytes, no trailing NUL)
+DST = "AVN/ML-DSA-44/keygen/v1"        (23 ASCII bytes, no trailing NUL)
 xi  = SHA256( DST || leaf )                    32-byte ML-DSA seed
 (public_key, secret_key) = ML-DSA.KeyGen_internal(xi)   (FIPS 204 Algorithm 6)
 ```
@@ -155,19 +155,23 @@ keypair; the derivation is independent of how randomness is drawn.
 The versioned domain-separation tag (`.../v1`) makes the derivation explicit and lets any future
 change be unambiguous (`.../v2`). The mapping is pinned by the known-answer vector below and by
 `derivation_known_answer_vector` in `src/test/pqkey_tests.cpp`, so it cannot drift silently across a
-liboqs upgrade, a struct-ABI change, or a change to the tag or the expansion.
+liboqs upgrade or a change to the tag.
 
-Implementation: `src/crypto/mldsa.cpp` `KeyGenFromSeed` computes `xi` and runs `KeyGen_internal` by
-calling the pinned liboqs reference primitives (`pqcrystals_ml_dsa_44_ref_*`) directly with `xi`,
-with no process-global RNG state and no mutex. This replaces the earlier approach, which forced
-determinism by temporarily swapping liboqs's global RNG for a SHA256 counter-mode KDF and so coupled
-every address to liboqs's internal RNG call order.
+Implementation: `src/crypto/mldsa.cpp` `KeyGenFromSeed` computes `xi` and runs FIPS-204
+`KeyGen_internal(xi)` through liboqs's single seeded-keygen entry point
+(`..._keypair_internal(pk, sk, seed)`, mldsa-native backend, liboqs >= 0.16), a standardized
+byte-buffer contract with no struct-ABI coupling. liboqs exposes no public seeded keypair, so this
+one internal symbol is the only such dependency; sign and verify use the public context-string API.
+Because `KeyGen_internal(xi)` is standardized, the output was confirmed byte-identical across the
+0.12.0 pqcrystals backend and the 0.16.0 mldsa-native backend. This replaces the original approach,
+which forced determinism by temporarily swapping liboqs's global RNG for a SHA256 counter-mode KDF
+and so coupled every address to liboqs's internal RNG call order.
 
 Reference known-answer vector (`leaf = 0x00,0x01,...,0x1f`):
 
 ```
-witness_program = SHA256(public_key) = e7fb04e58cb66a825e9f045ea60e6a6d72bbefddb93343321bc64cd03c4265b2
-SHA256(secret_key)                   = 5e6259e974035d534b5007ee56b08beaf8d91a31d593cb786c8eede792e1b1c8
+witness_program = SHA256(public_key) = a7da36522f995f7a2ccba0e8d10f6b7d2dcd7882486a38462176ba720823a0fb
+SHA256(secret_key)                   = f59fd75b78cb6727f9c626dc82898ce6b5f8794418708330e686a1e1a5fc4099
 ```
 
 ## Activation
@@ -234,7 +238,7 @@ native context string (the `pre = 0x00 || len(ctx) || ctx` prefix prepended to t
 signing and verification). The context is:
 
 ```
-ctx = "AVN/RIP-25/ML-DSA-44/v1/" || genesis_block_hash        (24 + 32 = 56 bytes)
+ctx = "AVN/ML-DSA-44/v1/" || genesis_block_hash        (24 + 32 = 56 bytes)
 ```
 
 The genesis block hash is the canonical, immutable per-network identifier, so a signature made for
@@ -260,7 +264,7 @@ consensus. Enforced by `mldsa44_sighash_tests.cpp` (`domain_separation_binds_the
    standards-aligned derandomized keygen (`xi = SHA256(DST || leaf)`, then FIPS-204
    `KeyGen_internal(xi)`), pinned by a known-answer vector (see Key derivation).
 2. **Domain separation:** RESOLVED. Every signature is bound to a FIPS-204 context string
-   `"AVN/RIP-25/ML-DSA-44/v1/" || genesis_block_hash`, set once from the active network in
+   `"AVN/ML-DSA-44/v1/" || genesis_block_hash`, set once from the active network in
    `SelectParams()` and shared by signer and verifier, giving explicit per-network binding (see
    Domain separation).
 3. **Resource limits:** RESOLVED. Each active ML-DSA-44 verification is charged
@@ -276,7 +280,7 @@ consensus. Enforced by `mldsa44_sighash_tests.cpp` (`domain_separation_binds_the
    - **Build:** with `WITH_LIBOQS` ON (the default) a missing liboqs is a `FATAL_ERROR`; disabling
      post-quantum support requires an explicit `-DWITH_LIBOQS=OFF` (`cmake/liboqs.cmake`).
    - **Pin:** liboqs is pinned by exact version plus tarball SHA-256 in `depends/packages/liboqs.mk`
-     (`0.12.0`, `df9999...9c08`), verified against the downloaded artifact, so the depends build is
+     (`0.16.0`, `162d5b...01eae`), verified against the downloaded artifact, so the depends build is
      reproducible and rejects any tampered source.
    - **Runtime:** `AppInitSanityChecks` refuses to start (via `mldsa::IsAvailable()`) when the build
      lacks liboqs and the selected network's `DEPLOYMENT_MLDSA44` is not `NEVER_ACTIVE`. A stub
