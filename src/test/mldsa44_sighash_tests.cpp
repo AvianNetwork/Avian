@@ -60,7 +60,7 @@ BOOST_AUTO_TEST_CASE(sighash_policy_is_fixed_and_carries_no_type_byte)
     const CScript scriptCode = CScript() << OP_2 << program_bytes;
     const CMutableTransaction txSpend = BuildSpendingTransaction(CScript(), CScriptWitness(), txCredit);
 
-    const unsigned int flags = SCRIPT_VERIFY_P2SH | SCRIPT_VERIFY_WITNESS | SCRIPT_VERIFY_PQ_HYBRID;
+    const unsigned int flags = SCRIPT_VERIFY_P2SH | SCRIPT_VERIFY_WITNESS | SCRIPT_VERIFY_MLDSA44;
 
     // Run the real consensus verifier with an arbitrary witness stack. The BIP143
     // sighash does not depend on the witness, so a checker built from any spend of
@@ -142,7 +142,7 @@ BOOST_AUTO_TEST_CASE(domain_separation_binds_the_network)
                                           SIGHASH_ALL | SIGHASH_FORKID, amount,
                                           SigVersion::WITNESS_V0);
 
-    const unsigned int flags = SCRIPT_VERIFY_P2SH | SCRIPT_VERIFY_WITNESS | SCRIPT_VERIFY_PQ_HYBRID;
+    const unsigned int flags = SCRIPT_VERIFY_P2SH | SCRIPT_VERIFY_WITNESS | SCRIPT_VERIFY_MLDSA44;
     auto verify = [&](const std::vector<uint8_t>& sig, ScriptError& err) {
         CScriptWitness wit;
         wit.stack.push_back(sig);
@@ -176,6 +176,26 @@ BOOST_AUTO_TEST_CASE(domain_separation_binds_the_network)
     err = SCRIPT_ERR_OK;
     BOOST_CHECK(verify(sig_ok, err));
     BOOST_CHECK_EQUAL(err, SCRIPT_ERR_OK);
+}
+
+BOOST_AUTO_TEST_CASE(pq_verify_sigop_cost_gated_on_activation)
+{
+    // A witness-v2 (ML-DSA-44) spend counts MLDSA44_SIGOP_COST sigops once the PQ
+    // rule is active, and 0 before it, so pre-activation cost accounting is
+    // unchanged while active blocks/txs are bounded by the existing sigop limits.
+    // Shape-based (no real verify), so it runs with or without liboqs.
+    std::vector<unsigned char> program(32, 0xAB);
+    const CScript spk = CScript() << OP_2 << program;
+    CScriptWitness wit;
+    wit.stack.emplace_back(mldsa::SIG_SIZE, 0x11);
+    wit.stack.emplace_back(mldsa::PUBKEY_SIZE, 0x22);
+
+    const unsigned int base = SCRIPT_VERIFY_WITNESS | SCRIPT_VERIFY_P2SH;
+    // Pre-activation: witness v2 still contributes nothing.
+    BOOST_CHECK_EQUAL(CountWitnessSigOps(CScript(), spk, &wit, base), 0U);
+    // Active: one PQ verify is charged the fixed sigop cost.
+    BOOST_CHECK_EQUAL(CountWitnessSigOps(CScript(), spk, &wit, base | SCRIPT_VERIFY_MLDSA44),
+                      static_cast<size_t>(MLDSA44_SIGOP_COST));
 }
 
 BOOST_AUTO_TEST_SUITE_END()

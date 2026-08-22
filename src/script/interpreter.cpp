@@ -2049,7 +2049,7 @@ static bool VerifyWitnessProgram(const CScriptWitness& witness, int witversion, 
         // RIP-25: ML-DSA-44 post-quantum witness v2 spending rule.
         // Witness stack must be: [sig (2420 bytes), pubkey (1312 bytes)]
         // Witness program is SHA256(pubkey).
-        if (!(flags & SCRIPT_VERIFY_PQ_HYBRID)) {
+        if (!(flags & SCRIPT_VERIFY_MLDSA44)) {
             if (flags & SCRIPT_VERIFY_DISCOURAGE_UPGRADABLE_WITNESS_PROGRAM) {
                 return set_error(serror, SCRIPT_ERR_DISCOURAGE_UPGRADABLE_WITNESS_PROGRAM);
             }
@@ -2228,7 +2228,7 @@ bool VerifyScript(const CScript& scriptSig, const CScript& scriptPubKey, const C
     return set_success(serror);
 }
 
-size_t static WitnessSigOps(int witversion, const std::vector<unsigned char>& witprogram, const CScriptWitness& witness)
+size_t static WitnessSigOps(int witversion, const std::vector<unsigned char>& witprogram, const CScriptWitness& witness, unsigned int flags)
 {
     if (witversion == 0) {
         if (witprogram.size() == WITNESS_V0_KEYHASH_SIZE)
@@ -2238,6 +2238,15 @@ size_t static WitnessSigOps(int witversion, const std::vector<unsigned char>& wi
             CScript subscript(witness.stack.back().begin(), witness.stack.back().end());
             return subscript.GetSigOpCount(true);
         }
+    }
+
+    // RIP-25: an ML-DSA-44 spend (witness v2, 32-byte program) performs exactly
+    // one signature verification. Charge it a sigop cost so it counts against
+    // the block and per-tx sigop limits and the sigop-based fee weighting, but
+    // only once the post-quantum rule is active (the same gate as the
+    // verification itself), so pre-activation cost accounting is unchanged.
+    if (witversion == 2 && witprogram.size() == 32 && (flags & SCRIPT_VERIFY_MLDSA44)) {
+        return MLDSA44_SIGOP_COST;
     }
 
     // Future flags may be implemented here.
@@ -2256,7 +2265,7 @@ size_t CountWitnessSigOps(const CScript& scriptSig, const CScript& scriptPubKey,
     int witnessversion;
     std::vector<unsigned char> witnessprogram;
     if (scriptPubKey.IsWitnessProgram(witnessversion, witnessprogram)) {
-        return WitnessSigOps(witnessversion, witnessprogram, witness ? *witness : witnessEmpty);
+        return WitnessSigOps(witnessversion, witnessprogram, witness ? *witness : witnessEmpty, flags);
     }
 
     if (scriptPubKey.IsPayToScriptHash() && scriptSig.IsPushOnly()) {
@@ -2268,7 +2277,7 @@ size_t CountWitnessSigOps(const CScript& scriptSig, const CScript& scriptPubKey,
         }
         CScript subscript(data.begin(), data.end());
         if (subscript.IsWitnessProgram(witnessversion, witnessprogram)) {
-            return WitnessSigOps(witnessversion, witnessprogram, witness ? *witness : witnessEmpty);
+            return WitnessSigOps(witnessversion, witnessprogram, witness ? *witness : witnessEmpty, flags);
         }
     }
 

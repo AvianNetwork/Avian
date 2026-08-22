@@ -149,7 +149,7 @@ enum : uint32_t {
     SCRIPT_ENABLE_SIGHASH_FORKID = (1U << 21),
 
     // RIP-25: Enforce ML-DSA-44 post-quantum signing rules for witness v2 outputs.
-    SCRIPT_VERIFY_PQ_HYBRID = (1U << 22),
+    SCRIPT_VERIFY_MLDSA44 = (1U << 22),
 
     // AIP-0009: allow push data up to MAX_SCRIPT_ELEMENT_SIZE_ANS_V2 after DEPLOYMENT_ANS_V2.
     SCRIPT_VERIFY_ANS_V2 = (1U << 23),

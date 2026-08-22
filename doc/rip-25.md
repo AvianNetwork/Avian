@@ -96,7 +96,7 @@ sighash    = SignatureHash(scriptCode, tx, nIn, 0x41, amount, SigVersion::WITNES
 
 ### Verification algorithm
 
-When `SCRIPT_VERIFY_PQ_HYBRID` is set (deployment active), a witness v2 / 32-byte-program input is
+When `SCRIPT_VERIFY_MLDSA44` is set (deployment active), a witness v2 / 32-byte-program input is
 verified as follows (`interpreter.cpp:2027-2068`), failing on the first violated rule:
 
 1. `stack.size() == 2`, else `SCRIPT_ERR_WITNESS_PROGRAM_MISMATCH`.
@@ -117,7 +117,7 @@ RIP-25 outputs are native SegWit only.
 
 ### Pre-activation semantics
 
-Before `SCRIPT_VERIFY_PQ_HYBRID` is set, a witness v2 / 32-byte-program output is treated as an
+Before `SCRIPT_VERIFY_MLDSA44` is set, a witness v2 / 32-byte-program output is treated as an
 unknown future upgrade and is **anyone-can-spend** at the consensus layer (`interpreter.cpp:2031-2036`
 returns `true`), unless `SCRIPT_VERIFY_DISCOURAGE_UPGRADABLE_WITNESS_PROGRAM` is set (relay policy),
 in which case it returns `SCRIPT_ERR_DISCOURAGE_UPGRADABLE_WITNESS_PROGRAM`.
@@ -182,27 +182,50 @@ RIP-25 activates via BIP9 versionbits, deployment `mldsa44`, bit 11
 | regtest | `ALWAYS_ACTIVE` | 108 / 144 |
 
 When the deployment is active at a block, `GetBlockScriptFlags` adds
-`SCRIPT_VERIFY_PQ_HYBRID = 1U << 22` (`src/validation.cpp:2667-2670`, `interpreter.h:151-152`).
+`SCRIPT_VERIFY_MLDSA44 = 1U << 22` (`src/validation.cpp:2667-2670`, `interpreter.h:151-152`).
 
-> Note on naming: the flag is called `SCRIPT_VERIFY_PQ_HYBRID`, but the implemented rule is pure
-> ML-DSA-44 with no ECDSA component. A true hybrid scheme is a separate future output type.
+> The flag enforces pure ML-DSA-44 (no ECDSA component). A true hybrid (ECDSA+ML-DSA) scheme, if
+> ever added, would be a separate future output type with its own flag; this one is named
+> `SCRIPT_VERIFY_MLDSA44` accordingly.
 
-**Mempool vs consensus asymmetry:** `SCRIPT_VERIFY_PQ_HYBRID` is in `STANDARD_SCRIPT_VERIFY_FLAGS`
+**Mempool vs consensus asymmetry:** `SCRIPT_VERIFY_MLDSA44` is in `STANDARD_SCRIPT_VERIFY_FLAGS`
 but not `MANDATORY_SCRIPT_VERIFY_FLAGS` (`src/policy/policy.h`). The mempool therefore enforces
 RIP-25 verification on all networks regardless of activation, while consensus enforces it only once
 the deployment is active. This is documented so implementers do not rely on mempool acceptance as
 evidence of consensus validity before activation.
 
-## Resource limits and DoS (OPEN)
+## Resource limits and DoS
 
-> **OPEN (must resolve before freeze).** No PQ-specific cost accounting exists today. A witness v2
-> input contributes 0 sigops (`interpreter.cpp:2205-2219`), and `IsWitnessStandard`
-> (`src/policy/policy.cpp:264-330`) has no witness-v2 branch, so the 2420/1312-byte elements bypass
-> the standard 80-byte stack-item limit. An ML-DSA-44 verification is CPU-heavy yet currently free
-> against every limit. Before freeze the specification MUST define at least: maximum PQ
-> verifications per transaction and per block, maximum PQ witness element and total witness size,
-> mempool admission caps, and a minimum relay fee floor sized so a ~3.7 KB spend plus its
-> verification cannot be purchased too cheaply.
+A measured ML-DSA-44 verification costs ~16.5 microseconds, which is *cheaper* than an ECDSA
+verification (~50 us). The dominant cost of a RIP-25 input is its size: the ~3.7 KB witness
+(2420 + 1312 bytes) is already accounted for by transaction weight, and `MAX_BLOCK_WEIGHT` alone
+bounds a block to roughly 2000 PQ verifications (~35 ms), which is well within the range the network
+already tolerates for ECDSA. RIP-25 is therefore not a validation-time DoS vector on its own.
+
+To make that bound explicit and to price the operation, each active ML-DSA-44 verification is charged
+a **sigop cost** (`MLDSA44_SIGOP_COST = 50`, `src/script/script.h`), counted in `WitnessSigOps`
+(`src/script/interpreter.cpp`) only when `SCRIPT_VERIFY_MLDSA44` is set. Charging it through the
+existing sigop machinery reuses three limits at once, with no parallel accounting system:
+
+- **Per block:** it counts toward `MAX_BLOCK_SIGOPS_COST` (80000), capping a block at 1600 PQ
+  verifications.
+- **Per transaction (policy):** it counts toward `MAX_STANDARD_TX_SIGOPS_COST` (16000), capping a
+  standard transaction at 320 PQ verifications.
+- **Fees:** `DEFAULT_BYTES_PER_SIGOP` inflates the virtual size by the sigop count, so a PQ spend
+  pays a fee commensurate with its verification, not only its weight.
+
+The value 50 matches the Tapscript per-checksig cost (`VALIDATION_WEIGHT_PER_SIGOP_PASSED`); it is a
+conservative over-pricing given the measured ~16.5 us, chosen for a clean, consistent ceiling.
+Because the charge is gated on `SCRIPT_VERIFY_MLDSA44`, pre-activation cost accounting is unchanged.
+
+**Standardness.** `IsWitnessStandard` (`src/policy/policy.cpp`) has a witness-v2 branch requiring the
+witness to be exactly the canonical `[signature (2420), public_key (1312)]`; any other shape is
+non-standard and does not relay, so oversized or padded v2 witnesses cannot bloat the mempool. Both
+the sigop cost and the standardness branch are covered by `mldsa44_sighash_tests.cpp`.
+
+> A dedicated hybrid signature (a real ML-DSA + ECDSA output) would carry two signatures and could
+> warrant a higher per-verification charge; that is a separate future output type and out of scope
+> here.
 
 ## Domain separation
 
@@ -240,8 +263,10 @@ consensus. Enforced by `mldsa44_sighash_tests.cpp` (`domain_separation_binds_the
    `"AVN/RIP-25/ML-DSA-44/v1/" || genesis_block_hash`, set once from the active network in
    `SelectParams()` and shared by signer and verifier, giving explicit per-network binding (see
    Domain separation).
-3. **Resource limits:** define per-transaction and per-block PQ verification and size limits (see
-   Resource limits).
+3. **Resource limits:** RESOLVED. Each active ML-DSA-44 verification is charged
+   `MLDSA44_SIGOP_COST = 50` sigops, bounding a block to 1600 and a standard transaction to 320 PQ
+   verifications and tying fees to the cost; `IsWitnessStandard` requires the canonical two-element
+   witness (see Resource limits and DoS).
 4. **Sighash policy:** RESOLVED. `SIGHASH_ALL | SIGHASH_FORKID` is the permanent and only rule; no
    sighash-type byte is carried in the witness. The two magic `0x41` literals are replaced by the
    named `SIGHASH_ALL | SIGHASH_FORKID` on both the signing and verifying sides, and the rule is

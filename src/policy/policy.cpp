@@ -10,6 +10,7 @@
 #include <coins.h>
 #include <consensus/amount.h>
 #include <consensus/consensus.h>
+#include <crypto/mldsa.h>
 #include <consensus/validation.h>
 #include <policy/feerate.h>
 #include <primitives/transaction.h>
@@ -345,6 +346,18 @@ bool IsWitnessStandard(const CTransaction& tx, const CCoinsViewCache& mapInputs)
                 // 0 stack elements; this is already invalid by consensus rules
                 return false;
             }
+        }
+
+        // Check policy limits for RIP-25 ML-DSA-44 spends (witness v2, 32-byte
+        // program, not P2SH-wrapped). The witness must be exactly the canonical
+        // [signature (SIG_SIZE), pubkey (PUBKEY_SIZE)] and nothing else, matching
+        // the consensus rule, so malformed or padded v2 witnesses do not relay or
+        // bloat the mempool.
+        if (witnessversion == 2 && witnessprogram.size() == 32 && !p2sh) {
+            const auto& stack = tx.vin[i].scriptWitness.stack;
+            if (stack.size() != 2) return false;
+            if (stack[0].size() != mldsa::SIG_SIZE) return false;
+            if (stack[1].size() != mldsa::PUBKEY_SIZE) return false;
         }
     }
     return true;

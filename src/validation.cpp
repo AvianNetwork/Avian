@@ -2664,7 +2664,7 @@ static unsigned int GetBlockScriptFlags(const CBlockIndex& block_index, const Ch
 
     // RIP-25: Enforce ML-DSA-44 post-quantum signing rules after DEPLOYMENT_MLDSA44 activation
     if (DeploymentActiveAt(block_index, chainman, Consensus::DEPLOYMENT_MLDSA44)) {
-        flags |= SCRIPT_VERIFY_PQ_HYBRID;
+        flags |= SCRIPT_VERIFY_MLDSA44;
     }
 
     if (DeploymentActiveAt(block_index, chainman, Consensus::DEPLOYMENT_ANS_V2)) {
