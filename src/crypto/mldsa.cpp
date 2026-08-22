@@ -208,6 +208,8 @@ bool Verify(std::span<const uint8_t, SIG_SIZE> sig,
     return rc == 0;
 }
 
+bool IsAvailable() { return true; }
+
 #else // HAVE_LIBOQS not defined — stub implementations
 
 bool KeyGenFromSeed(std::span<uint8_t, PUBKEY_SIZE>, std::span<uint8_t, SECRETKEY_SIZE>,
@@ -224,6 +226,8 @@ bool Sign(std::span<uint8_t, SIG_SIZE>, std::span<const uint8_t>,
 bool Verify(std::span<const uint8_t, SIG_SIZE>, std::span<const uint8_t>,
             std::span<const uint8_t>, std::span<const uint8_t, PUBKEY_SIZE>)
 { return false; }
+
+bool IsAvailable() { return false; }
 
 #endif // HAVE_LIBOQS
 

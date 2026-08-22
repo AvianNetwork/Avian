@@ -73,6 +73,15 @@ bool Verify(std::span<const uint8_t, SIG_SIZE> sig,
             std::span<const uint8_t> ctx,
             std::span<const uint8_t, PUBKEY_SIZE> pubkey);
 
+/**
+ * @return true if this build has real ML-DSA-44 (liboqs) support; false if it
+ *         was built without liboqs, in which case KeyGen/Sign/Verify are stubs
+ *         that return false. A node built without liboqs must refuse to run as a
+ *         consensus node on any network where the RIP-25 deployment can activate,
+ *         since the stub verifier would reject every post-quantum output.
+ */
+bool IsAvailable();
+
 } // namespace mldsa
 
 #endif // BITCOIN_CRYPTO_MLDSA_H

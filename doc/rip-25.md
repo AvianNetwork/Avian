@@ -271,13 +271,17 @@ consensus. Enforced by `mldsa44_sighash_tests.cpp` (`domain_separation_binds_the
    sighash-type byte is carried in the witness. The two magic `0x41` literals are replaced by the
    named `SIGHASH_ALL | SIGHASH_FORKID` on both the signing and verifying sides, and the rule is
    locked behaviorally by `mldsa44_sighash_tests.cpp` (see Signature message).
-5. **liboqs requirement:** PARTIALLY RESOLVED. The build no longer silently downgrades: with
-   `WITH_LIBOQS` ON (the default) a missing liboqs is now a `FATAL_ERROR`, and disabling
-   post-quantum support requires an explicit `-DWITH_LIBOQS=OFF` (`cmake/liboqs.cmake`). The stub
-   verifier still returns `false` when built that way (`src/crypto/mldsa.cpp`), so such a binary
-   must not act as a validating node after activation. Remaining before freeze: pin liboqs to an
-   exact revision (currently the 0.12.0 tag plus sha256 in `depends/packages/liboqs.mk`) and assert
-   the release build cannot reach the stub path.
+5. **liboqs requirement:** RESOLVED. Three defences make a stub-only node impossible to run into a
+   consensus split:
+   - **Build:** with `WITH_LIBOQS` ON (the default) a missing liboqs is a `FATAL_ERROR`; disabling
+     post-quantum support requires an explicit `-DWITH_LIBOQS=OFF` (`cmake/liboqs.cmake`).
+   - **Pin:** liboqs is pinned by exact version plus tarball SHA-256 in `depends/packages/liboqs.mk`
+     (`0.12.0`, `df9999...9c08`), verified against the downloaded artifact, so the depends build is
+     reproducible and rejects any tampered source.
+   - **Runtime:** `AppInitSanityChecks` refuses to start (via `mldsa::IsAvailable()`) when the build
+     lacks liboqs and the selected network's `DEPLOYMENT_MLDSA44` is not `NEVER_ACTIVE`. A stub
+     binary can therefore only run where the deployment can never activate; the moment mainnet is
+     given a real `nStartTime`, stub builds are refused there too.
 
 ## Test vectors
 
