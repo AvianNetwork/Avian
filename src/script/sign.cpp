@@ -520,12 +520,13 @@ static bool SignStep(const SigningProvider& provider, const BaseSignatureCreator
         return SignTaproot(provider, creator, WitnessV1Taproot(XOnlyPubKey{vSolutions[0]}), sigdata, ret);
 
     case TxoutType::WITNESS_V2_MLDSA44: {
-        // vSolutions[0] is the 32-byte witness program = SHA256(mldsa_pubkey)
+        // vSolutions[0] is the 32-byte witness program = SHA256(mldsa_pubkey).
+        // CreateMLDsa44Sig is virtual: the real creator produces a genuine
+        // signature, the dummy creator produces a correctly-sized placeholder
+        // (for fee estimation), and other creators default to unsupported.
         uint256 program(vSolutions[0]);
-        const auto* mtxcreator = dynamic_cast<const MutableTransactionSignatureCreator*>(&creator);
-        if (!mtxcreator) return false;
         std::vector<unsigned char> sig, pubkey;
-        if (!mtxcreator->CreateMLDsa44Sig(provider, sig, pubkey, program)) return false;
+        if (!creator.CreateMLDsa44Sig(provider, sig, pubkey, program)) return false;
         // Witness stack: [sig, pubkey] (sig pushed first so it's item 0 at stack top after pubkey)
         ret.push_back(std::move(sig));
         ret.push_back(std::move(pubkey));
@@ -797,6 +798,13 @@ public:
     bool CreateSchnorrSig(const SigningProvider& provider, std::vector<unsigned char>& sig, const XOnlyPubKey& pubkey, const uint256* leaf_hash, const uint256* tweak, SigVersion sigversion) const override
     {
         sig.assign(64, '\000');
+        return true;
+    }
+    bool CreateMLDsa44Sig(const SigningProvider& provider, std::vector<unsigned char>& sig_out, std::vector<unsigned char>& pubkey_out, const uint256& program) const override
+    {
+        // RIP-25: dummy witness of the exact spend sizes for fee estimation.
+        sig_out.assign(mldsa::SIG_SIZE, '\000');
+        pubkey_out.assign(mldsa::PUBKEY_SIZE, '\000');
         return true;
     }
 };
