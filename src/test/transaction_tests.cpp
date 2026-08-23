@@ -71,6 +71,9 @@ static std::map<std::string, unsigned int> mapFlagNames = {
     {std::string("DISCOURAGE_UPGRADABLE_PUBKEYTYPE"), (unsigned int)SCRIPT_VERIFY_DISCOURAGE_UPGRADABLE_PUBKEYTYPE},
     {std::string("DISCOURAGE_OP_SUCCESS"), (unsigned int)SCRIPT_VERIFY_DISCOURAGE_OP_SUCCESS},
     {std::string("DISCOURAGE_UPGRADABLE_TAPROOT_VERSION"), (unsigned int)SCRIPT_VERIFY_DISCOURAGE_UPGRADABLE_TAPROOT_VERSION},
+    {std::string("SIGHASH_FORKID"), (unsigned int)SCRIPT_ENABLE_SIGHASH_FORKID},
+    {std::string("PQ_HYBRID"), (unsigned int)SCRIPT_VERIFY_PQ_HYBRID},
+    {std::string("ANS_V2"), (unsigned int)SCRIPT_VERIFY_ANS_V2},
 };
 
 unsigned int ParseScriptFlags(std::string strFlags)
