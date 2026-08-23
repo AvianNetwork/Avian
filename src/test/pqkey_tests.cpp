@@ -18,6 +18,11 @@
 
 BOOST_AUTO_TEST_SUITE(pqkey_tests)
 
+// ML-DSA-44 keys are backed by liboqs. When the build is configured with
+// WITH_LIBOQS=OFF, mldsa.cpp falls back to stubs and CPQKey cannot generate or
+// sign, so these tests are compiled out (matching descriptor_mldsa44_test).
+#ifdef HAVE_LIBOQS
+
 BOOST_AUTO_TEST_CASE(keygen_roundtrip)
 {
     // Generate a key pair
@@ -144,5 +149,18 @@ BOOST_AUTO_TEST_CASE(setkey_data_roundtrip)
 
     BOOST_CHECK(pubkey.Verify(std::span<const uint8_t>(sig), std::span<const uint8_t>(msg)));
 }
+
+#else // HAVE_LIBOQS not defined
+
+BOOST_AUTO_TEST_CASE(pqkey_tests_require_liboqs)
+{
+    // Built with WITH_LIBOQS=OFF: post-quantum keys are unavailable, so there is
+    // nothing to exercise here. The suite exists so the run does not report a
+    // hard failure for an intentionally-disabled optional feature.
+    BOOST_TEST_MESSAGE("pqkey_tests skipped: built without liboqs (WITH_LIBOQS=OFF)");
+    BOOST_CHECK(true);
+}
+
+#endif // HAVE_LIBOQS
 
 BOOST_AUTO_TEST_SUITE_END()
