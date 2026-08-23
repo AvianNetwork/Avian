@@ -559,6 +559,20 @@ public:
         consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT].threshold = 1512;
         consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT].period = 2016;
 
+        consensus.vDeployments[Consensus::DEPLOYMENT_MLDSA44].bit = 11;
+        consensus.vDeployments[Consensus::DEPLOYMENT_MLDSA44].nStartTime = Consensus::BIP9Deployment::NEVER_ACTIVE;
+        consensus.vDeployments[Consensus::DEPLOYMENT_MLDSA44].nTimeout = Consensus::BIP9Deployment::NO_TIMEOUT;
+        consensus.vDeployments[Consensus::DEPLOYMENT_MLDSA44].min_activation_height = 0;
+        consensus.vDeployments[Consensus::DEPLOYMENT_MLDSA44].threshold = 1512;
+        consensus.vDeployments[Consensus::DEPLOYMENT_MLDSA44].period = 2016;
+
+        consensus.vDeployments[Consensus::DEPLOYMENT_ANS_V2].bit = 12;
+        consensus.vDeployments[Consensus::DEPLOYMENT_ANS_V2].nStartTime = Consensus::BIP9Deployment::NEVER_ACTIVE;
+        consensus.vDeployments[Consensus::DEPLOYMENT_ANS_V2].nTimeout = Consensus::BIP9Deployment::NO_TIMEOUT;
+        consensus.vDeployments[Consensus::DEPLOYMENT_ANS_V2].min_activation_height = 0;
+        consensus.vDeployments[Consensus::DEPLOYMENT_ANS_V2].threshold = 1512;
+        consensus.vDeployments[Consensus::DEPLOYMENT_ANS_V2].period = 2016;
+
         // message start is defined as the first 4 bytes of the sha256d of the block script
         HashWriter h{};
         h << consensus.signet_challenge;
