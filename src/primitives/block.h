@@ -13,6 +13,7 @@
 #include <uint256.h>
 #include <util/time.h>
 
+#include <atomic>
 #include <string>
 
 #include <util/fs.h>
@@ -63,13 +64,45 @@ public:
     uint32_t nBits;
     uint32_t nNonce;
 
-    // Cached PoW hash (not serialized, mutable for const access)
+    // Cached PoW hash (not serialized, mutable for const access). The flag is
+    // atomic because the same header object may be hashed from several threads
+    // concurrently (e.g. parallel ProcessNewBlock); GetHash() publishes the hash
+    // exactly once with release ordering so lockless readers never observe a
+    // torn value. See GetHash() in block.cpp.
     mutable uint256 m_cachedPoWHash;
-    mutable bool m_hasPoWHash{false};
+    mutable std::atomic<bool> m_hasPoWHash{false};
 
     CBlockHeader()
     {
         SetNull();
+    }
+
+    // std::atomic is not copyable/movable, so the implicitly-declared special
+    // members are deleted; provide ones that carry the header fields but do NOT
+    // copy the cache. A copy starts with an empty cache and recomputes on demand:
+    // copying a warm cache and then mutating the copy (as block templates do)
+    // would otherwise leave a stale hash. GetHash() is cheap to repopulate.
+    CBlockHeader(const CBlockHeader& o)
+        : nVersion(o.nVersion), hashPrevBlock(o.hashPrevBlock), hashMerkleRoot(o.hashMerkleRoot),
+          nTime(o.nTime), nBits(o.nBits), nNonce(o.nNonce) {}
+    CBlockHeader(CBlockHeader&& o) noexcept
+        : nVersion(o.nVersion), hashPrevBlock(o.hashPrevBlock), hashMerkleRoot(o.hashMerkleRoot),
+          nTime(o.nTime), nBits(o.nBits), nNonce(o.nNonce) {}
+    CBlockHeader& operator=(const CBlockHeader& o)
+    {
+        nVersion = o.nVersion; hashPrevBlock = o.hashPrevBlock; hashMerkleRoot = o.hashMerkleRoot;
+        nTime = o.nTime; nBits = o.nBits; nNonce = o.nNonce;
+        m_cachedPoWHash.SetNull();
+        m_hasPoWHash.store(false, std::memory_order_relaxed);
+        return *this;
+    }
+    CBlockHeader& operator=(CBlockHeader&& o) noexcept
+    {
+        nVersion = o.nVersion; hashPrevBlock = o.hashPrevBlock; hashMerkleRoot = o.hashMerkleRoot;
+        nTime = o.nTime; nBits = o.nBits; nNonce = o.nNonce;
+        m_cachedPoWHash.SetNull();
+        m_hasPoWHash.store(false, std::memory_order_relaxed);
+        return *this;
     }
 
     SERIALIZE_METHODS(CBlockHeader, obj) {

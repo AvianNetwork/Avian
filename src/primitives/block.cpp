@@ -227,38 +227,49 @@ uint256 CBlockHeader::GetHash() const
         return GetSHA256Hash();
     }
 
-    // Per-object cache (fast path, no lock needed)
-    if (m_hasPoWHash) {
+    // Per-object cache (lockless fast path). The acquire load pairs with the
+    // release store in the publish step below, so if the flag reads true the
+    // value write has happened-before and is fully visible.
+    if (m_hasPoWHash.load(std::memory_order_acquire)) {
         return m_cachedPoWHash;
     }
 
     // Global PowCache lookup (keyed by SHA256d header hash)
-    uint256 headerHash = GetSHA256Hash();
+    const uint256 headerHash = GetSHA256Hash();
+    uint256 powHash;
+    bool found = false;
     {
         LOCK(cs_powcache);
         auto it = g_pow_cache.find(headerHash);
         if (it != g_pow_cache.end()) {
-            m_cachedPoWHash = it->second;
-            m_hasPoWHash = true;
-            return m_cachedPoWHash;
+            powHash = it->second;
+            found = true;
         }
     }
 
-    // Cache miss: compute the expensive PoW hash
-    m_cachedPoWHash = ComputePoWHash(g_nX16rtTimestamp, g_nDualAlgoTimestamp);
-    m_hasPoWHash = true;
-
-    // Store in global cache
-    {
+    if (!found) {
+        // Cache miss: compute the expensive PoW hash (outside any lock).
+        powHash = ComputePoWHash(g_nX16rtTimestamp, g_nDualAlgoTimestamp);
         LOCK(cs_powcache);
         if (g_pow_cache.size() >= g_pow_cache_max_size * 2) {
             // Simple eviction: clear when we hit 2x max size
             g_pow_cache.clear();
         }
-        g_pow_cache[headerHash] = m_cachedPoWHash;
+        g_pow_cache[headerHash] = powHash;
     }
 
-    return m_cachedPoWHash;
+    // Publish to the per-object cache exactly once. Guarding the write under
+    // cs_powcache (and by the flag) means only the first thread ever writes
+    // m_cachedPoWHash, so the lockless readers above never race with a write.
+    {
+        LOCK(cs_powcache);
+        if (!m_hasPoWHash.load(std::memory_order_relaxed)) {
+            m_cachedPoWHash = powHash;
+            m_hasPoWHash.store(true, std::memory_order_release);
+        }
+    }
+
+    return powHash;
 }
 
 uint256 CBlockHeader::GetX16RHash() const
