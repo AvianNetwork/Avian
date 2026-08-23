@@ -72,7 +72,13 @@ public:
         SetNull();
     }
 
-    SERIALIZE_METHODS(CBlockHeader, obj) { READWRITE(obj.nVersion, obj.hashPrevBlock, obj.hashMerkleRoot, obj.nTime, obj.nBits, obj.nNonce); }
+    SERIALIZE_METHODS(CBlockHeader, obj) {
+        READWRITE(obj.nVersion, obj.hashPrevBlock, obj.hashMerkleRoot, obj.nTime, obj.nBits, obj.nNonce);
+        // Deserializing into a reused object must invalidate the cached PoW hash,
+        // otherwise GetHash() returns the previous block's hash.
+        SER_READ(obj, obj.m_hasPoWHash = false);
+        SER_READ(obj, obj.m_cachedPoWHash.SetNull());
+    }
 
     void SetNull()
     {
