@@ -80,6 +80,10 @@ void RegenerateCommitments(CBlock& block, ChainstateManager& chainman)
     chainman.GenerateCoinbaseCommitment(block, prev_block);
 
     block.hashMerkleRoot = BlockMerkleRoot(block);
+
+    // The header changed, so any PoW hash cached on this object is now stale.
+    block.m_hasPoWHash = false;
+    block.m_cachedPoWHash.SetNull();
 }
 
 static BlockAssembler::Options ClampOptions(BlockAssembler::Options options)
