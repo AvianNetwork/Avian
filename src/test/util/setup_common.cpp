@@ -5,6 +5,8 @@
 #include <test/util/setup_common.h>
 
 #include <addrman.h>
+#include <assets/assetdb.h>
+#include <assets/assets.h>
 #include <banman.h>
 #include <chainparams.h>
 #include <common/system.h>
@@ -288,6 +290,12 @@ ChainTestingSetup::ChainTestingSetup(const ChainType chainType, TestOpts opts)
         m_node.chainman = std::make_unique<ChainstateManager>(*Assert(m_node.shutdown_signal), chainman_opts, blockman_opts);
     };
     m_make_chainman();
+
+    // AVN: init the asset DBs the node creates at startup; the block connect path
+    // flushes the asset cache and asserts success (validation.cpp ConnectTip).
+    passetsdb = new CAssetsDB(m_args.GetDataDirNet() / "assets", 1 << 20, /*fMemory=*/true, /*fWipe=*/true);
+    passets = new CAssetsCache();
+    passetsCache = new CLRUCache<std::string, CDatabasedAssetData>(MAX_CACHE_ASSETS_SIZE);
 }
 
 ChainTestingSetup::~ChainTestingSetup()
@@ -304,6 +312,10 @@ ChainTestingSetup::~ChainTestingSetup()
     m_node.chainman.reset();
     m_node.validation_signals.reset();
     m_node.scheduler.reset();
+
+    delete passets; passets = nullptr;
+    delete passetsdb; passetsdb = nullptr;
+    delete passetsCache; passetsCache = nullptr;
 }
 
 void ChainTestingSetup::LoadVerifyActivateChainstate()
