@@ -485,6 +485,10 @@ void AddMerkleRootAndCoinbase(CBlock& block, CTransactionRef coinbase, uint32_t 
     block.nTime = timestamp;
     block.nNonce = nonce;
     block.hashMerkleRoot = BlockMerkleRoot(block);
+
+    // The header changed, so any PoW hash cached on this object is now stale.
+    block.m_hasPoWHash = false;
+    block.m_cachedPoWHash.SetNull();
 }
 
 void InterruptWait(KernelNotifications& kernel_notifications, bool& interrupt_wait)
