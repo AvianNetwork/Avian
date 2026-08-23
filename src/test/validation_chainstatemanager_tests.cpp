@@ -161,6 +161,10 @@ BOOST_FIXTURE_TEST_CASE(chainstatemanager_rebalance_caches, TestChain100Setup)
     BOOST_CHECK_CLOSE(double(c2.m_coinsdb_cache_size_bytes), max_cache * 0.95, 1);
 }
 
+// Disabled on Avian: these exercise assumeutxo UTXO snapshots (and the hardcoded
+// regtest snapshot at height 110), which Avian does not support (m_assumeutxo_data
+// is empty on every network).
+#if 0
 struct SnapshotTestSetup : TestChain100Setup {
     // Run with coinsdb on the filesystem to support, e.g., moving invalidated
     // chainstate dirs to "*_invalid".
@@ -776,6 +780,7 @@ BOOST_FIXTURE_TEST_CASE(chainstatemanager_snapshot_completion_hash_mismatch, Sna
         BOOST_CHECK_EQUAL(chainman_restarted.ActiveHeight(), 220);
     }
 }
+#endif
 
 /** Helper function to parse args into args_man and return the result of applying them to opts */
 template <typename Options>
