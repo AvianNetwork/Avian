@@ -151,7 +151,13 @@ BOOST_FIXTURE_TEST_CASE(stale_tip_peer_management, OutboundTest)
 
     const auto time_init{GetTime<std::chrono::seconds>()};
     SetMockTime(time_init);
-    const auto time_later{time_init + 3 * std::chrono::seconds{m_node.chainman->GetConsensus().nPowTargetSpacing} + 1s};
+    // The stale-tip check only runs once per STALE_CHECK_INTERVAL (10 min in
+    // net_processing.cpp), so advance past both that interval and the stale-tip
+    // threshold (3 * nPowTargetSpacing). Upstream's 10-min blocks made the
+    // threshold alone clear the interval; Avian's faster blocks do not, so the
+    // interval must be added explicitly.
+    constexpr auto STALE_CHECK_INTERVAL{10min};
+    const auto time_later{time_init + STALE_CHECK_INTERVAL + 3 * std::chrono::seconds{m_node.chainman->GetConsensus().nPowTargetSpacing} + 1s};
     connman->Init(options);
     std::vector<CNode *> vNodes;
 
