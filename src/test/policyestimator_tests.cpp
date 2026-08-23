@@ -99,12 +99,14 @@ BOOST_AUTO_TEST_CASE(BlockPolicyEstimates)
         }
 
         block.clear();
-        // Check after just a few txs that combining buckets works as expected
-        if (blocknum == 3) {
+        // Check once enough txs have accumulated that combining buckets works as expected.
+        // Avian's slower per-block fee-estimator decay (x20 for 30-second blocks) means the
+        // short-horizon estimate only becomes available around block 35, versus block 3 on
+        // upstream's 10-minute blocks; probe a little past that.
+        if (blocknum == 40) {
             // Wait for fee estimator to catch up
             m_node.validation_signals->SyncWithValidationInterfaceQueue();
-            // At this point we should need to combine 3 buckets to get enough data points
-            // So estimateFee(1) should fail and estimateFee(2) should return somewhere around
+            // estimateFee(1) should fail and estimateFee(2) should return somewhere around
             // 9*baserate.  estimateFee(2) %'s are 100,100,90 = average 97%
             BOOST_CHECK(feeEst.estimateFee(1) == CFeeRate(0));
             BOOST_CHECK(feeEst.estimateFee(2).GetFeePerK() < 9*baseRate.GetFeePerK() + deltaFee);
@@ -218,9 +220,11 @@ BOOST_AUTO_TEST_CASE(BlockPolicyEstimates)
         BOOST_CHECK(feeEst.estimateFee(i) == CFeeRate(0) || feeEst.estimateFee(i).GetFeePerK() > origFeeEst[i-1] - deltaFee);
     }
 
-    // Mine 400 more blocks where everything is mined every block
-    // Estimates should be below original estimates
-    while (blocknum < 665) {
+    // Mine many more blocks where everything is mined every block; estimates should fall below
+    // the original estimates. Upstream needs ~400 blocks here; Avian's x20-slower fee-estimator
+    // decay needs proportionally more for the old high-fee data to age out (the short-horizon
+    // estimate reaches its floor around block 3000), so run well past that.
+    while (blocknum < 4000) {
         for (int j = 0; j < 10; j++) { // For each fee multiple
             for (int k = 0; k < 4; k++) { // add 4 fee txs
                 tx.vin[0].prevout.n = 10000*blocknum+100*j+k;
