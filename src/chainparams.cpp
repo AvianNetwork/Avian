@@ -4,6 +4,7 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include <chainparams.h>
+#include <primitives/block.h>
 
 #include <chainparamsbase.h>
 #include <common/args.h>
@@ -141,4 +142,11 @@ void SelectParams(const ChainType chain)
 {
     SelectBaseParams(chain);
     globalChainParams = CreateChainParams(gArgs, chain);
+
+    // Arm PoW hashing here (the choke point both the node and the test harness
+    // share); otherwise CBlockHeader::GetHash() falls back to SHA256d.
+    const auto& consensus = globalChainParams->GetConsensus();
+    SetPoWHashParams(
+        consensus.vUpgrades[Consensus::UPGRADE_X16RT_SWITCH].nTimestamp,
+        consensus.vUpgrades[Consensus::UPGRADE_DUAL_ALGO].nTimestamp);
 }
