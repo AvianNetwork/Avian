@@ -14,7 +14,9 @@ export RUN_UNIT_TESTS=true
 # The functional (Python) test suite is not yet localized to Avian; keep it off for now.
 export RUN_FUNCTIONAL_TESTS=false
 export GOAL="install"
-# WITH_LIBOQS defaults ON, but liboqs (ML-DSA-44 / RIP-25) is not part of the CI build
-# yet. Pin it OFF so the build is deterministic and quiet (avoids the not-found warning
-# and the auto-downgrade) until the keygen branch lands and a liboqs job is added.
-export AVIAN_CONFIG="-DBUILD_GUI=ON -DWITH_ZMQ=ON -DENABLE_IPC=OFF -DWERROR=ON -DWITH_LIBOQS=OFF"
+# BUILD_TESTS defaults OFF, so it must be enabled explicitly or test_avian is never built
+# and ctest finds no tests to run. WITH_LIBOQS defaults ON, but liboqs (ML-DSA-44 / RIP-25)
+# is not part of the CI build yet; pin it OFF so the build is deterministic and quiet
+# (avoids the not-found warning and auto-downgrade) until the keygen branch lands and a
+# liboqs job is added.
+export AVIAN_CONFIG="-DBUILD_GUI=ON -DWITH_ZMQ=ON -DENABLE_IPC=OFF -DWERROR=ON -DBUILD_TESTS=ON -DWITH_LIBOQS=OFF"
