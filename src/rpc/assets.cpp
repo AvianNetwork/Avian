@@ -3,6 +3,7 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
+#include <util/string.h>
 #include <rpc/server.h>
 #include <rpc/server_util.h>
 #include <rpc/util.h>
@@ -896,7 +897,7 @@ static RPCHelpMan getsnapshot()
 
             CAssetSnapshotDBEntry snapshotEntry;
             if (!pAssetSnapshotDb->RetrieveOwnershipSnapshot(asset_name, block_height, snapshotEntry))
-                throw JSONRPCError(RPC_INVALID_PARAMETER, "No snapshot found for asset '" + asset_name + "' at height " + std::to_string(block_height));
+                throw JSONRPCError(RPC_INVALID_PARAMETER, "No snapshot found for asset '" + asset_name + "' at height " + util::ToString(block_height));
 
             UniValue result(UniValue::VOBJ);
             result.pushKV("name", snapshotEntry.assetName);
@@ -941,7 +942,7 @@ static RPCHelpMan purgesnapshot()
             int block_height = request.params[1].getInt<int>();
 
             if (!pAssetSnapshotDb->RemoveOwnershipSnapshot(asset_name, block_height))
-                throw JSONRPCError(RPC_INTERNAL_ERROR, "Failed to purge snapshot for asset '" + asset_name + "' at height " + std::to_string(block_height));
+                throw JSONRPCError(RPC_INTERNAL_ERROR, "Failed to purge snapshot for asset '" + asset_name + "' at height " + util::ToString(block_height));
 
             return true;
         },
@@ -982,7 +983,7 @@ static RPCHelpMan resolveavn()
             std::string name = request.params[0].get_str();
 
             // Normalise to uppercase and strip ".AVN" suffix if present
-            for (auto& c : name) c = toupper(c);
+            for (auto& c : name) c = ToUpper(c);
             if (name.size() > 4 && name.substr(name.size() - 4) == ".AVN")
                 name = name.substr(0, name.size() - 4);
 
@@ -997,7 +998,7 @@ static RPCHelpMan resolveavn()
             // AIP-0010: cross-chain resolution via sub-asset NAME.AVN/COIN
             if (!request.params[1].isNull()) {
                 std::string coin = request.params[1].get_str();
-                for (auto& c : coin) c = toupper(c);
+                for (auto& c : coin) c = ToUpper(c);
                 if (coin.empty())
                     throw JSONRPCError(RPC_INVALID_PARAMETER, "Coin ticker must not be empty.");
 

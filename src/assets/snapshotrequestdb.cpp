@@ -2,6 +2,7 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
+#include <util/string.h>
 #include <assets/snapshotrequestdb.h>
 
 #include <logging.h>
@@ -26,7 +27,7 @@ CSnapshotRequestDBEntry::CSnapshotRequestDBEntry(
     assetName = p_assetName;
     heightForSnapshot = p_heightForSnapshot;
 
-    heightAndName = std::to_string(heightForSnapshot) + assetName;
+    heightAndName = util::ToString(heightForSnapshot) + assetName;
 }
 
 CSnapshotRequestDB::CSnapshotRequestDB(
@@ -66,7 +67,7 @@ bool CSnapshotRequestDB::RetrieveSnapshotRequest(
 )
 {
     //  Load up the snapshot entries at this height
-    std::string heightAndName = std::to_string(p_heightForSnapshot) + p_assetName;
+    std::string heightAndName = util::ToString(p_heightForSnapshot) + p_assetName;
 
     LogPrintf( "%s : Looking for snapshot request '%s'\n",
         __func__, heightAndName.c_str());
@@ -83,7 +84,7 @@ bool CSnapshotRequestDB::RetrieveSnapshotRequest(
 
 bool CSnapshotRequestDB::ContainsSnapshotRequest(const std::string & p_assetName, int p_heightForSnapshot)
 {
-    std::string heightAndName = std::to_string(p_heightForSnapshot) + p_assetName;
+    std::string heightAndName = util::ToString(p_heightForSnapshot) + p_assetName;
 
     CSnapshotRequestDBEntry snapshotRequest;
     return Read(std::make_pair(SNAPSHOTREQUEST_FLAG, heightAndName), snapshotRequest);
@@ -94,7 +95,7 @@ bool CSnapshotRequestDB::RemoveSnapshotRequest(
 )
 {
     //  Load up the snapshot entries at this height
-    std::string heightAndName = std::to_string(p_heightForSnapshot) + p_assetName;
+    std::string heightAndName = util::ToString(p_heightForSnapshot) + p_assetName;
 
     LogPrintf( "%s : Attempting to remove snapshot request '%s'\n",
         __func__,

@@ -2,6 +2,7 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
+#include <util/string.h>
 #include <script/descriptor.h>
 
 #include <hash.h>
@@ -2196,7 +2197,7 @@ class MLDsaKeyProvider final : public PubkeyProvider
         std::string s;
         for (uint32_t step : m_path) {
             s += '/';
-            s += std::to_string(step & ~HARDENED);
+            s += util::ToString(step & ~HARDENED);
             if (step >> 31) s += (m_apostrophe ? '\'' : 'h');
         }
         s += (m_apostrophe ? "/*'" : "/*h");

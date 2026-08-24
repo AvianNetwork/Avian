@@ -21,7 +21,7 @@
 #include <qt/optionsmodel.h>
 #include <qt/platformstyle.h>
 #include <qt/sendcoinsdialog.h>
-#include "ui_reissueassetdialog.h"
+#include <qt/forms/ui_reissueassetdialog.h>
 #include <univalue.h>
 #include <qt/walletmodel.h>
 

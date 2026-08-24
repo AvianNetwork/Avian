@@ -175,7 +175,7 @@ public:
         consensus.nMaxReorganizationDepth = 60;
         consensus.nMinReorganizationPeers = 4;
         consensus.nMinReorganizationAge = 60 * 60 * 12; // 12 hours
-        
+
         pchMessageStart[0] = 0x52; // R
         pchMessageStart[1] = 0x56; // V
         pchMessageStart[2] = 0x4c; // L

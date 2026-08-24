@@ -2,6 +2,7 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
+#include <util/string.h>
 #include <assets/messages.h>
 #include <assets/myassetsdb.h>
 #include <assets/assets.h>
@@ -259,10 +260,10 @@ std::string CZMQMessage::createJsonString()
 {
     std::string str = "";
     str += "{";
-    str += "\"blockheight\": " + std::to_string(this->blockHeight) + ", ";
+    str += "\"blockheight\": " + util::ToString(this->blockHeight) + ", ";
     str += "\"assetname\": \"" + this->assetName + "\", ";
     str += "\"ipfshash\": \"" + EncodeAssetData(this->ipfsHash) + "\", ";
-    str += "\"expiretime\": " + std::to_string(this->nExpireTime);
+    str += "\"expiretime\": " + util::ToString(this->nExpireTime);
     str += "}";
 
     return str;

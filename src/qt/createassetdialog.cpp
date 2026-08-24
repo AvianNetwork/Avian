@@ -5,7 +5,7 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include <qt/createassetdialog.h>
-#include "ui_createassetdialog.h"
+#include <qt/forms/ui_createassetdialog.h>
 #include <qt/platformstyle.h>
 #include <qt/walletmodel.h>
 #include <qt/addresstablemodel.h>
@@ -179,7 +179,7 @@ CreateAssetDialog::CreateAssetDialog(const PlatformStyle *_platformStyle, QWidge
     ui->assetList->setModel(proxy);
     ui->assetList->setEditable(true);
     ui->assetList->lineEdit()->setPlaceholderText("Select an asset");
-    ui->assetList->lineEdit()->setStyleSheet("background: transparent;");    
+    ui->assetList->lineEdit()->setStyleSheet("background: transparent;");
 
 
     completer = new QCompleter(proxy,this);
@@ -1762,7 +1762,7 @@ void CreateAssetDialog::setQualifierSelected()
     ui->quantitySpinBox->setValue(1);
     ui->quantitySpinBox->setMaximum(10);
     ui->quantitySpinBox->setDisabled(false);
-    
+
     ui->unitBox->setValue(0);
     ui->unitBox->setDisabled(true);
 
@@ -1777,7 +1777,7 @@ void CreateAssetDialog::clearSelected()
 
     ui->unitBox->setValue(0);
     ui->unitBox->setDisabled(false);
-    
+
     ui->reissuableBox->setChecked(true);
     ui->reissuableBox->setDisabled(false);
 }

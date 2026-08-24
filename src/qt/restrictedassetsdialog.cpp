@@ -4,7 +4,7 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include <qt/restrictedassetsdialog.h>
-#include "ui_restrictedassetsdialog.h"
+#include <qt/forms/ui_restrictedassetsdialog.h>
 
 #include <qt/bitcoinunits.h>
 #include <qt/clientmodel.h>
@@ -22,9 +22,9 @@
 #include <validation.h>
 #include <qt/guiconstants.h>
 #include <qt/restrictedassignqualifier.h>
-#include "ui_restrictedassignqualifier.h"
+#include <qt/forms/ui_restrictedassignqualifier.h>
 #include <qt/restrictedfreezeaddress.h>
-#include "ui_restrictedfreezeaddress.h"
+#include <qt/forms/ui_restrictedfreezeaddress.h>
 #include <qt/sendcoinsdialog.h>
 #include <qt/myrestrictedassettablemodel.h>
 #include <wallet/asset_tx.h>
@@ -43,7 +43,6 @@
 #include <policy/policy.h>
 #include <core_io.h>
 #include <wallet/coincontrol.h>
-#include <assets/assets.h>
 #include <assets/myassetsdb.h>
 
 extern CMyRestrictedDB* pmyrestricteddb;

@@ -2,6 +2,7 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
+#include <util/string.h>
 #include <core_io.h>
 
 #include <assets/assets.h>
@@ -49,10 +50,10 @@ std::string ValueFromAmountString(const CAmount& amount, const int8_t units)
 
     std::string result;
     if (sign) result += "-";
-    result += std::to_string(quotient);
+    result += util::ToString(quotient);
 
     if (units > 0) {
-        std::string frac = std::to_string(remainder);
+        std::string frac = util::ToString(remainder);
         // Zero-pad to required width
         while ((int)frac.size() < units)
             frac = "0" + frac;

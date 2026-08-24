@@ -3,6 +3,7 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
+#include <util/string.h>
 #include <rpc/server.h>
 #include <rpc/util.h>
 
@@ -235,7 +236,7 @@ static RPCHelpMan unsubscribefromchannel()
 
             RemoveChannel(channel_name);
             pmessagechanneldb->Flush();
-            
+
             return "Unsubscribed from channel: " + channel_name;
         },
     };
@@ -273,7 +274,7 @@ static RPCHelpMan clearmessages()
             mapDirtyMessagesOrphaned.clear();
             pmessagedb->EraseAllMessages(count);
 
-            return "Erased " + std::to_string(count) + " messages from the database and cache";
+            return "Erased " + util::ToString(count) + " messages from the database and cache";
         },
     };
 }

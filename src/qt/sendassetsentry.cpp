@@ -3,7 +3,7 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 #include <qt/sendassetsentry.h>
-#include "ui_sendassetsentry.h"
+#include <qt/forms/ui_sendassetsentry.h>
 
 #include <qt/addressbookpage.h>
 #include <qt/addresstablemodel.h>
