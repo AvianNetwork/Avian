@@ -186,7 +186,7 @@ void SimulationTest(CCoinsView* base, bool fake_best_block)
                 // coins DB. Real UTXOs never approach this; cap the simulation at
                 // 10B AVN, which compresses losslessly. See compressor.cpp.
                 static constexpr CAmount MAX_COMPRESSIBLE_MONEY{10000000000LL * COIN};
-                newcoin.out.nValue = CAmount{m_rng.randrange(uint64_t{MAX_COMPRESSIBLE_MONEY} + 1)};
+                newcoin.out.nValue = static_cast<CAmount>(m_rng.randrange(uint64_t{MAX_COMPRESSIBLE_MONEY} + 1));
                 newcoin.nHeight = 1;
 
                 // Infrequently test adding unspendable coins.
