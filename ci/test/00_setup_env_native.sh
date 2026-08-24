@@ -15,8 +15,11 @@ export RUN_UNIT_TESTS=true
 export RUN_FUNCTIONAL_TESTS=false
 export GOAL="install"
 # BUILD_TESTS defaults OFF, so it must be enabled explicitly or test_avian is never built
-# and ctest finds no tests to run. WITH_LIBOQS defaults ON, but liboqs (ML-DSA-44 / RIP-25)
-# is not part of the CI build yet; pin it OFF so the build is deterministic and quiet
-# (avoids the not-found warning and auto-downgrade) until the keygen branch lands and a
-# liboqs job is added.
-export AVIAN_CONFIG="-DBUILD_GUI=ON -DWITH_ZMQ=ON -DENABLE_IPC=OFF -DWERROR=ON -DBUILD_TESTS=ON -DWITH_LIBOQS=OFF"
+# and ctest finds no tests to run. BUILD_GUI_TESTS is forced OFF: the Qt GUI test suite
+# (test_avian-qt: URI/RPC-console/wallet tests) is not yet localized to Avian (it still
+# assumes Bitcoin's URI scheme etc.), same status as the functional tests. The GUI itself
+# is still built (BUILD_GUI=ON) so the artifact is produced. WITH_LIBOQS defaults ON, but
+# liboqs (ML-DSA-44 / RIP-25) is not part of the CI build yet; pin it OFF so the build is
+# deterministic and quiet (avoids the not-found warning and auto-downgrade) until the
+# keygen branch lands and a liboqs job is added.
+export AVIAN_CONFIG="-DBUILD_GUI=ON -DBUILD_GUI_TESTS=OFF -DWITH_ZMQ=ON -DENABLE_IPC=OFF -DWERROR=ON -DBUILD_TESTS=ON -DWITH_LIBOQS=OFF"
