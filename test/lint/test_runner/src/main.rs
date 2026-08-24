@@ -63,11 +63,11 @@ fn get_linter_list() -> Vec<&'static Linter> {
             name: "doc_release_note_snippets",
             lint_fn: lint_doc_release_note_snippets
         },
-        &Linter {
-            description: "Check that subtrees are pure subtrees",
-            name: "subtree",
-            lint_fn: lint_subtree
-        },
+        // Avian: the crypto directories (crc32c, ctaes, leveldb, minisketch,
+        // secp256k1, libmultiprocess) were vendored directly rather than added as
+        // git subtrees, so the subtree purity check can never pass here. The paths
+        // are still listed in get_subtrees() because the other linters rely on them
+        // for excludes. Re-enable this once the directories are real subtrees.
         &Linter {
             description: "Check scripted-diffs",
             name: "scripted_diff",
@@ -477,6 +477,9 @@ fn get_pathspecs_exclude_whitespace() -> Vec<String> {
             "src/qt/locale",
             "contrib/windeploy/win-codesign.cert",
             "doc/README_windows.txt",
+            // Avian: vendored X16R / MinotaurX proof-of-work implementations, kept
+            // verbatim from upstream and not reformatted (like the crypto subtrees).
+            "src/algo",
             // Temporary excludes, or existing violations
             "contrib/init/bitcoind.openrc",
             "contrib/macdeploy/macdeployqtplus",

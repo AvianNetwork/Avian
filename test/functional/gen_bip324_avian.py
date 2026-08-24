@@ -12,7 +12,7 @@ import sys
 from test_framework import messages
 messages.MAGIC_BYTES["avian_main"] = b"\x52\x56\x4c\x4d"  # 'R','V','L','M'
 
-from test_framework.v2_p2p import EncryptedP2PState
+from test_framework.v2_p2p import EncryptedP2PState  # noqa: E402  (import after MAGIC_BYTES injection is intentional)
 
 NET = "avian_main"
 
