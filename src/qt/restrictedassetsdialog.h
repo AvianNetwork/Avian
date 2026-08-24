@@ -3,8 +3,8 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef AVIAN_QT_RESTRICTEDASSETSDIALOG_H
-#define AVIAN_QT_RESTRICTEDASSETSDIALOG_H
+#ifndef BITCOIN_QT_RESTRICTEDASSETSDIALOG_H
+#define BITCOIN_QT_RESTRICTEDASSETSDIALOG_H
 
 #include <qt/walletmodel.h>
 
@@ -74,4 +74,4 @@ private Q_SLOTS:
             void message(const QString &title, const QString &message, unsigned int style);
 };
 
-#endif // AVIAN_QT_RESTRICTEDASSETSSDIALOG_H
+#endif // BITCOIN_QT_RESTRICTEDASSETSDIALOG_H

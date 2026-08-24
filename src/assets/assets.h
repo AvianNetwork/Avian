@@ -603,4 +603,4 @@ UniValue UnitValueFromAmount(const CAmount& amount, int8_t units);
 //! Format a raw asset amount, looking up the asset's units from the cache
 UniValue AssetUnitValueFromAmount(const CAmount& amount, const std::string& assetName);
 
-#endif //BITCOIN_ASSETS_ASSETS_H
+#endif // BITCOIN_ASSETS_ASSETS_H

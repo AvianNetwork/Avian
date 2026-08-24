@@ -3,8 +3,8 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef AVIAN_QT_ASSETSDIALOG_H
-#define AVIAN_QT_ASSETSDIALOG_H
+#ifndef BITCOIN_QT_ASSETSDIALOG_H
+#define BITCOIN_QT_ASSETSDIALOG_H
 
 #include <qt/walletmodel.h>
 #include <qt/sendcoinsrecipient.h>
@@ -122,4 +122,4 @@ public Q_SLOTS:
             void message(const QString &title, const QString &message, unsigned int style);
 };
 
-#endif // AVIAN_QT_ASSETSSDIALOG_H
+#endif // BITCOIN_QT_ASSETSDIALOG_H

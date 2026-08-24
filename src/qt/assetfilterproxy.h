@@ -2,8 +2,8 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef AVIAN_ASSETFILTERPROXY_H
-#define AVIAN_ASSETFILTERPROXY_H
+#ifndef BITCOIN_QT_ASSETFILTERPROXY_H
+#define BITCOIN_QT_ASSETFILTERPROXY_H
 
 #include <QSortFilterProxyModel>
 
@@ -24,4 +24,4 @@ private:
 };
 
 
-#endif //AVIAN_ASSETFILTERPROXY_H
+#endif // BITCOIN_QT_ASSETFILTERPROXY_H

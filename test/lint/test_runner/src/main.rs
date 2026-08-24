@@ -530,7 +530,7 @@ fn lint_trailing_newline() -> LintResult {
             .args([
                 "ls-files", "--", "*.py", "*.cpp", "*.h", "*.md", "*.rs", "*.sh", "*.cmake",
             ])
-            .args(get_pathspecs_default_excludes()),
+            .args(get_pathspecs_exclude_whitespace()),
     )?;
     let mut missing_newline = false;
     for path in files.lines() {

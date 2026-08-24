@@ -222,7 +222,7 @@ void DusterDialog::updateBlockList()
     if (blocksTable->rowCount() <= minimumBlockAmount) {
         infoLabel->setText(tr("The wallet is clean."));
     } else {
-        infoLabel->setText("<b>" + tr("Found ") + QString::number(blocksTable->rowCount()) + tr(" blocks to compact.") + "</b>");
+        infoLabel->setText("<b>" + tr("Found") + " " + QString::number(blocksTable->rowCount()) + " " + tr("blocks to compact.") + "</b>");
     }
 }
 
