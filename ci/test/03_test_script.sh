@@ -110,6 +110,12 @@ if [ "$DOWNLOAD_PREVIOUS_RELEASES" = "true" ]; then
   test/get_previous_releases.py --target-dir "$PREVIOUS_RELEASES_DIR"
 fi
 
+# --- Build phase -----------------------------------------------------------------------
+# Everything that produces the build tree. Skipped when CI_PHASE=test so the workflow can
+# run Build and Unit tests as separate steps; the build tree persists between the two
+# container runs via the host-mounted BASE_BUILD_DIR.
+if [ "${CI_PHASE}" != "test" ]; then
+
 AVIAN_CONFIG_ALL="-DBUILD_BENCH=OFF -DBUILD_FUZZ_BINARY=OFF"
 if [ -z "$NO_DEPENDS" ]; then
   AVIAN_CONFIG_ALL="${AVIAN_CONFIG_ALL} -DCMAKE_TOOLCHAIN_FILE=$DEPENDS_DIR/$HOST/toolchain.cmake"
@@ -155,6 +161,8 @@ fi
 du -sh "${DEPENDS_DIR}"/*/
 du -sh "${PREVIOUS_RELEASES_DIR}"
 
+fi  # --- end build phase (CI_PHASE != test) ---
+
 if [ -n "${CI_LIMIT_STACK_SIZE}" ]; then
   ulimit -s 512
 fi
@@ -167,7 +175,7 @@ if [ "$RUN_CHECK_DEPS" = "true" ]; then
   "${BASE_ROOT_DIR}/contrib/devtools/check-deps.sh" "${BASE_BUILD_DIR}"
 fi
 
-if [ "$RUN_UNIT_TESTS" = "true" ]; then
+if [ "$RUN_UNIT_TESTS" = "true" ] && [ "${CI_PHASE}" != "build" ]; then
   DIR_UNIT_TEST_DATA="${DIR_UNIT_TEST_DATA}" \
   LD_LIBRARY_PATH="${DEPENDS_DIR}/${HOST}/lib" \
   CTEST_OUTPUT_ON_FAILURE=ON \
@@ -177,7 +185,7 @@ if [ "$RUN_UNIT_TESTS" = "true" ]; then
     --timeout $(( TEST_RUNNER_TIMEOUT_FACTOR * 60 ))
 fi
 
-if [ "$RUN_FUNCTIONAL_TESTS" = "true" ]; then
+if [ "$RUN_FUNCTIONAL_TESTS" = "true" ] && [ "${CI_PHASE}" != "build" ]; then
   # parses TEST_RUNNER_EXTRA as an array which allows for multiple arguments such as TEST_RUNNER_EXTRA='--exclude "rpc_bind.py --ipv6"'
   eval "TEST_RUNNER_EXTRA=($TEST_RUNNER_EXTRA)"
   LD_LIBRARY_PATH="${DEPENDS_DIR}/${HOST}/lib" \

@@ -56,8 +56,15 @@ jobs:
         with:
           cache-provider: gha
 
-      - name: CI script
+      - name: Build
         run: ./ci/test_run_all.sh
+        env:
+          CI_PHASE: build
+
+      - name: Unit tests
+        run: ./ci/test_run_all.sh
+        env:
+          CI_PHASE: test
 
       - name: Collect Linux artifacts
         if: always()
