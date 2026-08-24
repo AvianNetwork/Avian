@@ -41,16 +41,9 @@ std::optional<ConfigError> InitConfig(ArgsManager& args, SettingsAbortFn setting
             return ConfigError{ConfigStatus::FAILED, strprintf(_("Error reading configuration file: %s"), error)};
         }
 
-        // Check for chain settings (Params() calls are only valid after this clause)
+        // Check for chain settings (Params() calls are only valid after this clause).
+        // SelectParams() also arms PoW hashing (SetPoWHashParams).
         SelectParams(args.GetChainType());
-
-        // Initialize PoW hash algorithm timestamps from consensus params.
-        // Must be called before any block hashing occurs.
-        const auto& consensus = Params().GetConsensus();
-        SetPoWHashParams(
-            consensus.vUpgrades[Consensus::UPGRADE_X16RT_SWITCH].nTimestamp,
-            consensus.vUpgrades[Consensus::UPGRADE_DUAL_ALGO].nTimestamp
-        );
 
         // Create datadir if it does not exist.
         const auto base_path{args.GetDataDirBase()};

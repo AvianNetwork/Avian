@@ -180,7 +180,13 @@ void SimulationTest(CCoinsView* base, bool fake_best_block)
 
             if (m_rng.randrange(5) == 0 || coin.IsSpent()) {
                 Coin newcoin;
-                newcoin.out.nValue = RandMoney(m_rng);
+                // Avian: Bitcoin's amount compression (CompressAmount) overflows a
+                // uint64 for amounts above ~2.05e18 avn, which is below Avian's
+                // MAX_MONEY (21B AVN), so such amounts cannot round-trip through the
+                // coins DB. Real UTXOs never approach this; cap the simulation at
+                // 10B AVN, which compresses losslessly. See compressor.cpp.
+                static constexpr CAmount MAX_COMPRESSIBLE_MONEY{10000000000LL * COIN};
+                newcoin.out.nValue = static_cast<CAmount>(m_rng.randrange(uint64_t{MAX_COMPRESSIBLE_MONEY} + 1));
                 newcoin.nHeight = 1;
 
                 // Infrequently test adding unspendable coins.

@@ -274,7 +274,8 @@ void check_computeblockversion(VersionBitsCache& versionbitscache, const Consens
     BOOST_REQUIRE(threshold < period); // must be able to have a window that does activate
 
     // should not be any signalling for first block
-    BOOST_CHECK_EQUAL(versionbitscache.ComputeBlockVersion(nullptr, params), VERSIONBITS_TOP_BITS);
+    // Avian always sets bit 25 in the block version (see ComputeBlockVersion).
+    BOOST_CHECK_EQUAL(versionbitscache.ComputeBlockVersion(nullptr, params), VERSIONBITS_TOP_BITS | (1 << 25));
 
     // always/never active deployments shouldn't need to be tested further
     if (nStartTime == Consensus::BIP9Deployment::ALWAYS_ACTIVE ||

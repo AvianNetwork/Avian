@@ -13,8 +13,10 @@
 
 BOOST_FIXTURE_TEST_SUITE(peerman_tests, RegTestingSetup)
 
-/** Window, in blocks, for connecting to NODE_NETWORK_LIMITED peers */
-static constexpr int64_t NODE_NETWORK_LIMITED_ALLOW_CONN_BLOCKS = 144;
+/** Window, in blocks, for connecting to NODE_NETWORK_LIMITED peers.
+ *  Must match NODE_NETWORK_LIMITED_ALLOW_CONN_BLOCKS in net_processing.cpp,
+ *  which Avian sets higher than upstream for its shorter block spacing. */
+static constexpr int64_t NODE_NETWORK_LIMITED_ALLOW_CONN_BLOCKS = 2880;
 
 static void mineBlock(const node::NodeContext& node, std::chrono::seconds block_time)
 {

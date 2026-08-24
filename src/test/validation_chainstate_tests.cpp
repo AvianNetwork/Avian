@@ -67,6 +67,9 @@ BOOST_AUTO_TEST_CASE(validation_chainstate_resize_caches)
 //!
 //! When run on the background chainstate, UpdateTip should do a subset
 //! of what it does for the active chainstate.
+// Disabled on Avian: exercises assumeutxo UTXO snapshots, which Avian does not
+// support (m_assumeutxo_data is empty on every network).
+#if 0
 BOOST_FIXTURE_TEST_CASE(chainstate_update_tip, TestChain100Setup)
 {
     ChainstateManager& chainman = *Assert(m_node.chainman);
@@ -146,5 +149,6 @@ BOOST_FIXTURE_TEST_CASE(chainstate_update_tip, TestChain100Setup)
     BOOST_CHECK(block_added);
     BOOST_CHECK_EQUAL(curr_tip, get_notify_tip());
 }
+#endif
 
 BOOST_AUTO_TEST_SUITE_END()

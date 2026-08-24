@@ -5,6 +5,8 @@
 #include <test/util/setup_common.h>
 
 #include <addrman.h>
+#include <assets/assetdb.h>
+#include <assets/assets.h>
 #include <banman.h>
 #include <chainparams.h>
 #include <common/system.h>
@@ -22,6 +24,8 @@
 #include <node/blockstorage.h>
 #include <node/chainstate.h>
 #include <node/context.h>
+#include <founder_payment.h>
+#include <key_io.h>
 #include <node/kernel_notifications.h>
 #include <node/mempool_args.h>
 #include <node/miner.h>
@@ -288,6 +292,12 @@ ChainTestingSetup::ChainTestingSetup(const ChainType chainType, TestOpts opts)
         m_node.chainman = std::make_unique<ChainstateManager>(*Assert(m_node.shutdown_signal), chainman_opts, blockman_opts);
     };
     m_make_chainman();
+
+    // AVN: init the asset DBs the node creates at startup; the block connect path
+    // flushes the asset cache and asserts success (validation.cpp ConnectTip).
+    passetsdb = new CAssetsDB(m_args.GetDataDirNet() / "assets", 1 << 20, /*fMemory=*/true, /*fWipe=*/true);
+    passets = new CAssetsCache();
+    passetsCache = new CLRUCache<std::string, CDatabasedAssetData>(MAX_CACHE_ASSETS_SIZE);
 }
 
 ChainTestingSetup::~ChainTestingSetup()
@@ -304,6 +314,10 @@ ChainTestingSetup::~ChainTestingSetup()
     m_node.chainman.reset();
     m_node.validation_signals.reset();
     m_node.scheduler.reset();
+
+    delete passets; passets = nullptr;
+    delete passetsdb; passetsdb = nullptr;
+    delete passetsCache; passetsCache = nullptr;
 }
 
 void ChainTestingSetup::LoadVerifyActivateChainstate()
@@ -370,7 +384,9 @@ TestChain100Setup::TestChain100Setup(
     TestOpts opts)
     : TestingSetup{ChainType::REGTEST, opts}
 {
-    SetMockTime(1598887952);
+    // Anchor mock time to the (Avian) regtest genesis so mined block times do not
+    // trip the future-block-time rule.
+    SetMockTime(Params().GenesisBlock().GetBlockTime());
     constexpr std::array<unsigned char, 32> vchKey = {
         {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1}};
     coinbaseKey.Set(vchKey.begin(), vchKey.end(), true);
@@ -382,7 +398,7 @@ TestChain100Setup::TestChain100Setup(
         LOCK(::cs_main);
         assert(
             m_node.chainman->ActiveChain().Tip()->GetBlockHash().ToString() ==
-            "0c8c5f79505775a0f6aed6aca2350718ceb9c6f2c878667864d5c7a6d8ffa2a6");
+            "060549a21710d202e3ead40f0638b734ce2cb4afcccbc08505c6987e72fd9cec");
     }
 }
 
@@ -407,9 +423,50 @@ CBlock TestChain100Setup::CreateBlock(
     CBlock block = BlockAssembler{chainstate, nullptr, options}.CreateNewBlock()->block;
 
     Assert(block.vtx.size() == 1);
+
+    // Fees of the manually-appended transactions, from the current UTXO set.
+    // Intentionally-invalid txns (inputs missing/spent) are skipped; those blocks
+    // are expected to be rejected regardless of the coinbase.
+    CAmount nFees = 0;
+    int height = 0;
+    {
+        LOCK(::cs_main);
+        height = chainstate.m_chain.Height() + 1;
+        const CCoinsViewCache& view = chainstate.CoinsTip();
+        for (const CMutableTransaction& tx : txns) {
+            CAmount value_in = 0;
+            bool have_inputs = true;
+            for (const CTxIn& txin : tx.vin) {
+                const Coin& coin = view.AccessCoin(txin.prevout);
+                if (coin.IsSpent()) { have_inputs = false; break; }
+                value_in += coin.out.nValue;
+            }
+            if (have_inputs) nFees += value_in - CTransaction(tx).GetValueOut();
+        }
+    }
+
     for (const CMutableTransaction& tx : txns) {
         block.vtx.push_back(MakeTransactionRef(tx));
     }
+
+    // Avian: the founder payment is a share of subsidy + fees, but the assembler
+    // sized the coinbase for an empty block. Rebuild it so the founder output
+    // matches the fee-inflated block reward and the block passes ConnectBlock.
+    if (nFees > 0) {
+        const Consensus::Params& consensus = m_node.chainman->GetConsensus();
+        const CAmount blockReward = nFees + GetBlockSubsidy(height, consensus);
+        const CAmount founderReward = FounderPayment(consensus).getFounderPaymentAmount(height, blockReward);
+        if (founderReward > 0) {
+            const CScript payee = GetScriptForDestination(DecodeDestination(consensus.founderAddress));
+            CMutableTransaction coinbase{*block.vtx[0]};
+            for (CTxOut& out : coinbase.vout) {
+                if (out.scriptPubKey == payee) out.nValue = founderReward;
+            }
+            coinbase.vout[0].nValue = blockReward - founderReward;
+            block.vtx[0] = MakeTransactionRef(coinbase);
+        }
+    }
+
     RegenerateCommitments(block, *Assert(m_node.chainman));
 
     while (!CheckProofOfWork(block, m_node.chainman->GetConsensus())) { block.m_hasPoWHash = false; ++block.nNonce; }

@@ -1127,9 +1127,9 @@ BOOST_AUTO_TEST_CASE(descriptor_test)
     // p2pk script with hybrid key must infer as raw()
     CheckInferDescriptor("41069228de6902abb4f541791f6d7f925b10e2078ccb1298856e5ea5cc5fd667f930eac37a00cc07f9a91ef3c2d17bf7a17db04552ff90ac312a5b8b4caca6c97aa4ac", "raw(41069228de6902abb4f541791f6d7f925b10e2078ccb1298856e5ea5cc5fd667f930eac37a00cc07f9a91ef3c2d17bf7a17db04552ff90ac312a5b8b4caca6c97aa4ac)", {}, {{"069228de6902abb4f541791f6d7f925b10e2078ccb1298856e5ea5cc5fd667f930eac37a00cc07f9a91ef3c2d17bf7a17db04552ff90ac312a5b8b4caca6c97aa4", ""}});
     // p2pkh script with hybrid key must infer as addr()
-    CheckInferDescriptor("76a91445ff7c2327866472639d507334a9a00119dfd32688ac", "addr(17P7ge56F2QcdHxxRBa2NyzmejFggPwBJ9)", {}, {{"069228de6902abb4f541791f6d7f925b10e2078ccb1298856e5ea5cc5fd667f930eac37a00cc07f9a91ef3c2d17bf7a17db04552ff90ac312a5b8b4caca6c97aa4", ""}});
+    CheckInferDescriptor("76a91445ff7c2327866472639d507334a9a00119dfd32688ac", "addr(RFfJm9xNqrDBhJL9tMZ9UWKyQziHHjzj7u)", {}, {{"069228de6902abb4f541791f6d7f925b10e2078ccb1298856e5ea5cc5fd667f930eac37a00cc07f9a91ef3c2d17bf7a17db04552ff90ac312a5b8b4caca6c97aa4", ""}});
     // p2wpkh script with uncompressed key must infer as addr()
-    CheckInferDescriptor("001422e363a523947a110d9a9eb114820de183aca313", "addr(bc1qyt3k8ffrj3apzrv6n6c3fqsduxp6egcnk2r66j)", {}, {{"049228de6902abb4f541791f6d7f925b10e2078ccb1298856e5ea5cc5fd667f930eac37a00cc07f9a91ef3c2d17bf7a17db04552ff90ac312a5b8b4caca6c97aa4", ""}});
+    CheckInferDescriptor("001422e363a523947a110d9a9eb114820de183aca313", "addr(avn1qyt3k8ffrj3apzrv6n6c3fqsduxp6egcnpfaa8h)", {}, {{"049228de6902abb4f541791f6d7f925b10e2078ccb1298856e5ea5cc5fd667f930eac37a00cc07f9a91ef3c2d17bf7a17db04552ff90ac312a5b8b4caca6c97aa4", ""}});
     // Infer pkh() from p2pkh with uncompressed key
     CheckInferDescriptor("76a914a31725c74421fadc50d35520ab8751ed120af80588ac", "pkh(04c56fe4a92d401bcbf1b3dfbe4ac3dac5602ca155a3681497f02c1b9a733b92d704e2da6ec4162e4846af9236ef4171069ac8b7f8234a8405b6cadd96f34f5a31)", {}, {{"04c56fe4a92d401bcbf1b3dfbe4ac3dac5602ca155a3681497f02c1b9a733b92d704e2da6ec4162e4846af9236ef4171069ac8b7f8234a8405b6cadd96f34f5a31", ""}});
     // Infer pk() from p2pk with uncompressed key
@@ -1262,6 +1262,9 @@ BOOST_AUTO_TEST_CASE(descriptor_test)
 // Does NOT use the DoCheck() harness because that harness checks the standard BIP32 key
 // caches (CacheDerivedExtPubKey / CacheParentExtPubKey), but mldsa44 uses its own PQ-specific
 // cache (CacheMlDsaWitnessProgram).  We therefore test all relevant properties manually.
+// Requires liboqs: ML-DSA-44 key expansion has no output without the real
+// implementation (mldsa.cpp falls back to stubs when HAVE_LIBOQS is undefined).
+#ifdef HAVE_LIBOQS
 BOOST_AUTO_TEST_CASE(descriptor_mldsa44_test)
 {
     // Use a well-known BIP32 xprv/xpub pair that appears elsewhere in this test file.
@@ -1411,5 +1414,6 @@ BOOST_AUTO_TEST_CASE(descriptor_mldsa44_test)
         "mldsa44(" + xpub + "/*')",
         "mldsa44(): path must not be empty");
 }
+#endif // HAVE_LIBOQS
 
 BOOST_AUTO_TEST_SUITE_END()

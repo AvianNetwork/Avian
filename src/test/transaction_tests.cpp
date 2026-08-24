@@ -28,6 +28,9 @@
 #include <test/util/random.h>
 #include <test/util/script.h>
 #include <test/util/transaction_utils.h>
+#include <addresstype.h>
+#include <chainparams.h>
+#include <test/util/transaction_utils.h>
 #include <util/strencodings.h>
 #include <util/string.h>
 #include <validation.h>
@@ -71,6 +74,9 @@ static std::map<std::string, unsigned int> mapFlagNames = {
     {std::string("DISCOURAGE_UPGRADABLE_PUBKEYTYPE"), (unsigned int)SCRIPT_VERIFY_DISCOURAGE_UPGRADABLE_PUBKEYTYPE},
     {std::string("DISCOURAGE_OP_SUCCESS"), (unsigned int)SCRIPT_VERIFY_DISCOURAGE_OP_SUCCESS},
     {std::string("DISCOURAGE_UPGRADABLE_TAPROOT_VERSION"), (unsigned int)SCRIPT_VERIFY_DISCOURAGE_UPGRADABLE_TAPROOT_VERSION},
+    {std::string("SIGHASH_FORKID"), (unsigned int)SCRIPT_ENABLE_SIGHASH_FORKID},
+    {std::string("PQ_HYBRID"), (unsigned int)SCRIPT_VERIFY_PQ_HYBRID},
+    {std::string("ANS_V2"), (unsigned int)SCRIPT_VERIFY_ANS_V2},
 };
 
 unsigned int ParseScriptFlags(std::string strFlags)
@@ -121,6 +127,10 @@ bool CheckTxScripts(const CTransaction& tx, const std::map<COutPoint, CScript>& 
     const std::map<COutPoint, int64_t>& map_prevout_values, unsigned int flags,
     const PrecomputedTransactionData& txdata, const std::string& strTest, bool expect_valid)
 {
+    // Avian mandates SIGHASH_FORKID (UAHF permanently active), so it is always
+    // enforced regardless of the flag permutations the vectors exercise.
+    flags |= SCRIPT_ENABLE_SIGHASH_FORKID;
+
     bool tx_valid = true;
     ScriptError err = expect_valid ? SCRIPT_ERR_UNKNOWN_ERROR : SCRIPT_ERR_OK;
     for (unsigned int i = 0; i < tx.vin.size() && tx_valid; ++i) {
@@ -490,6 +500,8 @@ static void CreateCreditAndSpend(const FillableSigningProvider& keystore, const 
 
 static void CheckWithFlag(const CTransactionRef& output, const CMutableTransaction& input, uint32_t flags, bool success)
 {
+    // Avian mandates SIGHASH_FORKID; the signer always sets it, so verification must too.
+    flags |= SCRIPT_ENABLE_SIGHASH_FORKID;
     ScriptError error;
     CTransaction inputi(input);
     bool ret = VerifyScript(inputi.vin[0].scriptSig, output->vout[0].scriptPubKey, &inputi.vin[0].scriptWitness, flags, TransactionSignatureChecker(&inputi, 0, output->vout[0].nValue, MissingDataBehavior::ASSERT_FAIL), &error);
@@ -585,7 +597,7 @@ BOOST_AUTO_TEST_CASE(test_big_witness_transaction)
 
     for(uint32_t i = 0; i < mtx.vin.size(); i++) {
         std::vector<CScriptCheck> vChecks;
-        vChecks.emplace_back(coins[tx.vin[i].prevout.n].out, tx, signature_cache, i, SCRIPT_VERIFY_P2SH | SCRIPT_VERIFY_WITNESS, false, &txdata);
+        vChecks.emplace_back(coins[tx.vin[i].prevout.n].out, tx, signature_cache, i, SCRIPT_VERIFY_P2SH | SCRIPT_VERIFY_WITNESS | SCRIPT_ENABLE_SIGHASH_FORKID, false, &txdata);
         control.Add(std::move(vChecks));
     }
 
@@ -1282,9 +1294,10 @@ BOOST_AUTO_TEST_CASE(spends_witness_prog)
     tx_spend.vin[0].scriptSig.clear();
     BOOST_CHECK(!::SpendsNonAnchorWitnessProg(CTransaction{tx_spend}, coins));
 
-    // Various undefined version >1 32-byte witness programs.
+    // Various undefined version >1 32-byte witness programs. Version 2 is the
+    // defined RIP-25 ML-DSA-44 type on Avian, so the undefined range starts at 3.
     const auto program{ToByteVector(XOnlyPubKey{pubkey})};
-    for (int i{2}; i <= 16; ++i) {
+    for (int i{3}; i <= 16; ++i) {
         tx_create.vout[0].scriptPubKey = GetScriptForDestination(WitnessUnknown{i, program});
         BOOST_CHECK_EQUAL(Solver(tx_create.vout[0].scriptPubKey, sol_dummy), TxoutType::WITNESS_UNKNOWN);
         tx_spend.vin[0].prevout.hash = tx_create.GetHash();
@@ -1303,5 +1316,170 @@ BOOST_AUTO_TEST_CASE(spends_witness_prog)
         BOOST_CHECK(!::SpendsNonAnchorWitnessProg(CTransaction{tx_spend}, coins));
     }
 }
+
+// Temporary generator: emits Avian FORKID-signed tx_valid.json vectors covering
+// the core script types. Enable with -DGEN_TX_VALID, run, capture tx_valid.json.gen.
+#ifdef GEN_TX_VALID
+BOOST_AUTO_TEST_CASE(tx_valid_gen)
+{
+    SelectParams(ChainType::MAIN);
+    FillableSigningProvider keystore;
+    std::vector<CKey> keys;
+    std::vector<CPubKey> pubs;
+    for (int i = 0; i < 4; ++i) {
+        std::vector<unsigned char> vch(32, 0);
+        vch[31] = uint8_t(i + 1);
+        CKey k;
+        k.Set(vch.begin(), vch.end(), /*compressed=*/true);
+        assert(k.IsValid());
+        keys.push_back(k);
+        pubs.push_back(k.GetPubKey());
+        keystore.AddKey(k);
+    }
+
+    const CAmount amount{100000000};
+    std::string out = "[\n";
+
+    auto emit = [&](const CScript& spk, const std::string& comment) {
+        CMutableTransaction credit = BuildCreditingTransaction(spk, static_cast<int>(amount));
+        CMutableTransaction spend = BuildSpendingTransaction(CScript(), CScriptWitness(), CTransaction(credit));
+        SignatureData sigdata;
+        bool ok = SignSignature(keystore, spk, spend, 0, amount, SIGHASH_ALL, sigdata);
+        assert(ok);
+        out += "[\"" + comment + "\"],\n";
+        out += "[[[\"" + CTransaction(credit).GetHash().GetHex() + "\", 0, \"0x" + HexStr(spk) + "\", " + ToString(amount) + "]],\n";
+        out += "\"" + EncodeHexTx(CTransaction(spend)) + "\", \"\"],\n";
+    };
+
+    // P2PK
+    emit(CScript() << ToByteVector(pubs[0]) << OP_CHECKSIG, "P2PK");
+    // P2PKH
+    emit(GetScriptForDestination(PKHash(pubs[1])), "P2PKH");
+    // Bare multisig 1-of-2 and 2-of-3
+    emit(GetScriptForMultisig(1, {pubs[0], pubs[1]}), "1-of-2 bare multisig");
+    emit(GetScriptForMultisig(2, {pubs[0], pubs[1], pubs[2]}), "2-of-3 bare multisig");
+    // P2SH(P2PKH)
+    {
+        CScript redeem = GetScriptForDestination(PKHash(pubs[2]));
+        keystore.AddCScript(redeem);
+        emit(GetScriptForDestination(ScriptHash(redeem)), "P2SH(P2PKH)");
+    }
+    // P2SH(2-of-2 multisig)
+    {
+        CScript redeem = GetScriptForMultisig(2, {pubs[0], pubs[1]});
+        keystore.AddCScript(redeem);
+        emit(GetScriptForDestination(ScriptHash(redeem)), "P2SH(2-of-2 multisig)");
+    }
+    // P2WPKH
+    emit(GetScriptForDestination(WitnessV0KeyHash(pubs[1])), "P2WPKH");
+    // P2WSH(2-of-2 multisig)
+    {
+        CScript wit = GetScriptForMultisig(2, {pubs[0], pubs[1]});
+        keystore.AddCScript(wit);
+        emit(GetScriptForDestination(WitnessV0ScriptHash(wit)), "P2WSH(2-of-2 multisig)");
+    }
+    // P2SH(P2WPKH)
+    {
+        CScript wpkh = GetScriptForDestination(WitnessV0KeyHash(pubs[3]));
+        keystore.AddCScript(wpkh);
+        emit(GetScriptForDestination(ScriptHash(wpkh)), "P2SH(P2WPKH)");
+    }
+
+    out += "]\n";
+    FILE* file = fsbridge::fopen("tx_valid.json.gen", "w");
+    fputs(out.c_str(), file);
+    fclose(file);
+    SelectParams(ChainType::MAIN);
+}
+
+BOOST_AUTO_TEST_CASE(tx_invalid_gen)
+{
+    SelectParams(ChainType::MAIN);
+    FillableSigningProvider keystore;
+    std::vector<CKey> keys;
+    std::vector<CPubKey> pubs;
+    for (int i = 0; i < 4; ++i) {
+        std::vector<unsigned char> vch(32, 0);
+        vch[31] = uint8_t(i + 1);
+        CKey k;
+        k.Set(vch.begin(), vch.end(), /*compressed=*/true);
+        assert(k.IsValid());
+        keys.push_back(k);
+        pubs.push_back(k.GetPubKey());
+        keystore.AddKey(k);
+    }
+
+    const CAmount amount{100000000};
+    std::string out = "[\n";
+
+    // Sign a spend, then corrupt one signature byte so verification fails
+    // regardless of flags. Flag string is empty (NONE) so the harness's
+    // flag-minimality check (removing a flag must re-validate) is skipped.
+    auto emit_badsig = [&](const CScript& spk, bool witness, const std::string& flags, const std::string& comment) {
+        CMutableTransaction credit = BuildCreditingTransaction(spk, static_cast<int>(amount));
+        CMutableTransaction spend = BuildSpendingTransaction(CScript(), CScriptWitness(), CTransaction(credit));
+        SignatureData sigdata;
+        bool ok = SignSignature(keystore, spk, spend, 0, amount, SIGHASH_ALL, sigdata);
+        assert(ok);
+        if (witness) {
+            // stack[0] is the signature; flip a byte inside the DER body.
+            spend.vin[0].scriptWitness.stack[0][10] ^= 0x01;
+        } else {
+            std::vector<unsigned char> ss(spend.vin[0].scriptSig.begin(), spend.vin[0].scriptSig.end());
+            ss[10] ^= 0x01; // inside the pushed signature
+            spend.vin[0].scriptSig = CScript(ss.begin(), ss.end());
+        }
+        out += "[\"" + comment + "\"],\n";
+        out += "[[[\"" + CTransaction(credit).GetHash().GetHex() + "\", 0, \"0x" + HexStr(spk) + "\", " + ToString(amount) + "]],\n";
+        out += "\"" + EncodeHexTx(CTransaction(spend)) + "\", \"" + flags + "\"],\n";
+    };
+
+    emit_badsig(CScript() << ToByteVector(pubs[0]) << OP_CHECKSIG, false, "", "P2PK, corrupt signature");
+    emit_badsig(GetScriptForDestination(PKHash(pubs[1])), false, "", "P2PKH, corrupt signature");
+    emit_badsig(GetScriptForMultisig(2, {pubs[0], pubs[1]}), false, "", "2-of-2 bare multisig, corrupt signature");
+    // Witness enforcement requires P2SH,WITNESS; without them the program is
+    // anyone-can-spend, so the corrupt signature would go unchecked.
+    emit_badsig(GetScriptForDestination(WitnessV0KeyHash(pubs[1])), true, "P2SH,WITNESS", "P2WPKH, corrupt witness signature");
+
+    // Structural failures rejected by CheckTransaction (flag string "BADTX").
+    auto emit_badtx = [&](const CMutableTransaction& tx, const std::string& comment) {
+        out += "[\"" + comment + "\"],\n";
+        out += "[[[\"0000000000000000000000000000000000000000000000000000000000000100\", 0, \"0x51\"]],\n";
+        out += "\"" + EncodeHexTx(CTransaction(tx)) + "\", \"BADTX\"],\n";
+    };
+    const COutPoint op(Txid::FromHex("0000000000000000000000000000000000000000000000000000000000000100").value(), 0);
+    {
+        CMutableTransaction tx; tx.version = 1;
+        tx.vin.resize(1); tx.vin[0].prevout = op; // no outputs
+        emit_badtx(tx, "no outputs");
+    }
+    {
+        CMutableTransaction tx; tx.version = 1;
+        tx.vin.resize(2); tx.vin[0].prevout = op; tx.vin[1].prevout = op; // duplicate
+        tx.vout.resize(1); tx.vout[0].nValue = 1; tx.vout[0].scriptPubKey = CScript() << OP_TRUE;
+        emit_badtx(tx, "duplicate inputs");
+    }
+    {
+        CMutableTransaction tx; tx.version = 1;
+        tx.vin.resize(1); tx.vin[0].prevout = op;
+        tx.vout.resize(1); tx.vout[0].nValue = -1; tx.vout[0].scriptPubKey = CScript() << OP_TRUE;
+        emit_badtx(tx, "negative output value");
+    }
+    {
+        CMutableTransaction tx; tx.version = 1;
+        tx.vin.resize(1); tx.vin[0].prevout = op;
+        tx.vout.resize(2);
+        tx.vout[0].nValue = MAX_MONEY; tx.vout[0].scriptPubKey = CScript() << OP_TRUE;
+        tx.vout[1].nValue = MAX_MONEY; tx.vout[1].scriptPubKey = CScript() << OP_TRUE; // sum overflows
+        emit_badtx(tx, "output value overflow");
+    }
+
+    out += "]\n";
+    FILE* file = fsbridge::fopen("tx_invalid.json.gen", "w");
+    fputs(out.c_str(), file);
+    fclose(file);
+    SelectParams(ChainType::MAIN);
+}
+#endif
 
 BOOST_AUTO_TEST_SUITE_END()

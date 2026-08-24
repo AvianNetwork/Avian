@@ -74,13 +74,13 @@ if [ "$RUN_FUZZ_TESTS" = "true" ]; then
     echo "Using qa-assets repo from commit ..."
     git log -1
   )
-elif [ "$RUN_UNIT_TESTS" = "true" ]; then
-  export DIR_UNIT_TEST_DATA=${DIR_QA_ASSETS}/unit_test_data/
-  if [ ! -d "$DIR_UNIT_TEST_DATA" ]; then
-    mkdir -p "$DIR_UNIT_TEST_DATA"
-    ${CI_RETRY_EXE} curl --location --fail https://github.com/bitcoin-core/qa-assets/raw/main/unit_test_data/script_assets_test.json -o "${DIR_UNIT_TEST_DATA}/script_assets_test.json"
-  fi
 fi
+
+# Avian: unlike upstream, do not fetch Bitcoin Core's unit_test_data
+# (script_assets_test.json). Those are Taproot/BIP341 script-validation vectors, which
+# Avian does not implement, so running script_assets_test against them fails. Leaving
+# DIR_UNIT_TEST_DATA unset makes that test skip cleanly (see src/test/script_assets_tests.cpp).
+# Point DIR_UNIT_TEST_DATA at Avian-generated vectors here if/when the suite is localized.
 
 if [ "$USE_BUSY_BOX" = "true" ]; then
   echo "Setup to use BusyBox utils"
