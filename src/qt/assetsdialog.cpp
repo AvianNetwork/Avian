@@ -5,7 +5,7 @@
 
 #include <qt/assetsdialog.h>
 #include <qt/sendcoinsdialog.h>
-#include "ui_assetsdialog.h"
+#include <qt/forms/ui_assetsdialog.h>
 
 #include <qt/addresstablemodel.h>
 #include <qt/bitcoinunits.h>

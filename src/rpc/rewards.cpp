@@ -3,6 +3,7 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
+#include <util/string.h>
 #include <rpc/server.h>
 #include <rpc/server_util.h>
 #include <rpc/util.h>
@@ -286,7 +287,7 @@ static RPCHelpMan getdistributestatus()
 
             UniValue responseObj(UniValue::VOBJ);
             responseObj.pushKV("Asset Name", temp.strOwnershipAsset);
-            responseObj.pushKV("Height", std::to_string(temp.nHeight));
+            responseObj.pushKV("Height", util::ToString(temp.nHeight));
             responseObj.pushKV("Distribution Name", temp.strDistributionAsset);
             responseObj.pushKV("Distribution Amount", ValueFromAmount(temp.nDistributionAmount));
             responseObj.pushKV("Status", temp.nStatus);

@@ -4,7 +4,7 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include <qt/assetcontroldialog.h>
-#include "ui_assetcontroldialog.h"
+#include <qt/forms/ui_assetcontroldialog.h>
 
 #include <qt/addresstablemodel.h>
 #include <qt/bitcoinunits.h>

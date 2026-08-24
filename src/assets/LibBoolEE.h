@@ -1,5 +1,5 @@
-#ifndef LIBBOOLEE_H
-#define LIBBOOLEE_H
+#ifndef BITCOIN_ASSETS_LIBBOOLEE_H
+#define BITCOIN_ASSETS_LIBBOOLEE_H
 
 /******************************************************************************
 Created by Adam Streck, 2016, adam.streck@gmail.com
@@ -67,4 +67,4 @@ private:
     static std::string trim(const std::string & source);
 };
 
-#endif
+#endif // BITCOIN_ASSETS_LIBBOOLEE_H

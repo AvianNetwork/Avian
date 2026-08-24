@@ -4,9 +4,10 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef AVIAN_QT_ASSETRECORD_H
-#define AVIAN_QT_ASSETRECORD_H
+#ifndef BITCOIN_QT_ASSETRECORD_H
+#define BITCOIN_QT_ASSETRECORD_H
 
+#include <util/string.h>
 #include <cmath>
 #include <consensus/amount.h>
 #include <tinyformat.h>
@@ -40,7 +41,7 @@ public:
         }
         else {
             // Build padded remainder string manually since strprintf requires constexpr format
-            std::string rem_str = std::to_string(remainder);
+            std::string rem_str = util::ToString(remainder);
             while ((int)rem_str.size() < units) rem_str = "0" + rem_str;
             return strprintf("%s%d.%s", sign ? "-" : "", quotient, rem_str);
         }
@@ -58,4 +59,4 @@ public:
 
 };
 
-#endif // AVIAN_QT_ASSETRECORD_H
+#endif // BITCOIN_QT_ASSETRECORD_H

@@ -3,8 +3,8 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef AVIAN_QT_REISSUEASSETDIALOG_H
-#define AVIAN_QT_REISSUEASSETDIALOG_H
+#ifndef BITCOIN_QT_REISSUEASSETDIALOG_H
+#define BITCOIN_QT_REISSUEASSETDIALOG_H
 
 #include <qt/walletmodel.h>
 #include <assets/ans.h>
@@ -158,4 +158,4 @@ private Q_SLOTS:
     void onAssetsListLoaded(QStringList assetsList);
 };
 
-#endif // AVIAN_QT_REISSUEASSETDIALOG_H
+#endif // BITCOIN_QT_REISSUEASSETDIALOG_H

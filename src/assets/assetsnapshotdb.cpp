@@ -2,6 +2,7 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
+#include <util/string.h>
 #include <assets/assetsnapshotdb.h>
 #include <assets/assets.h>
 #include <assets/assetdb.h>
@@ -28,7 +29,7 @@ CAssetSnapshotDBEntry::CAssetSnapshotDBEntry(
         ownersAndAmounts.insert(currPair);
     }
 
-    heightAndName = std::to_string(height) + assetName;
+    heightAndName = util::ToString(height) + assetName;
 }
 
 CAssetSnapshotDB::CAssetSnapshotDB(const fs::path& datadir, size_t nCacheSize, bool fMemory, bool fWipe)
@@ -119,7 +120,7 @@ bool CAssetSnapshotDB::RetrieveOwnershipSnapshot(
     CAssetSnapshotDBEntry & p_snapshotEntry)
 {
     //  Load up the snapshot entries at this height
-    std::string heightAndName = std::to_string(p_height) + p_assetName;
+    std::string heightAndName = util::ToString(p_height) + p_assetName;
 
     LogPrintf( "%s : Attempting to retrieve snapshot: heightAndName='%s'\n",
         __func__,
@@ -139,7 +140,7 @@ bool CAssetSnapshotDB::RemoveOwnershipSnapshot(
     const std::string & p_assetName, int p_height)
 {
     //  Load up the snapshot entries at this height
-    std::string heightAndName = std::to_string(p_height) + p_assetName;
+    std::string heightAndName = util::ToString(p_height) + p_assetName;
 
     LogPrintf( "%s : Attempting to remove snapshot: heightAndName='%s'\n",
         __func__,

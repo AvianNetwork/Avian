@@ -712,7 +712,7 @@ void OverviewPage::handleAssetRightClicked(const QModelIndex& index)
             for (int i = 0; i < row; ++i) {
                 grid->setRowStretch(i, 0);
             }
-            
+
             grid->setRowStretch(row, 1);
 
             vbox->addWidget(body, 1);

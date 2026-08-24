@@ -24,7 +24,7 @@ struct ANSProfileData {
 
 /* Class for ANS (Avian Name System) ID */
 class CAvianNameSystemID {
-public:  
+public:
     static const std::string prefix;
     static const std::string domain;
 

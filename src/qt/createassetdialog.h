@@ -3,8 +3,8 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef AVIAN_QT_CREATEASSETDIALOG_H
-#define AVIAN_QT_CREATEASSETDIALOG_H
+#ifndef BITCOIN_QT_CREATEASSETDIALOG_H
+#define BITCOIN_QT_CREATEASSETDIALOG_H
 
 #include <qt/walletmodel.h>
 #include <assets/ans.h>
@@ -170,4 +170,4 @@ Q_SIGNALS:
     void message(const QString &title, const QString &message, unsigned int style);
 };
 
-#endif // AVIAN_QT_CREATEASSETDIALOG_H
+#endif // BITCOIN_QT_CREATEASSETDIALOG_H

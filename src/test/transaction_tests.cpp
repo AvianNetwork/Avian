@@ -30,7 +30,6 @@
 #include <test/util/transaction_utils.h>
 #include <addresstype.h>
 #include <chainparams.h>
-#include <test/util/transaction_utils.h>
 #include <util/strencodings.h>
 #include <util/string.h>
 #include <validation.h>

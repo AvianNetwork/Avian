@@ -2,8 +2,8 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef AVIAN_QT_RESTRICTEDFREEZEADDRESS_H
-#define AVIAN_QT_RESTRICTEDFREEZEADDRESS_H
+#ifndef BITCOIN_QT_RESTRICTEDFREEZEADDRESS_H
+#define BITCOIN_QT_RESTRICTEDFREEZEADDRESS_H
 
 #include <QWidget>
 
@@ -34,4 +34,4 @@ private:
     const PlatformStyle *platformStyle;
 };
 
-#endif // AVIAN_QT_RESTRICTEDFREEZEADDRESS_H
+#endif // BITCOIN_QT_RESTRICTEDFREEZEADDRESS_H

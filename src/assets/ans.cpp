@@ -74,12 +74,13 @@ bool CAvianNameSystemID::IsValidID(std::string ansID) {
     bool hasPrefix = (ansID.substr(0, CAvianNameSystemID::prefix.length()) == CAvianNameSystemID::prefix) && (ansID.size() <= 940);
     if (!hasPrefix) return false;
 
-    // Must be valid hex char
+    // Must be valid hex char (locale-independent ASCII check; std::isxdigit is locale-dependent)
     std::string hexStr = ansID.substr(prefix.length(), 1);
-    if (!std::isxdigit(static_cast<unsigned char>(hexStr[0]))) return false;
+    const char hc = hexStr[0];
+    if (!((hc >= '0' && hc <= '9') || (hc >= 'a' && hc <= 'f') || (hc >= 'A' && hc <= 'F'))) return false;
 
     // Hex value must be less than 0xf
-    int hexInt = stoi(hexStr, 0, 16);
+    int hexInt = HexDigit(hexStr[0]);
     if (hexInt > 0xf) return false;
 
     // Check type
@@ -122,7 +123,7 @@ CAvianNameSystemID::CAvianNameSystemID(std::string ansID) :
     if(!IsValidID(ansID)) return;
 
     // Get type
-    Type type = static_cast<Type>(stoi(ansID.substr(prefix.length(), 1), 0, 16));
+    Type type = static_cast<Type>(HexDigit(ansID[prefix.length()]));
     this->m_type = type;
 
     // Set info based on data

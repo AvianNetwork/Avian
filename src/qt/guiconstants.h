@@ -5,6 +5,8 @@
 #ifndef BITCOIN_QT_GUICONSTANTS_H
 #define BITCOIN_QT_GUICONSTANTS_H
 
+#include <bitcoin-build-config.h> // IWYU pragma: keep
+
 #include <chrono>
 #include <cstdint>
 

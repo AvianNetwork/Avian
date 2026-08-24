@@ -290,6 +290,7 @@ mkdir -p "$DISTSRC"
             *)
                 # Split binaries from their debug symbols
                 {
+                    # shellcheck disable=SC2046  # word split is intentional: the subshell prints a path or nothing
                     find "${DISTNAME}/bin" $(test -d "${DISTNAME}/libexec" && echo "${DISTNAME}/libexec") -type f -executable -print0
                 } | xargs -0 -P"$JOBS" -I{} "${DISTSRC}/build/split-debug.sh" {} {} {}.dbg
                 ;;

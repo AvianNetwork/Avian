@@ -3,7 +3,7 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 #include <qt/sendassetsentry.h>
-#include "ui_sendassetsentry.h"
+#include <qt/forms/ui_sendassetsentry.h>
 
 #include <qt/addressbookpage.h>
 #include <qt/addresstablemodel.h>
@@ -360,7 +360,7 @@ void SendAssetsEntry::onAssetSelected(int index)
         clear();
         ui->messageLabel->show();
         ui->messageTextLabel->show();
-        ui->messageTextLabel->setText(tr("Failed to get asset metadata for: ") + name + "." + tr(" The transaction in which the asset was issued must be mined into a block before you can transfer it"));
+        ui->messageTextLabel->setText(tr("Failed to get asset metadata for:") + " " + name + ". " + tr("The transaction in which the asset was issued must be mined into a block before you can transfer it"));
         ui->assetAmountLabel->clear();
         return;
     }

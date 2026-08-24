@@ -9,4 +9,7 @@ SHARED_EXCLUDED_SUBTREES = ["src/leveldb/",
                  "src/secp256k1/",
                  "src/minisketch/",
                  "src/ipc/libmultiprocess/",
+                 # Avian: vendored X16R / MinotaurX proof-of-work code, kept verbatim
+                 # from upstream (contains original French-origin comments, etc.).
+                 "src/algo/",
                 ]

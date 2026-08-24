@@ -3,7 +3,7 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include <qt/restrictedfreezeaddress.h>
-#include "ui_restrictedfreezeaddress.h"
+#include <qt/forms/ui_restrictedfreezeaddress.h>
 
 #include <qt/assettablemodel.h>
 #include <qt/walletmodel.h>

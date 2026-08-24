@@ -3,6 +3,7 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
+#include <util/string.h>
 #include <regex>
 #include <script/script.h>
 #include <streams.h>
@@ -404,45 +405,45 @@ bool IsAssetNameAnMsgChannel(const std::string& name)
 bool IsTypeCheckNameValid(const AssetType type, const std::string& name, std::string& error)
 {
     if (type == AssetType::UNIQUE) {
-        if (name.size() > MAX_NAME_LENGTH) { error = "Name is greater than max length of " + std::to_string(MAX_NAME_LENGTH); return false; }
+        if (name.size() > MAX_NAME_LENGTH) { error = "Name is greater than max length of " + util::ToString(MAX_NAME_LENGTH); return false; }
         std::vector<std::string> parts;
         parts = SplitString(name, UNIQUE_TAG_DELIMITER);
         bool valid = IsNameValidBeforeTag(parts.front()) && IsUniqueTagValid(parts.back());
         if (!valid) { error = "Unique name contains invalid characters (Valid characters are: A-Z a-z 0-9 @ $ % & * ( ) [ ] { } _ . ? : -)";  return false; }
         return true;
     } else if (type == AssetType::MSGCHANNEL) {
-        if (name.size() > MAX_NAME_LENGTH) { error = "Name is greater than max length of " + std::to_string(MAX_NAME_LENGTH); return false; }
+        if (name.size() > MAX_NAME_LENGTH) { error = "Name is greater than max length of " + util::ToString(MAX_NAME_LENGTH); return false; }
         std::vector<std::string> parts;
         parts = SplitString(name, MSG_CHANNEL_TAG_DELIMITER);
         bool valid = IsNameValidBeforeTag(parts.front()) && IsMsgChannelTagValid(parts.back());
-        if (parts.back().size() > MAX_CHANNEL_NAME_LENGTH) { error = "Channel name is greater than max length of " + std::to_string(MAX_CHANNEL_NAME_LENGTH); return false; }
+        if (parts.back().size() > MAX_CHANNEL_NAME_LENGTH) { error = "Channel name is greater than max length of " + util::ToString(MAX_CHANNEL_NAME_LENGTH); return false; }
         if (!valid) { error = "Message Channel name contains invalid characters (Valid characters are: A-Z 0-9 _ .) (special characters can't be the first or last characters)";  return false; }
         return true;
     } else if (type == AssetType::OWNER) {
-        if (name.size() > MAX_NAME_LENGTH) { error = "Name is greater than max length of " + std::to_string(MAX_NAME_LENGTH); return false; }
+        if (name.size() > MAX_NAME_LENGTH) { error = "Name is greater than max length of " + util::ToString(MAX_NAME_LENGTH); return false; }
         bool valid = IsNameValidBeforeTag(name.substr(0, name.size() - 1));
         if (!valid) { error = "Owner name contains invalid characters (Valid characters are: A-Z 0-9 _ .) (special characters can't be the first or last characters)";  return false; }
         return true;
     } else if (type == AssetType::VOTE) {
-        if (name.size() > MAX_NAME_LENGTH) { error = "Name is greater than max length of " + std::to_string(MAX_NAME_LENGTH); return false; }
+        if (name.size() > MAX_NAME_LENGTH) { error = "Name is greater than max length of " + util::ToString(MAX_NAME_LENGTH); return false; }
         std::vector<std::string> parts;
         parts = SplitString(name, VOTE_TAG_DELIMITER);
         bool valid = IsNameValidBeforeTag(parts.front()) && IsVoteTagValid(parts.back());
         if (!valid) { error = "Vote name contains invalid characters (Valid characters are: A-Z 0-9 _ .) (special characters can't be the first or last characters)";  return false; }
         return true;
     } else if (type == AssetType::QUALIFIER || type == AssetType::SUB_QUALIFIER) {
-        if (name.size() > MAX_NAME_LENGTH) { error = "Name is greater than max length of " + std::to_string(MAX_NAME_LENGTH); return false; }
+        if (name.size() > MAX_NAME_LENGTH) { error = "Name is greater than max length of " + util::ToString(MAX_NAME_LENGTH); return false; }
         bool valid = IsQualifierNameValidBeforeTag(name);
         if (!valid) { error = "Qualifier name contains invalid characters (Valid characters are: A-Z 0-9 _ .) (# must be the first character, _ . special characters can't be the first or last characters)";  return false; }
         return true;
     } else if (type == AssetType::RESTRICTED) {
-        if (name.size() > MAX_NAME_LENGTH) { error = "Name is greater than max length of " + std::to_string(MAX_NAME_LENGTH); return false; }
+        if (name.size() > MAX_NAME_LENGTH) { error = "Name is greater than max length of " + util::ToString(MAX_NAME_LENGTH); return false; }
         bool valid = IsRestrictedNameValid(name);
         if (!valid) { error = "Restricted name contains invalid characters (Valid characters are: A-Z 0-9 _ .) ($ must be the first character, _ . special characters can't be the first or last characters)";  return false; }
         return true;
     } else {
-        if (name.size() > MAX_NAME_LENGTH - 1) { error = "Name is greater than max length of " + std::to_string(MAX_NAME_LENGTH - 1); return false; }  //Assets and sub-assets need to leave one extra char for OWNER indicator
-        if (!IsAssetNameASubasset(name) && name.size() < MIN_ASSET_LENGTH) { error = "Name must be contain " + std::to_string(MIN_ASSET_LENGTH) + " characters"; return false; }
+        if (name.size() > MAX_NAME_LENGTH - 1) { error = "Name is greater than max length of " + util::ToString(MAX_NAME_LENGTH - 1); return false; }  //Assets and sub-assets need to leave one extra char for OWNER indicator
+        if (!IsAssetNameASubasset(name) && name.size() < MIN_ASSET_LENGTH) { error = "Name must be contain " + util::ToString(MIN_ASSET_LENGTH) + " characters"; return false; }
         bool valid = IsNameValidBeforeTag(name);
         if (!valid && IsAssetNameASubasset(name) && name.size() < 3) { error = "Name must have at least 3 characters (Valid characters are: A-Z 0-9 _ .)";  return false; }
         if (!valid) { error = "Name contains invalid characters (Valid characters are: A-Z 0-9 _ .) (special characters can't be the first or last characters)";  return false; }
@@ -546,10 +547,10 @@ std::string CNewAsset::ToString()
     ss << "Printing an asset" << "\n";
     ss << "name : " << strName << "\n";
     ss << "amount : " << nAmount << "\n";
-    ss << "units : " << std::to_string(units) << "\n";
-    ss << "reissuable : " << std::to_string(nReissuable) << "\n";
-    ss << "has_ipfs : " << std::to_string(nHasIPFS) << "\n";
-    ss << "has_ans : " << std::to_string(nHasANS) << "\n";
+    ss << "units : " << util::ToString(units) << "\n";
+    ss << "reissuable : " << util::ToString(nReissuable) << "\n";
+    ss << "has_ipfs : " << util::ToString(nHasIPFS) << "\n";
+    ss << "has_ans : " << util::ToString(nHasANS) << "\n";
 
     if (nHasIPFS)
         ss << "ipfs_hash : " << strIPFSHash;
@@ -4828,11 +4829,11 @@ bool CheckNewAsset(const CNewAsset& asset, std::string& strError)
 
     if (assetType == AssetType::UNIQUE || assetType == AssetType::MSGCHANNEL) {
         if (asset.units != UNIQUE_ASSET_UNITS) {
-            strError = _("Invalid parameter: units must be ") + std::to_string(UNIQUE_ASSET_UNITS);
+            strError = _("Invalid parameter: units must be ") + util::ToString(UNIQUE_ASSET_UNITS);
             return false;
         }
         if (asset.nAmount != UNIQUE_ASSET_AMOUNT) {
-            strError = _("Invalid parameter: amount must be ") + std::to_string(UNIQUE_ASSET_AMOUNT);
+            strError = _("Invalid parameter: amount must be ") + util::ToString(UNIQUE_ASSET_AMOUNT);
             return false;
         }
         if (asset.nReissuable != 0) {
@@ -4843,11 +4844,11 @@ bool CheckNewAsset(const CNewAsset& asset, std::string& strError)
 
     if (assetType == AssetType::QUALIFIER || assetType == AssetType::SUB_QUALIFIER) {
         if (asset.units != QUALIFIER_ASSET_UNITS) {
-            strError = _("Invalid parameter: units must be ") + std::to_string(QUALIFIER_ASSET_UNITS);
+            strError = _("Invalid parameter: units must be ") + util::ToString(QUALIFIER_ASSET_UNITS);
             return false;
         }
         if (asset.nAmount < QUALIFIER_ASSET_MIN_AMOUNT || asset.nAmount > QUALIFIER_ASSET_MAX_AMOUNT) {
-            strError = _("Invalid parameter: amount must be between ") + std::to_string(QUALIFIER_ASSET_MIN_AMOUNT) + " - " + std::to_string(QUALIFIER_ASSET_MAX_AMOUNT);
+            strError = _("Invalid parameter: amount must be between ") + util::ToString(QUALIFIER_ASSET_MIN_AMOUNT) + " - " + util::ToString(QUALIFIER_ASSET_MAX_AMOUNT);
             return false;
         }
         if (asset.nReissuable != 0) {
@@ -4867,7 +4868,7 @@ bool CheckNewAsset(const CNewAsset& asset, std::string& strError)
     }
 
     if (asset.nAmount > MAX_MONEY) {
-        strError = _("Invalid parameter: asset amount greater than max money: ") + std::to_string(MAX_MONEY / COIN);
+        strError = _("Invalid parameter: asset amount greater than max money: ") + util::ToString(MAX_MONEY / COIN);
         return false;
     }
 

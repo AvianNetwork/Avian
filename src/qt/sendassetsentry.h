@@ -3,8 +3,8 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef AVIAN_QT_SENDASSETSENTRY_H
-#define AVIAN_QT_SENDASSETSENTRY_H
+#ifndef BITCOIN_QT_SENDASSETSENTRY_H
+#define BITCOIN_QT_SENDASSETSENTRY_H
 
 #include <qt/walletmodel.h>
 #include <qt/sendcoinsrecipient.h>
@@ -93,4 +93,4 @@ private:
     bool updateLabel(const QString &address);
 };
 
-#endif // AVIAN_QT_SENDASSETSENTRY_H
+#endif // BITCOIN_QT_SENDASSETSENTRY_H

@@ -3,7 +3,7 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include <qt/restrictedassignqualifier.h>
-#include "ui_restrictedassignqualifier.h"
+#include <qt/forms/ui_restrictedassignqualifier.h>
 
 #include <qt/assettablemodel.h>
 #include <qt/walletmodel.h>

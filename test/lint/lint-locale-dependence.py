@@ -47,6 +47,9 @@ KNOWN_VIOLATIONS = [
     "src/test/fuzz/locale.cpp:.*setlocale",
     "src/test/util_tests.cpp:.*strtoll",
     "src/util/syserror.cpp:.*strerror",      # Outside this function use `SysErrorString`
+    # Avian: LibBoolEE::trim is a locale-independent helper (find_first_not_of),
+    # not boost::algorithm::trim which this rule targets.
+    "src/assets/LibBoolEE.(cpp|h):.*trim",
 ]
 
 REGEXP_EXTERNAL_DEPENDENCIES_EXCLUSIONS = [
@@ -56,6 +59,8 @@ REGEXP_EXTERNAL_DEPENDENCIES_EXCLUSIONS = [
     "src/secp256k1/",
     "src/minisketch/",
     "src/tinyformat.h",
+    # Avian: vendored X16R / MinotaurX PoW code (debug printf only).
+    "src/algo/",
 ]
 
 LOCALE_DEPENDENT_FUNCTIONS = [

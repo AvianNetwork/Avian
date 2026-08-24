@@ -2,8 +2,8 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef AVN_DUSTER_H
-#define AVN_DUSTER_H
+#ifndef BITCOIN_QT_DUSTER_H
+#define BITCOIN_QT_DUSTER_H
 
 #include <QDialog>
 #include <QLabel>
@@ -67,4 +67,4 @@ private:
     QString strPad(QString s, int nPadLength, QString sPadding);
 };
 
-#endif // AVN_DUSTER_H
+#endif // BITCOIN_QT_DUSTER_H

@@ -3,6 +3,7 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
+#include <util/string.h>
 #include <rpc/server.h>
 #include <rpc/util.h>
 
@@ -1165,7 +1166,7 @@ RPCHelpMan issuequalifierasset()
         "issuequalifierasset",
         "Issue a qualifier asset.\n"
         "If the asset name doesn't have '#', it will be added automatically.\n"
-        "Amount is a number between " + std::to_string(QUALIFIER_ASSET_MIN_AMOUNT / COIN) + " and " + std::to_string(QUALIFIER_ASSET_MAX_AMOUNT / COIN) + ".\n",
+        "Amount is a number between " + util::ToString(QUALIFIER_ASSET_MIN_AMOUNT / COIN) + " and " + util::ToString(QUALIFIER_ASSET_MAX_AMOUNT / COIN) + ".\n",
         {
             {"asset_name", RPCArg::Type::STR, RPCArg::Optional::NO, "a unique name, starts with '#'"},
             {"qty", RPCArg::Type::NUM, RPCArg::Default{1}, "the number of units to be issued (1 to 10)"},

@@ -29,6 +29,7 @@
 //   std::string err;
 //   if (!ANS_CBOR::DecodeProfile(raw_cbor_bytes, p, err)) { /* invalid */ }
 
+#include <util/string.h>
 #include <assets/ans.h>
 
 #include <string>
@@ -142,7 +143,7 @@ inline bool DecodeProfile(const std::string& payload, ANSProfileData& out, std::
             val = (uint64_t(d[pos]) << 8) | d[pos + 1];
             pos += 2; return true;
         }
-        error = "unsupported CBOR additional info " + std::to_string(info);
+        error = "unsupported CBOR additional info " + util::ToString(info);
         return false;
     };
 
@@ -174,7 +175,7 @@ inline bool DecodeProfile(const std::string& payload, ANSProfileData& out, std::
         uint8_t vh   = d[pos++];
         uint8_t vmaj = vh >> 5;
         uint8_t vinf = vh & 0x1fu;
-        if (vmaj != 2 && vmaj != 3) { error = "unsupported value major type " + std::to_string(vmaj); return false; }
+        if (vmaj != 2 && vmaj != 3) { error = "unsupported value major type " + util::ToString(vmaj); return false; }
         if (vinf == 31) { error = "indefinite-length string not allowed"; return false; }
         uint64_t vlen;
         if (!read_arg(vinf, vlen)) return false;

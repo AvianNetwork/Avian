@@ -152,13 +152,18 @@ std::string LibBoolEE::trim(const std::string &source) {
 }
 
 bool LibBoolEE::belongsToName(const char ch) {
-    return isalnum(ch) || ch == '_' || ch == '#' || ch == '.';
+    // Locale-independent ASCII alnum check (asset expressions are ASCII); avoids
+    // isalnum(), whose classification of high bytes varies by locale.
+    const bool is_ascii_alnum = (ch >= '0' && ch <= '9') || (ch >= 'A' && ch <= 'Z') || (ch >= 'a' && ch <= 'z');
+    return is_ascii_alnum || ch == '_' || ch == '#' || ch == '.';
 }
 
 std::string LibBoolEE::removeWhitespaces(const std::string &source) {
     std::string result;
     for (int i = 0; i < static_cast<int>(source.size()); i++) {
-        if (!isspace(source.at(i))) {
+        const char c = source.at(i);
+        // Locale-independent ASCII whitespace check (space, \t \n \v \f \r).
+        if (!(c == ' ' || (c >= '\t' && c <= '\r'))) {
             result += source.at(i);
         }
     }

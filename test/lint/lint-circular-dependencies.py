@@ -23,6 +23,24 @@ EXPECTED_CIRCULAR_DEPENDENCIES = (
     "kernel/coinstats -> validation -> kernel/coinstats",
     "versionbits -> versionbits_impl -> versionbits",
 
+    # Avian: asset system, rewards, ANS, and the X16RT/LWMA chain<->pow relationship.
+    "assets/LibBoolEE -> assets/assets -> assets/LibBoolEE",
+    "assets/ans -> assets/cbor -> assets/ans",
+    "assets/assets -> txmempool -> assets/assets",
+    "assets/assets -> validation -> assets/assets",
+    "assets/messages -> assets/myassetsdb -> assets/messages",
+    "assets/rewards -> assets/snapshotrequestdb -> assets/rewards",
+    "chain -> pow -> chain",
+    "qt/assettablemodel -> qt/walletmodel -> qt/assettablemodel",
+    "qt/myrestrictedassettablemodel -> qt/walletmodel -> qt/myrestrictedassettablemodel",
+    "txmempool -> validation -> txmempool",
+    "assets/assets -> validation -> assets/messages -> assets/assets",
+    "assets/assets -> txmempool -> consensus/tx_verify -> assets/assets",
+    "policy/ephemeral_policy -> txmempool -> validation -> policy/ephemeral_policy",
+    "policy/rbf -> txmempool -> validation -> policy/rbf",
+    "policy/truc_policy -> txmempool -> validation -> policy/truc_policy",
+    "assets/assets -> validation -> signet -> core_io -> assets/assets",
+
     # Temporary, removed in followup https://github.com/bitcoin/bitcoin/pull/24230
     "index/base -> node/context -> net_processing -> index/blockfilterindex -> index/base",
 )

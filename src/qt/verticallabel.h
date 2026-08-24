@@ -1,5 +1,5 @@
-#ifndef AVIAN_QT_VERTICALLABEL_H
-#define AVIAN_QT_VERTICALLABEL_H
+#ifndef BITCOIN_QT_VERTICALLABEL_H
+#define BITCOIN_QT_VERTICALLABEL_H
 
 #include <QLabel>
 
@@ -18,4 +18,4 @@ protected:
     QSize minimumSizeHint() const override;
 };
 
-#endif // AVIAN_QT_VERTICALLABEL_H
+#endif // BITCOIN_QT_VERTICALLABEL_H
