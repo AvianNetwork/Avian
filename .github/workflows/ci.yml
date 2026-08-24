@@ -14,10 +14,12 @@ on:
       - '**'
 
 concurrency:
-  # Group by workflow + ref so the push and pull_request events for the same branch
-  # share a group and the duplicate run is auto-cancelled (they used to land in
-  # separate groups and both run).
-  group: ${{ github.workflow }}-${{ github.ref }}
+  # Group by workflow + branch so the push and pull_request events for the same
+  # branch share a group and the duplicate run is auto-cancelled. head_ref is set
+  # for pull_request (the source branch); ref_name is the branch for push. Keying
+  # on github.ref instead would not work, because for pull_request it is
+  # refs/pull/N/merge rather than the branch.
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref_name }}
   cancel-in-progress: true
 
 env:

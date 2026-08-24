@@ -156,7 +156,7 @@ bool GenerateDistributionList(const CRewardSnapshot& p_rewardSnapshot, std::vect
     for (auto & ownership : nonExceptionOwnerships) {
         // Get percentage of total ownership
         long double percent = (long double)ownership.amount / (long double)totalAmtOwned;
-        // Caculate the reward with potentional unit inaccurancies e.g with units 4, 90054100 satoshis = 0.90054100
+        // Calculate the reward with potentional unit inaccurancies e.g with units 4, 90054100 satoshis = 0.90054100
         CAmount rewardAmt = percent * modifiedPaymentInAssetUnits * static_cast<CAmount>(pow(10, COIN_DIGITS_PAST_DECIMAL - distributionAsset.units));
         // Remove all none accurate units e.g with units 4 90054100 => 9005
         rewardAmt /= static_cast<CAmount>(pow(10, COIN_DIGITS_PAST_DECIMAL - distributionAsset.units));

@@ -164,11 +164,11 @@ inline bool DecodeProfile(const std::string& payload, ANSProfileData& out, std::
         if (pos >= len) { error = "truncated at key"; return false; }
         uint8_t kh   = d[pos++];
         uint8_t kmaj = kh >> 5;
-        uint8_t kinf = kh & 0x1fu;
+        uint8_t kind = kh & 0x1fu;
         if (kmaj != 0)   { error = "non-integer map key"; return false; }
-        if (kinf == 31)  { error = "indefinite-length key not allowed"; return false; }
+        if (kind == 31)  { error = "indefinite-length key not allowed"; return false; }
         uint64_t key;
-        if (!read_arg(kinf, key)) return false;
+        if (!read_arg(kind, key)) return false;
 
         // Value: tstr (major 3) or bstr (major 2).
         if (pos >= len) { error = "truncated at value"; return false; }
