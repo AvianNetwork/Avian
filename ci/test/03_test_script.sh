@@ -123,6 +123,28 @@ fi
 # container runs via the host-mounted BASE_BUILD_DIR.
 if [ "${CI_PHASE}" != "test" ]; then
 
+# RIP-25: build and install liboqs (ML-DSA-44) so a WITH_LIBOQS=ON build can find and link
+# it. The native CI uses system packages (NO_DEPENDS), so liboqs is not otherwise present,
+# and cmake/liboqs.cmake is a hard error when WITH_LIBOQS=ON and liboqs is missing. Pinned
+# and configured to match depends/packages/liboqs.mk (minimal SIG_ml_dsa_44 static build).
+# Only needed in the build phase; the static lib is baked into the binaries for the test phase.
+if [ "${BUILD_LIBOQS}" = "true" ]; then
+  LIBOQS_VERSION="${LIBOQS_VERSION:-0.16.0}"
+  LIBOQS_SHA256="162d5b510518ee5f285f82fa1f16402a885176e818bf1b1a4c3c91c9a2f01eae"
+  (
+    set -e
+    cd "${BASE_SCRATCH_DIR}"
+    ${CI_RETRY_EXE} curl --location --fail "https://github.com/open-quantum-safe/liboqs/archive/refs/tags/${LIBOQS_VERSION}.tar.gz" -o liboqs.tar.gz
+    echo "${LIBOQS_SHA256}  liboqs.tar.gz" | sha256sum -c -
+    tar xzf liboqs.tar.gz
+    cmake -S "liboqs-${LIBOQS_VERSION}" -B liboqs-build -GNinja \
+      -DOQS_BUILD_ONLY_LIB=ON -DOQS_MINIMAL_BUILD=SIG_ml_dsa_44 \
+      -DOQS_USE_OPENSSL=OFF -DBUILD_SHARED_LIBS=OFF -DCMAKE_INSTALL_PREFIX=/usr/local
+    cmake --build liboqs-build
+    cmake --install liboqs-build
+  )
+fi
+
 AVIAN_CONFIG_ALL="-DBUILD_BENCH=OFF -DBUILD_FUZZ_BINARY=OFF"
 if [ -z "$NO_DEPENDS" ]; then
   AVIAN_CONFIG_ALL="${AVIAN_CONFIG_ALL} -DCMAKE_TOOLCHAIN_FILE=$DEPENDS_DIR/$HOST/toolchain.cmake"
