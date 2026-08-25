@@ -35,6 +35,21 @@ shift-base:minisketch/
 shift-base:secp256k1/
 shift-base:test/fuzz/crypto_diff_fuzz_chacha20.cpp
 
+# Avian: vendored X16R / MinotaurX proof-of-work hash implementations (sph_* code in
+# src/algo/), kept verbatim from upstream. Like the crypto/secp256k1 hash code above,
+# they rely on intentional modular (wraparound) unsigned arithmetic and bit tricks that
+# the integer sanitizer flags but which are well-defined and correct. Only the
+# wraparound/truncation family is suppressed here; real UB (e.g. signed-integer-overflow)
+# is still caught. Reached from CBlockHeader::ComputePoWHash via HashX16R.
+unsigned-integer-overflow:algo/
+implicit-integer-sign-change:algo/
+implicit-signed-integer-truncation:algo/
+implicit-unsigned-integer-truncation:algo/
+shift-base:algo/
+# sph_enc32le/sph_dec32le etc. deliberately do unaligned 32/64-bit accesses on the
+# SPH_UNALIGNED fast path (well-defined on Avian's x86_64/ARM64 targets).
+alignment:algo/
+
 # Suppressions in code developed inside this repository.
 # ------------
 # Unsigned integer overflow occurs when the result of an unsigned integer

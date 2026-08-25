@@ -194,7 +194,7 @@ uint256 CBlockHeader::ComputePoWHash(uint32_t nX16rtTimestamp, uint32_t nDualAlg
             // Multi algo (x16rt + MinotaurX)
             switch (GetPoWType()) {
             case POW_TYPE_X16RT: {
-                int32_t nTimeX16r = nTime & TIME_MASK;
+                uint32_t nTimeX16r = nTime & TIME_MASK;
                 uint256 hashTime = Hash(std::span{reinterpret_cast<const unsigned char*>(&nTimeX16r), sizeof(nTimeX16r)});
                 return HashX16R(pbegin, pend, hashTime);
             }
@@ -207,7 +207,7 @@ uint256 CBlockHeader::ComputePoWHash(uint32_t nX16rtTimestamp, uint32_t nDualAlg
             }
         } else {
             // x16rt before dual-algo
-            int32_t nTimeX16r = nTime & TIME_MASK;
+            uint32_t nTimeX16r = nTime & TIME_MASK;
             uint256 hashTime = Hash(std::span{reinterpret_cast<const unsigned char*>(&nTimeX16r), sizeof(nTimeX16r)});
             return HashX16R(pbegin, pend, hashTime);
         }
