@@ -237,12 +237,16 @@ if [ "${RUN_TIDY}" = "true" ]; then
 fi
 
 if [ "$RUN_FUZZ_TESTS" = "true" ] && [ "${CI_PHASE}" != "build" ]; then
+  if [ -n "${FUZZ_EXCLUDE_TARGETS}" ]; then
+    echo "Avian: excluding fuzz targets pending test-side localization: ${FUZZ_EXCLUDE_TARGETS}"
+  fi
   # shellcheck disable=SC2086
   LD_LIBRARY_PATH="${DEPENDS_DIR}/${HOST}/lib" \
   "${BASE_BUILD_DIR}/test/fuzz/test_runner.py" \
     ${FUZZ_TESTS_CONFIG} \
     "${MAKEJOBS}" \
     -l DEBUG \
+    ${FUZZ_EXCLUDE_TARGETS:+--exclude="${FUZZ_EXCLUDE_TARGETS}"} \
     "${DIR_FUZZ_IN}" \
     --empty_min_time="${FUZZ_EMPTY_MIN_TIME:-60}"
 fi

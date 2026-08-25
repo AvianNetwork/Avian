@@ -44,7 +44,7 @@ FUZZ_TARGET(p2p_handshake, .init = ::initialize)
 
     auto& connman = static_cast<ConnmanTestMsg&>(*g_setup->m_node.connman);
     auto& chainman = static_cast<TestChainstateManager&>(*g_setup->m_node.chainman);
-    SetMockTime(1610000000); // any time to successfully reset ibd
+    SetMockTime(1700000000); // any time after Avian's regtest genesis (1629951211) + max_tip_age, to successfully reset ibd
     chainman.ResetIbd();
 
     node::Warnings warnings{};

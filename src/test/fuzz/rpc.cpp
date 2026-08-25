@@ -86,6 +86,55 @@ const std::vector<std::string> RPC_COMMANDS_NOT_SAFE_FOR_FUZZING{
     "savemempool",           // disabled as a precautionary measure: may take a file path argument in the future
     "setban",                // avoid DNS lookups
     "stop",                  // avoid shutdown state
+    // Avian: asset / messaging / rewards / ANS / restricted-asset node RPCs.
+    // Listed here so the "every registered command is categorized" check passes.
+    // They are not yet vetted for fuzzing; move the read-only ones (list*, get*,
+    // view*, check*, is*, ansdecode/ansencode, resolveavn, whoisavn) into
+    // RPC_COMMANDS_SAFE_FOR_FUZZING as a follow-up once each is confirmed safe.
+    "ansdecode",
+    "ansencode",
+    "cancelsnapshotrequest",
+    "checkaddressrestriction",
+    "checkaddresstag",
+    "checkglobalrestriction",
+    "clearmessages",
+    "getansdata",
+    "getassetdata",
+    "getburnaddresses",
+    "getcacheinfo",
+    "getdistributestatus",
+    "getsnapshot",
+    "getsnapshotrequest",
+    "getverifierstring",
+    "isvalidverifierstring",
+    "listaddressesbyasset",
+    "listaddressesfortag",
+    "listaddressrestrictions",
+    "listassetbalancesbyaddress",
+    "listassets",
+    "listglobalrestrictions",
+    "listsnapshotrequests",
+    "listtagsforaddress",
+    "purgesnapshot",
+    "requestsnapshot",
+    "resolveavn",
+    "subscribetochannel",
+    "unsubscribefromchannel",
+    "viewallmessagechannels",
+    "viewallmessages",
+    "viewmyrestrictedaddresses",
+    "viewmytaggedaddresses",
+    "whoisavn",
+    // Avian: address-index / spent-index / block-delta query RPCs
+    // (available when -addressindex/-spentindex are enabled).
+    "getaddressbalance",
+    "getaddressdeltas",
+    "getaddressmempool",
+    "getaddresstxids",
+    "getaddressutxos",
+    "getblockdeltas",
+    "getblockhashes",
+    "getspentinfo",
 };
 
 // RPC commands which are safe for fuzzing.

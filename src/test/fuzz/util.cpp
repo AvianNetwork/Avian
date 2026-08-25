@@ -217,6 +217,9 @@ CTxDestination ConsumeTxDestination(FuzzedDataProvider& fuzzed_data_provider) no
             tx_destination = PayToAnchor{};
         },
         [&] {
+            tx_destination = WitnessV2MLDsa44{ConsumeUInt256(fuzzed_data_provider)};
+        },
+        [&] {
             std::vector<unsigned char> program{ConsumeRandomLengthByteVector(fuzzed_data_provider, /*max_length=*/40)};
             if (program.size() < 2) {
                 program = {0, 0};
