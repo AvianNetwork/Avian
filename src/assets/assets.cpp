@@ -1420,7 +1420,7 @@ bool IsNewRestrictedAsset(const CTransaction& tx)
 
 //! To be called on CTransactions where IsNewRestrictedAsset returns true
 bool VerifyNewRestrictedAsset(const CTransaction& tx, std::string& strError) {
-    // Issuing a restricted asset must cointain at least 4 CTxOut(Avian Burn Tx, Asset Creation, Root Owner Token Transfer, and CNullAssetTxVerifierString)
+    // Issuing a restricted asset must contain at least 4 CTxOut(Avian Burn Tx, Asset Creation, Root Owner Token Transfer, and CNullAssetTxVerifierString)
     if (tx.vout.size() < 4) {
         strError = "bad-txns-issue-restricted-vout-size-to-small";
         return false;
@@ -2490,7 +2490,7 @@ bool CAssetsCache::DumpCacheToDatabase()
                 }
             }
 
-            // Undo the transfering by updating the balances in the database
+            // Undo the transferring by updating the balances in the database
 
             for (auto undoTransfer : setNewTransferAssetsToRemove) {
                 auto pair = std::make_pair(undoTransfer.transfer.strName, undoTransfer.address);
@@ -2673,12 +2673,12 @@ bool CAssetsCache::DumpCacheToDatabase()
             if (undoVerifiers.fUndoingRessiue) {
                 if (!prestricteddb->WriteVerifier(assetName, undoVerifiers.verifier)) {
                     dirty = true;
-                    message = "_Failed Writing undo restricted verifer to database";
+                    message = "_Failed Writing undo restricted verifier to database";
                 }
             } else {
                 if (!prestricteddb->EraseVerifier(assetName)) {
                     dirty = true;
-                    message = "_Failed Writing undo restricted verifer to database";
+                    message = "_Failed Writing undo restricted verifier to database";
                 }
             }
 
@@ -4450,7 +4450,7 @@ bool CheckVerifierString(const std::string& verifier, std::set<std::string>& set
 
         std::string edited_qualifier;
 
-        // Qualifer string was stripped above, so we need to add back the #
+        // Qualifier string was stripped above, so we need to add back the #
         edited_qualifier = QUALIFIER_CHAR + qualifier;
 
         if (!IsQualifierNameValid(edited_qualifier)) {
@@ -5021,7 +5021,7 @@ bool CheckReissueAsset(const CReissueAsset& asset, std::string& strError)
     }
 
     /// -------- TESTNET ONLY ---------- ///
-    // Testnet has a couple blocks that have invalid nReissue values before constriants were created
+    // Testnet has a couple blocks that have invalid nReissue values before constraints were created
     bool fSkip = false;
     if (Params().GetChainType() == ChainType::TESTNET) {
         if (asset.strName == "GAMINGWEB" && asset.nReissuable == 109) {

@@ -71,7 +71,7 @@ struct CBlockAssetUndo;
 #define MAX_CACHE_ASSETS_SIZE 2500
 
 // Create map that store that state of current reissued transaction that the mempool as accepted.
-// If an asset name is in this map, any other reissue transactions wont be accepted into the mempool
+// If an asset name is in this map, any other reissue transactions won't be accepted into the mempool
 extern std::map<uint256, std::string> mapReissuedTx;
 extern std::map<std::string, uint256> mapReissuedAssets;
 
@@ -342,7 +342,7 @@ public :
     //! Write asset cache data to database
     bool DumpCacheToDatabase();
 
-    //! Clear all dirty cache sets, vetors, and maps
+    //! Clear all dirty cache sets, vectors, and maps
     void ClearDirtyCache() {
 
         vUndoAssetAmount.clear();

@@ -14,7 +14,12 @@ on:
       - '**'
 
 concurrency:
-  group: ${{ github.event_name != 'pull_request' && github.run_id || github.ref }}
+  # Group by workflow + branch so the push and pull_request events for the same
+  # branch share a group and the duplicate run is auto-cancelled. head_ref is set
+  # for pull_request (the source branch); ref_name is the branch for push. Keying
+  # on github.ref instead would not work, because for pull_request it is
+  # refs/pull/N/merge rather than the branch.
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref_name }}
   cancel-in-progress: true
 
 env:
@@ -56,8 +61,15 @@ jobs:
         with:
           cache-provider: gha
 
-      - name: CI script
+      - name: Build
         run: ./ci/test_run_all.sh
+        env:
+          CI_PHASE: build
+
+      - name: Unit tests
+        run: ./ci/test_run_all.sh
+        env:
+          CI_PHASE: test
 
       - name: Collect Linux artifacts
         if: always()
@@ -77,3 +89,24 @@ jobs:
 
       - name: Save caches
         uses: ./.github/actions/save-caches
+
+  lint:
+    name: 'Lint'
+    runs-on: ubuntu-24.04
+    if: ${{ vars.SKIP_BRANCH_PUSH != 'true' || github.event_name == 'pull_request' }}
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          # Linters such as commit-range and the whitespace/newline checks need
+          # history beyond the tip.
+          fetch-depth: 0
+          ref: ${{ github.event_name == 'pull_request' && github.ref || '' }}
+
+      - name: Build the lint image
+        run: docker build --tag avian-lint --file ci/lint_imagefile .
+
+      - name: Run linters
+        run: docker run --rm --volume "$(pwd):/avian" avian-lint

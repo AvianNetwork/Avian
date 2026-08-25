@@ -42,6 +42,12 @@ export USE_BUSY_BOX=${USE_BUSY_BOX:-false}
 export RUN_UNIT_TESTS=${RUN_UNIT_TESTS:-false}
 export RUN_FUNCTIONAL_TESTS=${RUN_FUNCTIONAL_TESTS:-false}
 export RUN_TIDY=${RUN_TIDY:-false}
+# Which phase of 03_test_script.sh to run: "build" (compile only), "test" (run tests
+# against an already-built tree), or "all" (both, the default). Splitting these lets the
+# workflow show Build and Unit tests as separate steps; the build tree persists between the
+# two container runs via the host-mounted BASE_BUILD_DIR. Exported so it is forwarded into
+# the container (02_run_container.py only passes vars that appear in an export line here).
+export CI_PHASE=${CI_PHASE:-all}
 # By how much to scale the test_runner timeouts (option --timeout-factor).
 # This is needed because some ci machines have slow CPU or disk, so sanitizers
 # might be slow or a reindex might be waiting on disk IO.
