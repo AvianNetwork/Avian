@@ -93,7 +93,8 @@ FUZZ_TARGET(wallet_create_transaction, .init = initialize_setup)
         );
         recipients.push_back({destination,
                               /*nAmount=*/ConsumeMoney(fuzzed_data_provider),
-                              /*fSubtractFeeFromAmount=*/fuzzed_data_provider.ConsumeBool()});
+                              /*fSubtractFeeFromAmount=*/fuzzed_data_provider.ConsumeBool(),
+                              /*scriptOverride=*/CScript()});
     }
 
     std::optional<unsigned int> change_pos;

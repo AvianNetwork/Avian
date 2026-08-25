@@ -2675,6 +2675,28 @@ static unsigned int GetBlockScriptFlags(const CBlockIndex& block_index, const Ch
 }
 
 
+// AVN: persist messages collected during block connection. cs_messaging guards only the
+// Avian message caches (nothing is marked GUARDED_BY it), so it is a leaf lock taken at this
+// single site. Isolating the lock in a NO_THREAD_SAFETY_ANALYSIS helper keeps the
+// !cs_messaging negative capability from having to be threaded through ConnectBlock and the
+// entire validation call chain above it (ConnectTip, ActivateBestChain, ...).
+static void WriteBlockMessages(const std::set<CMessage>& setMessages) NO_THREAD_SAFETY_ANALYSIS
+{
+    extern bool fMessaging;
+    extern CMessageDB* pmessagedb;
+    if (AreMessagesDeployed() && fMessaging && !setMessages.empty()) {
+        LOCK(cs_messaging);
+        for (const auto& message : setMessages) {
+            if (IsChannelSubscribed(message.strName)) {
+                AddMessage(message);
+            }
+        }
+        if (pmessagedb && !mapDirtyMessagesAdd.empty()) {
+            pmessagedb->Flush();
+        }
+    }
+}
+
 /** Apply the effects of this block (with given index) on the UTXO set represented by coins.
  *  Validity checks that depend on the UTXO set are also done; ConnectBlock()
  *  can fail if those validity checks fail (among other reasons). */
@@ -3277,21 +3299,7 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
     // setMessages was populated in CheckTxAssets; persist any that belong to
     // subscribed channels.  This is intentionally placed after the fJustCheck
     // early return so we only write on a real block connection.
-    {
-        extern bool fMessaging;
-        extern CMessageDB* pmessagedb;
-        if (AreMessagesDeployed() && fMessaging && !setMessages.empty()) {
-            LOCK(cs_messaging);
-            for (const auto& message : setMessages) {
-                if (IsChannelSubscribed(message.strName)) {
-                    AddMessage(message);
-                }
-            }
-            if (pmessagedb && !mapDirtyMessagesAdd.empty()) {
-                pmessagedb->Flush();
-            }
-        }
-    }
+    WriteBlockMessages(setMessages);
 
     const auto time_5{SteadyClock::now()};
     m_chainman.time_undo += time_5 - time_4;
