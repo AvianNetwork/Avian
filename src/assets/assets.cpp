@@ -1035,6 +1035,9 @@ bool IsNewAsset(const CTransaction& tx)
 //! Make sure to call VerifyNewUniqueAsset if this call returns true
 bool IsNewUniqueAsset(const CTransaction& tx)
 {
+    if (tx.vout.empty())
+        return false;
+
     // Check trailing outpoint for issue data with unique asset name
     if (!CheckIssueDataTx(tx.vout[tx.vout.size() - 1]))
         return false;
@@ -1232,6 +1235,9 @@ bool VerifyNewAsset(const CTransaction& tx, std::string& strError) {
 //! Make sure to call VerifyNewUniqueAsset if this call returns true
 bool IsNewMsgChannelAsset(const CTransaction& tx)
 {
+    if (tx.vout.empty())
+        return false;
+
     // Check trailing outpoint for issue data with unique asset name
     if (!CheckIssueDataTx(tx.vout[tx.vout.size() - 1]))
         return false;
@@ -1319,6 +1325,9 @@ bool VerifyNewMsgChannelAsset(const CTransaction& tx, std::string &strError)
 //! Make sure to call VerifyNewQualifierAsset if this call returns true
 bool IsNewQualifierAsset(const CTransaction& tx)
 {
+    if (tx.vout.empty())
+        return false;
+
     // Check trailing outpoint for issue data with unique asset name
     if (!CheckIssueDataTx(tx.vout[tx.vout.size() - 1]))
         return false;
@@ -1408,6 +1417,9 @@ bool VerifyNewQualfierAsset(const CTransaction& tx, std::string &strError)
 //! Make sure to call VerifyNewAsset if this call returns true
 bool IsNewRestrictedAsset(const CTransaction& tx)
 {
+    if (tx.vout.empty())
+        return false;
+
     // Check trailing outpoint for issue data with unique asset name
     if (!CheckIssueDataTx(tx.vout[tx.vout.size() - 1]))
         return false;
@@ -1539,6 +1551,9 @@ bool GetVerifierStringFromTx(const CTransaction& tx, CNullAssetTxVerifierString&
 
 bool IsReissueAsset(const CTransaction& tx)
 {
+    if (tx.vout.empty())
+        return false;
+
     // Check for the reissue asset data CTxOut. This will always be the last output in the transaction
     if (!CheckReissueDataTx(tx.vout[tx.vout.size() - 1]))
         return false;

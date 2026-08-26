@@ -90,6 +90,45 @@ jobs:
       - name: Save caches
         uses: ./.github/actions/save-caches
 
+  fuzz:
+    name: 'Linux, fuzz (build + smoke)'
+    runs-on: ubuntu-24.04
+    if: ${{ vars.SKIP_BRANCH_PUSH != 'true' || github.event_name == 'pull_request' }}
+    timeout-minutes: 120
+
+    env:
+      DANGER_CI_ON_HOST_FOLDERS: 1
+      BITCOIN_GENBUILD_NO_GIT: 1
+      FILE_ENV: './ci/test/00_setup_env_native_fuzz.sh'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event_name == 'pull_request' && github.ref || '' }}
+
+      - name: Configure environment
+        uses: ./.github/actions/configure-environment
+
+      - name: Restore caches
+        id: restore-cache
+        uses: ./.github/actions/restore-caches
+
+      - name: Configure Docker
+        uses: ./.github/actions/configure-docker
+        with:
+          cache-provider: gha
+
+      # Builds all 130 fuzz harnesses with libFuzzer + ASan/UBSan, then fuzzes each
+      # target generatively for a couple of seconds from an empty corpus. This is a
+      # build-rot + immediate-crash smoke, not a coverage-fuzzing run; a dedicated
+      # Avian corpus and long runs are a separate, later effort.
+      - name: Build and fuzz smoke
+        run: ./ci/test_run_all.sh
+
+      - name: Save caches
+        uses: ./.github/actions/save-caches
+
   lint:
     name: 'Lint'
     runs-on: ubuntu-24.04

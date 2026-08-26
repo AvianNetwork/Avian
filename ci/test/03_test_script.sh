@@ -64,16 +64,23 @@ echo "=== END env ==="
 EOF
 )
 
-if [ "$RUN_FUZZ_TESTS" = "true" ]; then
-  export DIR_FUZZ_IN=${DIR_QA_ASSETS}/fuzz_corpora/
-  if [ ! -d "$DIR_FUZZ_IN" ]; then
-    ${CI_RETRY_EXE} git clone --depth=1 https://github.com/bitcoin-core/qa-assets "${DIR_QA_ASSETS}"
+if [ "$RUN_FUZZ_TESTS" = "true" ] && [ "${CI_PHASE}" != "build" ]; then
+  if [ "$FUZZ_SKIP_CORPUS" = "true" ]; then
+    # Avian: skip Bitcoin Core's qa-assets corpus and fuzz every target generatively
+    # from an empty corpus (see FUZZ_SKIP_CORPUS in 00_setup_env_native_fuzz.sh).
+    export DIR_FUZZ_IN="${BASE_SCRATCH_DIR}/fuzz_corpora_empty/"
+    mkdir -p "${DIR_FUZZ_IN}"
+  else
+    export DIR_FUZZ_IN=${DIR_QA_ASSETS}/fuzz_corpora/
+    if [ ! -d "$DIR_FUZZ_IN" ]; then
+      ${CI_RETRY_EXE} git clone --depth=1 https://github.com/bitcoin-core/qa-assets "${DIR_QA_ASSETS}"
+    fi
+    (
+      cd "${DIR_QA_ASSETS}"
+      echo "Using qa-assets repo from commit ..."
+      git log -1
+    )
   fi
-  (
-    cd "${DIR_QA_ASSETS}"
-    echo "Using qa-assets repo from commit ..."
-    git log -1
-  )
 fi
 
 # Avian: unlike upstream, do not fetch Bitcoin Core's unit_test_data
@@ -229,13 +236,17 @@ if [ "${RUN_TIDY}" = "true" ]; then
   git --no-pager diff
 fi
 
-if [ "$RUN_FUZZ_TESTS" = "true" ]; then
+if [ "$RUN_FUZZ_TESTS" = "true" ] && [ "${CI_PHASE}" != "build" ]; then
+  if [ -n "${FUZZ_EXCLUDE_TARGETS}" ]; then
+    echo "Avian: excluding fuzz targets pending test-side localization: ${FUZZ_EXCLUDE_TARGETS}"
+  fi
   # shellcheck disable=SC2086
   LD_LIBRARY_PATH="${DEPENDS_DIR}/${HOST}/lib" \
   "${BASE_BUILD_DIR}/test/fuzz/test_runner.py" \
     ${FUZZ_TESTS_CONFIG} \
     "${MAKEJOBS}" \
     -l DEBUG \
+    ${FUZZ_EXCLUDE_TARGETS:+--exclude="${FUZZ_EXCLUDE_TARGETS}"} \
     "${DIR_FUZZ_IN}" \
-    --empty_min_time=60
+    --empty_min_time="${FUZZ_EMPTY_MIN_TIME:-60}"
 fi
