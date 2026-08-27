@@ -8,10 +8,13 @@ DEPLOYMENT_MLDSA44 is ALWAYS_ACTIVE on regtest, so these tests do not require
 any activation block logic.
 """
 
+import os
+
 from test_framework.test_framework import BitcoinTestFramework
 from test_framework.util import (
     assert_equal,
     assert_greater_than_or_equal,
+    assert_raises_rpc_error,
 )
 
 # RIP-25 ML-DSA-44 witness element sizes (bytes).
@@ -156,6 +159,77 @@ class MLDsa44Test(BitcoinTestFramework):
         self.generate(node, 1)
         assert_greater_than_or_equal(node.gettransaction(res3["txid"])["confirmations"], 1)
         self.assert_pq_witness(node, res3["txid"], {(uc["txid"], uc["vout"])})
+
+        self.log.info("Test change follows a PQ recipient (RIP-25 change routing)")
+
+        # With no explicit change_type, paying a PQ recipient must keep the change
+        # in a PQ output rather than downgrading it to a quantum-vulnerable type
+        # (CWallet::TransactionChangeType). Coins are auto-selected here.
+        pq_recipient = node.getnewaddress("", "pq")
+        recipient_spk = node.getaddressinfo(pq_recipient)["scriptPubKey"]
+        change_txid = node.sendtoaddress(pq_recipient, 1.0)
+        self.generate(node, 1)
+        dec = node.decoderawtransaction(node.gettransaction(change_txid)["hex"])
+        change_types = []
+        for out in dec["vout"]:
+            spk = out["scriptPubKey"]
+            if spk["hex"] == recipient_spk:
+                continue  # this is the payment, not the change
+            addr = spk.get("address")
+            if addr and node.getaddressinfo(addr)["ismine"]:
+                change_types.append(spk.get("type"))
+        assert "witness_v2_mldsa44" in change_types, \
+            f"change should be a PQ output when paying a PQ recipient, got {change_types}"
+
+        self.log.info("Test PQ coins survive wallet backup and restore")
+
+        # Fund a fresh PQ address, back up the wallet, restore it under a new name,
+        # and spend the recovered coin. This is the "users can reliably recover PQ
+        # keys" gate: the PQ secret is derived from the (backed-up) descriptor xpriv.
+        recover_addr = node.getnewaddress("", "pq")
+        node.sendtoaddress(recover_addr, 7.0)
+        self.generate(node, 1)
+        backup_path = os.path.join(self.nodes[0].datadir_path, "pq_backup.dat")
+        node.backupwallet(backup_path)
+        node.restorewallet("pq_restored", backup_path)
+        restored = node.get_wallet_rpc("pq_restored")
+        rutxos = restored.listunspent(0, 9999999, [recover_addr])
+        assert_equal(len(rutxos), 1)
+        ru = rutxos[0]
+        rres = restored.send(
+            outputs={legacy_dest: 6.0},
+            options={"inputs": [{"txid": ru["txid"], "vout": ru["vout"]}],
+                     "add_inputs": False, "change_type": "legacy"})
+        assert_equal(rres["complete"], True)
+        self.generate(node, 1)
+        assert_greater_than_or_equal(restored.gettransaction(rres["txid"])["confirmations"], 1)
+        self.assert_pq_witness(restored, rres["txid"], {(ru["txid"], ru["vout"])})
+        node.unloadwallet("pq_restored")
+
+        self.log.info("Test a PQ spend requires an unlocked encrypted wallet")
+
+        # PQ secrets are protected transitively: they are re-derived from the
+        # encrypted descriptor xpriv, so a spend must fail while locked and succeed
+        # once the passphrase is supplied.
+        w0 = node.get_wallet_rpc(self.default_wallet_name)
+        node.createwallet(wallet_name="pq_enc")
+        enc = node.get_wallet_rpc("pq_enc")
+        enc_addr = enc.getnewaddress("", "pq")
+        w0.sendtoaddress(enc_addr, 8.0)
+        self.generate(node, 1)
+        eu = enc.listunspent(1, 9999999, [enc_addr])[0]
+        enc.encryptwallet("test-pass")
+        assert_raises_rpc_error(-13, "walletpassphrase", enc.sendtoaddress, legacy_dest, 1.0)
+        enc.walletpassphrase("test-pass", 60)
+        eres = enc.send(
+            outputs={legacy_dest: 7.0},
+            options={"inputs": [{"txid": eu["txid"], "vout": eu["vout"]}],
+                     "add_inputs": False, "change_type": "legacy"})
+        assert_equal(eres["complete"], True)
+        self.generate(node, 1)
+        assert_greater_than_or_equal(enc.gettransaction(eres["txid"])["confirmations"], 1)
+        self.assert_pq_witness(enc, eres["txid"], {(eu["txid"], eu["vout"])})
+        enc.walletlock()
 
         self.log.info("Test that 'pq' address type is rejected on non-regtest without deployment")
         # On regtest DEPLOYMENT_MLDSA44 is always active, so no negative-activation
