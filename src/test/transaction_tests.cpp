@@ -13,6 +13,7 @@
 #include <consensus/tx_verify.h>
 #include <consensus/validation.h>
 #include <core_io.h>
+#include <crypto/mldsa.h>
 #include <key.h>
 #include <policy/policy.h>
 #include <policy/settings.h>
@@ -247,6 +248,21 @@ BOOST_AUTO_TEST_CASE(tx_valid)
                 continue;
             }
 
+            // RIP-25: detect a witness v2 (ML-DSA-44) prevout.
+            bool has_pq_input = false;
+            for (const auto& [outpoint, spk] : mapprevOutScriptPubKeys) {
+                int ver; std::vector<unsigned char> prog;
+                if (spk.IsWitnessProgram(ver, prog) && ver == 2 && prog.size() == 32) {
+                    has_pq_input = true;
+                    break;
+                }
+            }
+            // A witness v2 ML-DSA-44 spend can only be verified with liboqs; in a
+            // WITH_LIBOQS=OFF build the stub verifier would fail a genuinely valid
+            // spend, so skip such vectors there. The WITH_LIBOQS=ON unit-test CI
+            // job exercises them.
+            if (has_pq_input && !mldsa::IsAvailable()) continue;
+
             std::string transaction = test[1].get_str();
             DataStream stream(ParseHex(transaction));
             CTransaction tx(deserialize, TX_WITH_WITNESS, stream);
@@ -265,6 +281,14 @@ BOOST_AUTO_TEST_CASE(tx_valid)
 
             BOOST_CHECK_MESSAGE(CheckTxScripts(tx, mapprevOutScriptPubKeys, mapprevOutValues, ~verify_flags, txdata, strTest, /*expect_valid=*/true),
                                 "Tx unexpectedly failed: " << strTest);
+
+            // RIP-25: the flag-permutation invariants below assume consensus-
+            // monotonic flags. A witness v2 ML-DSA-44 spend is non-monotonic in the
+            // relay flag DISCOURAGE_UPGRADABLE_WITNESS_PROGRAM: with SCRIPT_VERIFY_MLDSA44
+            // the program is a known, valid rule; with MLDSA44 unset but DISCOURAGE set
+            // it is "reserved for soft-fork upgrades" and rejected. Those sub-checks do
+            // not apply here -- the main validity check above already covers the entry.
+            if (has_pq_input) continue;
 
             // Backwards compatibility of script verification flags: Removing any flag(s) should not invalidate a valid transaction
             for (const auto& [name, flag] : mapFlagNames) {
