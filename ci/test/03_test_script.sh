@@ -65,7 +65,13 @@ EOF
 )
 
 if [ "$RUN_FUZZ_TESTS" = "true" ] && [ "${CI_PHASE}" != "build" ]; then
-  if [ "$FUZZ_SKIP_CORPUS" = "true" ]; then
+  if [ "$FUZZ_GENERATE" = "true" ]; then
+    # RIP-25 (nightly): grow a PERSISTED corpus with test_runner.py --generate. The
+    # nightly workflow clones the corpus repo into ${BASE_BUILD_DIR}/fuzz_corpus
+    # (host-mounted so the container can write to it) and pushes it back afterwards.
+    export DIR_FUZZ_IN="${BASE_BUILD_DIR}/fuzz_corpus/"
+    mkdir -p "${DIR_FUZZ_IN}"
+  elif [ "$FUZZ_SKIP_CORPUS" = "true" ]; then
     # Avian: skip Bitcoin Core's qa-assets corpus and fuzz every target generatively
     # from an empty corpus (see FUZZ_SKIP_CORPUS in 00_setup_env_native_fuzz.sh).
     export DIR_FUZZ_IN="${BASE_SCRATCH_DIR}/fuzz_corpora_empty/"
@@ -258,7 +264,20 @@ if [ "${RUN_TIDY}" = "true" ]; then
   git --no-pager diff
 fi
 
-if [ "$RUN_FUZZ_TESTS" = "true" ] && [ "${CI_PHASE}" != "build" ]; then
+if [ "$RUN_FUZZ_TESTS" = "true" ] && [ "${CI_PHASE}" != "build" ] && [ "$FUZZ_GENERATE" = "true" ]; then
+  # RIP-25 (nightly): extend the persisted corpus in ${DIR_FUZZ_IN} for the selected
+  # target(s). --generate runs libFuzzer with the corpus dir writable so new
+  # coverage-increasing inputs are saved back; the workflow then commits + pushes them.
+  # shellcheck disable=SC2086
+  LD_LIBRARY_PATH="${DEPENDS_DIR}/${HOST}/lib" \
+  "${BASE_BUILD_DIR}/test/fuzz/test_runner.py" \
+    ${FUZZ_TESTS_CONFIG} \
+    "${MAKEJOBS}" \
+    -l DEBUG \
+    --generate \
+    "${DIR_FUZZ_IN}" \
+    ${FUZZ_TARGETS}
+elif [ "$RUN_FUZZ_TESTS" = "true" ] && [ "${CI_PHASE}" != "build" ]; then
   if [ -n "${FUZZ_EXCLUDE_TARGETS}" ]; then
     echo "Avian: excluding fuzz targets pending test-side localization: ${FUZZ_EXCLUDE_TARGETS}"
   fi

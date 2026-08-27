@@ -1,0 +1,99 @@
+# Copyright (c) 2024-present The Avian Core developers
+# Distributed under the MIT software license, see the accompanying
+# file COPYING or https://opensource.org/license/mit/.
+
+# RIP-25 nightly: build a WITH_LIBOQS=ON fuzz binary and fuzz the real ML-DSA-44
+# verifier/decoder (the mldsa44 target), growing a PERSISTED corpus that is kept in
+# a dedicated corpus repo so each night deepens coverage. This runs off the per-PR
+# critical path; the per-PR fuzz job stays WITH_LIBOQS=OFF.
+#
+# One-time setup (org owner):
+#   1. Create the corpus repo (default: AvianNetwork/avian-fuzz-corpus). Override
+#      the name with an Actions variable FUZZ_CORPUS_REPO if you use another.
+#   2. Add an Actions secret FUZZ_CORPUS_TOKEN: a token (fine-grained PAT or classic)
+#      with Contents:write on that repo, so the nightly can push the grown corpus.
+# Without the secret the run still fuzzes, but the corpus is not persisted.
+
+name: Fuzz ML-DSA (liboqs) nightly
+
+on:
+  schedule:
+    - cron: '17 4 * * *'  # nightly, 04:17 UTC
+  workflow_dispatch:       # allow manual runs
+
+concurrency:
+  group: fuzz-liboqs-nightly
+  cancel-in-progress: false
+
+jobs:
+  fuzz-liboqs:
+    name: 'Linux, fuzz ML-DSA (liboqs)'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 180
+
+    env:
+      DANGER_CI_ON_HOST_FOLDERS: 1
+      BITCOIN_GENBUILD_NO_GIT: 1
+      FILE_ENV: './ci/test/00_setup_env_native_fuzz_liboqs.sh'
+      # Host-mounted into the container; the corpus lives in a subdir of it so the
+      # container's test_runner.py --generate can grow it and this job can push it.
+      BASE_BUILD_DIR: ${{ runner.temp }}/build
+      CORPUS_REPO: ${{ vars.FUZZ_CORPUS_REPO || 'AvianNetwork/avian-fuzz-corpus' }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Restore fuzz corpus
+        env:
+          TOKEN: ${{ secrets.FUZZ_CORPUS_TOKEN }}
+        run: |
+          mkdir -p "${BASE_BUILD_DIR}"
+          if [ -n "${TOKEN}" ]; then
+            git clone --depth=1 "https://x-access-token:${TOKEN}@github.com/${CORPUS_REPO}.git" "${BASE_BUILD_DIR}/fuzz_corpus" \
+              || { echo "corpus repo empty or unreachable; starting fresh"; mkdir -p "${BASE_BUILD_DIR}/fuzz_corpus"; git -C "${BASE_BUILD_DIR}/fuzz_corpus" init -q -b main; }
+          else
+            echo "::warning::FUZZ_CORPUS_TOKEN not set - fuzzing without a persisted corpus."
+            mkdir -p "${BASE_BUILD_DIR}/fuzz_corpus"
+          fi
+          echo "corpus inputs before: $(find "${BASE_BUILD_DIR}/fuzz_corpus" -type f ! -path '*/.git/*' | wc -l)"
+
+      - name: Configure environment
+        uses: ./.github/actions/configure-environment
+
+      - name: Restore caches
+        uses: ./.github/actions/restore-caches
+
+      - name: Configure Docker
+        uses: ./.github/actions/configure-docker
+        with:
+          cache-provider: gha
+
+      - name: Build (WITH_LIBOQS=ON) and grow corpus
+        run: ./ci/test_run_all.sh
+
+      - name: Commit and push corpus
+        if: ${{ always() }}
+        env:
+          TOKEN: ${{ secrets.FUZZ_CORPUS_TOKEN }}
+        run: |
+          if [ -z "${TOKEN}" ]; then echo "FUZZ_CORPUS_TOKEN not set; not persisting corpus."; exit 0; fi
+          [ -d "${BASE_BUILD_DIR}/fuzz_corpus" ] || { echo "no corpus dir"; exit 0; }
+          # test_runner ran in the container as root, so the new inputs are root-owned.
+          sudo chown -R "$(id -u):$(id -g)" "${BASE_BUILD_DIR}/fuzz_corpus"
+          cd "${BASE_BUILD_DIR}/fuzz_corpus"
+          [ -d .git ] || git init -q -b main
+          git remote get-url origin >/dev/null 2>&1 || git remote add origin "https://x-access-token:${TOKEN}@github.com/${CORPUS_REPO}.git"
+          git config user.name "avian-fuzz-bot"
+          git config user.email "noreply@avn.network"
+          echo "corpus inputs after: $(find . -type f ! -path './.git/*' | wc -l)"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "no new corpus inputs this run"
+          else
+            git commit -q -m "corpus: ML-DSA-44 nightly (run ${GITHUB_RUN_ID})"
+            git push origin HEAD:main
+          fi
+
+      - name: Save caches
+        uses: ./.github/actions/save-caches
