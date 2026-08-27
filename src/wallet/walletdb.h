@@ -86,7 +86,6 @@ extern const std::string WALLETDESCRIPTORKEY;
 extern const std::string WALLETDESCRIPTORPQCACHE; // RIP-25: ML-DSA-44 witness program cache
 extern const std::string WATCHMETA;
 extern const std::string WATCHS;
-extern const std::string PQKEY; // RIP-25: ML-DSA-44 post-quantum key
 
 // Keys in this set pertain only to the legacy wallet (LegacyScriptPubKeyMan) and are removed during migration from legacy to descriptors.
 extern const std::unordered_set<std::string> LEGACY_TYPES;
@@ -242,9 +241,6 @@ public:
     bool WriteKey(const CPubKey& vchPubKey, const CPrivKey& vchPrivKey, const CKeyMetadata &keyMeta);
     bool WriteCryptedKey(const CPubKey& vchPubKey, const std::vector<unsigned char>& vchCryptedSecret, const CKeyMetadata &keyMeta);
 
-    // RIP-25: ML-DSA-44 post-quantum key persistence.
-    bool WritePQKey(const CPQPubKey& pubkey, std::span<const uint8_t, CPQKey::SIZE> secret_key);
-    bool ErasePQKey(const uint256& program);
     bool WriteMasterKey(unsigned int nID, const CMasterKey& kMasterKey);
     bool EraseMasterKey(unsigned int id);
 

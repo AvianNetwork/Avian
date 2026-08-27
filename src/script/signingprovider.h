@@ -249,8 +249,6 @@ class FillableSigningProvider : public SigningProvider
 protected:
     using KeyMap = std::map<CKeyID, CKey>;
     using ScriptMap = std::map<CScriptID, CScript>;
-    using PQKeyMap = std::map<uint256, CPQKey>;
-    using PQPubKeyMap = std::map<uint256, CPQPubKey>;
 
     /**
      * Map of key id to unencrypted private keys known by the signing provider.
@@ -301,10 +299,6 @@ protected:
      */
     ScriptMap mapScripts GUARDED_BY(cs_KeyStore);
 
-    // RIP-25: ML-DSA-44 post-quantum key storage.
-    PQKeyMap mapPQKeys GUARDED_BY(cs_KeyStore);
-    PQPubKeyMap mapPQPubKeys GUARDED_BY(cs_KeyStore);
-
     void ImplicitlyLearnRelatedKeyScripts(const CPubKey& pubkey) EXCLUSIVE_LOCKS_REQUIRED(cs_KeyStore);
 
 public:
@@ -320,12 +314,6 @@ public:
     virtual bool HaveCScript(const CScriptID &hash) const override;
     virtual std::set<CScriptID> GetCScripts() const;
     virtual bool GetCScript(const CScriptID &hash, CScript& redeemScriptOut) const override;
-
-    // RIP-25: ML-DSA-44 post-quantum key management.
-    virtual bool AddPQKey(CPQKey&& key);
-    virtual bool HavePQKey(const uint256& program) const override;
-    virtual bool GetPQKey(const uint256& program, CPQKey& key) const override;
-    virtual bool GetPQPubKey(const uint256& program, CPQPubKey& pubkey) const override;
 };
 
 /** Return the CKeyID of the key involved in a script (if there is a unique one). */

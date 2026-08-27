@@ -240,11 +240,6 @@ public:
     void AddInactiveHDChain(const CHDChain& chain);
     const CHDChain& GetHDChain() const { return m_hd_chain; }
 
-    //! RIP-25: Load a PQ key from wallet storage (used by LoadWallet), without saving to disk.
-    bool LoadPQKey(CPQKey&& key);
-    //! RIP-25: Generate a new ML-DSA-44 key, persist it, and return the witness v2 destination.
-    util::Result<CTxDestination> GenerateNewPQAddress(WalletBatch& batch);
-
     //! Fetches a pubkey from mapWatchKeys if it exists there
     bool GetWatchPubKey(const CKeyID &address, CPubKey &pubkey_out) const;
 
