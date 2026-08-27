@@ -2249,19 +2249,17 @@ OutputType CWallet::TransactionChangeType(const std::optional<OutputType>& chang
         return *change_type;
     }
 
-    // if m_default_address_type is legacy, use legacy address as change.
-    if (m_default_address_type == OutputType::LEGACY) {
-        return OutputType::LEGACY;
-    }
-
     bool any_tr{false};
     bool any_wpkh{false};
     bool any_sh{false};
     bool any_pkh{false};
+    bool any_pq{false}; // RIP-25: any ML-DSA-44 post-quantum recipient
 
     for (const auto& recipient : vecSend) {
         if (std::get_if<WitnessV1Taproot>(&recipient.dest)) {
             any_tr = true;
+        } else if (std::get_if<WitnessV2MLDsa44>(&recipient.dest)) {
+            any_pq = true;
         } else if (std::get_if<WitnessV0KeyHash>(&recipient.dest)) {
             any_wpkh = true;
         } else if (std::get_if<ScriptHash>(&recipient.dest)) {
@@ -2269,6 +2267,21 @@ OutputType CWallet::TransactionChangeType(const std::optional<OutputType>& chang
         } else if (std::get_if<PKHash>(&recipient.dest)) {
             any_pkh = true;
         }
+    }
+
+    // RIP-25: keep post-quantum change with a post-quantum recipient so the
+    // change output does not downgrade the spend to a quantum-vulnerable type.
+    // This deliberately takes precedence over the legacy-default rule below: a
+    // spend to a post-quantum address should not leave change in an output a
+    // quantum adversary could seize.
+    const bool has_pq_spkman(GetScriptPubKeyMan(OutputType::PQ, /*internal=*/true));
+    if (has_pq_spkman && any_pq) {
+        return OutputType::PQ;
+    }
+
+    // if m_default_address_type is legacy, use legacy address as change.
+    if (m_default_address_type == OutputType::LEGACY) {
+        return OutputType::LEGACY;
     }
 
     const bool has_bech32m_spkman(GetScriptPubKeyMan(OutputType::BECH32M, /*internal=*/true));
