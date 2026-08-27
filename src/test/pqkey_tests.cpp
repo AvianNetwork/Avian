@@ -7,8 +7,10 @@
 // Ported from Ravencoin RIP-25 <https://github.com/RavenProject/Ravencoin/pull/1281>
 
 #include <crypto/mldsa.h>
+#include <crypto/sha256.h>
 #include <pqkey.h>
 #include <uint256.h>
+#include <util/strencodings.h>
 
 #include <boost/test/unit_test.hpp>
 
@@ -56,6 +58,51 @@ BOOST_AUTO_TEST_CASE(deterministic_keygen_from_seed)
     BOOST_CHECK(key1.GetPubKey() == key2.GetPubKey());
     // Same seed → same witness program
     BOOST_CHECK(key1.GetPubKey().GetWitnessProgram() == key2.GetPubKey().GetWitnessProgram());
+}
+
+BOOST_AUTO_TEST_CASE(derivation_known_answer_vector)
+{
+    // RIP-25 key-derivation known-answer vector.  This pins the exact mapping
+    //   seed -> xi = SHA256("AVN/ML-DSA-44/keygen/v1" || seed)
+    //        -> (pk, sk) = ML-DSA.KeyGen_internal(xi)
+    // so the derivation can never silently drift (liboqs upgrade, struct-ABI
+    // change, DST change, or expansion change all break these values).  If this
+    // test fails after a dependency bump, the derivation changed and every
+    // previously derived PQ address/key would move: treat it as a consensus /
+    // wallet-recovery event, not a value to blindly update.
+    //
+    // Seed = 0x00,0x01,...,0x1f.
+    std::array<uint8_t, mldsa::SEED_SIZE> seed{};
+    for (size_t i = 0; i < seed.size(); ++i) seed[i] = static_cast<uint8_t>(i);
+
+    CPQKey key;
+    BOOST_REQUIRE(key.SetSeed(std::span<const uint8_t, mldsa::SEED_SIZE>(seed)));
+
+    // Witness program is SHA256(pubkey); this is the on-chain commitment.
+    const uint256 wp = key.GetPubKey().GetWitnessProgram();
+    BOOST_CHECK_EQUAL(HexStr(wp),
+        "a7da36522f995f7a2ccba0e8d10f6b7d2dcd7882486a38462176ba720823a0fb");
+
+    // Sanity: the witness program equals SHA256 over the raw public key bytes.
+    auto pk = key.GetPubKey().GetData();
+    uint256 pkh;
+    CSHA256().Write(pk.data(), pk.size()).Finalize(pkh.begin());
+    BOOST_CHECK_EQUAL(HexStr(pkh), HexStr(wp));
+
+    // Pin the secret key too (SHA256 of the 2560-byte packed sk).
+    auto sk = key.GetData();
+    uint256 skh;
+    CSHA256().Write(sk.data(), sk.size()).Finalize(skh.begin());
+    BOOST_CHECK_EQUAL(HexStr(skh),
+        "f59fd75b78cb6727f9c626dc82898ce6b5f8794418708330e686a1e1a5fc4099");
+
+    // And the derived keypair must be internally consistent: a signature made
+    // with sk verifies under pk.  This proves the packed sk matches the pk.
+    std::array<uint8_t, 32> msg{};
+    for (size_t i = 0; i < msg.size(); ++i) msg[i] = static_cast<uint8_t>(0x40 + i);
+    std::vector<uint8_t> sig;
+    BOOST_REQUIRE(key.Sign(sig, std::span<const uint8_t>(msg)));
+    BOOST_CHECK(key.GetPubKey().Verify(std::span<const uint8_t>(sig), std::span<const uint8_t>(msg)));
 }
 
 BOOST_AUTO_TEST_CASE(sign_and_verify)

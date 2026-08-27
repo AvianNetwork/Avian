@@ -33,8 +33,14 @@ export FUZZ_EMPTY_MIN_TIME=${FUZZ_EMPTY_MIN_TIME:-2}
 export FUZZ_EXCLUDE_TARGETS=${FUZZ_EXCLUDE_TARGETS:-utxo_snapshot,utxo_snapshot_invalid,p2p_headers_presync,utxo_total_supply,integer}
 export GOAL="all"
 export CI_CONTAINER_CAP="--cap-add SYS_PTRACE"  # If run with (ASan + LSan), the container needs access to ptrace (https://github.com/google/sanitizers/issues/764)
+# WITH_LIBOQS=OFF: the fuzz job does not install liboqs and does not fuzz the real
+# ML-DSA-44 verifier (it uses the stub). WITH_LIBOQS defaults ON and is a hard
+# FATAL_ERROR when liboqs is missing, so it must be set OFF explicitly here or the
+# fuzz build's cmake configure aborts. (Fuzzing the real ML-DSA path is a follow-up
+# that would also need a BUILD_LIBOQS step in this job.)
 export AVIAN_CONFIG="\
  -DBUILD_FOR_FUZZING=ON \
+ -DWITH_LIBOQS=OFF \
  -DSANITIZERS=fuzzer,address,undefined,float-divide-by-zero,integer \
  -DCMAKE_C_COMPILER=clang \
  -DCMAKE_CXX_COMPILER=clang++ \

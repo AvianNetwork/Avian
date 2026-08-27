@@ -344,6 +344,8 @@ public:
     bool GetKey(const CKeyID& keyid, CKey& key) const override;
     bool GetTaprootSpendData(const XOnlyPubKey& output_key, TaprootSpendData& spenddata) const override;
     bool GetTaprootBuilder(const XOnlyPubKey& output_key, TaprootBuilder& builder) const override;
+    bool GetPQKey(const uint256& program, CPQKey& key) const override;
+    bool HavePQKey(const uint256& program) const override;
 };
 
 #endif // BITCOIN_SCRIPT_SIGNINGPROVIDER_H

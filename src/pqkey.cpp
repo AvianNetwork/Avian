@@ -25,13 +25,15 @@ uint256 CPQPubKey::GetWitnessProgram() const
 }
 
 bool CPQPubKey::Verify(std::span<const uint8_t> sig,
-                       std::span<const uint8_t> msg) const
+                       std::span<const uint8_t> msg,
+                       std::span<const uint8_t> ctx) const
 {
     if (!m_valid) return false;
     if (sig.size() != mldsa::SIG_SIZE) return false;
     return mldsa::Verify(
         std::span<const uint8_t, mldsa::SIG_SIZE>(sig.data(), mldsa::SIG_SIZE),
         msg,
+        ctx,
         GetData());
 }
 
@@ -78,12 +80,14 @@ bool CPQKey::SetKeyData(std::span<const uint8_t, SIZE> data,
 }
 
 bool CPQKey::Sign(std::vector<uint8_t>& sig_out,
-                  std::span<const uint8_t> msg) const
+                  std::span<const uint8_t> msg,
+                  std::span<const uint8_t> ctx) const
 {
     if (!IsValid()) return false;
     sig_out.resize(mldsa::SIG_SIZE);
     return mldsa::Sign(
         std::span<uint8_t, mldsa::SIG_SIZE>(sig_out.data(), mldsa::SIG_SIZE),
         msg,
+        ctx,
         GetData());
 }

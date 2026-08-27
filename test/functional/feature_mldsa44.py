@@ -11,7 +11,12 @@ any activation block logic.
 from test_framework.test_framework import BitcoinTestFramework
 from test_framework.util import (
     assert_equal,
+    assert_greater_than_or_equal,
 )
+
+# RIP-25 ML-DSA-44 witness element sizes (bytes).
+MLDSA44_SIG_SIZE = 2420
+MLDSA44_PUBKEY_SIZE = 1312
 
 
 class MLDsa44Test(BitcoinTestFramework):
@@ -21,6 +26,22 @@ class MLDsa44Test(BitcoinTestFramework):
 
     def skip_test_if_missing_module(self):
         self.skip_if_no_wallet()
+
+    def assert_pq_witness(self, node, txid, pq_prevouts):
+        """Every input in txid that spends a prevout in pq_prevouts must carry
+        exactly the RIP-25 witness: [signature (2420 bytes), pubkey (1312 bytes)].
+        Uses the wallet's own tx hex so it works without -txindex."""
+        decoded = node.decoderawtransaction(node.gettransaction(txid)["hex"])
+        seen = set()
+        for vin in decoded["vin"]:
+            key = (vin["txid"], vin["vout"])
+            if key in pq_prevouts:
+                wit = vin.get("txinwitness", [])
+                assert_equal(len(wit), 2)
+                assert_equal(len(wit[0]) // 2, MLDSA44_SIG_SIZE)     # ML-DSA-44 signature
+                assert_equal(len(wit[1]) // 2, MLDSA44_PUBKEY_SIZE)  # ML-DSA-44 public key
+                seen.add(key)
+        assert_equal(seen, pq_prevouts)
 
     def run_test(self):
         node = self.nodes[0]
@@ -71,6 +92,70 @@ class MLDsa44Test(BitcoinTestFramework):
         info3 = node.getaddressinfo(pq_addr)
         assert_equal(info3["ispostquantum"], True)
         assert_equal(info3["ismine"], True)
+
+        legacy_dest = node.getnewaddress("", "legacy")
+
+        self.log.info("Test spending FROM a PQ address (single ML-DSA-44 input)")
+
+        # Fund a dedicated PQ address, then spend exactly that UTXO (add_inputs
+        # False so only the ML-DSA input is used) to a legacy destination.
+        spend_addr = node.getnewaddress("", "pq")
+        node.sendtoaddress(spend_addr, 10.0)
+        self.generate(node, 1)
+        utxo = node.listunspent(1, 9999999, [spend_addr])[0]
+
+        res = node.send(
+            outputs={legacy_dest: 9.0},
+            options={"inputs": [{"txid": utxo["txid"], "vout": utxo["vout"]}],
+                     "add_inputs": False, "change_type": "legacy"})
+        assert_equal(res["complete"], True)
+        self.generate(node, 1)
+
+        # Confirmed in a block => consensus verified and accepted the ML-DSA spend
+        # (verify_with_ctx_str + domain context + witness/program/sigop rules).
+        assert_greater_than_or_equal(node.gettransaction(res["txid"])["confirmations"], 1)
+        self.assert_pq_witness(node, res["txid"], {(utxo["txid"], utxo["vout"])})
+
+        self.log.info("Test two PQ inputs + a PQ output in one transaction")
+
+        # Two PQ inputs, spent together, paying a legacy address and a PQ address
+        # (a PQ output created by a normal, non-coinbase transaction).
+        a = node.getnewaddress("", "pq")
+        b = node.getnewaddress("", "pq")
+        node.sendtoaddress(a, 5.0)
+        node.sendtoaddress(b, 5.0)
+        self.generate(node, 1)
+        ua = node.listunspent(1, 9999999, [a])[0]
+        ub = node.listunspent(1, 9999999, [b])[0]
+
+        pq_out = node.getnewaddress("", "pq")
+        res2 = node.send(
+            outputs={legacy_dest: 6.0, pq_out: 3.0},
+            options={"inputs": [{"txid": ua["txid"], "vout": ua["vout"]},
+                                {"txid": ub["txid"], "vout": ub["vout"]}],
+                     "add_inputs": False, "change_type": "legacy"})
+        assert_equal(res2["complete"], True)
+        self.generate(node, 1)
+
+        assert_greater_than_or_equal(node.gettransaction(res2["txid"])["confirmations"], 1)
+        # Both PQ inputs carry the canonical witness.
+        self.assert_pq_witness(node, res2["txid"],
+                               {(ua["txid"], ua["vout"]), (ub["txid"], ub["vout"])})
+        # The PQ output was created and is owned/spendable by the wallet.
+        pq_created = node.listunspent(1, 9999999, [pq_out])
+        assert_equal(len(pq_created), 1)
+
+        self.log.info("Test spending a non-coinbase PQ output (closes the loop)")
+
+        uc = pq_created[0]
+        res3 = node.send(
+            outputs={legacy_dest: 2.0},
+            options={"inputs": [{"txid": uc["txid"], "vout": uc["vout"]}],
+                     "add_inputs": False, "change_type": "legacy"})
+        assert_equal(res3["complete"], True)
+        self.generate(node, 1)
+        assert_greater_than_or_equal(node.gettransaction(res3["txid"])["confirmations"], 1)
+        self.assert_pq_witness(node, res3["txid"], {(uc["txid"], uc["vout"])})
 
         self.log.info("Test that 'pq' address type is rejected on non-regtest without deployment")
         # On regtest DEPLOYMENT_MLDSA44 is always active, so no negative-activation

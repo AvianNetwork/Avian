@@ -374,6 +374,22 @@ bool MultiSigningProvider::GetTaprootBuilder(const XOnlyPubKey& output_key, Tapr
     return false;
 }
 
+bool MultiSigningProvider::GetPQKey(const uint256& program, CPQKey& key) const
+{
+    for (const auto& provider: m_providers) {
+        if (provider->GetPQKey(program, key)) return true;
+    }
+    return false;
+}
+
+bool MultiSigningProvider::HavePQKey(const uint256& program) const
+{
+    for (const auto& provider: m_providers) {
+        if (provider->HavePQKey(program)) return true;
+    }
+    return false;
+}
+
 /*static*/ TaprootBuilder::NodeInfo TaprootBuilder::Combine(NodeInfo&& a, NodeInfo&& b)
 {
     NodeInfo ret;

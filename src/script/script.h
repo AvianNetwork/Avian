@@ -66,6 +66,18 @@ static constexpr int64_t VALIDATION_WEIGHT_PER_SIGOP_PASSED{50};
 // How much weight budget is added to the witness size (Tapscript only, see BIP 342).
 static constexpr int64_t VALIDATION_WEIGHT_OFFSET{50};
 
+// RIP-25: sigop cost charged for one ML-DSA-44 (witness v2) signature
+// verification. Counted only once the post-quantum deployment is active, so it
+// flows through the existing block sigop limit (MAX_BLOCK_SIGOPS_COST), the
+// per-transaction policy cap (MAX_STANDARD_TX_SIGOPS_COST), and the sigop-based
+// fee weighting (DEFAULT_BYTES_PER_SIGOP) without a parallel accounting system.
+// The measured verify is ~16.5us (cheaper than an ECDSA verify), and the
+// ~3.7 KB witness already bounds the count by weight; 50 matches the Tapscript
+// per-checksig cost and gives a conservative explicit ceiling of
+// MAX_BLOCK_SIGOPS_COST/50 = 1600 PQ verifications per block and
+// MAX_STANDARD_TX_SIGOPS_COST/50 = 320 per standard transaction.
+static constexpr int64_t MLDSA44_SIGOP_COST{50};
+
 template <typename T>
 std::vector<unsigned char> ToByteVector(const T& in)
 {

@@ -34,6 +34,10 @@ public:
     /** Create a singular (non-script) signature. */
     virtual bool CreateSig(const SigningProvider& provider, std::vector<unsigned char>& vchSig, const CKeyID& keyid, const CScript& scriptCode, SigVersion sigversion) const =0;
     virtual bool CreateSchnorrSig(const SigningProvider& provider, std::vector<unsigned char>& sig, const XOnlyPubKey& pubkey, const uint256* leaf_hash, const uint256* merkle_root, SigVersion sigversion) const =0;
+    /** RIP-25: Create an ML-DSA-44 witness (signature + public key) for the given
+     *  32-byte witness program. Default: not supported (e.g. non-transaction
+     *  creators). Overridden by the real and dummy transaction creators. */
+    virtual bool CreateMLDsa44Sig(const SigningProvider& provider, std::vector<unsigned char>& sig_out, std::vector<unsigned char>& pubkey_out, const uint256& program) const { return false; }
 };
 
 /** A signature creator for transactions. */
@@ -53,7 +57,7 @@ public:
     bool CreateSig(const SigningProvider& provider, std::vector<unsigned char>& vchSig, const CKeyID& keyid, const CScript& scriptCode, SigVersion sigversion) const override;
     bool CreateSchnorrSig(const SigningProvider& provider, std::vector<unsigned char>& sig, const XOnlyPubKey& pubkey, const uint256* leaf_hash, const uint256* merkle_root, SigVersion sigversion) const override;
     /** RIP-25: Create an ML-DSA-44 signature over sighash(scriptCode). Returns {sig, pubkey}. */
-    bool CreateMLDsa44Sig(const SigningProvider& provider, std::vector<unsigned char>& sig_out, std::vector<unsigned char>& pubkey_out, const uint256& program) const;
+    bool CreateMLDsa44Sig(const SigningProvider& provider, std::vector<unsigned char>& sig_out, std::vector<unsigned char>& pubkey_out, const uint256& program) const override;
 };
 
 /** A signature checker that accepts all signatures */

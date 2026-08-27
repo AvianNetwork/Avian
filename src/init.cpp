@@ -14,6 +14,7 @@
 #include <blockfilter.h>
 #include <chain.h>
 #include <chainparams.h>
+#include <crypto/mldsa.h>
 #include <chainparamsbase.h>
 #include <clientversion.h>
 #include <common/args.h>
@@ -1215,6 +1216,18 @@ bool AppInitSanityChecks(const kernel::Context& kernel)
 
     if (!ECC_InitSanityCheck()) {
         return InitError(strprintf(_("Elliptic curve cryptography sanity check failure. %s is shutting down."), CLIENT_NAME));
+    }
+
+    // RIP-25: a node that could enforce the ML-DSA-44 (post-quantum) consensus
+    // rule MUST have liboqs compiled in. Without it, mldsa::Verify is a stub that
+    // returns false, so once the deployment activates every post-quantum output
+    // would be rejected and this node would fork from the network. Refuse to
+    // start on any chain where the deployment is not permanently disabled.
+    // (Building without liboqs requires an explicit -DWITH_LIBOQS=OFF and is only
+    // meant for tooling/dev on chains where the deployment never activates.)
+    if (!mldsa::IsAvailable() &&
+        Params().GetConsensus().vDeployments[Consensus::DEPLOYMENT_MLDSA44].nStartTime != Consensus::BIP9Deployment::NEVER_ACTIVE) {
+        return InitError(_("This build has no liboqs (post-quantum) support, but the selected network can activate the ML-DSA-44 (RIP-25) soft fork. Such a node would reject every post-quantum output and fork once the deployment activates. Rebuild with liboqs enabled, or select a network where the deployment is disabled."));
     }
 
     // Probe the directory locks to give an early error message, if possible
