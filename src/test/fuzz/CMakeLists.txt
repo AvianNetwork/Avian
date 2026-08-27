@@ -63,6 +63,7 @@ add_executable(fuzz
   merkleblock.cpp
   message.cpp
   miniscript.cpp
+  mldsa44.cpp
   minisketch.cpp
   mini_miner.cpp
   muhash.cpp
