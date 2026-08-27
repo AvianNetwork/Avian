@@ -1,17 +1,21 @@
 # RIP-25: ML-DSA-44 Post-Quantum Transaction Outputs
 
-- **Status:** Draft (working document, not frozen)
+- **Status:** Frozen (Phase 1) — pinned by `src/test/data/rip25_vectors.json`
 - **Network:** Avian
 - **Witness version:** 2
 - **Signature scheme:** ML-DSA-44 (NIST FIPS 204)
 - **Deployment:** BIP9 `mldsa44` (bit 11), `NEVER_ACTIVE` on mainnet
 - **Scope of this version:** AVN outputs only. Assets and hybrid (ECDSA+ML-DSA) are out of scope and specified separately in later revisions.
 
-> This document records the consensus rules of the ML-DSA-44 output type as they exist in
-> Avian Core v5.0 and marks the decisions that must be resolved before the specification is
-> frozen. Sections tagged **OPEN** describe current behavior that is expected to change; do not
-> treat them as final. Once frozen, any consensus-affecting change requires updating this
-> document and its test vectors together.
+> This document specifies the consensus rules of the ML-DSA-44 output type as implemented in
+> Avian Core (RIP-25 Phase 0, merged in PR #259). The specification is **frozen**: there are no
+> unresolved OPEN items, and this document together with its known-answer vectors
+> (`src/test/data/rip25_vectors.json`, validated by `pqkey_vectors_tests.cpp`) is the authority for
+> the rule. Any consensus-affecting change requires updating **both** this document and the vectors
+> in the same change, and — because the derivation and context are versioned (`.../v1`) — bumping
+> that version (`.../v2`). The deployment is `NEVER_ACTIVE` on mainnet, so the tunable constants
+> (sigop cost, the `.../v1` derivation and context tags) remain revisable by such a versioned spec
+> update before activation; the freeze fixes the current values so they cannot drift silently.
 
 ## Abstract
 
@@ -153,9 +157,11 @@ result is a standard function of `xi`, any compliant ML-DSA implementation repro
 keypair; the derivation is independent of how randomness is drawn.
 
 The versioned domain-separation tag (`.../v1`) makes the derivation explicit and lets any future
-change be unambiguous (`.../v2`). The mapping is pinned by the known-answer vector below and by
-`derivation_known_answer_vector` in `src/test/pqkey_tests.cpp`, so it cannot drift silently across a
-liboqs upgrade or a change to the tag.
+change be unambiguous (`.../v2`). The mapping is pinned by the known-answer vector below, by
+`derivation_known_answer_vector` in `src/test/pqkey_tests.cpp`, and by the full-chain vectors in
+`src/test/data/rip25_vectors.json` (seed → pubkey → witness program → address → unsigned tx →
+sighash → signature → final tx), so it cannot drift silently across a liboqs upgrade or a change to
+the tag.
 
 Implementation: `src/crypto/mldsa.cpp` `KeyGenFromSeed` computes `xi` and runs FIPS-204
 `KeyGen_internal(xi)` through liboqs's single seeded-keygen entry point
