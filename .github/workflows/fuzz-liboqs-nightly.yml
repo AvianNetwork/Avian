@@ -35,14 +35,17 @@ jobs:
       DANGER_CI_ON_HOST_FOLDERS: 1
       BITCOIN_GENBUILD_NO_GIT: 1
       FILE_ENV: './ci/test/00_setup_env_native_fuzz_liboqs.sh'
-      # Host-mounted into the container; the corpus lives in a subdir of it so the
-      # container's test_runner.py --generate can grow it and this job can push it.
-      BASE_BUILD_DIR: ${{ runner.temp }}/build
+      # The corpus lives in a subdir of BASE_BUILD_DIR (set by configure-environment,
+      # host-mounted into the container) so test_runner.py --generate can grow it and
+      # this job can push it back.
       CORPUS_REPO: ${{ vars.FUZZ_CORPUS_REPO || 'AvianNetwork/avian-fuzz-corpus' }}
 
     steps:
       - name: Checkout
         uses: actions/checkout@v5
+
+      - name: Configure environment
+        uses: ./.github/actions/configure-environment
 
       - name: Restore fuzz corpus
         env:
@@ -57,9 +60,6 @@ jobs:
             mkdir -p "${BASE_BUILD_DIR}/fuzz_corpus"
           fi
           echo "corpus inputs before: $(find "${BASE_BUILD_DIR}/fuzz_corpus" -type f ! -path '*/.git/*' | wc -l)"
-
-      - name: Configure environment
-        uses: ./.github/actions/configure-environment
 
       - name: Restore caches
         uses: ./.github/actions/restore-caches
