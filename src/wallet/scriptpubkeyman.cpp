@@ -304,28 +304,6 @@ bool LegacyDataSPKM::LoadCScript(const CScript& redeemScript)
     return FillableSigningProvider::AddCScript(redeemScript);
 }
 
-bool LegacyDataSPKM::LoadPQKey(CPQKey&& key)
-{
-    return FillableSigningProvider::AddPQKey(std::move(key));
-}
-
-util::Result<CTxDestination> LegacyDataSPKM::GenerateNewPQAddress(WalletBatch& batch)
-{
-    CPQKey pq_key;
-    if (!pq_key.MakeNewKey()) {
-        return util::Error{Untranslated("Failed to generate ML-DSA-44 key")};
-    }
-    CPQPubKey pq_pubkey = pq_key.GetPubKey();
-    if (!batch.WritePQKey(pq_pubkey, pq_key.GetData())) {
-        return util::Error{Untranslated("Failed to write PQ key to wallet database")};
-    }
-    if (!FillableSigningProvider::AddPQKey(std::move(pq_key))) {
-        return util::Error{Untranslated("Failed to add PQ key to signing provider")};
-    }
-    uint256 program = pq_pubkey.GetWitnessProgram();
-    return CTxDestination{WitnessV2MLDsa44{program}};
-}
-
 void LegacyDataSPKM::LoadKeyMetadata(const CKeyID& keyID, const CKeyMetadata& meta)
 {
     LOCK(cs_KeyStore);
