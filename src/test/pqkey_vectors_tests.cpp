@@ -20,7 +20,7 @@
 //
 // To regenerate the JSON after an intentional change, run with GEN_RIP25_VECTORS
 // set and replace src/test/data/rip25_vectors.json with the emitted block:
-//   GEN_RIP25_VECTORS=1 test_avian --run_test=pqkey_vectors/generate
+//   GEN_RIP25_VECTORS=1 test_avian --run_test=pqkey_vectors_tests/generate
 
 #include <test/data/rip25_vectors.json.h>
 
@@ -44,10 +44,11 @@
 #include <array>
 #include <cstdint>
 #include <cstdlib>
+#include <iostream>
 #include <span>
 #include <vector>
 
-BOOST_FIXTURE_TEST_SUITE(pqkey_vectors, BasicTestingSetup)
+BOOST_FIXTURE_TEST_SUITE(pqkey_vectors_tests, BasicTestingSetup)
 
 namespace {
 
@@ -224,7 +225,7 @@ BOOST_AUTO_TEST_CASE(generate)
     root.pushKV("network", "regtest");
     root.pushKV("domain_context", HexStr(GetMLDsa44DomainContext()));
     root.pushKV("vectors", arr);
-    std::printf("RIP25_VECTORS_BEGIN\n%s\nRIP25_VECTORS_END\n", root.write(2).c_str());
+    std::cout << "RIP25_VECTORS_BEGIN\n" << root.write(2) << "\nRIP25_VECTORS_END\n";
 }
 
 BOOST_AUTO_TEST_SUITE_END()
