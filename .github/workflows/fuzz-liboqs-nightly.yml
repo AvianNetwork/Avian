@@ -20,6 +20,11 @@ on:
   schedule:
     - cron: '17 4 * * *'  # nightly, 04:17 UTC
   workflow_dispatch:       # allow manual runs
+    inputs:
+      force_minimize:
+        description: 'Set-cover minimize the corpus on this run (shrinks it now, any day)'
+        type: boolean
+        default: false
 
 concurrency:
   group: fuzz-liboqs-nightly
@@ -39,6 +44,10 @@ jobs:
       # host-mounted into the container) so test_runner.py --generate can grow it and
       # this job can push it back.
       CORPUS_REPO: ${{ vars.FUZZ_CORPUS_REPO || 'AvianNetwork/avian-fuzz-corpus' }}
+      # Force corpus minimization on a manual run (the nightly also minimizes
+      # weekly on its own, on Sundays). Forwarded into the container via the
+      # exported FUZZ_MINIMIZE in the fuzz-liboqs setup env.
+      FUZZ_MINIMIZE: ${{ inputs.force_minimize || 'false' }}
 
     steps:
       - name: Checkout
