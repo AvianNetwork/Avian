@@ -96,13 +96,27 @@ jobs:
           git config user.name "avian-fuzz-bot"
           git config user.email "noreply@avn.network"
           echo "corpus inputs after: $(find . -type f ! -path './.git/*' | wc -l)"
-          git add -A
-          if git diff --cached --quiet; then
-            echo "no new corpus inputs this run"
-          else
+          # Our working tree is the authoritative corpus (minimized and/or grown),
+          # so re-parent our commit onto the CURRENT remote main before pushing and
+          # retry. The shallow clone's base can be behind (another run may have
+          # pushed), which would make a plain push a non-fast-forward rejection.
+          pushed=""
+          for attempt in 1 2 3; do
+            if git fetch -q --depth=1 origin main; then
+              git reset -q --soft origin/main
+            fi
+            git add -A
+            if git diff --cached --quiet; then
+              echo "no new corpus inputs this run"; pushed="skip"; break
+            fi
             git commit -q -m "corpus: ML-DSA-44 nightly (run ${GITHUB_RUN_ID})"
-            git push origin HEAD:main
-          fi
+            if git push origin HEAD:main; then
+              echo "corpus pushed (attempt ${attempt})"; pushed="yes"; break
+            fi
+            echo "push rejected (remote moved); retrying (${attempt})"
+            sleep 5
+          done
+          [ -n "${pushed}" ] || { echo "failed to push corpus after retries"; exit 1; }
 
       - name: Save caches
         uses: ./.github/actions/save-caches
