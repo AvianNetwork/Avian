@@ -268,6 +268,29 @@ if [ "$RUN_FUZZ_TESTS" = "true" ] && [ "${CI_PHASE}" != "build" ] && [ "$FUZZ_GE
   # RIP-25 (nightly): extend the persisted corpus in ${DIR_FUZZ_IN} for the selected
   # target(s). --generate runs libFuzzer with the corpus dir writable so new
   # coverage-increasing inputs are saved back; the workflow then commits + pushes them.
+  #
+  # Weekly (Sundays) or on demand (FUZZ_MINIMIZE=true), first set-cover-minimize the
+  # persisted corpus: many nightly --generate runs accumulate coverage-equivalent
+  # (redundant) inputs that bloat the corpus repo and slow each run's clone. The
+  # merge keeps the minimal covering set (same coverage, far fewer files); the
+  # generate below then grows it again from a lean base.
+  if [ "${FUZZ_MINIMIZE:-false}" = "true" ] || [ "$(date -u +%u)" = "7" ]; then
+    echo "Set-cover minimizing corpus before generating (weekly/forced)"
+    MIN_SRC="${BASE_SCRATCH_DIR}/fuzz_corpus_premin"
+    rm -rf "${MIN_SRC}"
+    mv "${DIR_FUZZ_IN}" "${MIN_SRC}"
+    mkdir -p "${DIR_FUZZ_IN}"
+    # shellcheck disable=SC2086
+    LD_LIBRARY_PATH="${DEPENDS_DIR}/${HOST}/lib" \
+    "${BASE_BUILD_DIR}/test/fuzz/test_runner.py" \
+      ${FUZZ_TESTS_CONFIG} \
+      "${MAKEJOBS}" \
+      -l DEBUG \
+      --m_dir "${MIN_SRC}" \
+      "${DIR_FUZZ_IN}" \
+      ${FUZZ_TARGETS}
+    rm -rf "${MIN_SRC}"
+  fi
   # shellcheck disable=SC2086
   LD_LIBRARY_PATH="${DEPENDS_DIR}/${HOST}/lib" \
   "${BASE_BUILD_DIR}/test/fuzz/test_runner.py" \
