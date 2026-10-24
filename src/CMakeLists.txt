@@ -322,6 +322,7 @@ add_library(bitcoin_node STATIC EXCLUDE_FROM_ALL
   script/sigcache.cpp
   signet.cpp
   sv2/noise.cpp
+  sv2/transport.cpp
   torcontrol.cpp
   txdb.cpp
   txgraph.cpp
