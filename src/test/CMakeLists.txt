@@ -106,6 +106,7 @@ add_executable(test_bitcoin
   sock_tests.cpp
   span_tests.cpp
   streams_tests.cpp
+  sv2_messages_tests.cpp
   sync_tests.cpp
   system_ram_tests.cpp
   system_tests.cpp
