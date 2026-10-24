@@ -652,6 +652,9 @@ std::string ArgsManager::GetHelpMessage() const
             case OptionsCategory::IPC:
                 usage += HelpMessageGroup("IPC interprocess connection options:");
                 break;
+            case OptionsCategory::SV2:
+                usage += HelpMessageGroup("Stratum v2 Template Provider options:");
+                break;
             case OptionsCategory::WALLET:
                 usage += HelpMessageGroup("Wallet options:");
                 break;
