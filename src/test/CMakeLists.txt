@@ -108,6 +108,7 @@ add_executable(test_bitcoin
   streams_tests.cpp
   sv2_messages_tests.cpp
   sv2_noise_tests.cpp
+  sv2_transport_tests.cpp
   sync_tests.cpp
   system_ram_tests.cpp
   system_tests.cpp
