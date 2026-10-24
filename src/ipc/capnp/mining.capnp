@@ -40,6 +40,9 @@ struct BlockCreateOptions $Proxy.wrap("node::BlockCreateOptions") {
     useMempool @0 :Bool $Proxy.name("use_mempool");
     blockReservedWeight @1 :UInt64 $Proxy.name("block_reserved_weight");
     coinbaseOutputMaxAdditionalSigops @2 :UInt64 $Proxy.name("coinbase_output_max_additional_sigops");
+    # Avian dual-algo: without these, an IPC template request silently defaults to X16RT.
+    powType @3 :Int32 $Proxy.name("pow_type");
+    coinbaseOutputScript @4 :Data $Proxy.name("coinbase_output_script");
 }
 
 struct BlockWaitOptions $Proxy.wrap("node::BlockWaitOptions") {

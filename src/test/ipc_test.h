@@ -5,6 +5,7 @@
 #ifndef BITCOIN_TEST_IPC_TEST_H
 #define BITCOIN_TEST_IPC_TEST_H
 
+#include <node/types.h>
 #include <primitives/transaction.h>
 #include <script/script.h>
 #include <univalue.h>
@@ -21,6 +22,7 @@ public:
     std::vector<char> passVectorChar(std::vector<char> v) { return v; }
     BlockValidationState passBlockState(BlockValidationState s) { return s; }
     CScript passScript(CScript s) { return s; }
+    node::BlockCreateOptions passBlockCreateOptions(node::BlockCreateOptions o) { return o; }
 };
 
 void IpcPipeTest();
