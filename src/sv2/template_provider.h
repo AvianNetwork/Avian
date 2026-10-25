@@ -144,10 +144,19 @@ private:
         std::deque<std::chrono::steady_clock::time_point> constraints;
         //! When recent transaction-data requests arrived.
         std::deque<std::chrono::steady_clock::time_point> txdata_requests;
-        //! When recent solutions arrived. A Template Provider submission means
-        //! "I found a block", not "here is a share", so a tight allowance
-        //! costs an honest client nothing and is the first line of defence
-        //! against buying proof-of-work computations cheaply.
+        //! When recent solutions arrived, less the ones that turned out to
+        //! be real work.
+        //!
+        //! The allowance exists to stop cheap bytes buying expensive hashes,
+        //! so what it must meter is submissions that waste one. A submission
+        //! whose proof of work verifies did not waste anything: it is work,
+        //! and it cannot be forged, so its token is given back. An attacker
+        //! cannot earn a refund without doing the work the limit protects.
+        //!
+        //! Without that, the limit measured the wrong thing. On a chain where
+        //! the share target is the network target, every share a miner finds
+        //! is a block candidate, so a working pool forwarding them as it must
+        //! was being disconnected by its own node for succeeding.
         std::deque<std::chrono::steady_clock::time_point> solutions;
         //! Consecutive refusals, so a client that cannot get it right stops
         //! being given the chance.
@@ -176,6 +185,11 @@ private:
     //! provider-wide lock across that would let one client stall every other.
     [[nodiscard]] bool HandleSubmitSolution(ClientId id, std::span<const uint8_t> payload)
         EXCLUSIVE_LOCKS_REQUIRED(!m_mutex);
+
+    //! Give back the allowance a submission consumed, once its proof of
+    //! work has been verified and the submission is therefore not the kind
+    //! the allowance is for.
+    void RefundSolution(ClientId id) EXCLUSIVE_LOCKS_REQUIRED(!m_mutex);
 
     //! Record a refused solution and say whether the client may stay.
     [[nodiscard]] bool RecordRefusal(ClientId id, uint64_t template_id, SolutionError error)

@@ -492,6 +492,16 @@ bool TemplateProvider::HandleRequestTransactionData(ClientId id, ClientState& st
     return true;
 }
 
+void TemplateProvider::RefundSolution(ClientId id)
+{
+    LOCK(m_mutex);
+    const auto it{m_clients.find(id)};
+    if (it == m_clients.end()) return;
+    // One client's submissions are handled in order on the socket thread, so
+    // the newest entry is the one this submission added.
+    if (!it->second.solutions.empty()) it->second.solutions.pop_back();
+}
+
 bool TemplateProvider::RecordRefusal(ClientId id, uint64_t template_id, SolutionError error)
 {
     LOCK(m_mutex);
@@ -609,6 +619,12 @@ bool TemplateProvider::HandleSubmitSolution(ClientId id, std::span<const uint8_t
     if (check.error != SolutionError::NONE) {
         return RecordRefusal(id, solution.template_id, check.error);
     }
+
+    // The proof of work verified, so this submission is not what the rate
+    // limit is for and its token goes back. Done before the block is
+    // submitted rather than after, because a block that loses a race is still
+    // real work and the client should not be charged for it.
+    RefundSolution(id);
 
     // min_pow_checked is justified now, and only now: the proof of work was
     // verified above against this algorithm's own limit. Unlocked too, since
