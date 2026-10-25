@@ -15,16 +15,15 @@ tip changes, serves transaction data, and accepts finished blocks. It is not a
 pool: it has no concept of a worker, a share, a difficulty adjustment per miner,
 or a payout.
 
-```
-aviand                          separate pool process
-  block construction              worker management
-  transaction selection           share difficulty and accounting
-  consensus rules                 payouts
-  per-algorithm targets           the Stratum v2 Mining Protocol
-  founder payment
-  template generation
-  block submission
-```
+| `aviand` | separate pool process |
+| --- | --- |
+| block construction | worker management |
+| transaction selection | share difficulty and accounting |
+| consensus rules | payouts |
+| per-algorithm targets | the Stratum v2 Mining Protocol |
+| founder payment | |
+| template generation | |
+| block submission | |
 
 The existing JSON-RPC `getblocktemplate` and `submitblock` are untouched and
 continue to work alongside this.
@@ -93,45 +92,31 @@ an untrusted network, those three are the whole defence.
 
 ## Session flow
 
-```
-            client                                node
-               |                                   |
-               |  Noise NX message 1 (64 bytes)    |
-               | --------------------------------> |
-               |  Noise NX message 2 (234 bytes)   |
-               | <-------------------------------- |
-               |                                   |
-               |  SetupConnection                  |
-               | --------------------------------> |
-               |  SetupConnection.Success          |
-               | <-------------------------------- |
-               |                                   |
-               |  RequestExtensions [0x4001]       |
-               | --------------------------------> |
-               |  RequestExtensions.Success        |
-               | <-------------------------------- |
-               |                                   |
-               |  AvianSelectAlgorithm             |
-               | --------------------------------> |
-               |  AvianSelectAlgorithm.Success     |
-               | <-------------------------------- |
-               |                                   |
-               |  CoinbaseOutputConstraints        |
-               | --------------------------------> |
-               |  NewTemplate                      |
-               | <-------------------------------- |
-               |  SetNewPrevHash                   |
-               | <-------------------------------- |
-               |  AvianTimeConstraints             |
-               | <-------------------------------- |
-               |                                   |
-               |  RequestTransactionData           |
-               | --------------------------------> |
-               |  RequestTransactionData.Success   |
-               | <-------------------------------- |
-               |                                   |
-               |  SubmitSolution                   |
-               | --------------------------------> |
+```mermaid
+sequenceDiagram
+    participant C as Pool client
+    participant N as aviand
+
+    Note over C,N: Noise NX handshake
+    C->>N: message 1 (64 bytes)
+    N->>C: message 2 (234 bytes)
+
+    Note over C,N: Session setup
+    C->>N: SetupConnection
+    N->>C: SetupConnection.Success
+    C->>N: RequestExtensions [0x4001]
+    N->>C: RequestExtensions.Success
+    C->>N: AvianSelectAlgorithm
+    N->>C: AvianSelectAlgorithm.Success
+
+    Note over C,N: Work
+    C->>N: CoinbaseOutputConstraints
+    N->>C: NewTemplate
+    N->>C: SetNewPrevHash
+    N->>C: AvianTimeConstraints
+    C->>N: RequestTransactionData
+    N->>C: RequestTransactionData.Success
+    C->>N: SubmitSolution
 ```
 
 `SetupConnection.protocol` must be 2 (Template Distribution).
@@ -170,6 +155,13 @@ for development, regtest and testnet only.
 is hidden, validated `<= 0x7fff`, and **rejected on mainnet**, so a mainnet
 node's wire identity is fixed by the constant alone.
 
+The extension spans **both** the Template Distribution Protocol, which is what
+`aviand` serves, and the Mining Protocol, which a pool serves to its workers.
+Those are different links, but they need the same two things from Avian, for
+the same reasons, so one extension covers both. `aviand` implements the
+Template Distribution half; the Mining Protocol half is specified here and is
+the pool's to implement.
+
 ### Why an extension is needed at all
 
 Stock Template Distribution already carries most of what Avian needs.
@@ -191,16 +183,28 @@ Every one of those failure modes is silent. A miner hits none of them as an
 error; it just burns hashrate and looks unlucky. That is why the extension is
 required by default rather than optional.
 
+The first two recur verbatim on the Mining Protocol. A worker has to be told
+which algorithm its connection carries, and `NewMiningJob` has a `min_ntime`
+with no maximum, so an X16RT miner rolling ntime off the end of a job's epoch
+computes the wrong hash function there too. The third does not: the algorithm
+is fixed per connection, so one `version_rolling_mask` covers every job on it.
+
 ### Messages
 
 All integers are little-endian, as everywhere in Stratum v2.
 
-| `msg_type` | Message | Direction |
-| --- | --- | --- |
-| `0x00` | `AvianSelectAlgorithm` | client → node |
-| `0x01` | `AvianSelectAlgorithm.Success` | node → client |
-| `0x02` | `AvianSelectAlgorithm.Error` | node → client |
-| `0x03` | `AvianTimeConstraints` | node → client |
+| `msg_type` | Message | Direction | Protocol |
+| --- | --- | --- | --- |
+| `0x00` | `AvianSelectAlgorithm` | downstream → upstream | both |
+| `0x01` | `AvianSelectAlgorithm.Success` | upstream → downstream | both |
+| `0x02` | `AvianSelectAlgorithm.Error` | upstream → downstream | both |
+| `0x03` | `AvianTimeConstraints` | upstream → downstream | template distribution |
+| `0x04` | `AvianJobTimeConstraints` | upstream → downstream | mining |
+
+"Upstream" is the node for a pool, and the pool for a worker. The three
+`AvianSelectAlgorithm` messages are identical on both protocols: they are
+connection-scoped and carry nothing protocol-specific. Only the time
+constraints differ, because the two protocols name work differently.
 
 **`AvianSelectAlgorithm`**
 
@@ -253,6 +257,112 @@ The node re-evaluates the future-time term when a solution arrives, so a
 long-lived template cannot be used to smuggle a timestamp the chain would
 reject.
 
+**`AvianJobTimeConstraints`**
+
+A **channel message**: bit 15 of `extension_type` is set, so this message
+appears on the wire under `0xc001` while the extension it belongs to is still
+`0x4001`. Bit 15 is the `channel_msg` flag and is ignored when an
+implementation looks up which extension a message belongs to.
+
+| Field | Type | Meaning |
+| --- | --- | --- |
+| `channel_id` | `U32` | the channel these bounds apply to |
+| `job_id` | `U32` | the job these bounds apply to |
+| `ntime_min` | `U32` | lowest acceptable `ntime`, inclusive |
+| `ntime_max` | `U32` | highest acceptable `ntime`, inclusive |
+
+Sent after every `NewMiningJob` or `NewExtendedMiningJob`, before the worker
+can be expected to have started on it. Both bounds are **inclusive**.
+
+This is the same information as `AvianTimeConstraints` keyed differently.
+`template_id` is a Template Distribution concept and has no meaning to a
+worker, so the mining form keys on the channel and job that the worker was
+actually given. It is a separate message rather than a reinterpretation of the
+same field so that an implementation handling both links, such as a pool, can
+never confuse a template id with a job id.
+
+`ntime_min` duplicates the `min_ntime` already in `NewMiningJob` and
+`SetNewPrevHash`. That is deliberate: carrying both bounds in one message means
+a worker has the whole window in one place and does not have to decide which of
+two sources is authoritative, and a pool that computes the window once cannot
+emit halves that disagree.
+
+A pool derives these bounds from the `AvianTimeConstraints` it received for the
+template the job came from. It must **narrow, never widen**: the node will
+refuse a solution outside its own window, and a worker that was told it had
+more room than the node allows will mine work that cannot be submitted. Where a
+pool holds a job open across a refresh it must re-send this message with the
+new bounds.
+
+### On the Mining Protocol
+
+A pool serving Avian workers negotiates the same extension and then uses it on
+each worker connection:
+
+```mermaid
+sequenceDiagram
+    participant W as Miner
+    participant P as Pool
+
+    Note over W,P: Session setup
+    W->>P: SetupConnection (protocol = 0)
+    P->>W: SetupConnection.Success
+    W->>P: RequestExtensions [0x4001]
+    P->>W: RequestExtensions.Success
+    W->>P: AvianSelectAlgorithm
+    P->>W: AvianSelectAlgorithm.Success
+
+    Note over W,P: Channel
+    W->>P: OpenStandardMiningChannel
+    P->>W: OpenStandardMiningChannel.Success
+    P->>W: SetTarget
+
+    Note over W,P: Work
+    P->>W: NewMiningJob
+    P->>W: AvianJobTimeConstraints
+    P->>W: SetNewPrevHash
+    W->>P: SubmitSharesStandard
+```
+
+`AvianSelectAlgorithm` comes before `OpenStandardMiningChannel`, because the
+channel's `nominal_hash_rate` and target only mean something once the algorithm
+is known. One connection carries one algorithm, so a worker mining both opens
+two connections. That is not a limitation worth engineering around: the two
+algorithms have independent difficulty, independent targets and independent
+job streams, and multiplexing them would make every one of those ambiguous.
+
+Three things a pool must get right, none of which the protocol can enforce for
+it:
+
+- **The target is compared against Avian's proof-of-work hash**, X16RT or
+  MinotaurX, not SHA256d. This is why `SetTarget` needs no Avian field and also
+  why no unmodified Stratum v2 miner can work here.
+- **Do not set `REQUIRES_VERSION_ROLLING`** in `SetupConnection`, mirroring the
+  mask of `0` that the node sends. Avian keeps the algorithm in `nVersion` bits
+  16–23, and rolling them changes which algorithm, and so which proof-of-work
+  limit, the share is judged under.
+- **The pool builds the coinbase**, so the pool is what has to satisfy the
+  node's submission checks. "What a client must reproduce" below is the pool's
+  contract with the node, not the worker's with the pool.
+
+Extended channels need no further message. A worker rolling its own extranonce
+changes the coinbase and so the merkle root, but the constraints it must respect
+are the ones the pool already passed down in the coinbase prefix and suffix, and
+its ntime window is still the one `AvianJobTimeConstraints` gave it.
+
+### Changing this extension
+
+A registry allocation covers an `extension_type`, and the message numbers inside
+it are Avian's to assign. So **adding** a message later needs no new allocation:
+a future `0x05` is a compatible extension of this one, and an implementation
+that does not know it will not have negotiated it.
+
+What is not free is **changing** `0x00` through `0x04`. Their field layouts and
+meanings are what third-party pools and miners will have compiled against, and
+altering one silently is the same class of failure the extension exists to
+prevent. Treat any such change as a new extension version with its own
+identifier, not as an implementation detail.
+
 ## What a client must reproduce
 
 The node rebuilds the header from the template and the submitted coinbase, so a
@@ -280,13 +390,11 @@ witness commitment. Rejecting both here turns a wasted block into a log line.
 `coinbase_tx_value_remaining` is already net of the founder payment, so no
 further subtraction is needed:
 
-```
-   coinbase value
-         |
-   +-----+------+
-   |            |
-founder      remaining
-(mandatory)  (the pool controls this)
+```mermaid
+flowchart TD
+    value["coinbase value"]
+    value --> founder["founder payment<br/>mandatory, fixed by consensus"]
+    value --> remaining["coinbase_tx_value_remaining<br/>the pool controls this"]
 ```
 
 ## Caveats

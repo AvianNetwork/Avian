@@ -92,6 +92,11 @@ enum class AvianMsg : uint8_t {
     SELECT_ALGORITHM_SUCCESS = 0x01,
     SELECT_ALGORITHM_ERROR = 0x02,
     TIME_CONSTRAINTS = 0x03,
+    //! The Mining Protocol form of TIME_CONSTRAINTS, keyed on channel and job
+    //! instead of template. Specified in doc/sv2.md and reserved here so the
+    //! number cannot be reused; a pool implements it, a Template Provider has
+    //! no occasion to send it.
+    JOB_TIME_CONSTRAINTS = 0x04,
 };
 
 //! Frame header: extension_type, msg_type, then a U24 payload length.
