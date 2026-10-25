@@ -27,7 +27,6 @@
 #include <cstring>
 #include <unordered_map>
 
-#define TIME_MASK 0xffffff80
 
 // Global PoW algorithm timestamps, set during initialization
 static uint32_t g_nX16rtTimestamp = 0;

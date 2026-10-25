@@ -324,6 +324,7 @@ add_library(bitcoin_node STATIC EXCLUDE_FROM_ALL
   sv2/connman.cpp
   sv2/noise.cpp
   sv2/options.cpp
+  sv2/template_provider.cpp
   sv2/transport.cpp
   torcontrol.cpp
   txdb.cpp

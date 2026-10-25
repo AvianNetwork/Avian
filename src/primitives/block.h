@@ -29,6 +29,10 @@ const std::string POW_TYPE_NAMES[] = {
     "x16rt",
     "minotaurx"};
 
+// Dual Algo: X16RT derives its hash chain order from the block time masked to
+// a 128-second epoch, so work does not survive a boundary crossing.
+static constexpr uint32_t TIME_MASK{0xffffff80};
+
 // Dual Algo: Pow type IDs
 enum POW_TYPE {
     POW_TYPE_X16RT,
