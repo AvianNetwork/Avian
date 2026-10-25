@@ -110,6 +110,7 @@ add_executable(test_bitcoin
   sv2_messages_tests.cpp
   sv2_noise_tests.cpp
   sv2_options_tests.cpp
+  sv2_template_provider_tests.cpp
   sv2_transport_tests.cpp
   sync_tests.cpp
   system_ram_tests.cpp
