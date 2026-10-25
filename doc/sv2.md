@@ -387,6 +387,14 @@ to tell a new-tip round from an in-place refresh. `test_framework/sv2.py`
 relies on exactly that: it reads until the constraints arrive and then knows
 the round is complete.
 
+A third case is the one a running pool meets most often and neither of the
+above describes it: a channel that already has an active job, on a tip that has
+just moved. Resolve it as the future-job case rather than the active one. Issue
+a **new future job**, then its constraints, then the `SetNewPrevHash` that
+activates it. Issuing an active job alongside a `SetNewPrevHash` would put the
+activation and the constraints in the same breath and give a worker no moment
+at which it holds one without the other.
+
 That distinction is not optional to handle. Stratum v2 requires the first
 `NewMiningJob` after a channel opens to be a future job, with `ntime_start`
 unset, so every connection meets the second case before it ever meets the
@@ -398,7 +406,12 @@ The same invariant already holds one link up, where `AvianTimeConstraints`
 agreeing and has only to preserve the property as it narrows.
 
 A pool derives these bounds from the `AvianTimeConstraints` it received for the
-template the job came from. It must **narrow, never widen**: the node will
+template the job came from. It must **narrow, never widen, and never to
+nothing**: on a chain that pins the window shut, which is regtest and testnet,
+`ntime_min` already equals `ntime_max` and any narrowing at all leaves a worker
+with no legal `ntime`. Treat an empty window as a protocol error and refuse to
+issue the job rather than issuing one that cannot be worked. It must **narrow,
+never widen**: the node will
 refuse a solution outside its own window, and a worker that was told it had
 more room than the node allows will mine work that cannot be submitted. Where a
 pool holds a job open across a refresh it must re-send this message with the
@@ -479,6 +492,36 @@ Note the asymmetry with the node link: Template Distribution defines no flags
 at all, so `aviand` rejects any non-zero `SetupConnection.flags` with
 `unsupported-feature-flags`.
 
+### `SubmitShares.Error` codes an Avian pool must send
+
+Stratum v2 defines `invalid-channel-id`, `stale-share`, `difficulty-too-low`
+and `invalid-job-id`. An Avian pool has to refuse two things none of those
+describe, and both are refusals this extension exists to make possible:
+
+| `error_code` | Meaning |
+| --- | --- |
+| `invalid-version` | `version` differs from the job's, which `REQUIRES_FIXED_VERSION` forbids and which would move the share to the other algorithm's proof-of-work limit |
+| `invalid-ntime` | `ntime` is outside the window `AvianJobTimeConstraints` gave for that job |
+
+`error_code` is a `STR0_255`, so inventing values is legal, but a miner cannot
+recognise one it has never been told about. Undocumented, these two sit exactly
+where the algorithm and the `ntime` bound sat before this extension existed.
+They are therefore normative here, as the `AvianSelectAlgorithm.Error` values
+are.
+
+### What a pool does with a worker that clears `REQUIRES_STANDARD_JOBS`
+
+Refuse the connection with `SetupConnection.Error`. Stratum v2 has no code for
+a flag whose **absence** is the problem: `unsupported-feature-flags` names
+flags that are not supported, and the `flags` field is described as naming the
+flag causing the error, so using it here is a stretch a miner cannot
+disambiguate. Follow the precedent of `missing-declare-tx-data-flag` and send
+`missing-standard-jobs-flag`.
+
+A v1 Avian pool serves standard jobs only, so a worker that can process
+extended jobs is not the problem; a worker that has not said it needs standard
+ones may be served jobs through a group it cannot interpret.
+
 ### Two things the protocol cannot enforce for the pool
 
 - **The target is compared against Avian's proof-of-work hash**, X16RT or
@@ -552,6 +595,10 @@ any proof of work is computed:
   value
 - every output in `coinbase_tx_outputs` present **verbatim**, with the witness
   commitment the highest-indexed output bearing the `aa21a9ed` magic
+- the pool's own outputs may go **before or after** the required ones. The
+  commitment check looks for the highest-indexed output *bearing the magic*, so
+  an ordinary payout output cannot displace it wherever it sits, and the
+  required-output check tests for presence rather than position
 - output total no more than `coinbase_tx_value_remaining` plus the required
   outputs
 - a canonical encoding: the node re-serializes and byte-compares
