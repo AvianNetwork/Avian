@@ -361,6 +361,26 @@ sv2::NewTemplate GetTemplate(Client& client, uint8_t pow_type = POW_TYPE_X16RT)
     return tmpl;
 }
 
+//! Read past any unprompted work and return the next reply.
+//!
+//! A short refresh interval means the provider is pushing templates while a
+//! test is trying to ask it something, so a bare ReadMessage would hand back a
+//! NewTemplate where the test wanted its answer.
+std::optional<sv2::ReceivedMsg> ReadReply(Client& client, bool& closed)
+{
+    for (int i = 0; i < 40; ++i) {
+        const auto msg{ReadMessage(client, closed)};
+        if (!msg) return std::nullopt;
+        const bool pushed{
+            msg->header.extension_type == sv2::AVIAN_EXTENSION_ID
+                ? msg->header.msg_type == static_cast<uint8_t>(sv2::AvianMsg::TIME_CONSTRAINTS)
+                : (msg->header.msg_type == static_cast<uint8_t>(sv2::CoreMsg::NEW_TEMPLATE) ||
+                   msg->header.msg_type == static_cast<uint8_t>(sv2::CoreMsg::SET_NEW_PREV_HASH))};
+        if (!pushed) return msg;
+    }
+    return std::nullopt;
+}
+
 bool SendTxDataRequest(Client& client, uint64_t template_id)
 {
     sv2::RequestTransactionData request;
@@ -602,6 +622,89 @@ BOOST_AUTO_TEST_CASE(persistent_refusals_disconnect)
     BOOST_REQUIRE(SendSolution(*client, tmpl, tmpl.version ^ 0x1, ntime));
     ReadMessage(*client, closed);
     BOOST_CHECK(closed);
+}
+
+//! Wait for the refresh that supersedes `previous`, and return its id.
+uint64_t AwaitRefresh(Client& client, uint64_t previous)
+{
+    bool closed{false};
+    for (int i = 0; i < 20; ++i) {
+        const auto msg{ReadMessage(client, closed)};
+        BOOST_REQUIRE(msg.has_value());
+        if (msg->header.extension_type != sv2::EXT_CORE) continue;
+        if (msg->header.msg_type != static_cast<uint8_t>(sv2::CoreMsg::NEW_TEMPLATE)) continue;
+        const auto tmpl{sv2::DecodePayload<sv2::NewTemplate>(msg->payload)};
+        if (tmpl.template_id != previous) return tmpl.template_id;
+    }
+    BOOST_FAIL("no refreshed template arrived");
+    return 0;
+}
+
+BOOST_AUTO_TEST_CASE(a_superseded_template_stays_usable)
+{
+    // Avian refreshes templates on the same cadence as it produces blocks, so
+    // keeping only the newest would discard any solution whose job predates
+    // the last refresh. A block is worth rather more than the few shared
+    // pointers that retaining a template costs.
+    auto server{StartTemplateServer(m_node, m_args.GetDataDirNet(), [](sv2::Options& opts) {
+        opts.refresh_interval = std::chrono::seconds{1};
+    })};
+    auto client{ConnectTo(*server, server->AuthorityPubKey())};
+    const auto first{GetTemplate(*client)};
+    BOOST_REQUIRE(AwaitRefresh(*client, first.template_id) != first.template_id);
+
+    // Still served, which is the observable proof it was not dropped: the same
+    // lookup decides whether a solution against it is accepted.
+    bool closed{false};
+    BOOST_REQUIRE(SendTxDataRequest(*client, first.template_id));
+    const auto reply{ReadReply(*client, closed)};
+    BOOST_REQUIRE(reply.has_value());
+    BOOST_CHECK_EQUAL(reply->header.msg_type,
+                      static_cast<uint8_t>(sv2::CoreMsg::REQUEST_TRANSACTION_DATA_SUCCESS));
+}
+
+BOOST_AUTO_TEST_CASE(retention_is_bounded)
+{
+    // With a limit of one this is the old behaviour, so this case is the one
+    // that would have caught the original bug.
+    auto server{StartTemplateServer(m_node, m_args.GetDataDirNet(), [](sv2::Options& opts) {
+        opts.refresh_interval = std::chrono::seconds{1};
+        opts.max_templates = 1;
+    })};
+    auto client{ConnectTo(*server, server->AuthorityPubKey())};
+    const auto first{GetTemplate(*client)};
+    BOOST_REQUIRE(AwaitRefresh(*client, first.template_id) != first.template_id);
+
+    bool closed{false};
+    BOOST_REQUIRE(SendTxDataRequest(*client, first.template_id));
+    const auto reply{ReadReply(*client, closed)};
+    BOOST_REQUIRE(reply.has_value());
+    BOOST_REQUIRE_EQUAL(reply->header.msg_type,
+                        static_cast<uint8_t>(sv2::CoreMsg::REQUEST_TRANSACTION_DATA_ERROR));
+    const auto err{sv2::DecodePayload<sv2::RequestTransactionDataError>(reply->payload)};
+    // Stale rather than unknown, so the client waits for new work instead of
+    // concluding it invented an id.
+    BOOST_CHECK_EQUAL(err.error_code, "stale-template");
+}
+
+BOOST_AUTO_TEST_CASE(a_new_tip_drops_the_old_templates)
+{
+    // Templates for an abandoned tip are the one kind that really is
+    // worthless: the prev hash is wrong, so no solution against them can
+    // produce a block that connects. Retaining those would be a leak.
+    auto server{StartTemplateServer(m_node, m_args.GetDataDirNet())};
+    auto client{ConnectTo(*server, server->AuthorityPubKey())};
+    const auto first{GetTemplate(*client)};
+
+    CreateAndProcessBlock({}, CScript() << OP_TRUE);
+    BOOST_REQUIRE(AwaitRefresh(*client, first.template_id) != first.template_id);
+
+    bool closed{false};
+    BOOST_REQUIRE(SendTxDataRequest(*client, first.template_id));
+    const auto reply{ReadReply(*client, closed)};
+    BOOST_REQUIRE(reply.has_value());
+    BOOST_CHECK_EQUAL(reply->header.msg_type,
+                      static_cast<uint8_t>(sv2::CoreMsg::REQUEST_TRANSACTION_DATA_ERROR));
 }
 
 BOOST_AUTO_TEST_SUITE_END()
