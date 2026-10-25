@@ -9,7 +9,7 @@ export LC_ALL=C.UTF-8
 export CONTAINER_NAME=ci_native
 export CI_IMAGE_NAME_TAG="mirror.gcr.io/ubuntu:24.04"
 export NO_DEPENDS=1
-export PACKAGES="cmake ninja-build pkgconf libboost-dev libevent-dev libsqlite3-dev libzmq3-dev qt6-base-dev qt6-tools-dev qt6-l10n-tools libqrencode-dev"
+export PACKAGES="cmake ninja-build pkgconf libboost-dev libevent-dev libsqlite3-dev libzmq3-dev qt6-base-dev qt6-tools-dev qt6-l10n-tools libqrencode-dev capnproto libcapnp-dev"
 export RUN_UNIT_TESTS=true
 # The functional (Python) test suite is not yet localized to Avian; keep it off for now.
 export RUN_FUNCTIONAL_TESTS=false
@@ -21,7 +21,10 @@ export GOAL="install"
 # missing, so the install must precede cmake.
 export BUILD_LIBOQS=true
 export LIBOQS_VERSION=0.16.0
+# ENABLE_IPC=ON so the multiprocess Mining interface and its Cap'n Proto schema are
+# actually compiled. Without it, src/ipc and the ipc_tests round-trip are built by
+# nobody, and a schema that no longer matches node::BlockCreateOptions passes CI.
 # BUILD_TESTS defaults OFF, so it must be enabled explicitly or test_avian is never built
 # and ctest finds no tests to run. BUILD_GUI_TESTS is forced OFF: the Qt GUI test suite
 # (test_avian-qt) is not yet localized to Avian; the GUI itself is still built (BUILD_GUI=ON).
-export AVIAN_CONFIG="-DBUILD_GUI=ON -DBUILD_GUI_TESTS=OFF -DWITH_ZMQ=ON -DENABLE_IPC=OFF -DWERROR=ON -DBUILD_TESTS=ON -DWITH_LIBOQS=ON"
+export AVIAN_CONFIG="-DBUILD_GUI=ON -DBUILD_GUI_TESTS=OFF -DWITH_ZMQ=ON -DENABLE_IPC=ON -DWERROR=ON -DBUILD_TESTS=ON -DWITH_LIBOQS=ON"

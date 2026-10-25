@@ -105,6 +105,15 @@ void IpcPipeTest()
     auto script2{foo->passScript(script1)};
     BOOST_CHECK_EQUAL(HexStr(script1), HexStr(script2));
 
+    // Avian dual-algo: pow_type and coinbase_output_script must survive the IPC
+    // boundary, otherwise every remote template request silently becomes X16RT.
+    node::BlockCreateOptions opts1;
+    opts1.pow_type = 1;
+    opts1.coinbase_output_script = CScript() << OP_12;
+    node::BlockCreateOptions opts2{foo->passBlockCreateOptions(opts1)};
+    BOOST_CHECK_EQUAL(opts1.pow_type, opts2.pow_type);
+    BOOST_CHECK_EQUAL(HexStr(opts1.coinbase_output_script), HexStr(opts2.coinbase_output_script));
+
     // Test cleanup: disconnect and join thread
     foo.reset();
     thread.join();
