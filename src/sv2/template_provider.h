@@ -91,12 +91,13 @@ public:
     //! Start the thread that watches for a new tip and refreshes templates.
     void Start();
     void Interrupt();
-    void Stop();
+    void Stop() EXCLUSIVE_LOCKS_REQUIRED(!m_mutex);
 
-    void ClientReady(ClientId id, POW_TYPE pow_type) override;
-    void ClientDisconnected(ClientId id) override;
+    void ClientReady(ClientId id, POW_TYPE pow_type) override EXCLUSIVE_LOCKS_REQUIRED(!m_mutex);
+    void ClientDisconnected(ClientId id) override EXCLUSIVE_LOCKS_REQUIRED(!m_mutex);
     [[nodiscard]] bool ReceivedMessage(ClientId id, const NetHeader& header,
-                                       std::span<const uint8_t> payload) override;
+                                       std::span<const uint8_t> payload) override
+        EXCLUSIVE_LOCKS_REQUIRED(!m_mutex);
 
 private:
     struct ClientState {
@@ -131,7 +132,7 @@ private:
     //! Rebuild and reissue work for every client that has asked for it.
     void RefreshClients(bool tip_changed) EXCLUSIVE_LOCKS_REQUIRED(!m_mutex);
 
-    void ThreadWatcher();
+    void ThreadWatcher() EXCLUSIVE_LOCKS_REQUIRED(!m_mutex);
 
     interfaces::Mining& m_mining;
     const Options m_opts;
