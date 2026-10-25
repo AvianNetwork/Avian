@@ -522,6 +522,27 @@ A v1 Avian pool serves standard jobs only, so a worker that can process
 extended jobs is not the problem; a worker that has not said it needs standard
 ones may be served jobs through a group it cannot interpret.
 
+### Work does not survive a reconnect
+
+A `job_id` is unique only within the connection that issued it. Both it and
+`channel_id` come from a pool's own counters, and a pool that restarts them
+on a new connection, which is the obvious implementation, will reissue id 1 to
+mean something else.
+
+So a miner **must discard work in flight when a connection drops**. A nonce
+found for the old job 1, submitted after reconnecting against the new job 1,
+is a share computed over a different header: a different merkle root at least,
+since a new `channel_id` changes the coinbase extranonce. At any realistic
+difficulty it is simply rejected, and the miner has wasted both the work and
+the submission. On a chain whose target is its own floor, which is regtest,
+it is accepted instead, and a pool's test suite will therefore not notice the
+miner is submitting work it did not do for that job.
+
+Neither this document's extension nor Stratum v2 itself says this anywhere,
+and a miner author has no way to infer it. A pool can make itself harder to
+misuse by not reusing job ids across connections, but the robust rule is the
+miner's, because it holds whatever the pool does.
+
 ### Two things the protocol cannot enforce for the pool
 
 - **The target is compared against Avian's proof-of-work hash**, X16RT or
