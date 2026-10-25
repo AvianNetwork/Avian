@@ -11,12 +11,14 @@
 #include <sv2/messages.h>
 #include <sv2/options.h>
 #include <sync.h>
+#include <util/threadinterrupt.h>
 #include <uint256.h>
 
 #include <cstdint>
 #include <map>
 #include <memory>
 #include <span>
+#include <thread>
 
 namespace sv2 {
 
@@ -68,6 +70,11 @@ public:
     //! Must be called before clients arrive. Not owned.
     void SetConnman(Connman* connman) { m_connman = connman; }
 
+    //! Start the thread that watches for a new tip and refreshes templates.
+    void Start();
+    void Interrupt();
+    void Stop();
+
     void ClientReady(ClientId id, POW_TYPE pow_type) override;
     void ClientDisconnected(ClientId id) override;
     [[nodiscard]] bool ReceivedMessage(ClientId id, const NetHeader& header,
@@ -90,7 +97,13 @@ private:
 
     //! Build a template for `state` and send NewTemplate followed by the
     //! Avian time constraints. Returns false to disconnect the client.
-    [[nodiscard]] bool SendNewTemplate(ClientId id, ClientState& state) EXCLUSIVE_LOCKS_REQUIRED(m_mutex);
+    [[nodiscard]] bool SendNewTemplate(ClientId id, ClientState& state, bool future)
+        EXCLUSIVE_LOCKS_REQUIRED(m_mutex);
+
+    //! Rebuild and reissue work for every client that has asked for it.
+    void RefreshClients(bool tip_changed) EXCLUSIVE_LOCKS_REQUIRED(!m_mutex);
+
+    void ThreadWatcher();
 
     interfaces::Mining& m_mining;
     const Options m_opts;
@@ -99,6 +112,9 @@ private:
     mutable Mutex m_mutex;
     std::map<ClientId, ClientState> m_clients GUARDED_BY(m_mutex);
     uint64_t m_next_template_id GUARDED_BY(m_mutex){1};
+
+    std::thread m_thread;
+    CThreadInterrupt m_interrupt;
 };
 
 //! Process-wide lifecycle, following the torcontrol pattern of free functions

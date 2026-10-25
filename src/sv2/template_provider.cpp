@@ -4,6 +4,7 @@
 
 #include <sv2/template_provider.h>
 
+#include <arith_uint256.h>
 #include <chain.h>
 #include <common/args.h>
 #include <common/init.h>
@@ -17,10 +18,12 @@
 #include <script/script.h>
 #include <streams.h>
 #include <util/strencodings.h>
+#include <util/thread.h>
 #include <util/time.h>
 #include <util/translation.h>
 
 #include <algorithm>
+#include <vector>
 #include <cassert>
 
 namespace sv2 {
@@ -129,10 +132,10 @@ bool TemplateProvider::HandleCoinbaseOutputConstraints(ClientId id, ClientState&
                   "client=%d reserved %d coinbase bytes and %d sigops\n", id,
                   state.coinbase_max_additional_size, state.coinbase_max_additional_sigops);
 
-    return SendNewTemplate(id, state);
+    return SendNewTemplate(id, state, /*future=*/false);
 }
 
-bool TemplateProvider::SendNewTemplate(ClientId id, ClientState& state)
+bool TemplateProvider::SendNewTemplate(ClientId id, ClientState& state, bool future)
 {
     if (!m_connman || !state.constraints_received) return false;
 
@@ -251,9 +254,7 @@ bool TemplateProvider::SendNewTemplate(ClientId id, ClientState& state)
 
     NewTemplate msg;
     msg.template_id = template_id;
-    // Request-driven, so this template is for the current tip rather than a
-    // future one. Tip-change pushes arrive with SetNewPrevHash.
-    msg.future_template = false;
+    msg.future_template = future;
     msg.version = cached.version;
     msg.coinbase_tx_version = cached.coinbase_tx_version;
     msg.coinbase_prefix = cached.coinbase_prefix;
@@ -263,6 +264,15 @@ bool TemplateProvider::SendNewTemplate(ClientId id, ClientState& state)
     msg.coinbase_tx_outputs = cached.required_outputs;
     msg.coinbase_tx_locktime = cached.coinbase_tx_locktime;
     msg.merkle_path = cached.merkle_path;
+
+    SetNewPrevHash prev;
+    prev.template_id = template_id;
+    prev.prev_hash = cached.prev_hash;
+    prev.ntime_start = cached.ntime_min;
+    prev.nbits = cached.nbits;
+    // nBits already came from the per-algorithm LWMA, so expanding it yields
+    // the target for this connection's algorithm without further work.
+    prev.target = ArithToUint256(arith_uint256{}.SetCompact(cached.nbits));
 
     AvianTimeConstraints times;
     times.template_id = template_id;
@@ -274,6 +284,13 @@ bool TemplateProvider::SendNewTemplate(ClientId id, ClientState& state)
 
     if (!m_connman->Send(id, NetHeader{EXT_CORE, static_cast<uint8_t>(CoreMsg::NEW_TEMPLATE), 0},
                          EncodePayload(msg))) {
+        return false;
+    }
+    // NewTemplate carries no prev hash of its own, so without this the client
+    // has no header to hash.
+    if (!m_connman->Send(id,
+                         NetHeader{EXT_CORE, static_cast<uint8_t>(CoreMsg::SET_NEW_PREV_HASH), 0},
+                         EncodePayload(prev))) {
         return false;
     }
     // The spec gives SubmitSolution no upper ntime bound, so the client is
@@ -288,9 +305,93 @@ bool TemplateProvider::SendNewTemplate(ClientId id, ClientState& state)
     LogPrintLevel(BCLog::SV2, BCLog::Level::Debug,
                   "client=%d sent template %d for %s, ntime %d..%d\n", id, template_id,
                   POW_TYPE_NAMES[state.pow_type], times.ntime_min, times.ntime_max);
+
+    // Only the newest template can still be built on, so older ones for the
+    // same tip are dropped rather than accumulating.
+    while (state.templates.size() > 1) {
+        state.templates.erase(state.templates.begin());
+    }
     return true;
 }
 
+
+void TemplateProvider::Start()
+{
+    m_thread = std::thread{&util::TraceThread, "sv2-tmpl", [this] { ThreadWatcher(); }};
+}
+
+void TemplateProvider::Interrupt() { m_interrupt(); }
+
+void TemplateProvider::Stop()
+{
+    m_interrupt();
+    if (m_thread.joinable()) m_thread.join();
+    LOCK(m_mutex);
+    m_clients.clear();
+}
+
+void TemplateProvider::ThreadWatcher()
+{
+    uint256 last_tip;
+    if (const auto tip{m_mining.getTip()}) last_tip = tip->hash;
+
+    auto next_refresh{std::chrono::steady_clock::now() + m_opts.refresh_interval};
+
+    while (!m_interrupt) {
+        // waitTipChanged only returns early for a new tip or a node shutdown,
+        // neither of which this thread's own interrupt can cause. Poll in short
+        // slices instead, so stopping does not have to wait out a long timeout.
+        const auto tip{m_mining.waitTipChanged(last_tip, MillisecondsDouble{std::chrono::seconds{1}})};
+        if (m_interrupt) break;
+        if (!tip) break; // The node is shutting down.
+
+        if (tip->hash != last_tip) {
+            last_tip = tip->hash;
+            RefreshClients(/*tip_changed=*/true);
+            next_refresh = std::chrono::steady_clock::now() + m_opts.refresh_interval;
+            continue;
+        }
+
+        // No new tip. Refresh anyway on the interval, which is what picks up
+        // new fees and keeps X16RT work inside its 128-second epoch.
+        if (std::chrono::steady_clock::now() >= next_refresh) {
+            RefreshClients(/*tip_changed=*/false);
+            next_refresh = std::chrono::steady_clock::now() + m_opts.refresh_interval;
+        }
+    }
+}
+
+void TemplateProvider::RefreshClients(bool tip_changed)
+{
+    // Collect the ids first so the rebuild, which takes cs_main, does not
+    // happen while iterating a container another thread can change.
+    std::vector<ClientId> ids;
+    WITH_LOCK(m_mutex, {
+        for (const auto& [id, state] : m_clients) {
+            if (state.constraints_received) ids.push_back(id);
+        }
+    });
+    if (ids.empty()) return;
+
+    if (tip_changed) {
+        LogPrintLevel(BCLog::SV2, BCLog::Level::Debug,
+                      "new tip, reissuing work to %d client(s)\n", ids.size());
+    }
+
+    for (const ClientId id : ids) {
+        bool keep{true};
+        WITH_LOCK(m_mutex, {
+            const auto it{m_clients.find(id)};
+            if (it != m_clients.end()) {
+                // A tip change invalidates every outstanding template, so
+                // nothing is left that a solution could still be valid for.
+                if (tip_changed) it->second.templates.clear();
+                keep = SendNewTemplate(id, it->second, /*future=*/false);
+            }
+        });
+        if (!keep && m_connman) m_connman->Disconnect(id);
+    }
+}
 
 // Process-wide lifecycle.
 
@@ -340,9 +441,11 @@ bool StartSv2(const ArgsManager& args, ChainType chain, interfaces::Mining& mini
     g_provider = std::make_unique<TemplateProvider>(mining, *opts);
     g_connman = std::make_unique<Connman>(*opts, *static_key, *cert);
     g_provider->SetConnman(g_connman.get());
+    g_provider->Start();
 
     if (!g_connman->Start(g_provider.get())) {
         g_connman.reset();
+        g_provider->Stop();
         g_provider.reset();
         return InitError(Untranslated("Cannot start the Stratum v2 Template Provider"));
     }
@@ -352,6 +455,9 @@ bool StartSv2(const ArgsManager& args, ChainType chain, interfaces::Mining& mini
 void InterruptSv2()
 {
     if (g_connman) g_connman->Interrupt();
+    // Releases a template thread parked in waitTipChanged, which would
+    // otherwise sit there until its timeout expires.
+    if (g_provider) g_provider->Interrupt();
 }
 
 void StopSv2()
@@ -362,7 +468,10 @@ void StopSv2()
         g_connman->Stop();
         g_connman.reset();
     }
-    g_provider.reset();
+    if (g_provider) {
+        g_provider->Stop();
+        g_provider.reset();
+    }
 }
 
 } // namespace sv2
