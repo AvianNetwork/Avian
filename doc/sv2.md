@@ -522,7 +522,53 @@ A v1 Avian pool serves standard jobs only, so a worker that can process
 extended jobs is not the problem; a worker that has not said it needs standard
 ones may be served jobs through a group it cannot interpret.
 
+### `user_identity`, and what a solo pool reads out of it
+
+A solo pool pays the miner directly in the coinbase, so it needs an address
+from the miner. `user_identity` in `OpenStandardMiningChannel` is where it
+goes: `STR0_255`, comfortably more than an Avian address needs.
+
+**The field carries `address.workername`, and nothing says so anywhere.**
+Not Stratum v2, which gives `user_identity` no structure at all, and not this
+document until now. Every miner in the field puts it there because Stratum v1
+did, and a pool that did not know would try to parse the whole string as an
+address and refuse every real miner it met. Split on the **first** dot: no
+Avian address can contain one, since neither the base58 alphabet nor the
+bech32 charset includes it, so the first dot is the unambiguous end of the
+address and `address.rig.1` parses correctly. A bare address with no label is
+valid too.
+
+Avian's address versions are mainnet 60 and 122, every test network 111 and
+196, and the bech32 prefixes are `avn`, `tavn` for testnet and signet,
+`tavn4`, and `avnrt`. So **mainnet is the only network a base58 address can be
+checked against**, and off mainnet a testnet address will be accepted by a
+regtest pool. The bech32 prefix separates regtest and testnet4 but not testnet
+from signet. This matters little in practice, because the case worth getting
+right is a mainnet pool refusing a test address, and that one works.
+
+A pool **must refuse a channel it cannot pay** rather than fall back to a
+default, a burn address or the operator's own. A miner mistyping its address
+and being quietly mined to someone else's is the worst failure a solo pool
+has, and it is silent.
+
+Stratum v2 gives `OpenMiningChannel.Error` only `unknown-user` and
+`max-count-exceeded`, neither of which fits, so these are normative here:
+
+| `error_code` | Meaning |
+| --- | --- |
+| `missing-payout-address` | `user_identity` carried no address |
+| `invalid-payout-address` | the address did not decode or failed its checksum |
+| `wrong-network-address` | a valid address for another network |
+| `unsupported-address-type` | a type this pool cannot pay, such as segwit v1 |
+
+A miner that cannot tell "your address is wrong" from "the pool is full" will
+retry forever against a pool that will never serve it. That is the same shape
+as the algorithm and the `ntime` bound before this extension existed, and it
+is the third time the gap has appeared.
+
 ### Work does not survive a reconnect
+
+
 
 A `job_id` is unique only within the connection that issued it. Both it and
 `channel_id` come from a pool's own counters, and a pool that restarts them
