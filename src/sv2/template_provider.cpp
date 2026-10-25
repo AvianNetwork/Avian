@@ -14,6 +14,7 @@
 #include <node/interface_ui.h>
 #include <node/types.h>
 #include <policy/policy.h>
+#include <primitives/block.h>
 #include <primitives/transaction.h>
 #include <script/script.h>
 #include <streams.h>
@@ -100,6 +101,8 @@ bool TemplateProvider::ReceivedMessage(ClientId id, const NetHeader& header,
     switch (static_cast<CoreMsg>(header.msg_type)) {
     case CoreMsg::COINBASE_OUTPUT_CONSTRAINTS:
         return HandleCoinbaseOutputConstraints(id, it->second, payload);
+    case CoreMsg::REQUEST_TRANSACTION_DATA:
+        return HandleRequestTransactionData(id, it->second, payload);
     default:
         LogPrintLevel(BCLog::SV2, BCLog::Level::Debug,
                       "client=%d sent msg_type=0x%02x, which is not yet served\n", id,
@@ -214,6 +217,7 @@ bool TemplateProvider::SendNewTemplate(ClientId id, ClientState& state, bool fut
     }
 
     const uint64_t template_id{m_next_template_id++};
+    state.highest_template_id = template_id;
     cached.pow_type = state.pow_type;
     cached.version = static_cast<uint32_t>(header.nVersion);
     cached.nbits = header.nBits;
@@ -226,6 +230,7 @@ bool TemplateProvider::SendNewTemplate(ClientId id, ClientState& state, bool fut
     cached.required_outputs_count = static_cast<uint32_t>(required.size());
     cached.value_remaining = static_cast<uint64_t>(coinbase->vout[0].nValue);
     cached.merkle_path = handle->getCoinbaseMerklePath();
+    cached.excess_data = commitment;
 
     const auto& consensus{Params().GetConsensus()};
     cached.ntime_min = header.nTime;
@@ -328,6 +333,85 @@ void TemplateProvider::Stop()
     if (m_thread.joinable()) m_thread.join();
     LOCK(m_mutex);
     m_clients.clear();
+}
+
+bool TemplateProvider::HandleRequestTransactionData(ClientId id, ClientState& state,
+                                                    std::span<const uint8_t> payload)
+{
+    RequestTransactionData request;
+    try {
+        request = DecodePayload<RequestTransactionData>(payload);
+    } catch (const std::ios_base::failure& e) {
+        LogPrintLevel(BCLog::SV2, BCLog::Level::Debug,
+                      "client=%d sent a malformed RequestTransactionData: %s\n", id, e.what());
+        return false;
+    }
+
+    // Meter before doing any work: a handful of request bytes otherwise buys a
+    // whole block serialized, encrypted and buffered.
+    const auto now{std::chrono::steady_clock::now()};
+    while (!state.txdata_requests.empty() && now - state.txdata_requests.front() > TXDATA_WINDOW) {
+        state.txdata_requests.pop_front();
+    }
+    if (state.txdata_requests.size() >= MAX_TXDATA_REQUESTS) {
+        LogPrintLevel(BCLog::SV2, BCLog::Level::Debug,
+                      "client=%d asked for transaction data more than %d times in %ds\n", id,
+                      MAX_TXDATA_REQUESTS, TXDATA_WINDOW.count());
+        return false;
+    }
+    state.txdata_requests.push_back(now);
+
+    const auto sendError{[&](const std::string& code) {
+        RequestTransactionDataError err;
+        err.template_id = request.template_id;
+        err.error_code = code;
+        LogPrintLevel(BCLog::SV2, BCLog::Level::Debug,
+                      "client=%d asked for transaction data for template %d: %s\n", id,
+                      request.template_id, code);
+        return m_connman->Send(
+            id, NetHeader{EXT_CORE, static_cast<uint8_t>(CoreMsg::REQUEST_TRANSACTION_DATA_ERROR), 0},
+            EncodePayload(err));
+    }};
+
+    const auto it{state.templates.find(request.template_id)};
+    if (it == state.templates.end()) {
+        // Only the newest template survives a refresh, so an id we once issued
+        // is stale rather than unknown. The distinction tells a client whether
+        // to wait for new work or stop asking.
+        return sendError(request.template_id != 0 && request.template_id <= state.highest_template_id
+                             ? "stale-template"
+                             : "template-id-not-found");
+    }
+
+    CachedTemplate& cached{it->second};
+    if (!cached.transaction_list_built) {
+        // getBlock copies the whole block, so this happens once per template
+        // and only if someone actually asks.
+        const CBlock block{cached.handle->getBlock()};
+        cached.transaction_list.reserve(block.vtx.size() > 0 ? block.vtx.size() - 1 : 0);
+        for (size_t i = 1; i < block.vtx.size(); ++i) {
+            DataStream ss{};
+            ss << TX_WITH_WITNESS(*block.vtx[i]);
+            cached.transaction_list.emplace_back(UCharCast(ss.data()), UCharCast(ss.data()) + ss.size());
+        }
+        cached.transaction_list_built = true;
+    }
+
+    RequestTransactionDataSuccess success;
+    success.template_id = request.template_id;
+    success.excess_data = cached.excess_data;
+    success.transaction_list = cached.transaction_list;
+
+    if (!m_connman->Send(
+            id, NetHeader{EXT_CORE, static_cast<uint8_t>(CoreMsg::REQUEST_TRANSACTION_DATA_SUCCESS), 0},
+            EncodePayload(success))) {
+        return false;
+    }
+
+    LogPrintLevel(BCLog::SV2, BCLog::Level::Debug,
+                  "client=%d sent %d transactions for template %d\n", id,
+                  cached.transaction_list.size(), request.template_id);
+    return true;
 }
 
 void TemplateProvider::ThreadWatcher()
