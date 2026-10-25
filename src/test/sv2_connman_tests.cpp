@@ -521,6 +521,40 @@ BOOST_AUTO_TEST_CASE(a_configured_mask_is_reported_faithfully)
     BOOST_CHECK_EQUAL(ok.version_rolling_mask & 0x00ff0000u, 0u);
 }
 
+BOOST_AUTO_TEST_CASE(optional_policy_still_serves_a_first_algorithm_selection)
+{
+    // Under the optional and off policies a client reaches READY straight from
+    // SetupConnection, and READY was taken as evidence that an algorithm had
+    // been chosen. So the first AvianSelectAlgorithm was refused as a second
+    // one and -sv2extensionpolicy=optional could not serve minotaurx to
+    // anybody. Only the require policy was tested, which is why it survived.
+    auto server{StartServer(m_args.GetDataDirNet(), [](sv2::Options& o) {
+        o.extension_policy = sv2::ExtensionPolicy::OPTIONAL;
+        o.extension_id = sv2::AVIAN_EXTENSION_ID;
+        o.supported_extensions = {sv2::AVIAN_EXTENSION_ID};
+        o.pow_algos = {POW_TYPE_X16RT, POW_TYPE_MINOTAURX};
+    })};
+    auto client{Connect(*server, server->AuthorityPubKey())};
+    BOOST_REQUIRE(SetupSession(*client));
+    BOOST_REQUIRE(NegotiateAvian(*client));
+    BOOST_REQUIRE(SendSelectAlgorithm(*client, POW_TYPE_MINOTAURX));
+
+    bool closed{false};
+    const auto reply{ReadMessage(*client, closed)};
+    BOOST_REQUIRE(reply.has_value());
+    BOOST_REQUIRE_EQUAL(reply->header.msg_type,
+                        static_cast<uint8_t>(sv2::AvianMsg::SELECT_ALGORITHM_SUCCESS));
+    const auto ok{sv2::DecodePayload<sv2::AvianSelectAlgorithmSuccess>(reply->payload)};
+    BOOST_CHECK_EQUAL(ok.pow_type, POW_TYPE_MINOTAURX);
+
+    // A genuine second selection is still refused.
+    BOOST_REQUIRE(SendSelectAlgorithm(*client, POW_TYPE_X16RT));
+    const auto second{ReadMessage(*client, closed)};
+    BOOST_REQUIRE(second.has_value());
+    BOOST_CHECK_EQUAL(second->header.msg_type,
+                      static_cast<uint8_t>(sv2::AvianMsg::SELECT_ALGORITHM_ERROR));
+}
+
 BOOST_AUTO_TEST_CASE(unknown_pow_type_is_rejected)
 {
     auto server{StartServer(m_args.GetDataDirNet(), ProductionLike)};

@@ -459,8 +459,17 @@ bool Connman::HandleCommon(Client& client, const ReceivedMsg& msg)
                               m_opts.extension_id);
                 return false;
             }
-            // The algorithm fixes this connection's nBits and target stream,
-            // so it cannot be changed underneath templates already issued.
+            // Being READY is not evidence that an algorithm was chosen.
+            // Under the optional and off policies a client reaches READY
+            // straight from SetupConnection, so its first selection arrives
+            // here and has to be served rather than refused as a second one.
+            // Without this, -sv2extensionpolicy=optional cannot serve
+            // minotaurx to anyone at all.
+            if (!client.algo_selected) return HandleAvianSelectAlgorithm(client, msg);
+
+            // A real second selection. The algorithm fixes this connection's
+            // nBits and target stream, so it cannot be changed underneath
+            // templates already issued.
             AvianSelectAlgorithmError err;
             err.error_code = "algo-already-selected";
             return Reject(client, m_opts.extension_id,

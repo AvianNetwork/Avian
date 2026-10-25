@@ -253,6 +253,41 @@ BOOST_AUTO_TEST_CASE(version_rolling_is_never_offered)
     BOOST_CHECK_EQUAL(opts->version_rolling_mask, 0u);
 }
 
+BOOST_AUTO_TEST_CASE(mainnet_is_refused_while_the_extension_is_experimental)
+{
+    // The specification reserves 0x4000-0x7fff for experimental extensions and
+    // forbids them in production equipment. Guarding only -sv2extensionid left
+    // the obvious route open: aviand -sv2 on mainnet, no arguments, using
+    // 0x4001 as the compiled-in default.
+    BOOST_CHECK(!sv2::ReadOptions(m_args, ChainType::MAIN));
+
+    // Every other network is unaffected, which is the point of the guard
+    // rather than a side effect of it.
+    BOOST_CHECK(sv2::ReadOptions(m_args, ChainType::TESTNET));
+    BOOST_CHECK(sv2::ReadOptions(m_args, ChainType::SIGNET));
+    BOOST_CHECK(sv2::ReadOptions(m_args, ChainType::REGTEST));
+}
+
+BOOST_AUTO_TEST_CASE(port_and_certificate_validity_are_bounded)
+{
+    // A bare cast turned 65536 into 0, which binds an ephemeral port: the node
+    // starts, reports success, and listens somewhere nobody was told about.
+    m_args.ForceSetArg("-sv2port", "65536");
+    BOOST_CHECK(!sv2::ReadOptions(m_args, ChainType::REGTEST));
+    m_args.ForceSetArg("-sv2port", "0");
+    BOOST_CHECK(!sv2::ReadOptions(m_args, ChainType::REGTEST));
+    m_args.ForceSetArg("-sv2port", "18447");
+    BOOST_CHECK(sv2::ReadOptions(m_args, ChainType::REGTEST));
+
+    // not_valid_after is a uint32 of seconds, so a large enough validity wraps
+    // and every client rejects the certificate as long expired. That presents
+    // as a handshake failing for no visible reason.
+    m_args.ForceSetArg("-sv2certvalidity", "1000000");
+    BOOST_CHECK(!sv2::ReadOptions(m_args, ChainType::REGTEST));
+    m_args.ForceSetArg("-sv2certvalidity", "3650");
+    BOOST_CHECK(sv2::ReadOptions(m_args, ChainType::REGTEST));
+}
+
 BOOST_AUTO_TEST_CASE(extension_id_override_is_development_only)
 {
     // On mainnet the wire identity must come from the constant alone. A
