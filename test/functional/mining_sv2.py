@@ -41,6 +41,10 @@ SUBMIT_INTERVAL = 4
 
 ALGO_NAMES = {POW_TYPE_X16RT: 'x16rt', POW_TYPE_MINOTAURX: 'minotaurx'}
 
+# MAX_SOLUTIONS in src/sv2/template_provider.h. Kept here so the test that
+# exceeds it says why that number.
+sv2_MAX_SOLUTIONS = 4
+
 
 class Sv2TemplateProviderTest(BitcoinTestFramework):
     def set_test_params(self):
@@ -90,6 +94,7 @@ class Sv2TemplateProviderTest(BitcoinTestFramework):
         self.test_mines_a_block(POW_TYPE_X16RT)
         self.test_mines_a_block(POW_TYPE_MINOTAURX)
         self.test_mines_a_block_on_superseded_work()
+        self.test_finding_blocks_quickly_is_not_rate_limited()
 
     def test_handshake_and_certificate(self):
         self.log.info("Noise handshake, with the certificate checked against the authority key")
@@ -362,6 +367,57 @@ class Sv2TemplateProviderTest(BitcoinTestFramework):
         assert_equal(self.nodes[0].getblock(self.nodes[0].getbestblockhash())['tx'][0],
                      coinbase.txid_hex)
         self.restart_node(0, extra_args=self.extra_args[0])
+
+
+    def test_finding_blocks_quickly_is_not_rate_limited(self):
+        """A pool that keeps finding blocks must not be disconnected for it.
+
+        The submission allowance exists to stop cheap bytes buying expensive
+        hashes, so it has to meter submissions that waste one. A submission
+        whose proof of work verifies is not that, and cannot be forged, so it
+        is refunded and the client is not charged for succeeding.
+
+        The distinction is the whole point, so the test has to respect it:
+        failed submissions are paced, because those legitimately consume the
+        allowance, and successful ones are not paced at all. Anything that
+        trips the limit here is therefore a success being charged for.
+
+        Without the refund this measured the wrong thing on every chain
+        anyone can test with. Where the share target is the network target,
+        every share a miner finds is a block candidate, so a working pool
+        forwarding them as it must was disconnected by its own node for
+        succeeding.
+        """
+        self.log.info("Finding blocks faster than the allowance is not punished")
+        before = self.nodes[0].getblockcount()
+        blocks_wanted = sv2_MAX_SOLUTIONS + 3
+
+        with self.connect() as client:
+            work = client.get_work()
+            for _ in range(blocks_wanted):
+                template = work['template']
+                coinbase = build_coinbase(template)
+                ntime = work['time_constraints']['ntime_min']
+                height = self.nodes[0].getblockcount()
+
+                for nonce in range(MAX_NONCE_ATTEMPTS):
+                    client.submit_solution(template['template_id'], template['version'],
+                                           ntime, nonce, coinbase)
+                    if self.nodes[0].getblockcount() > height:
+                        break
+                    # A refused submission did consume the allowance, by
+                    # design, so do not let those accumulate. There is no
+                    # way to pick a winning nonce in advance from here.
+                    time.sleep(SUBMIT_INTERVAL)
+                else:
+                    raise AssertionError("no nonce met the target")
+
+                # The tip moved, so fresh work arrives unprompted. Reading it
+                # also proves the connection survived the submission, which
+                # before the refund it would not have past the fourth block.
+                work = client.read_work()
+
+        assert_equal(self.nodes[0].getblockcount(), before + blocks_wanted)
 
 
 if __name__ == '__main__':
