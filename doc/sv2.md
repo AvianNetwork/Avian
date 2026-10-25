@@ -127,7 +127,28 @@ and `target` stream.
 
 `CoinbaseOutputConstraints` must arrive before the node will issue a template,
 because the coinbase size and sigop budget it declares are what the block
-assembler reserves.
+assembler reserves. Under-declaring it is not reported: the finished coinbase
+then fails the canonical re-serialization check in `SubmitSolution` and the
+submission is refused, which the protocol gives no way to explain.
+
+Two refusal behaviours a client has to expect, neither of which is an error
+reply it can simply read and carry on from:
+
+- **`algo-already-selected` is followed by a disconnect.** The node answers the
+  second `AvianSelectAlgorithm` and then closes, because a client confused
+  about which algorithm it selected cannot be served safely.
+- **A malformed extension message gets no reply at all.** A frame whose payload
+  does not decode, including one with trailing bytes, is logged and the
+  connection is closed. There is no error message for "I could not parse that",
+  since replying would require knowing what was meant.
+
+Both are visible under `-debug=sv2` and only there.
+
+One naming note for anyone building on the Stratum v2 Reference
+Implementation: the specification names `SetNewPrevHash`'s third field
+`ntime_start`, in both the Template Distribution and Mining Protocols, and that
+is what this document and the node use. SRI's Rust struct calls the same field
+`header_timestamp`. The bytes are identical; only the label differs.
 
 `SetNewPrevHash` accompanies a template built on a tip the client has not seen.
 An in-place refresh that picks up new fees sends only `NewTemplate` and
@@ -243,6 +264,18 @@ ample.
 | Field | Type | Meaning |
 | --- | --- | --- |
 | `error_code` | `STR0_255` | why the algorithm was refused |
+
+Defined values:
+
+| `error_code` | Meaning |
+| --- | --- |
+| `unsupported-pow-type` | not an algorithm this chain defines |
+| `pow-type-not-enabled` | not an algorithm this node was configured to serve |
+| `algo-already-selected` | a second selection on one connection |
+
+These are normative. An extension whose only error message is "a `STR0_255`"
+cannot be implemented against, and this is part of what a registry allocation
+would freeze.
 
 **`AvianTimeConstraints`**
 
