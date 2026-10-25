@@ -678,6 +678,7 @@ void SetupServerArgs(ArgsManager& argsman, bool can_listen_ipc)
     argsman.AddArg("-sv2maxsendbuffer=<n>", strprintf("Maximum per-client Stratum v2 send buffer in MiB; must hold one block (default: %u)", 32), ArgsManager::ALLOW_ANY, OptionsCategory::SV2);
     argsman.AddArg("-sv2extensionpolicy=<policy>", "How a Stratum v2 client must negotiate Avian protocol extensions: require, optional or off (default: require)", ArgsManager::ALLOW_ANY, OptionsCategory::SV2);
     argsman.AddArg("-sv2powalgo=<algo>", strprintf("Proof-of-work algorithm to build Stratum v2 templates for: %s or %s. The first given is used by a client that does not select one. Can be specified multiple times. (default: %s)", POW_TYPE_NAMES[0], POW_TYPE_NAMES[1], DEFAULT_POW_TYPE), ArgsManager::ALLOW_ANY, OptionsCategory::SV2);
+    argsman.AddArg("-sv2maxrejects=<n>", strprintf("Drop a Stratum v2 client after this many refused solutions, which almost always means it is rolling a field it was told not to (default: %u)", 10), ArgsManager::ALLOW_ANY, OptionsCategory::SV2);
     argsman.AddArg("-sv2interval=<n>", strprintf("Seconds between Stratum v2 template refreshes when the tip has not moved, which is what picks up new fees. Clamped to 120 so X16RT work never outlives its epoch. (default: %u)", 30), ArgsManager::ALLOW_ANY, OptionsCategory::SV2);
     argsman.AddArg("-sv2ntimeforward=<n>", strprintf("How many seconds above a template's own timestamp a Stratum v2 client may roll ntime (default: %u)", 600), ArgsManager::ALLOW_ANY, OptionsCategory::SV2);
     argsman.AddArg("-sv2timemargin=<n>", strprintf("Seconds of margin to leave below the consensus future-time limit when bounding ntime (default: %u)", 60), ArgsManager::ALLOW_ANY, OptionsCategory::SV2);
@@ -697,6 +698,7 @@ void SetupServerArgs(ArgsManager& argsman, bool can_listen_ipc)
     hidden_args.emplace_back("-sv2maxsendbuffer=<n>");
     hidden_args.emplace_back("-sv2extensionpolicy=<policy>");
     hidden_args.emplace_back("-sv2powalgo=<algo>");
+    hidden_args.emplace_back("-sv2maxrejects=<n>");
     hidden_args.emplace_back("-sv2interval=<n>");
     hidden_args.emplace_back("-sv2ntimeforward=<n>");
     hidden_args.emplace_back("-sv2timemargin=<n>");

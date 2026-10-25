@@ -179,6 +179,12 @@ util::Result<Options> ReadOptions(const ArgsManager& args, ChainType chain)
         opts.version_rolling_mask = safe;
     }
 
+    const int64_t max_rejects{args.GetIntArg("-sv2maxrejects", opts.max_rejects)};
+    if (max_rejects < 1) {
+        return util::Error{Untranslated("-sv2maxrejects must be at least 1")};
+    }
+    opts.max_rejects = static_cast<size_t>(max_rejects);
+
     const int64_t interval{args.GetIntArg("-sv2interval", opts.refresh_interval.count())};
     // An X16RT template dies at its 128-second epoch boundary, so refreshing
     // less often than that would leave clients holding dead work.

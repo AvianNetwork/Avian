@@ -10,6 +10,7 @@
 #include <sv2/connman.h>
 #include <sv2/messages.h>
 #include <sv2/options.h>
+#include <sv2/solution_check.h>
 #include <sync.h>
 #include <util/threadinterrupt.h>
 #include <uint256.h>
@@ -35,6 +36,12 @@ static constexpr uint32_t MAX_COINBASE_ADDITIONAL_SIZE{8000};
 static constexpr size_t MAX_TXDATA_REQUESTS{2};
 static constexpr auto TXDATA_WINDOW{std::chrono::seconds{10}};
 
+//! Solutions are metered too, and harder. Avian's proof of work has no cheap
+//! partial form, so the single hash a submission earns is thousands of times
+//! more expensive than the checks before it.
+static constexpr size_t MAX_SOLUTIONS{4};
+static constexpr auto SOLUTION_WINDOW{std::chrono::seconds{10}};
+
 //! Everything derived from a block template at the moment it is sent, so that
 //! answering a later request or validating a solution costs no block work.
 struct CachedTemplate {
@@ -56,9 +63,15 @@ struct CachedTemplate {
     uint32_t coinbase_tx_locktime{0};
     std::vector<uint8_t> coinbase_prefix;
     //! The outputs the client must keep: Avian's founder payment and the
-    //! witness commitment.
+    //! witness commitment. Kept in both forms: serialized for the wire, and
+    //! parsed for comparing against what a solution actually carries.
     std::vector<uint8_t> required_outputs;
+    std::vector<CTxOut> required_txouts;
     uint32_t required_outputs_count{0};
+    //! Ceilings for the finished coinbase.
+    size_t max_coinbase_size{0};
+    size_t max_coinbase_weight{0};
+    unsigned int max_coinbase_sigops{0};
     //! Value the client may distribute among its own outputs.
     uint64_t value_remaining{0};
 
@@ -114,6 +127,14 @@ private:
         uint64_t highest_template_id{0};
         //! When recent transaction-data requests arrived.
         std::deque<std::chrono::steady_clock::time_point> txdata_requests;
+        //! When recent solutions arrived. A Template Provider submission means
+        //! "I found a block", not "here is a share", so a tight allowance
+        //! costs an honest client nothing and is the first line of defence
+        //! against buying proof-of-work computations cheaply.
+        std::deque<std::chrono::steady_clock::time_point> solutions;
+        //! Consecutive refusals, so a client that cannot get it right stops
+        //! being given the chance.
+        size_t rejects{0};
     };
 
     [[nodiscard]] bool HandleCoinbaseOutputConstraints(ClientId id, ClientState& state,
@@ -127,6 +148,10 @@ private:
 
     [[nodiscard]] bool HandleRequestTransactionData(ClientId id, ClientState& state,
                                                      std::span<const uint8_t> payload)
+        EXCLUSIVE_LOCKS_REQUIRED(m_mutex);
+
+    [[nodiscard]] bool HandleSubmitSolution(ClientId id, ClientState& state,
+                                            std::span<const uint8_t> payload)
         EXCLUSIVE_LOCKS_REQUIRED(m_mutex);
 
     //! Rebuild and reissue work for every client that has asked for it.

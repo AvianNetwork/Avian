@@ -104,6 +104,12 @@ BOOST_AUTO_TEST_CASE(invalid_values_are_rejected)
     BOOST_CHECK(!sv2::ReadOptions(m_args, ChainType::REGTEST));
     m_args.ForceSetArg("-sv2maxsendbuffer", "32");
 
+    // Zero would drop a client on its first refused solution, and a refusal is
+    // not always the client's fault.
+    m_args.ForceSetArg("-sv2maxrejects", "0");
+    BOOST_CHECK(!sv2::ReadOptions(m_args, ChainType::REGTEST));
+    m_args.ForceSetArg("-sv2maxrejects", "10");
+
     m_args.ForceSetArg("-sv2certvalidity", "0");
     BOOST_CHECK(!sv2::ReadOptions(m_args, ChainType::REGTEST));
 }
