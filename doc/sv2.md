@@ -305,8 +305,8 @@ sequenceDiagram
     participant P as Pool
 
     Note over W,P: Session setup
-    W->>P: SetupConnection (protocol = 0)
-    P->>W: SetupConnection.Success
+    W->>P: SetupConnection, protocol 0, REQUIRES_STANDARD_JOBS
+    P->>W: SetupConnection.Success, REQUIRES_FIXED_VERSION
     W->>P: RequestExtensions [0x4001]
     P->>W: RequestExtensions.Success
     W->>P: AvianSelectAlgorithm
@@ -331,24 +331,62 @@ two connections. That is not a limitation worth engineering around: the two
 algorithms have independent difficulty, independent targets and independent
 job streams, and multiplexing them would make every one of those ambiguous.
 
-Three things a pool must get right, none of which the protocol can enforce for
-it:
+### Flags on an Avian mining connection
+
+Version rolling is a negotiated feature with a flag on each side, so stating
+that it is "disabled" is not enough: the two roles set different flags, and a
+pool that sets the wrong one has no contract at all.
+
+Set by the **miner**, in `SetupConnection.flags`:
+
+| Bit | Flag | Avian v1 |
+| --- | --- | --- |
+| 0 | `REQUIRES_STANDARD_JOBS` | **1**, the worker needs `NewMiningJob` |
+| 1 | `REQUIRES_WORK_SELECTION` | 0, no Job Declaration |
+| 2 | `REQUIRES_VERSION_ROLLING` | **0**, it must not demand rolling |
+
+Set by the **pool**, in `SetupConnection.Success.flags`:
+
+| Bit | Flag | Avian v1 |
+| --- | --- | --- |
+| 0 | `REQUIRES_FIXED_VERSION` | **1**, the version field is not negotiable |
+| 1 | `REQUIRES_EXTENDED_CHANNELS` | 0, standard channels are the only kind |
+
+`REQUIRES_STANDARD_JOBS` matters because without it a standard channel may be
+served grouped or extended jobs. A worker that can only process `NewMiningJob`
+has to say so.
+
+`REQUIRES_FIXED_VERSION` is the enforceable half of "no version rolling". The
+specification says that if the miner set `REQUIRES_VERSION_ROLLING` then the
+pool **must not** set `REQUIRES_FIXED_VERSION`, which means the two are
+mutually exclusive rather than one overriding the other. An Avian pool cannot
+honour rolling at all, so a miner that demands it must be **refused** with
+`SetupConnection.Error`, not answered and then quietly held to a fixed version.
+Avian keeps the algorithm in `nVersion` bits 16–23, and rolling them changes
+which algorithm, and so which proof-of-work limit, the share is judged under.
+
+Note the asymmetry with the node link: Template Distribution defines no flags
+at all, so `aviand` rejects any non-zero `SetupConnection.flags` with
+`unsupported-feature-flags`.
+
+### Two things the protocol cannot enforce for the pool
 
 - **The target is compared against Avian's proof-of-work hash**, X16RT or
   MinotaurX, not SHA256d. This is why `SetTarget` needs no Avian field and also
   why no unmodified Stratum v2 miner can work here.
-- **Do not set `REQUIRES_VERSION_ROLLING`** in `SetupConnection`, mirroring the
-  mask of `0` that the node sends. Avian keeps the algorithm in `nVersion` bits
-  16–23, and rolling them changes which algorithm, and so which proof-of-work
-  limit, the share is judged under.
 - **The pool builds the coinbase**, so the pool is what has to satisfy the
   node's submission checks. "What a client must reproduce" below is the pool's
   contract with the node, not the worker's with the pool.
 
-Extended channels need no further message. A worker rolling its own extranonce
-changes the coinbase and so the merkle root, but the constraints it must respect
-are the ones the pool already passed down in the coinbase prefix and suffix, and
-its ntime window is still the one `AvianJobTimeConstraints` gave it.
+`AvianJobTimeConstraints` applies to extended channels too, unchanged: a job's
+ntime window does not depend on who assembles the coinbase. Extended-channel
+coinbase reconstruction, and how Avian's coinbase contract is enforced across
+it, are **deferred** until extended channels are implemented. They are not a
+simple extension of the standard-channel case: Stratum v2 defines
+`coinbase_tx_prefix` and `coinbase_tx_suffix` without the BIP141 marker, flag
+and witness data, and Avian's contract requires a specific witness stack and a
+canonical byte-for-byte reconstruction, so the two have to be reconciled
+deliberately rather than assumed compatible.
 
 ### Changing this extension
 
