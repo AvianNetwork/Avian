@@ -296,6 +296,9 @@ bool TemplateProvider::SendNewTemplate(ClientId id, ClientState& state, bool fut
     times.ntime_min = cached.ntime_min;
     times.ntime_max = cached.ntime_max;
 
+    const bool announce_prev_hash{state.announced_prev_hash != prev.prev_hash};
+    state.announced_prev_hash = prev.prev_hash;
+
     cached.handle = std::move(handle);
     state.templates.emplace(template_id, std::move(cached));
 
@@ -304,11 +307,18 @@ bool TemplateProvider::SendNewTemplate(ClientId id, ClientState& state, bool fut
         return false;
     }
     // NewTemplate carries no prev hash of its own, so without this the client
-    // has no header to hash.
-    if (!m_connman->Send(id,
-                         NetHeader{EXT_CORE, static_cast<uint8_t>(CoreMsg::SET_NEW_PREV_HASH), 0},
-                         EncodePayload(prev))) {
-        return false;
+    // has no header to hash. Sent when the prev hash changes and on a client's
+    // first template, not on every refresh: the specification has it follow
+    // the validation of a new best block, and a future_template of false
+    // already says the template belongs to the SetNewPrevHash before it. A
+    // client that took its arrival to mean the tip had moved would otherwise
+    // discard its in-flight work on every refresh.
+    if (announce_prev_hash) {
+        if (!m_connman->Send(id,
+                             NetHeader{EXT_CORE, static_cast<uint8_t>(CoreMsg::SET_NEW_PREV_HASH), 0},
+                             EncodePayload(prev))) {
+            return false;
+        }
     }
     // The spec gives SubmitSolution no upper ntime bound, so the client is
     // told one here or it has no way to know when its work expires.

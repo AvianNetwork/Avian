@@ -356,8 +356,16 @@ sv2::NewTemplate GetTemplate(Client& client, uint8_t pow_type = POW_TYPE_X16RT)
     BOOST_REQUIRE(msg.has_value());
     BOOST_REQUIRE_EQUAL(msg->header.msg_type, static_cast<uint8_t>(sv2::CoreMsg::NEW_TEMPLATE));
     const auto tmpl{sv2::DecodePayload<sv2::NewTemplate>(msg->payload)};
-    BOOST_REQUIRE(ReadMessage(client, closed).has_value()); // SetNewPrevHash
-    BOOST_REQUIRE(ReadMessage(client, closed).has_value()); // AvianTimeConstraints
+    // A client's first template always carries a prev hash, because it has
+    // none of its own yet. Asserted rather than assumed: this is half of what
+    // keeps SetNewPrevHash meaningful.
+    const auto prev{ReadMessage(client, closed)};
+    BOOST_REQUIRE(prev.has_value());
+    BOOST_REQUIRE_EQUAL(prev->header.msg_type, static_cast<uint8_t>(sv2::CoreMsg::SET_NEW_PREV_HASH));
+    const auto times{ReadMessage(client, closed)};
+    BOOST_REQUIRE(times.has_value());
+    BOOST_REQUIRE_EQUAL(times->header.extension_type, sv2::AVIAN_EXTENSION_ID);
+    BOOST_REQUIRE_EQUAL(times->header.msg_type, static_cast<uint8_t>(sv2::AvianMsg::TIME_CONSTRAINTS));
     return tmpl;
 }
 
@@ -638,6 +646,36 @@ uint64_t AwaitRefresh(Client& client, uint64_t previous)
     }
     BOOST_FAIL("no refreshed template arrived");
     return 0;
+}
+
+BOOST_AUTO_TEST_CASE(a_refresh_does_not_resend_the_prev_hash)
+{
+    // The specification has SetNewPrevHash follow the validation of a new best
+    // block, and a future_template of false already says the template belongs
+    // to the SetNewPrevHash before it. Sending one on every refresh would
+    // contradict that, and a client reading its arrival as the tip having
+    // moved would discard its in-flight work roughly twice a block at Avian's
+    // cadence.
+    //
+    // The tip-change half of this is new_tip_reissues_work, and the
+    // first-template half is asserted in GetTemplate.
+    auto server{StartTemplateServer(m_node, m_args.GetDataDirNet(), [](sv2::Options& opts) {
+        opts.refresh_interval = std::chrono::seconds{1};
+    })};
+    auto client{ConnectTo(*server, server->AuthorityPubKey())};
+    const auto first{GetTemplate(*client)};
+
+    bool closed{false};
+    const auto refreshed{ReadMessage(*client, closed)};
+    BOOST_REQUIRE(refreshed.has_value());
+    BOOST_REQUIRE_EQUAL(refreshed->header.msg_type, static_cast<uint8_t>(sv2::CoreMsg::NEW_TEMPLATE));
+    BOOST_CHECK(sv2::DecodePayload<sv2::NewTemplate>(refreshed->payload).template_id != first.template_id);
+
+    // Straight to the constraints, with nothing in between.
+    const auto next{ReadMessage(*client, closed)};
+    BOOST_REQUIRE(next.has_value());
+    BOOST_CHECK_EQUAL(next->header.extension_type, sv2::AVIAN_EXTENSION_ID);
+    BOOST_CHECK_EQUAL(next->header.msg_type, static_cast<uint8_t>(sv2::AvianMsg::TIME_CONSTRAINTS));
 }
 
 BOOST_AUTO_TEST_CASE(a_superseded_template_stays_usable)
