@@ -89,6 +89,7 @@ class Sv2TemplateProviderTest(BitcoinTestFramework):
         self.test_refusals()
         self.test_mines_a_block(POW_TYPE_X16RT)
         self.test_mines_a_block(POW_TYPE_MINOTAURX)
+        self.test_mines_a_block_on_superseded_work()
 
     def test_handshake_and_certificate(self):
         self.log.info("Noise handshake, with the certificate checked against the authority key")
@@ -309,6 +310,58 @@ class Sv2TemplateProviderTest(BitcoinTestFramework):
         assert_equal(tip['powtype'], ALGO_NAMES[pow_type])
         # The block carries the coinbase this test built, not one the node made.
         assert_equal(tip['tx'][0], coinbase.txid_hex)
+
+
+    def test_mines_a_block_on_superseded_work(self):
+        """A block found on work the node has already replaced is still taken.
+
+        The node refreshes templates on the same cadence as the chain produces
+        blocks, so a pool always has jobs in flight when a refresh lands. If
+        the node dropped the superseded template, every one of those jobs would
+        be worthless the instant it was replaced, and a block found on one would
+        be thrown away. This is the test that distinguishes retaining the
+        template from merely still having its id.
+        """
+        self.log.info("A block found on superseded work is still accepted")
+        # Two settings, for two different reasons. A short refresh interval is
+        # how the test gets a template superseded promptly. The raised
+        # retention compensates for that same short interval: the nonce search
+        # below is metered and takes tens of seconds, during which a one or two
+        # second refresh cadence would evict the template long before
+        # production's thirty second cadence would. The default of three
+        # retains ninety seconds of work, which is well past any pool's
+        # job to share round trip.
+        self.restart_node(0, extra_args=self.extra_args[0]
+                          + ['-sv2interval=2', '-sv2maxtemplates=60'])
+        before = self.nodes[0].getblockcount()
+
+        with self.connect() as client:
+            work = client.get_work()
+            template = work['template']
+            coinbase = build_coinbase(template)
+            ntime = work['time_constraints']['ntime_min']
+
+            # Wait for the refresh that supersedes it.
+            for _ in range(20):
+                nxt = client.read_work()
+                if nxt['template']['template_id'] != template['template_id']:
+                    break
+            else:
+                raise AssertionError("no refreshed template arrived")
+
+            for nonce in range(MAX_NONCE_ATTEMPTS):
+                client.submit_solution(template['template_id'], template['version'],
+                                       ntime, nonce, coinbase)
+                if self.nodes[0].getblockcount() > before:
+                    break
+                time.sleep(SUBMIT_INTERVAL)
+            else:
+                raise AssertionError("a block on superseded work was never accepted")
+
+        assert_equal(self.nodes[0].getblockcount(), before + 1)
+        assert_equal(self.nodes[0].getblock(self.nodes[0].getbestblockhash())['tx'][0],
+                     coinbase.txid_hex)
+        self.restart_node(0, extra_args=self.extra_args[0])
 
 
 if __name__ == '__main__':

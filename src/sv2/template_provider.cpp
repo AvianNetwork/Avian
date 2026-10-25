@@ -323,12 +323,41 @@ bool TemplateProvider::SendNewTemplate(ClientId id, ClientState& state, bool fut
                   "client=%d sent template %d for %s, ntime %d..%d\n", id, template_id,
                   POW_TYPE_NAMES[state.pow_type], times.ntime_min, times.ntime_max);
 
-    // Only the newest template can still be built on, so older ones for the
-    // same tip are dropped rather than accumulating.
-    while (state.templates.size() > 1) {
+    PruneTemplates(state);
+    return true;
+}
+
+void TemplateProvider::PruneTemplates(ClientState& state)
+{
+    if (state.templates.empty()) return;
+
+    // The newest template is the one just issued, and its prev hash is the tip
+    // every live template has to share. A template for an abandoned tip cannot
+    // produce a block that connects, so it is dropped rather than counted.
+    const uint256 tip{std::prev(state.templates.end())->second.prev_hash};
+    for (auto it{state.templates.begin()}; it != state.templates.end();) {
+        it = it->second.prev_hash == tip ? std::next(it) : state.templates.erase(it);
+    }
+
+    // Trim oldest first. std::map orders by the ids we hand out, which only
+    // increase, so begin() is always the oldest.
+    while (state.templates.size() > m_opts.max_templates) {
         state.templates.erase(state.templates.begin());
     }
-    return true;
+
+    // Keeping a superseded template costs almost nothing except this: the
+    // serialized transaction list is a real copy of up to a whole block, where
+    // everything else is shared pointers into the mempool. Release it. A
+    // client has no reason to ask for transaction data on work it has already
+    // been told to replace, and RequestTransactionData rebuilds it from the
+    // handle if one ever does.
+    for (auto it{state.templates.begin()}; it != std::prev(state.templates.end()); ++it) {
+        if (it->second.transaction_list_built) {
+            it->second.transaction_list.clear();
+            it->second.transaction_list.shrink_to_fit();
+            it->second.transaction_list_built = false;
+        }
+    }
 }
 
 
@@ -387,9 +416,9 @@ bool TemplateProvider::HandleRequestTransactionData(ClientId id, ClientState& st
 
     const auto it{state.templates.find(request.template_id)};
     if (it == state.templates.end()) {
-        // Only the newest template survives a refresh, so an id we once issued
-        // is stale rather than unknown. The distinction tells a client whether
-        // to wait for new work or stop asking.
+        // Retention is bounded, so an id we once issued is stale rather than
+        // unknown. The distinction tells a client whether to wait for new work
+        // or stop asking.
         return sendError(request.template_id != 0 && request.template_id <= state.highest_template_id
                              ? "stale-template"
                              : "template-id-not-found");

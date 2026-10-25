@@ -146,6 +146,10 @@ private:
     [[nodiscard]] bool SendNewTemplate(ClientId id, ClientState& state, bool future)
         EXCLUSIVE_LOCKS_REQUIRED(m_mutex);
 
+    //! Drop templates a solution could no longer use, and release the memory
+    //! the rest no longer need. Called after each template is issued.
+    void PruneTemplates(ClientState& state) EXCLUSIVE_LOCKS_REQUIRED(m_mutex);
+
     [[nodiscard]] bool HandleRequestTransactionData(ClientId id, ClientState& state,
                                                      std::span<const uint8_t> payload)
         EXCLUSIVE_LOCKS_REQUIRED(m_mutex);

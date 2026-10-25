@@ -47,6 +47,7 @@ Algorithms and protocol policy:
                                 used by a client that does not select one.
 -sv2extensionpolicy=<policy>    require, optional or off (default: require)
 -sv2maxrejects=<n>              drop a client after this many refused solutions
+-sv2maxtemplates=<n>            templates kept live per client (default: 3)
 ```
 
 Timing and limits:
@@ -476,6 +477,33 @@ meanings are what third-party pools and miners will have compiled against, and
 altering one silently is the same class of failure the extension exists to
 prevent. Treat any such change as a new extension version with its own
 identifier, not as an implementation detail.
+
+## How long a template stays usable
+
+A refresh supersedes a template but does not make it worthless. Work already
+handed to a miner is still valid for the same tip, and Avian refreshes on the
+same cadence as it produces blocks, so a pool always has jobs in flight when
+one lands. The node therefore keeps the last `-sv2maxtemplates` templates per
+client, three by default, and a solution against any of them is accepted.
+
+What a pool can rely on:
+
+- a template stays submittable for at least the next `-sv2maxtemplates - 1`
+  refreshes on the same tip, which at the default settings is about ninety
+  seconds
+- a template whose tip has been superseded is dropped **immediately**, because
+  no solution against it can produce a block that connects
+- `RequestTransactionData` for a dropped id answers `stale-template` rather
+  than `template-id-not-found`, so a client can tell "that work has expired"
+  from "you invented an id"
+- `SubmitSolution` for a dropped id is refused as `unknown-template`, and since
+  the protocol has no error reply for a submission, the only trace is a
+  `-debug=sv2` log line
+
+Raising the limit is cheap. A template holds `CTransactionRef`, so retaining
+one costs a vector of shared pointers rather than a second copy of the block,
+and the serialized transaction list, which is the one member that is a real
+copy, is released as soon as a template stops being the newest.
 
 ## What a client must reproduce
 

@@ -101,6 +101,21 @@ struct Options {
     //! not to, and will never find a valid block.
     size_t max_rejects{10};
 
+    //! How many templates to keep live per client, newest included.
+    //!
+    //! A refresh supersedes a template but does not make it worthless: work
+    //! already handed to a miner is still valid for the same tip, and refusing
+    //! a block found on it would throw away a real block. Avian refreshes on
+    //! the same cadence as it produces blocks, so keeping only the newest
+    //! would discard any solution whose job predates the last refresh.
+    //!
+    //! Cheap to raise. Templates hold CTransactionRef, so retaining one costs
+    //! a vector of shared pointers rather than a second copy of the block, and
+    //! the serialized transaction list, which is the one expensive member, is
+    //! released as soon as a template stops being the newest. Templates for a
+    //! superseded tip are dropped outright, since those really are worthless.
+    size_t max_templates{3};
+
     //! How often to rebuild templates when the tip has not moved, which is
     //! what picks up new fees. Clamped so an X16RT client always gets a fresh
     //! template before its epoch boundary expires.

@@ -162,6 +162,14 @@ util::Result<Options> ReadOptions(const ArgsManager& args, ChainType chain)
     }
     opts.max_rejects = static_cast<size_t>(max_rejects);
 
+    const int64_t max_templates{args.GetIntArg("-sv2maxtemplates", opts.max_templates)};
+    // One would mean a solution found on work issued before the last refresh
+    // is thrown away, which is the whole reason this is configurable.
+    if (max_templates < 1) {
+        return util::Error{Untranslated("-sv2maxtemplates must be at least 1")};
+    }
+    opts.max_templates = static_cast<size_t>(max_templates);
+
     const int64_t interval{args.GetIntArg("-sv2interval", opts.refresh_interval.count())};
     // An X16RT template dies at its 128-second epoch boundary, so refreshing
     // less often than that would leave clients holding dead work.
