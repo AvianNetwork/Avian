@@ -4,6 +4,7 @@
 
 #include <sv2/options.h>
 
+#include <chain.h>
 #include <common/args.h>
 #include <logging.h>
 #include <netbase.h>
@@ -177,6 +178,19 @@ util::Result<Options> ReadOptions(const ArgsManager& args, ChainType chain)
         }
         opts.version_rolling_mask = safe;
     }
+
+    const int64_t ntime_forward{args.GetIntArg("-sv2ntimeforward", opts.ntime_forward)};
+    if (ntime_forward < 0) {
+        return util::Error{Untranslated("-sv2ntimeforward cannot be negative")};
+    }
+    opts.ntime_forward = ntime_forward;
+
+    const int64_t ntime_margin{args.GetIntArg("-sv2timemargin", opts.ntime_margin)};
+    if (ntime_margin < 0 || ntime_margin >= MAX_FUTURE_BLOCK_TIME_DUAL_ALGO) {
+        return util::Error{Untranslated(strprintf(
+            "-sv2timemargin must be between 0 and %d", MAX_FUTURE_BLOCK_TIME_DUAL_ALGO - 1))};
+    }
+    opts.ntime_margin = ntime_margin;
 
     opts.static_key_file = args.GetPathArg("-sv2staticprivkey", args.GetDataDirNet() / "sv2_static_key");
     opts.authority_key_file = args.GetPathArg("-sv2authoritykey", args.GetDataDirNet() / "sv2_authority_key");

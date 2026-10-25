@@ -74,7 +74,7 @@
 #include <scheduler.h>
 #include <script/sigcache.h>
 #include <sync.h>
-#include <sv2/connman.h>
+#include <sv2/template_provider.h>
 #include <torcontrol.h>
 #include <txdb.h>
 #include <txmempool.h>
@@ -678,6 +678,8 @@ void SetupServerArgs(ArgsManager& argsman, bool can_listen_ipc)
     argsman.AddArg("-sv2maxsendbuffer=<n>", strprintf("Maximum per-client Stratum v2 send buffer in MiB; must hold one block (default: %u)", 32), ArgsManager::ALLOW_ANY, OptionsCategory::SV2);
     argsman.AddArg("-sv2extensionpolicy=<policy>", "How a Stratum v2 client must negotiate Avian protocol extensions: require, optional or off (default: require)", ArgsManager::ALLOW_ANY, OptionsCategory::SV2);
     argsman.AddArg("-sv2powalgo=<algo>", strprintf("Proof-of-work algorithm to build Stratum v2 templates for: %s or %s. The first given is used by a client that does not select one. Can be specified multiple times. (default: %s)", POW_TYPE_NAMES[0], POW_TYPE_NAMES[1], DEFAULT_POW_TYPE), ArgsManager::ALLOW_ANY, OptionsCategory::SV2);
+    argsman.AddArg("-sv2ntimeforward=<n>", strprintf("How many seconds above a template's own timestamp a Stratum v2 client may roll ntime (default: %u)", 600), ArgsManager::ALLOW_ANY, OptionsCategory::SV2);
+    argsman.AddArg("-sv2timemargin=<n>", strprintf("Seconds of margin to leave below the consensus future-time limit when bounding ntime (default: %u)", 60), ArgsManager::ALLOW_ANY, OptionsCategory::SV2);
     argsman.AddArg("-sv2versionmask=<hex>", "Which nVersion bits a Stratum v2 client may roll, as a hexadecimal mask. Bits 16-23 hold the proof-of-work algorithm and are always masked off. (default: 0)", ArgsManager::ALLOW_ANY, OptionsCategory::SV2);
     argsman.AddArg("-sv2extensionid=<n>", strprintf("Identifier for Avian's Stratum v2 multi-PoW extension (default: 0x%04x). For development only and rejected on mainnet, where the wire identity must be fixed.", sv2::AVIAN_EXTENSION_ID), ArgsManager::ALLOW_ANY | ArgsManager::DEBUG_ONLY, OptionsCategory::SV2);
     argsman.AddArg("-sv2staticprivkey=<file>", "Stratum v2 server static private key, generated on first use (default: sv2_static_key in the network directory)", ArgsManager::ALLOW_ANY, OptionsCategory::SV2);
@@ -694,6 +696,8 @@ void SetupServerArgs(ArgsManager& argsman, bool can_listen_ipc)
     hidden_args.emplace_back("-sv2maxsendbuffer=<n>");
     hidden_args.emplace_back("-sv2extensionpolicy=<policy>");
     hidden_args.emplace_back("-sv2powalgo=<algo>");
+    hidden_args.emplace_back("-sv2ntimeforward=<n>");
+    hidden_args.emplace_back("-sv2timemargin=<n>");
     hidden_args.emplace_back("-sv2versionmask=<hex>");
     hidden_args.emplace_back("-sv2extensionid=<n>");
     hidden_args.emplace_back("-sv2staticprivkey=<file>");
@@ -2371,8 +2375,9 @@ bool AppInitMain(NodeContext& node, interfaces::BlockAndHeaderTipInfo* tip_info)
     }
 
 #ifdef ENABLE_SV2
-    if (args.GetBoolArg("-sv2", false) && !sv2::StartSv2(args, chainparams.GetChainType())) {
-        return false;
+    if (args.GetBoolArg("-sv2", false)) {
+        if (!node.mining) return InitError(Untranslated("Stratum v2 requires the mining interface"));
+        if (!sv2::StartSv2(args, chainparams.GetChainType(), *node.mining)) return false;
     }
 #endif
 

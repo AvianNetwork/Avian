@@ -49,8 +49,10 @@ class EventsInterface
 public:
     virtual ~EventsInterface() = default;
 
-    //! The client completed SetupConnection and may now be sent messages.
-    virtual void ClientReady(ClientId id) {}
+    //! The client finished the Common protocol and any required negotiation,
+    //! and may now be sent messages. `pow_type` is the algorithm its
+    //! templates must be built for.
+    virtual void ClientReady(ClientId id, POW_TYPE pow_type) {}
 
     virtual void ClientDisconnected(ClientId id) {}
 
@@ -141,7 +143,23 @@ private:
         std::chrono::steady_clock::time_point drain_until{};
     };
 
+    //! A callback owed to the events interface.
+    //!
+    //! Callbacks must not run while m_mutex is held. The provider legitimately
+    //! calls back into Send(), which takes m_mutex, and its own lock sits
+    //! between the two: dispatching under the lock would both self-deadlock
+    //! and invert the lock order against a thread that sends templates
+    //! unprompted.
+    struct Notification {
+        enum class Kind : uint8_t { READY, DISCONNECTED, MESSAGE } kind;
+        ClientId id;
+        POW_TYPE pow_type{POW_TYPE_X16RT};
+        ReceivedMsg msg;
+    };
+
     void ThreadHandler();
+    //! Run the queued callbacks with m_mutex released.
+    void DispatchNotifications() EXCLUSIVE_LOCKS_REQUIRED(!m_mutex);
     Sock::EventsPerSock GenerateWaitSockets() EXCLUSIVE_LOCKS_REQUIRED(m_mutex);
     void AcceptNew(const Sock::EventsPerSock& events) EXCLUSIVE_LOCKS_REQUIRED(m_mutex);
     void ServiceClients(const Sock::EventsPerSock& events) EXCLUSIVE_LOCKS_REQUIRED(m_mutex);
@@ -177,19 +195,9 @@ private:
 
     mutable Mutex m_mutex;
     std::list<Client> m_clients GUARDED_BY(m_mutex);
+    std::vector<Notification> m_pending GUARDED_BY(m_mutex);
     ClientId m_next_id GUARDED_BY(m_mutex){1};
 };
-
-//! Process-wide lifecycle, following the torcontrol pattern so that
-//! node/context.h does not need to learn about sv2 and no include cycle
-//! appears. Returns false and reports via InitError on failure.
-[[nodiscard]] bool StartSv2(const ArgsManager& args, ChainType chain);
-void InterruptSv2();
-void StopSv2();
-
-//! The running instance, or null. For tests and for the Template Provider to
-//! attach itself in a later change.
-Connman* GetSv2Connman();
 
 } // namespace sv2
 

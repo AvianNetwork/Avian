@@ -84,6 +84,11 @@ struct Options {
     //! switches a share to the other algorithm and the wrong pow limit.
     uint32_t version_rolling_mask{0};
 
+    //! How far above a template's own timestamp a client may roll ntime, and
+    //! how much margin to leave below the consensus future-time limit.
+    int64_t ntime_forward{600};
+    int64_t ntime_margin{60};
+
     //! Avian extensions this server implements. Extension 0x0001 itself is
     //! always supported and is not listed here.
     std::vector<uint16_t> supported_extensions;

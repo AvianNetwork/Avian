@@ -5,16 +5,13 @@
 #include <sv2/connman.h>
 
 #include <common/args.h>
-#include <common/init.h>
 #include <compat/compat.h>
 #include <logging.h>
 #include <netbase.h>
-#include <node/interface_ui.h>
 #include <pubkey.h>
 #include <tinyformat.h>
 #include <util/thread.h>
 #include <util/time.h>
-#include <util/translation.h>
 
 #include <algorithm>
 #include <cassert>
@@ -238,7 +235,7 @@ bool Connman::HandleSetupConnection(Client& client, const ReceivedMsg& msg)
         return true;
     }
     client.state = State::READY;
-    if (m_events) m_events->ClientReady(client.id);
+    m_pending.push_back(Notification{Notification::Kind::READY, client.id, client.pow_type, {}});
     return true;
 }
 
@@ -334,7 +331,7 @@ bool Connman::HandleRequestExtensions(Client& client, const ReceivedMsg& msg)
         return true;
     }
     client.state = State::READY;
-    if (m_events) m_events->ClientReady(client.id);
+    m_pending.push_back(Notification{Notification::Kind::READY, client.id, client.pow_type, {}});
     return true;
 }
 
@@ -378,7 +375,7 @@ bool Connman::HandleAvianSelectAlgorithm(Client& client, const ReceivedMsg& msg)
     LogPrintLevel(BCLog::SV2, BCLog::Level::Debug,
                   "client=%d selected %s, version rolling mask 0x%08x\n", client.id,
                   POW_TYPE_NAMES[algo], m_opts.version_rolling_mask);
-    if (m_events) m_events->ClientReady(client.id);
+    m_pending.push_back(Notification{Notification::Kind::READY, client.id, client.pow_type, {}});
     return true;
 }
 
@@ -473,7 +470,8 @@ bool Connman::HandleCommon(Client& client, const ReceivedMsg& msg)
                           client.id, msg.header.msg_type);
             return false;
         }
-        return m_events->ReceivedMessage(client.id, msg.header, msg.payload);
+        m_pending.push_back(Notification{Notification::Kind::MESSAGE, client.id, client.pow_type, msg});
+        return true;
     }
     return false;
 }
@@ -637,7 +635,9 @@ void Connman::DropMarked()
         const ClientId id{it->id};
         const bool was_ready{it->state == State::READY};
         it = m_clients.erase(it);
-        if (was_ready && m_events) m_events->ClientDisconnected(id);
+        if (was_ready) {
+            m_pending.push_back(Notification{Notification::Kind::DISCONNECTED, id, POW_TYPE_X16RT, {}});
+        }
     }
 }
 
@@ -657,72 +657,37 @@ void Connman::ThreadHandler()
             m_interrupt.sleep_for(SOCKET_WAIT);
         }
 
-        LOCK(m_mutex);
-        AcceptNew(events);
-        ServiceClients(events);
-        DropMarked();
+        {
+            LOCK(m_mutex);
+            AcceptNew(events);
+            ServiceClients(events);
+            DropMarked();
+        }
+        DispatchNotifications();
     }
 }
 
-// Process-wide lifecycle.
-
-namespace {
-std::unique_ptr<Connman> g_sv2_connman;
-} // namespace
-
-Connman* GetSv2Connman() { return g_sv2_connman.get(); }
-
-bool StartSv2(const ArgsManager& args, ChainType chain)
+void Connman::DispatchNotifications()
 {
-    assert(!g_sv2_connman);
+    std::vector<Notification> pending;
+    WITH_LOCK(m_mutex, pending.swap(m_pending));
+    if (!m_events) return;
 
-    auto opts{ReadOptions(args, chain)};
-    if (!opts) {
-        InitError(util::ErrorString(opts));
-        return false;
+    for (const Notification& note : pending) {
+        switch (note.kind) {
+        case Notification::Kind::READY:
+            m_events->ClientReady(note.id, note.pow_type);
+            break;
+        case Notification::Kind::DISCONNECTED:
+            m_events->ClientDisconnected(note.id);
+            break;
+        case Notification::Kind::MESSAGE:
+            if (!m_events->ReceivedMessage(note.id, note.msg.header, note.msg.payload)) {
+                Disconnect(note.id);
+            }
+            break;
+        }
     }
-
-    auto static_key{LoadOrCreateKey(opts->static_key_file)};
-    if (!static_key) {
-        InitError(util::ErrorString(static_key));
-        return false;
-    }
-    auto authority_key{LoadOrCreateKey(opts->authority_key_file)};
-    if (!authority_key) {
-        InitError(util::ErrorString(authority_key));
-        return false;
-    }
-
-    auto cert{MakeCertificate(*authority_key, *static_key, GetTime(), opts->cert_validity_days)};
-    if (!cert) {
-        InitError(util::ErrorString(cert));
-        return false;
-    }
-
-    // Operators have to hand this to clients, which verify the server
-    // certificate against it, so it belongs in the log at startup.
-    const XOnlyPubKey authority_pub{authority_key->GetPubKey()};
-    LogPrintf("sv2: authority public key %s\n", HexStr(authority_pub));
-
-    g_sv2_connman = std::make_unique<Connman>(*opts, *static_key, *cert);
-    if (!g_sv2_connman->Start(/*events=*/nullptr)) {
-        g_sv2_connman.reset();
-        InitError(Untranslated("Cannot start the Stratum v2 Template Provider"));
-        return false;
-    }
-    return true;
-}
-
-void InterruptSv2()
-{
-    if (g_sv2_connman) g_sv2_connman->Interrupt();
-}
-
-void StopSv2()
-{
-    if (!g_sv2_connman) return;
-    g_sv2_connman->Stop();
-    g_sv2_connman.reset();
 }
 
 } // namespace sv2
