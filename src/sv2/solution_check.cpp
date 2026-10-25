@@ -149,7 +149,7 @@ SolutionCheck CheckSolution(const SolutionContext& ctx, const SubmitSolution& so
     }
 
     // BIP34, and the same bounds CheckTransaction enforces. Checking the
-    // prefix here pre-empts a bad-cb-height rejection that would otherwise
+    // prefix here heads off a bad-cb-height rejection that would otherwise
     // only surface deep inside block connection.
     const CScript& script_sig{coinbase.vin[0].scriptSig};
     if (script_sig.size() < 2 || script_sig.size() > 100) {
