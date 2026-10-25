@@ -326,13 +326,13 @@ BOOST_AUTO_TEST_CASE(new_tip_reissues_work)
     BOOST_REQUIRE(WITH_LOCK(cs_main, return m_node.chainman->ActiveChain().Tip()->GetBlockHash()) != old_tip);
 
     // Unprompted work for the new tip, pushed from the watcher thread.
-    const auto pushed{ReadMessage(*client, closed)};
+    const auto pushed{ReadMessage(*client, closed, sv2test::PUSH_TIMEOUT)};
     BOOST_REQUIRE(pushed.has_value());
     BOOST_CHECK_EQUAL(pushed->header.msg_type, static_cast<uint8_t>(sv2::CoreMsg::NEW_TEMPLATE));
     const auto after{sv2::DecodePayload<sv2::NewTemplate>(pushed->payload)};
     BOOST_CHECK(after.template_id != before.template_id);
 
-    const auto new_prev{ReadMessage(*client, closed)};
+    const auto new_prev{ReadMessage(*client, closed, sv2test::PUSH_TIMEOUT)};
     BOOST_REQUIRE(new_prev.has_value());
     BOOST_CHECK_EQUAL(new_prev->header.msg_type, static_cast<uint8_t>(sv2::CoreMsg::SET_NEW_PREV_HASH));
     const auto prev{sv2::DecodePayload<sv2::SetNewPrevHash>(new_prev->payload)};
@@ -493,9 +493,9 @@ BOOST_AUTO_TEST_CASE(transaction_data_for_a_stale_template)
 
     CreateAndProcessBlock({}, CScript() << OP_TRUE);
     bool closed{false};
-    BOOST_REQUIRE(ReadMessage(*client, closed).has_value()); // pushed NewTemplate
-    BOOST_REQUIRE(ReadMessage(*client, closed).has_value()); // SetNewPrevHash
-    BOOST_REQUIRE(ReadMessage(*client, closed).has_value()); // AvianTimeConstraints
+    BOOST_REQUIRE(ReadMessage(*client, closed, sv2test::PUSH_TIMEOUT).has_value());
+    BOOST_REQUIRE(ReadMessage(*client, closed, sv2test::PUSH_TIMEOUT).has_value());
+    BOOST_REQUIRE(ReadMessage(*client, closed, sv2test::PUSH_TIMEOUT).has_value());
 
     BOOST_REQUIRE(SendTxDataRequest(*client, first.template_id));
     const auto reply{ReadMessage(*client, closed)};
@@ -637,7 +637,7 @@ uint64_t AwaitRefresh(Client& client, uint64_t previous)
 {
     bool closed{false};
     for (int i = 0; i < 20; ++i) {
-        const auto msg{ReadMessage(client, closed)};
+        const auto msg{ReadMessage(client, closed, sv2test::PUSH_TIMEOUT)};
         BOOST_REQUIRE(msg.has_value());
         if (msg->header.extension_type != sv2::EXT_CORE) continue;
         if (msg->header.msg_type != static_cast<uint8_t>(sv2::CoreMsg::NEW_TEMPLATE)) continue;
@@ -666,7 +666,7 @@ BOOST_AUTO_TEST_CASE(a_refresh_does_not_resend_the_prev_hash)
     const auto first{GetTemplate(*client)};
 
     bool closed{false};
-    const auto refreshed{ReadMessage(*client, closed)};
+    const auto refreshed{ReadMessage(*client, closed, sv2test::PUSH_TIMEOUT)};
     BOOST_REQUIRE(refreshed.has_value());
     BOOST_REQUIRE_EQUAL(refreshed->header.msg_type, static_cast<uint8_t>(sv2::CoreMsg::NEW_TEMPLATE));
     BOOST_CHECK(sv2::DecodePayload<sv2::NewTemplate>(refreshed->payload).template_id != first.template_id);
