@@ -46,6 +46,13 @@ enum POW_TYPE {
 void SetPoWHashParams(uint32_t nX16rtTimestamp, uint32_t nDualAlgoTimestamp);
 bool ArePoWHashParamsSet();
 
+// Number of entries in the proof-of-work hash cache.
+//
+// Exposed so that callers handling untrusted headers can show they did not
+// cause an expensive hash: GetHash() inserts into this cache, whereas
+// ComputePoWHash() does not.
+size_t PowCacheSize();
+
 // PowCache disk persistence: save/load expensive PoW hash cache to/from disk
 bool SavePowCache(const fs::path& cache_path);
 bool LoadPowCache(const fs::path& cache_path);

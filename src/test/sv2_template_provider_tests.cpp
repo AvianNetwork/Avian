@@ -275,15 +275,13 @@ BOOST_AUTO_TEST_CASE(template_follows_the_selected_algorithm)
 
 BOOST_AUTO_TEST_CASE(unserved_message_disconnects)
 {
-    // SubmitSolution is not implemented yet. Accepting a session and then
-    // ignoring requests is worse than closing.
+    // Accepting a session and then silently ignoring what arrives on it is
+    // worse than closing, because the client has no way to tell the two apart.
     auto server{StartTemplateServer(m_node, m_args.GetDataDirNet())};
     auto client{ConnectTo(*server, server->AuthorityPubKey())};
     BOOST_REQUIRE(Ready(*client, POW_TYPE_X16RT));
 
-    BOOST_REQUIRE(client->transport->Send(
-        sv2::NetHeader{sv2::EXT_CORE, static_cast<uint8_t>(sv2::CoreMsg::SUBMIT_SOLUTION), 0},
-        sv2::EncodePayload(sv2::SubmitSolution{})));
+    BOOST_REQUIRE(client->transport->Send(sv2::NetHeader{sv2::EXT_CORE, 0xff, 0}, {}));
     bool closed{false};
     ReadMessage(*client, closed);
     BOOST_CHECK(closed);
@@ -500,5 +498,110 @@ BOOST_AUTO_TEST_CASE(transaction_data_is_rate_limited)
     BOOST_CHECK(closed);
 }
 
-BOOST_AUTO_TEST_SUITE_END()
+namespace {
 
+//! A complete coinbase built the way a client is told to build one: its own
+//! output for the remaining value, then every output the template required.
+CMutableTransaction MakeCoinbase(const sv2::NewTemplate& tmpl)
+{
+    CMutableTransaction cb;
+    cb.version = static_cast<int32_t>(tmpl.coinbase_tx_version);
+    cb.nLockTime = tmpl.coinbase_tx_locktime;
+    cb.vin.resize(1);
+    cb.vin[0].prevout.SetNull();
+    cb.vin[0].nSequence = tmpl.coinbase_tx_input_sequence;
+    cb.vin[0].scriptSig = CScript{tmpl.coinbase_prefix.begin(), tmpl.coinbase_prefix.end()};
+    cb.vin[0].scriptWitness.stack.assign(1, std::vector<unsigned char>(32, 0x00));
+    cb.vout.push_back(
+        CTxOut{static_cast<CAmount>(tmpl.coinbase_tx_value_remaining), CScript() << OP_TRUE});
+    for (const CTxOut& out : ParseOutputs(tmpl.coinbase_tx_outputs, tmpl.coinbase_tx_outputs_count)) {
+        cb.vout.push_back(out);
+    }
+    return cb;
+}
+
+bool SendSolution(Client& client, const sv2::NewTemplate& tmpl, uint32_t version, uint32_t ntime)
+{
+    DataStream coinbase{};
+    coinbase << TX_WITH_WITNESS(MakeCoinbase(tmpl));
+
+    sv2::SubmitSolution solution;
+    solution.template_id = tmpl.template_id;
+    solution.version = version;
+    solution.ntime = ntime;
+    solution.nonce = 0;
+    solution.coinbase_tx.assign(UCharCast(coinbase.data()), UCharCast(coinbase.data()) + coinbase.size());
+    return client.transport->Send(
+        sv2::NetHeader{sv2::EXT_CORE, static_cast<uint8_t>(sv2::CoreMsg::SUBMIT_SOLUTION), 0},
+        sv2::EncodePayload(solution));
+}
+
+} // namespace
+
+BOOST_AUTO_TEST_CASE(a_refused_solution_never_reaches_the_proof_of_work)
+{
+    // The ladder is unit-tested with an injected hasher, but that cannot prove
+    // the wiring. This does, from the outside: CBlockHeader::GetHash is the only
+    // path into the persistent PowCache, so a submission that leaves the cache
+    // untouched demonstrably never had its proof of work computed. Which also
+    // means an attacker cannot use rejected frames to flush a warm cache.
+    auto server{StartTemplateServer(m_node, m_args.GetDataDirNet())};
+    auto client{ConnectTo(*server, server->AuthorityPubKey())};
+    const auto tmpl{GetTemplate(*client)};
+
+    const size_t before{PowCacheSize()};
+    // Rolled version, which the mask forbids. Refused in the first tier.
+    const uint32_t ntime{static_cast<uint32_t>(GetTime<std::chrono::seconds>().count())};
+    BOOST_REQUIRE(SendSolution(*client, tmpl, tmpl.version ^ 0x1, ntime));
+
+    // Nothing is sent back for a solution, so the round trip is a separate
+    // request: once it is answered, the submission has certainly been handled.
+    bool closed{false};
+    BOOST_REQUIRE(SendTxDataRequest(*client, tmpl.template_id));
+    BOOST_REQUIRE(ReadMessage(*client, closed).has_value());
+
+    BOOST_CHECK_EQUAL(PowCacheSize(), before);
+}
+
+BOOST_AUTO_TEST_CASE(solutions_are_rate_limited)
+{
+    // The whole defence for that final hash. Avian's proof of work has no cheap
+    // partial form, so a few request bytes must not be able to buy one.
+    auto server{StartTemplateServer(m_node, m_args.GetDataDirNet())};
+    auto client{ConnectTo(*server, server->AuthorityPubKey())};
+    const auto tmpl{GetTemplate(*client)};
+    const uint32_t ntime{static_cast<uint32_t>(GetTime<std::chrono::seconds>().count())};
+
+    // One past the allowance. They are processed in order, so no round trip is
+    // needed in between, and asking for transaction data to get one would just
+    // trip that message's own limit first.
+    bool closed{false};
+    for (size_t i = 0; i <= sv2::MAX_SOLUTIONS; ++i) {
+        BOOST_REQUIRE(SendSolution(*client, tmpl, tmpl.version ^ 0x1, ntime));
+    }
+    ReadMessage(*client, closed);
+    BOOST_CHECK(closed);
+}
+
+BOOST_AUTO_TEST_CASE(persistent_refusals_disconnect)
+{
+    // There is no SubmitSolution.Error in the protocol, so a client rolling a
+    // field it was told not to would otherwise mine forever into a void. The
+    // only way to tell it something is wrong is to drop it.
+    auto server{StartTemplateServer(m_node, m_args.GetDataDirNet(),
+                                    [](sv2::Options& opts) { opts.max_rejects = 2; })};
+    auto client{ConnectTo(*server, server->AuthorityPubKey())};
+    const auto tmpl{GetTemplate(*client)};
+    const uint32_t ntime{static_cast<uint32_t>(GetTime<std::chrono::seconds>().count())};
+
+    bool closed{false};
+    BOOST_REQUIRE(SendSolution(*client, tmpl, tmpl.version ^ 0x1, ntime));
+    BOOST_REQUIRE(SendTxDataRequest(*client, tmpl.template_id));
+    BOOST_REQUIRE(ReadMessage(*client, closed).has_value());
+
+    BOOST_REQUIRE(SendSolution(*client, tmpl, tmpl.version ^ 0x1, ntime));
+    ReadMessage(*client, closed);
+    BOOST_CHECK(closed);
+}
+
+BOOST_AUTO_TEST_SUITE_END()

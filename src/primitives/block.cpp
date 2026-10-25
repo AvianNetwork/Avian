@@ -68,6 +68,12 @@ bool ArePoWHashParamsSet()
 // ========================================================================
 static constexpr uint64_t POWCACHE_FILE_VERSION = 1;
 
+size_t PowCacheSize()
+{
+    LOCK(cs_powcache);
+    return g_pow_cache.size();
+}
+
 bool SavePowCache(const fs::path& cache_path)
 {
     LOCK(cs_powcache);

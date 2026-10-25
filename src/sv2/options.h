@@ -84,6 +84,11 @@ struct Options {
     //! switches a share to the other algorithm and the wrong pow limit.
     uint32_t version_rolling_mask{0};
 
+    //! How many solutions a client may have refused before it is dropped. A
+    //! client failing repeatedly is almost always rolling a field it was told
+    //! not to, and will never find a valid block.
+    size_t max_rejects{10};
+
     //! How often to rebuild templates when the tip has not moved, which is
     //! what picks up new fees. Clamped so an X16RT client always gets a fresh
     //! template before its epoch boundary expires.
