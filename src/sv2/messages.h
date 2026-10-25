@@ -44,6 +44,18 @@ static constexpr uint16_t EXT_NEGOTIATION{0x0001}; //!< Extensions Negotiation.
 //! equipment, so this value MUST be replaced by a registry-allocated one
 //! before any mainnet release. It is defined here once and never written
 //! inline so that swap stays a one-line change. See doc/sv2.md.
+//! Experimental, and the node refuses to serve Stratum v2 on mainnet while
+//! it stays that way. See ReadOptions.
+//!
+//! That refusal is a conservative reading rather than a settled decision. The
+//! specification reserves 0x4000-0x7fff for experimental use and says those
+//! values must not appear in production equipment, so failing closed is the
+//! only safe default while the question is open. What is open is whether a
+//! chain other than Bitcoin is expected to be allocated a registered
+//! identifier at all, or to stay in the experimental range even in
+//! production. That has been asked of the registry maintainers and is
+//! unanswered. If the answer is that non-Bitcoin chains stay experimental,
+//! this guard goes rather than the identifier.
 static constexpr uint16_t AVIAN_EXTENSION_ID{0x4001};
 
 //! A Template Provider can only ever serve whole blocks inside a B0_16M
