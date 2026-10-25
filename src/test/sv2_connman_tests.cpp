@@ -7,11 +7,13 @@
 #include <netbase.h>
 #include <pubkey.h>
 #include <primitives/block.h>
+#include <addresstype.h>
 #include <arith_uint256.h>
 #include <chainparams.h>
 #include <consensus/amount.h>
 #include <interfaces/mining.h>
 #include <node/context.h>
+#include <script/solver.h>
 #include <streams.h>
 #include <sv2/connman.h>
 #include <sv2/template_provider.h>
@@ -1045,16 +1047,15 @@ BOOST_AUTO_TEST_CASE(template_follows_the_selected_algorithm)
 
 BOOST_AUTO_TEST_CASE(unserved_message_disconnects)
 {
-    // RequestTransactionData and SubmitSolution are not implemented yet.
-    // Accepting a session and then ignoring requests is worse than closing.
+    // SubmitSolution is not implemented yet. Accepting a session and then
+    // ignoring requests is worse than closing.
     auto server{StartTemplateServer(m_node, m_args.GetDataDirNet())};
     auto client{ConnectTo(*server, server->AuthorityPubKey())};
     BOOST_REQUIRE(Ready(*client, POW_TYPE_X16RT));
 
     BOOST_REQUIRE(client->transport->Send(
-        sv2::NetHeader{sv2::EXT_CORE,
-                       static_cast<uint8_t>(sv2::CoreMsg::REQUEST_TRANSACTION_DATA), 0},
-        sv2::EncodePayload(sv2::RequestTransactionData{1})));
+        sv2::NetHeader{sv2::EXT_CORE, static_cast<uint8_t>(sv2::CoreMsg::SUBMIT_SOLUTION), 0},
+        sv2::EncodePayload(sv2::SubmitSolution{})));
     bool closed{false};
     ReadMessage(*client, closed);
     BOOST_CHECK(closed);
@@ -1113,6 +1114,161 @@ BOOST_AUTO_TEST_CASE(new_tip_reissues_work)
     // It must point at the block just mined, not the one it replaced.
     BOOST_CHECK_EQUAL(prev.prev_hash, m_node.chainman->ActiveChain().Tip()->GetBlockHash());
     BOOST_CHECK(prev.prev_hash != old_tip);
+}
+
+
+namespace {
+
+//! Walk a client to a template, returning its NewTemplate.
+sv2::NewTemplate GetTemplate(Client& client, uint8_t pow_type = POW_TYPE_X16RT)
+{
+    BOOST_REQUIRE(Ready(client, pow_type));
+    BOOST_REQUIRE(SendConstraints(client));
+    bool closed{false};
+    const auto msg{ReadMessage(client, closed)};
+    BOOST_REQUIRE(msg.has_value());
+    BOOST_REQUIRE_EQUAL(msg->header.msg_type, static_cast<uint8_t>(sv2::CoreMsg::NEW_TEMPLATE));
+    const auto tmpl{sv2::DecodePayload<sv2::NewTemplate>(msg->payload)};
+    BOOST_REQUIRE(ReadMessage(client, closed).has_value()); // SetNewPrevHash
+    BOOST_REQUIRE(ReadMessage(client, closed).has_value()); // AvianTimeConstraints
+    return tmpl;
+}
+
+bool SendTxDataRequest(Client& client, uint64_t template_id)
+{
+    sv2::RequestTransactionData request;
+    request.template_id = template_id;
+    return client.transport->Send(
+        sv2::NetHeader{sv2::EXT_CORE,
+                       static_cast<uint8_t>(sv2::CoreMsg::REQUEST_TRANSACTION_DATA), 0},
+        sv2::EncodePayload(request));
+}
+
+} // namespace
+
+BOOST_AUTO_TEST_CASE(transaction_data_for_an_empty_block)
+{
+    auto server{StartTemplateServer(m_node, m_args.GetDataDirNet())};
+    auto client{ConnectTo(*server, server->AuthorityPubKey())};
+    const auto tmpl{GetTemplate(*client)};
+
+    BOOST_REQUIRE(SendTxDataRequest(*client, tmpl.template_id));
+    bool closed{false};
+    const auto reply{ReadMessage(*client, closed)};
+    BOOST_REQUIRE(reply.has_value());
+    BOOST_CHECK_EQUAL(reply->header.msg_type,
+                      static_cast<uint8_t>(sv2::CoreMsg::REQUEST_TRANSACTION_DATA_SUCCESS));
+
+    const auto data{sv2::DecodePayload<sv2::RequestTransactionDataSuccess>(reply->payload)};
+    BOOST_CHECK_EQUAL(data.template_id, tmpl.template_id);
+    // The coinbase is excluded, so an otherwise empty block carries nothing.
+    BOOST_CHECK(data.transaction_list.empty());
+    // excess_data is the commitment script, so a pool can rebuild the
+    // commitment for itself rather than trusting ours.
+    BOOST_CHECK(!data.excess_data.empty());
+    BOOST_CHECK_EQUAL(data.excess_data[0], OP_RETURN);
+}
+
+BOOST_AUTO_TEST_CASE(transaction_data_includes_mempool_transactions)
+{
+    auto server{StartTemplateServer(m_node, m_args.GetDataDirNet())};
+
+    // Spend a matured coinbase so the template has something in it.
+    BOOST_REQUIRE(!m_coinbase_txns.empty());
+    // A standard output: unlike Bitcoin's, Avian's regtest requires standard
+    // transactions, so a bare OP_TRUE is rejected with "scriptpubkey".
+    const CScript destination{GetScriptForDestination(PKHash(coinbaseKey.GetPubKey()))};
+    const CMutableTransaction spend{CreateValidMempoolTransaction(
+        /*input_transaction=*/m_coinbase_txns[0], /*input_vout=*/0, /*input_height=*/0,
+        /*input_signing_key=*/coinbaseKey, /*output_destination=*/destination,
+        /*output_amount=*/m_coinbase_txns[0]->vout[0].nValue - CAmount{10000},
+        /*submit=*/true)};
+    const CTransactionRef spend_ref{MakeTransactionRef(spend)};
+
+    auto client{ConnectTo(*server, server->AuthorityPubKey())};
+    const auto tmpl{GetTemplate(*client)};
+
+    BOOST_REQUIRE(SendTxDataRequest(*client, tmpl.template_id));
+    bool closed{false};
+    const auto reply{ReadMessage(*client, closed)};
+    BOOST_REQUIRE(reply.has_value());
+    const auto data{sv2::DecodePayload<sv2::RequestTransactionDataSuccess>(reply->payload)};
+
+    BOOST_REQUIRE_EQUAL(data.transaction_list.size(), 1u);
+    // Serialized with witnesses, and byte-identical to what the node holds:
+    // a pool has to be able to rebuild the exact block.
+    DataStream expected{};
+    expected << TX_WITH_WITNESS(*spend_ref);
+    const std::vector<uint8_t> expected_bytes{UCharCast(expected.data()),
+                                              UCharCast(expected.data()) + expected.size()};
+    BOOST_CHECK(data.transaction_list[0] == expected_bytes);
+
+    // And the merkle path is no longer trivial, because the block now has more
+    // than just a coinbase.
+    BOOST_CHECK(!tmpl.merkle_path.empty());
+}
+
+BOOST_AUTO_TEST_CASE(transaction_data_for_an_unknown_template)
+{
+    auto server{StartTemplateServer(m_node, m_args.GetDataDirNet())};
+    auto client{ConnectTo(*server, server->AuthorityPubKey())};
+    const auto tmpl{GetTemplate(*client)};
+
+    BOOST_REQUIRE(SendTxDataRequest(*client, tmpl.template_id + 1000));
+    bool closed{false};
+    const auto reply{ReadMessage(*client, closed)};
+    BOOST_REQUIRE(reply.has_value());
+    BOOST_CHECK_EQUAL(reply->header.msg_type,
+                      static_cast<uint8_t>(sv2::CoreMsg::REQUEST_TRANSACTION_DATA_ERROR));
+    const auto err{sv2::DecodePayload<sv2::RequestTransactionDataError>(reply->payload)};
+    BOOST_CHECK_EQUAL(err.error_code, "template-id-not-found");
+    // An error is not a disconnection: the client simply asked for the wrong
+    // thing.
+    BOOST_CHECK_EQUAL(server->connman->ClientCount(), 1u);
+}
+
+BOOST_AUTO_TEST_CASE(transaction_data_for_a_stale_template)
+{
+    // Only the newest template survives a tip change, and a client that was
+    // mid-request needs to know the difference between work that expired and
+    // an id that never existed.
+    auto server{StartTemplateServer(m_node, m_args.GetDataDirNet())};
+    auto client{ConnectTo(*server, server->AuthorityPubKey())};
+    const auto first{GetTemplate(*client)};
+
+    CreateAndProcessBlock({}, CScript() << OP_TRUE);
+    bool closed{false};
+    BOOST_REQUIRE(ReadMessage(*client, closed).has_value()); // pushed NewTemplate
+    BOOST_REQUIRE(ReadMessage(*client, closed).has_value()); // SetNewPrevHash
+    BOOST_REQUIRE(ReadMessage(*client, closed).has_value()); // AvianTimeConstraints
+
+    BOOST_REQUIRE(SendTxDataRequest(*client, first.template_id));
+    const auto reply{ReadMessage(*client, closed)};
+    BOOST_REQUIRE(reply.has_value());
+    BOOST_CHECK_EQUAL(reply->header.msg_type,
+                      static_cast<uint8_t>(sv2::CoreMsg::REQUEST_TRANSACTION_DATA_ERROR));
+    const auto err{sv2::DecodePayload<sv2::RequestTransactionDataError>(reply->payload)};
+    BOOST_CHECK_EQUAL(err.error_code, "stale-template");
+}
+
+BOOST_AUTO_TEST_CASE(transaction_data_is_rate_limited)
+{
+    // This is the one message where a few request bytes buy a whole block
+    // serialized, encrypted and buffered, so it is metered.
+    auto server{StartTemplateServer(m_node, m_args.GetDataDirNet())};
+    auto client{ConnectTo(*server, server->AuthorityPubKey())};
+    const auto tmpl{GetTemplate(*client)};
+
+    bool closed{false};
+    for (size_t i = 0; i < sv2::MAX_TXDATA_REQUESTS; ++i) {
+        BOOST_REQUIRE(SendTxDataRequest(*client, tmpl.template_id));
+        BOOST_REQUIRE(ReadMessage(*client, closed).has_value());
+    }
+
+    // One past the allowance ends the connection rather than being answered.
+    BOOST_REQUIRE(SendTxDataRequest(*client, tmpl.template_id));
+    ReadMessage(*client, closed);
+    BOOST_CHECK(closed);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

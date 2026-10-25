@@ -15,6 +15,8 @@
 #include <uint256.h>
 
 #include <cstdint>
+#include <chrono>
+#include <deque>
 #include <map>
 #include <memory>
 #include <span>
@@ -26,6 +28,12 @@ namespace sv2 {
 //! clamped rather than refused, because a client asking for too much is
 //! usually optimistic rather than hostile.
 static constexpr uint32_t MAX_COINBASE_ADDITIONAL_SIZE{8000};
+
+//! Transaction data is the one message where a few request bytes produce a
+//! whole block of encrypted output, so it is metered rather than merely
+//! bounded.
+static constexpr size_t MAX_TXDATA_REQUESTS{2};
+static constexpr auto TXDATA_WINDOW{std::chrono::seconds{10}};
 
 //! Everything derived from a block template at the moment it is sent, so that
 //! answering a later request or validating a solution costs no block work.
@@ -55,6 +63,16 @@ struct CachedTemplate {
     uint64_t value_remaining{0};
 
     std::vector<uint256> merkle_path;
+
+    //! The coinbase commitment script, so a pool validating the work can
+    //! rebuild the commitment for itself.
+    std::vector<uint8_t> excess_data;
+
+    //! The non-coinbase transactions, serialized with witnesses. Built on
+    //! first request rather than up front, because getBlock() copies a block
+    //! that can be eight megabytes.
+    std::vector<std::vector<uint8_t>> transaction_list;
+    bool transaction_list_built{false};
 };
 
 //! Serves block templates over the Template Distribution Protocol.
@@ -89,6 +107,12 @@ private:
         uint32_t coinbase_max_additional_size{0};
         uint16_t coinbase_max_additional_sigops{0};
         std::map<uint64_t, CachedTemplate> templates;
+        //! The largest id issued to this client, so a request for a template
+        //! that has since been dropped can be told apart from one that never
+        //! existed.
+        uint64_t highest_template_id{0};
+        //! When recent transaction-data requests arrived.
+        std::deque<std::chrono::steady_clock::time_point> txdata_requests;
     };
 
     [[nodiscard]] bool HandleCoinbaseOutputConstraints(ClientId id, ClientState& state,
@@ -98,6 +122,10 @@ private:
     //! Build a template for `state` and send NewTemplate followed by the
     //! Avian time constraints. Returns false to disconnect the client.
     [[nodiscard]] bool SendNewTemplate(ClientId id, ClientState& state, bool future)
+        EXCLUSIVE_LOCKS_REQUIRED(m_mutex);
+
+    [[nodiscard]] bool HandleRequestTransactionData(ClientId id, ClientState& state,
+                                                     std::span<const uint8_t> payload)
         EXCLUSIVE_LOCKS_REQUIRED(m_mutex);
 
     //! Rebuild and reissue work for every client that has asked for it.
