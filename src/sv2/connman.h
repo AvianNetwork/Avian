@@ -85,15 +85,16 @@ public:
     void Interrupt();
 
     //! Join the thread and close every socket.
-    void Stop();
+    void Stop() EXCLUSIVE_LOCKS_REQUIRED(!m_mutex);
 
     //! Queue a message to one client. Thread safe. Returns false if the client
     //! is gone, is not past setup, or the payload does not fit.
-    [[nodiscard]] bool Send(ClientId id, const NetHeader& header, std::span<const uint8_t> payload);
+    [[nodiscard]] bool Send(ClientId id, const NetHeader& header, std::span<const uint8_t> payload)
+        EXCLUSIVE_LOCKS_REQUIRED(!m_mutex);
 
-    void Disconnect(ClientId id);
+    void Disconnect(ClientId id) EXCLUSIVE_LOCKS_REQUIRED(!m_mutex);
 
-    size_t ClientCount() const;
+    size_t ClientCount() const EXCLUSIVE_LOCKS_REQUIRED(!m_mutex);
 
     //! The addresses actually bound, which is what a test needs when it asked
     //! for port 0.
@@ -157,7 +158,7 @@ private:
         ReceivedMsg msg;
     };
 
-    void ThreadHandler();
+    void ThreadHandler() EXCLUSIVE_LOCKS_REQUIRED(!m_mutex);
     //! Run the queued callbacks with m_mutex released.
     void DispatchNotifications() EXCLUSIVE_LOCKS_REQUIRED(!m_mutex);
     Sock::EventsPerSock GenerateWaitSockets() EXCLUSIVE_LOCKS_REQUIRED(m_mutex);

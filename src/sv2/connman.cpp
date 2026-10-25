@@ -346,17 +346,20 @@ bool Connman::HandleAvianSelectAlgorithm(Client& client, const ReceivedMsg& msg)
         return false;
     }
 
-    const auto reject{[&](const std::string& code) {
+    // Not a lambda: a lambda body hides the enclosing function's lock context
+    // from clang's thread-safety analysis, and Reject needs m_mutex held.
+    if (select.pow_type >= NUM_BLOCK_TYPES) {
         AvianSelectAlgorithmError err;
-        err.error_code = code;
+        err.error_code = "unsupported-pow-type";
         return Reject(client, m_opts.extension_id,
-                      static_cast<uint8_t>(AvianMsg::SELECT_ALGORITHM_ERROR), err, code);
-    }};
-
-    if (select.pow_type >= NUM_BLOCK_TYPES) return reject("unsupported-pow-type");
+                      static_cast<uint8_t>(AvianMsg::SELECT_ALGORITHM_ERROR), err, err.error_code);
+    }
     const auto algo{static_cast<POW_TYPE>(select.pow_type)};
     if (std::find(m_opts.pow_algos.begin(), m_opts.pow_algos.end(), algo) == m_opts.pow_algos.end()) {
-        return reject("pow-type-not-enabled");
+        AvianSelectAlgorithmError err;
+        err.error_code = "pow-type-not-enabled";
+        return Reject(client, m_opts.extension_id,
+                      static_cast<uint8_t>(AvianMsg::SELECT_ALGORITHM_ERROR), err, err.error_code);
     }
 
     AvianSelectAlgorithmSuccess ok;
