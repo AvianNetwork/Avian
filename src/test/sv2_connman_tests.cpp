@@ -5,46 +5,34 @@
 #include <compat/compat.h>
 #include <key.h>
 #include <netbase.h>
-#include <pubkey.h>
 #include <primitives/block.h>
-#include <addresstype.h>
-#include <arith_uint256.h>
-#include <chainparams.h>
-#include <consensus/amount.h>
-#include <interfaces/mining.h>
-#include <node/context.h>
-#include <script/solver.h>
-#include <streams.h>
+#include <pubkey.h>
 #include <sv2/connman.h>
-#include <sv2/template_provider.h>
-#include <validation.h>
 #include <sv2/options.h>
 #include <sv2/transport.h>
 #include <test/util/setup_common.h>
+#include <test/util/sv2.h>
 #include <util/sock.h>
 #include <util/time.h>
 
-#include <algorithm>
 #include <chrono>
 #include <functional>
 #include <memory>
 #include <optional>
-#include <string>
 #include <vector>
 
 #include <boost/test/unit_test.hpp>
 
-//! End-to-end tests for the Sv2 listener over real loopback sockets.
-//!
-//! The transport and handshake are already covered without a network. What
-//! these add is the part only a live socket exercises: the accept path, the
-//! Common protocol state machine, and the fact that it all works from another
-//! thread.
+using namespace sv2test;
 
 namespace {
 
-constexpr auto TEST_TIMEOUT{std::chrono::seconds{10}};
+//! A placeholder identifier for exercising negotiation independently of
+//! Avian's real extension.
+constexpr uint16_t TEST_EXT{0x4001};
+constexpr uint16_t UNKNOWN_EXT{0x4ffe};
 
+//! A listener with no Template Provider attached, over loopback.
 struct Server {
     CKey authority;
     CKey static_key;
@@ -76,6 +64,8 @@ std::unique_ptr<Server> StartServer(const fs::path& datadir,
     opts.binds = {LookupNumeric("127.0.0.1", 0)};
     opts.static_key_file = datadir / "unused_static";
     opts.authority_key_file = datadir / "unused_authority";
+    // Tests pin the policy they exercise; the production default is covered by
+    // its own cases and by sv2_options_tests.
     opts.extension_policy = sv2::ExtensionPolicy::OPTIONAL;
     if (tweak) tweak(opts);
 
@@ -88,156 +78,14 @@ std::unique_ptr<Server> StartServer(const fs::path& datadir,
     return server;
 }
 
-//! A client speaking Sv2 over a real socket.
-struct Client {
-    std::unique_ptr<Sock> sock;
-    std::optional<sv2::Transport> transport;
-
-    //! Push everything the transport has queued.
-    bool Flush()
-    {
-        const auto out{transport->SendBuffer()};
-        if (out.empty()) return true;
-        const ssize_t sent{sock->Send(out.data(), out.size(), MSG_NOSIGNAL)};
-        if (sent > 0) {
-            transport->Sent(static_cast<size_t>(sent));
-            return true;
-        }
-        // A would-block here just means try again on the next pass.
-        return sent < 0 && (WSAGetLastError() == WSAEWOULDBLOCK || WSAGetLastError() == WSAEINTR);
-    }
-
-    //! Read until `done` is satisfied, the peer closes, or the deadline passes.
-    //! Returns false on close or timeout, which the caller distinguishes with
-    //! `closed`.
-    bool PumpUntil(const std::function<bool()>& done, bool& closed)
-    {
-        closed = false;
-        const auto deadline{std::chrono::steady_clock::now() + TEST_TIMEOUT};
-        while (std::chrono::steady_clock::now() < deadline) {
-            if (done()) return true;
-            if (!Flush()) return false;
-
-            Sock::Event occurred{0};
-            if (!sock->Wait(std::chrono::milliseconds{100}, Sock::RECV, &occurred)) return false;
-            if (!(occurred & Sock::RECV)) continue;
-
-            uint8_t buf[4096];
-            const ssize_t got{sock->Recv(buf, sizeof(buf), 0)};
-            if (got == 0) {
-                closed = true;
-                return false;
-            }
-            if (got < 0) {
-                if (WSAGetLastError() == WSAEWOULDBLOCK || WSAGetLastError() == WSAEINTR) continue;
-                return false;
-            }
-            transport->Received(std::as_bytes(std::span{buf, static_cast<size_t>(got)}));
-            if (!transport->Advance(GetTime())) return false;
-        }
-        return false;
-    }
-};
-
 std::unique_ptr<Client> Connect(const Server& server, const std::optional<XOnlyPubKey>& authority)
 {
-    auto client{std::make_unique<Client>()};
-    client->sock = CreateSock(server.bound.GetSAFamily(), SOCK_STREAM, IPPROTO_TCP);
-    BOOST_REQUIRE(client->sock);
-
-    struct sockaddr_storage storage;
-    socklen_t len{sizeof(storage)};
-    BOOST_REQUIRE(server.bound.GetSockAddr(reinterpret_cast<struct sockaddr*>(&storage), &len));
-    if (client->sock->Connect(reinterpret_cast<struct sockaddr*>(&storage), len) != 0) {
-        // CreateSock hands back a non-blocking socket, so a connect in
-        // progress is the normal case rather than a failure.
-        const int err{WSAGetLastError()};
-        BOOST_REQUIRE(err == WSAEINPROGRESS || err == WSAEWOULDBLOCK);
-        Sock::Event occurred{0};
-        BOOST_REQUIRE(client->sock->Wait(std::chrono::milliseconds{TEST_TIMEOUT}, Sock::SEND, &occurred));
-        BOOST_REQUIRE(occurred & Sock::SEND);
-        std::string errmsg;
-        BOOST_REQUIRE(client->sock->IsConnected(errmsg));
-    }
-
-    client->transport.emplace(sv2::Transport::Initiator(authority));
+    auto client{sv2test::Connect(server.bound, authority)};
+    BOOST_REQUIRE(client);
     return client;
 }
 
-sv2::SetupConnection MakeSetup(uint8_t protocol = static_cast<uint8_t>(sv2::Protocol::TEMPLATE_DISTRIBUTION),
-                               uint32_t flags = 0)
-{
-    sv2::SetupConnection setup;
-    setup.protocol = protocol;
-    setup.min_version = sv2::PROTOCOL_VERSION;
-    setup.max_version = sv2::PROTOCOL_VERSION;
-    setup.flags = flags;
-    setup.endpoint_host = "127.0.0.1";
-    setup.endpoint_port = 0;
-    setup.vendor = "avian-test";
-    return setup;
-}
-
-//! Complete the Noise handshake, leaving the client ready to send messages.
-bool DoHandshake(Client& client)
-{
-    bool closed{false};
-    return client.PumpUntil([&] { return client.transport->HandshakeComplete(); }, closed);
-}
-
-//! Wait for one message to arrive.
-std::optional<sv2::ReceivedMsg> ReadMessage(Client& client, bool& closed)
-{
-    std::optional<sv2::ReceivedMsg> out;
-    client.PumpUntil([&] {
-        out = client.transport->Next();
-        return out.has_value();
-    }, closed);
-    return out;
-}
-
-} // namespace
-
-namespace {
-
-//! A provisional identifier standing in for the Avian multi-PoW extension,
-//! which does not exist yet. The negotiation machinery is generic, so it can
-//! be exercised in full before the extension it will carry is written.
-constexpr uint16_t TEST_EXT{0x4001};
-constexpr uint16_t UNKNOWN_EXT{0x4ffe};
-
-//! Drive a client to the point where it has an accepted session.
-bool SetupSession(Client& client)
-{
-    if (!DoHandshake(client)) return false;
-    if (!client.transport->Send(
-            sv2::NetHeader{sv2::EXT_CORE, static_cast<uint8_t>(sv2::CoreMsg::SETUP_CONNECTION), 0},
-            sv2::EncodePayload(MakeSetup()))) {
-        return false;
-    }
-    bool closed{false};
-    const auto reply{ReadMessage(client, closed)};
-    return reply.has_value() &&
-           reply->header.msg_type == static_cast<uint8_t>(sv2::CoreMsg::SETUP_CONNECTION_SUCCESS);
-}
-
-bool SendRequestExtensions(Client& client, uint16_t request_id, const std::vector<uint16_t>& want)
-{
-    sv2::RequestExtensions req;
-    req.request_id = request_id;
-    req.requested_extensions = want;
-    return client.transport->Send(
-        sv2::NetHeader{sv2::EXT_NEGOTIATION,
-                       static_cast<uint8_t>(sv2::NegotiationMsg::REQUEST_EXTENSIONS), 0},
-        sv2::EncodePayload(req));
-}
-
-} // namespace
-
-namespace {
-
-//! Options as a real node would have them: Avian's extension required, both
-//! algorithms offered.
+//! Options as a real node would have them.
 void ProductionLike(sv2::Options& o)
 {
     o.extension_policy = sv2::ExtensionPolicy::REQUIRE;
@@ -255,148 +103,6 @@ bool NegotiateAvian(Client& client, uint16_t id = sv2::AVIAN_EXTENSION_ID)
     return reply.has_value() &&
            reply->header.msg_type ==
                static_cast<uint8_t>(sv2::NegotiationMsg::REQUEST_EXTENSIONS_SUCCESS);
-}
-
-bool SendSelectAlgorithm(Client& client, uint8_t pow_type, uint16_t id = sv2::AVIAN_EXTENSION_ID)
-{
-    sv2::AvianSelectAlgorithm select;
-    select.pow_type = pow_type;
-    return client.transport->Send(
-        sv2::NetHeader{id, static_cast<uint8_t>(sv2::AvianMsg::SELECT_ALGORITHM), 0},
-        sv2::EncodePayload(select));
-}
-
-} // namespace
-
-namespace {
-
-//! A listener with a Template Provider attached, over loopback.
-struct TemplateServer {
-    CKey authority;
-    CKey static_key;
-    sv2::SignatureNoiseMessage cert;
-    std::unique_ptr<interfaces::Mining> mining;
-    std::unique_ptr<sv2::TemplateProvider> provider;
-    std::unique_ptr<sv2::Connman> connman;
-    CService bound;
-
-    XOnlyPubKey AuthorityPubKey() const { return XOnlyPubKey{authority.GetPubKey()}; }
-
-    ~TemplateServer()
-    {
-        // The listener holds the clients whose templates reference the mining
-        // interface, so it stops first.
-        if (connman) connman->Stop();
-        if (provider) provider->Stop();
-    }
-};
-
-std::unique_ptr<TemplateServer> StartTemplateServer(node::NodeContext& node, const fs::path& datadir,
-                                                    const std::function<void(sv2::Options&)>& tweak = nullptr)
-{
-    auto server{std::make_unique<TemplateServer>()};
-    server->authority.MakeNewKey(/*fCompressedIn=*/true);
-    server->static_key.MakeNewKey(/*fCompressedIn=*/true);
-    auto cert{sv2::MakeCertificate(server->authority, server->static_key, GetTime(), 3650)};
-    BOOST_REQUIRE(cert);
-    server->cert = *cert;
-
-    sv2::Options opts;
-    opts.binds = {LookupNumeric("127.0.0.1", 0)};
-    opts.static_key_file = datadir / "tp_unused_static";
-    opts.authority_key_file = datadir / "tp_unused_authority";
-    opts.extension_policy = sv2::ExtensionPolicy::REQUIRE;
-    opts.supported_extensions = {sv2::AVIAN_EXTENSION_ID};
-    opts.required_extensions = {sv2::AVIAN_EXTENSION_ID};
-    opts.pow_algos = {POW_TYPE_X16RT, POW_TYPE_MINOTAURX};
-    if (tweak) tweak(opts);
-
-    // The fixture's blocks carry old timestamps, so the node still considers
-    // itself in initial block download, and the provider refuses to build
-    // templates then. Latch it off: that refusal is correct behaviour and has
-    // its own coverage, it just is not what these tests are about.
-    node.chainman->m_cached_finished_ibd = true;
-
-    server->mining = interfaces::MakeMining(node);
-    BOOST_REQUIRE(server->mining);
-    server->provider = std::make_unique<sv2::TemplateProvider>(*server->mining, opts);
-    server->connman = std::make_unique<sv2::Connman>(opts, server->static_key, server->cert);
-    server->provider->SetConnman(server->connman.get());
-    server->provider->Start();
-    BOOST_REQUIRE(server->connman->Start(server->provider.get()));
-
-    const auto bound{server->connman->BoundAddresses()};
-    BOOST_REQUIRE_EQUAL(bound.size(), 1u);
-    server->bound = bound.front();
-    return server;
-}
-
-std::unique_ptr<Client> ConnectTo(const TemplateServer& server, const std::optional<XOnlyPubKey>& authority)
-{
-    auto client{std::make_unique<Client>()};
-    client->sock = CreateSock(server.bound.GetSAFamily(), SOCK_STREAM, IPPROTO_TCP);
-    BOOST_REQUIRE(client->sock);
-
-    struct sockaddr_storage storage;
-    socklen_t len{sizeof(storage)};
-    BOOST_REQUIRE(server.bound.GetSockAddr(reinterpret_cast<struct sockaddr*>(&storage), &len));
-    if (client->sock->Connect(reinterpret_cast<struct sockaddr*>(&storage), len) != 0) {
-        const int err{WSAGetLastError()};
-        BOOST_REQUIRE(err == WSAEINPROGRESS || err == WSAEWOULDBLOCK);
-        Sock::Event occurred{0};
-        BOOST_REQUIRE(client->sock->Wait(std::chrono::milliseconds{TEST_TIMEOUT}, Sock::SEND, &occurred));
-        BOOST_REQUIRE(occurred & Sock::SEND);
-        std::string errmsg;
-        BOOST_REQUIRE(client->sock->IsConnected(errmsg));
-    }
-    client->transport.emplace(sv2::Transport::Initiator(authority));
-    return client;
-}
-
-//! Handshake, SetupConnection, negotiate Avian's extension and pick an
-//! algorithm, leaving the client able to ask for templates.
-bool Ready(Client& client, uint8_t pow_type)
-{
-    if (!SetupSession(client)) return false;
-    if (!SendRequestExtensions(client, 1, {sv2::AVIAN_EXTENSION_ID})) return false;
-    bool closed{false};
-    if (!ReadMessage(client, closed).has_value()) return false;
-
-    sv2::AvianSelectAlgorithm select;
-    select.pow_type = pow_type;
-    if (!client.transport->Send(
-            sv2::NetHeader{sv2::AVIAN_EXTENSION_ID,
-                           static_cast<uint8_t>(sv2::AvianMsg::SELECT_ALGORITHM), 0},
-            sv2::EncodePayload(select))) {
-        return false;
-    }
-    return ReadMessage(client, closed).has_value();
-}
-
-bool SendConstraints(Client& client, uint32_t size = 1000, uint16_t sigops = 10)
-{
-    sv2::CoinbaseOutputConstraints constraints;
-    constraints.coinbase_output_max_additional_size = size;
-    constraints.coinbase_output_max_additional_sigops = sigops;
-    return client.transport->Send(
-        sv2::NetHeader{sv2::EXT_CORE,
-                       static_cast<uint8_t>(sv2::CoreMsg::COINBASE_OUTPUT_CONSTRAINTS), 0},
-        sv2::EncodePayload(constraints));
-}
-
-//! Parse the concatenated outputs of NewTemplate.coinbase_tx_outputs, which
-//! carries no CompactSize prefix of its own.
-std::vector<CTxOut> ParseOutputs(const std::vector<uint8_t>& bytes, uint32_t count)
-{
-    std::vector<CTxOut> out;
-    SpanReader reader{std::span<const unsigned char>{bytes}};
-    for (uint32_t i = 0; i < count; ++i) {
-        CTxOut txout;
-        reader >> txout;
-        out.push_back(txout);
-    }
-    BOOST_CHECK(reader.empty());
-    return out;
 }
 
 } // namespace
@@ -561,7 +267,7 @@ BOOST_AUTO_TEST_CASE(handshake_timeout_drops_idle_client)
                             [](sv2::Options& o) { o.handshake_timeout = std::chrono::seconds{1}; })};
     auto client{Connect(*server, server->AuthorityPubKey())};
 
-    const auto deadline{std::chrono::steady_clock::now() + TEST_TIMEOUT};
+    const auto deadline{std::chrono::steady_clock::now() + TIMEOUT};
     while (server->connman->ClientCount() > 0 && std::chrono::steady_clock::now() < deadline) {
         UninterruptibleSleep(std::chrono::milliseconds{50});
     }
@@ -919,356 +625,6 @@ BOOST_AUTO_TEST_CASE(configured_extension_id_is_honoured)
     BOOST_CHECK_EQUAL(reply->header.extension_type, ALT_ID);
     BOOST_CHECK_EQUAL(reply->header.msg_type,
                       static_cast<uint8_t>(sv2::AvianMsg::SELECT_ALGORITHM_SUCCESS));
-}
-
-BOOST_AUTO_TEST_SUITE_END()
-
-//! Template Distribution tests, which need a chainstate and so a different
-//! fixture. TestChain100Setup rather than RegTestingSetup, because a chain of
-//! only genesis is still in initial block download, and the provider refuses
-//! to issue templates then: work built during IBD is work a miner can never
-//! land. The client helpers above are file-scope and shared.
-BOOST_FIXTURE_TEST_SUITE(sv2_template_provider_tests, TestChain100Setup)
-
-
-BOOST_AUTO_TEST_CASE(serves_a_new_template)
-{
-    auto server{StartTemplateServer(m_node, m_args.GetDataDirNet())};
-    auto client{ConnectTo(*server, server->AuthorityPubKey())};
-    BOOST_REQUIRE(Ready(*client, POW_TYPE_X16RT));
-
-    BOOST_REQUIRE(SendConstraints(*client));
-    bool closed{false};
-    const auto first{ReadMessage(*client, closed)};
-    BOOST_REQUIRE(first.has_value());
-    BOOST_CHECK_EQUAL(first->header.msg_type, static_cast<uint8_t>(sv2::CoreMsg::NEW_TEMPLATE));
-
-    const auto tmpl{sv2::DecodePayload<sv2::NewTemplate>(first->payload)};
-    BOOST_CHECK(tmpl.template_id != 0);
-    // Request-driven, so this is for the current tip rather than a future one.
-    BOOST_CHECK(!tmpl.future_template);
-
-    // The algorithm lives in nVersion bits 16-23, which is how a client learns
-    // what it is mining without any extra field.
-    BOOST_CHECK_EQUAL((tmpl.version >> 16) & 0xff, POW_TYPE_X16RT);
-
-    // BIP34: the prefix must start with the height push.
-    BOOST_REQUIRE(!tmpl.coinbase_prefix.empty());
-    const int height{m_node.chainman->ActiveChain().Height() + 1};
-    const CScript expected_prefix{CScript() << height};
-    const std::vector<uint8_t> expected_bytes{expected_prefix.begin(), expected_prefix.end()};
-    BOOST_CHECK(tmpl.coinbase_prefix == expected_bytes);
-
-    // Copied to a local: the static member has no out-of-line definition, so
-    // binding it to a reference would not link.
-    const uint32_t expected_sequence{CTxIn::MAX_SEQUENCE_NONFINAL};
-    BOOST_CHECK_EQUAL(tmpl.coinbase_tx_input_sequence, expected_sequence);
-    BOOST_CHECK_EQUAL(tmpl.coinbase_tx_locktime, static_cast<uint32_t>(height - 1));
-
-    // The required outputs are the ones the client must reproduce.
-    BOOST_REQUIRE(tmpl.coinbase_tx_outputs_count >= 1);
-    const auto outputs{ParseOutputs(tmpl.coinbase_tx_outputs, tmpl.coinbase_tx_outputs_count)};
-    BOOST_REQUIRE_EQUAL(outputs.size(), tmpl.coinbase_tx_outputs_count);
-    // The witness commitment is among them, and it is an OP_RETURN.
-    BOOST_CHECK(std::any_of(outputs.begin(), outputs.end(), [](const CTxOut& o) {
-        return o.nValue == 0 && !o.scriptPubKey.empty() && o.scriptPubKey[0] == OP_RETURN;
-    }));
-
-    // value_remaining plus the required outputs must be the whole coinbase
-    // value, or the client would either overpay or leave money unspendable.
-    CAmount required_total{0};
-    for (const CTxOut& o : outputs) required_total += o.nValue;
-    const CAmount subsidy{GetBlockSubsidy(height, Params().GetConsensus())};
-    BOOST_CHECK_EQUAL(static_cast<CAmount>(tmpl.coinbase_tx_value_remaining) + required_total, subsidy);
-
-    // NewTemplate carries no prev hash, so the work is unusable until this
-    // arrives.
-    const auto second{ReadMessage(*client, closed)};
-    BOOST_REQUIRE(second.has_value());
-    BOOST_CHECK_EQUAL(second->header.msg_type, static_cast<uint8_t>(sv2::CoreMsg::SET_NEW_PREV_HASH));
-    const auto prev{sv2::DecodePayload<sv2::SetNewPrevHash>(second->payload)};
-    BOOST_CHECK_EQUAL(prev.template_id, tmpl.template_id);
-    // Avian chains proof-of-work hashes rather than SHA256d, and this must be
-    // whatever the next header has to point at.
-    BOOST_CHECK_EQUAL(prev.prev_hash, m_node.chainman->ActiveChain().Tip()->GetBlockHash());
-    BOOST_CHECK(prev.nbits != 0);
-    // The target is nBits expanded, and nBits already came from the per
-    // algorithm difficulty.
-    BOOST_CHECK_EQUAL(prev.target, ArithToUint256(arith_uint256{}.SetCompact(prev.nbits)));
-
-    // The time constraints follow, because the spec gives SubmitSolution no
-    // upper ntime bound of its own.
-    const auto third{ReadMessage(*client, closed)};
-    BOOST_REQUIRE(third.has_value());
-    BOOST_CHECK_EQUAL(third->header.extension_type, sv2::AVIAN_EXTENSION_ID);
-    BOOST_CHECK_EQUAL(third->header.msg_type, static_cast<uint8_t>(sv2::AvianMsg::TIME_CONSTRAINTS));
-    const auto times{sv2::DecodePayload<sv2::AvianTimeConstraints>(third->payload)};
-    BOOST_CHECK_EQUAL(times.template_id, tmpl.template_id);
-    BOOST_CHECK(times.ntime_max >= times.ntime_min);
-    // Regtest allows minimum-difficulty blocks, where nBits depends on nTime,
-    // so rolling is pinned off entirely rather than tracking that cliff.
-    BOOST_CHECK_EQUAL(times.ntime_min, times.ntime_max);
-}
-
-BOOST_AUTO_TEST_CASE(merkle_path_reconstructs_the_merkle_root)
-{
-    // This is the field a miner cannot check for itself cheaply, and getting
-    // it wrong would make every share invalid for a reason nobody could see.
-    auto server{StartTemplateServer(m_node, m_args.GetDataDirNet())};
-    auto client{ConnectTo(*server, server->AuthorityPubKey())};
-    BOOST_REQUIRE(Ready(*client, POW_TYPE_X16RT));
-    BOOST_REQUIRE(SendConstraints(*client));
-
-    bool closed{false};
-    const auto msg{ReadMessage(*client, closed)};
-    BOOST_REQUIRE(msg.has_value());
-    const auto tmpl{sv2::DecodePayload<sv2::NewTemplate>(msg->payload)};
-
-    // With only a coinbase in the block, the path is empty and the root is the
-    // coinbase txid itself.
-    BOOST_CHECK(tmpl.merkle_path.empty());
-}
-
-BOOST_AUTO_TEST_CASE(template_follows_the_selected_algorithm)
-{
-    auto server{StartTemplateServer(m_node, m_args.GetDataDirNet())};
-    auto client{ConnectTo(*server, server->AuthorityPubKey())};
-    BOOST_REQUIRE(Ready(*client, POW_TYPE_MINOTAURX));
-    BOOST_REQUIRE(SendConstraints(*client));
-
-    bool closed{false};
-    const auto msg{ReadMessage(*client, closed)};
-    BOOST_REQUIRE(msg.has_value());
-    const auto tmpl{sv2::DecodePayload<sv2::NewTemplate>(msg->payload)};
-    // A template built for the wrong algorithm would hand out work judged
-    // against the wrong pow limit.
-    BOOST_CHECK_EQUAL((tmpl.version >> 16) & 0xff, POW_TYPE_MINOTAURX);
-}
-
-BOOST_AUTO_TEST_CASE(unserved_message_disconnects)
-{
-    // SubmitSolution is not implemented yet. Accepting a session and then
-    // ignoring requests is worse than closing.
-    auto server{StartTemplateServer(m_node, m_args.GetDataDirNet())};
-    auto client{ConnectTo(*server, server->AuthorityPubKey())};
-    BOOST_REQUIRE(Ready(*client, POW_TYPE_X16RT));
-
-    BOOST_REQUIRE(client->transport->Send(
-        sv2::NetHeader{sv2::EXT_CORE, static_cast<uint8_t>(sv2::CoreMsg::SUBMIT_SOLUTION), 0},
-        sv2::EncodePayload(sv2::SubmitSolution{})));
-    bool closed{false};
-    ReadMessage(*client, closed);
-    BOOST_CHECK(closed);
-}
-
-BOOST_AUTO_TEST_CASE(templates_need_constraints_first)
-{
-    // Without knowing how much coinbase room the client needs, the reserved
-    // weight is unknown, so there is nothing correct to build.
-    auto server{StartTemplateServer(m_node, m_args.GetDataDirNet())};
-    auto client{ConnectTo(*server, server->AuthorityPubKey())};
-    BOOST_REQUIRE(Ready(*client, POW_TYPE_X16RT));
-    BOOST_CHECK_EQUAL(server->connman->ClientCount(), 1u);
-
-    // Nothing has been sent, because nothing was asked for.
-    bool closed{false};
-    Sock::Event occurred{0};
-    BOOST_CHECK(client->sock->Wait(std::chrono::milliseconds{300}, Sock::RECV, &occurred));
-    BOOST_CHECK_EQUAL(occurred & Sock::RECV, 0);
-    BOOST_CHECK(!closed);
-}
-
-
-BOOST_AUTO_TEST_CASE(new_tip_reissues_work)
-{
-    // A tip change invalidates every outstanding template, so the provider
-    // has to push replacements rather than wait to be asked.
-    auto server{StartTemplateServer(m_node, m_args.GetDataDirNet())};
-    auto client{ConnectTo(*server, server->AuthorityPubKey())};
-    BOOST_REQUIRE(Ready(*client, POW_TYPE_X16RT));
-    BOOST_REQUIRE(SendConstraints(*client));
-
-    bool closed{false};
-    const auto first{ReadMessage(*client, closed)};
-    BOOST_REQUIRE(first.has_value());
-    const auto before{sv2::DecodePayload<sv2::NewTemplate>(first->payload)};
-    BOOST_REQUIRE(ReadMessage(*client, closed).has_value()); // SetNewPrevHash
-    BOOST_REQUIRE(ReadMessage(*client, closed).has_value()); // AvianTimeConstraints
-
-    const uint256 old_tip{m_node.chainman->ActiveChain().Tip()->GetBlockHash()};
-    CreateAndProcessBlock({}, CScript() << OP_TRUE);
-    BOOST_REQUIRE(m_node.chainman->ActiveChain().Tip()->GetBlockHash() != old_tip);
-
-    // Unprompted work for the new tip, pushed from the watcher thread.
-    const auto pushed{ReadMessage(*client, closed)};
-    BOOST_REQUIRE(pushed.has_value());
-    BOOST_CHECK_EQUAL(pushed->header.msg_type, static_cast<uint8_t>(sv2::CoreMsg::NEW_TEMPLATE));
-    const auto after{sv2::DecodePayload<sv2::NewTemplate>(pushed->payload)};
-    BOOST_CHECK(after.template_id != before.template_id);
-
-    const auto new_prev{ReadMessage(*client, closed)};
-    BOOST_REQUIRE(new_prev.has_value());
-    BOOST_CHECK_EQUAL(new_prev->header.msg_type, static_cast<uint8_t>(sv2::CoreMsg::SET_NEW_PREV_HASH));
-    const auto prev{sv2::DecodePayload<sv2::SetNewPrevHash>(new_prev->payload)};
-    BOOST_CHECK_EQUAL(prev.template_id, after.template_id);
-    // It must point at the block just mined, not the one it replaced.
-    BOOST_CHECK_EQUAL(prev.prev_hash, m_node.chainman->ActiveChain().Tip()->GetBlockHash());
-    BOOST_CHECK(prev.prev_hash != old_tip);
-}
-
-
-namespace {
-
-//! Walk a client to a template, returning its NewTemplate.
-sv2::NewTemplate GetTemplate(Client& client, uint8_t pow_type = POW_TYPE_X16RT)
-{
-    BOOST_REQUIRE(Ready(client, pow_type));
-    BOOST_REQUIRE(SendConstraints(client));
-    bool closed{false};
-    const auto msg{ReadMessage(client, closed)};
-    BOOST_REQUIRE(msg.has_value());
-    BOOST_REQUIRE_EQUAL(msg->header.msg_type, static_cast<uint8_t>(sv2::CoreMsg::NEW_TEMPLATE));
-    const auto tmpl{sv2::DecodePayload<sv2::NewTemplate>(msg->payload)};
-    BOOST_REQUIRE(ReadMessage(client, closed).has_value()); // SetNewPrevHash
-    BOOST_REQUIRE(ReadMessage(client, closed).has_value()); // AvianTimeConstraints
-    return tmpl;
-}
-
-bool SendTxDataRequest(Client& client, uint64_t template_id)
-{
-    sv2::RequestTransactionData request;
-    request.template_id = template_id;
-    return client.transport->Send(
-        sv2::NetHeader{sv2::EXT_CORE,
-                       static_cast<uint8_t>(sv2::CoreMsg::REQUEST_TRANSACTION_DATA), 0},
-        sv2::EncodePayload(request));
-}
-
-} // namespace
-
-BOOST_AUTO_TEST_CASE(transaction_data_for_an_empty_block)
-{
-    auto server{StartTemplateServer(m_node, m_args.GetDataDirNet())};
-    auto client{ConnectTo(*server, server->AuthorityPubKey())};
-    const auto tmpl{GetTemplate(*client)};
-
-    BOOST_REQUIRE(SendTxDataRequest(*client, tmpl.template_id));
-    bool closed{false};
-    const auto reply{ReadMessage(*client, closed)};
-    BOOST_REQUIRE(reply.has_value());
-    BOOST_CHECK_EQUAL(reply->header.msg_type,
-                      static_cast<uint8_t>(sv2::CoreMsg::REQUEST_TRANSACTION_DATA_SUCCESS));
-
-    const auto data{sv2::DecodePayload<sv2::RequestTransactionDataSuccess>(reply->payload)};
-    BOOST_CHECK_EQUAL(data.template_id, tmpl.template_id);
-    // The coinbase is excluded, so an otherwise empty block carries nothing.
-    BOOST_CHECK(data.transaction_list.empty());
-    // excess_data is the commitment script, so a pool can rebuild the
-    // commitment for itself rather than trusting ours.
-    BOOST_CHECK(!data.excess_data.empty());
-    BOOST_CHECK_EQUAL(data.excess_data[0], OP_RETURN);
-}
-
-BOOST_AUTO_TEST_CASE(transaction_data_includes_mempool_transactions)
-{
-    auto server{StartTemplateServer(m_node, m_args.GetDataDirNet())};
-
-    // Spend a matured coinbase so the template has something in it.
-    BOOST_REQUIRE(!m_coinbase_txns.empty());
-    // A standard output: unlike Bitcoin's, Avian's regtest requires standard
-    // transactions, so a bare OP_TRUE is rejected with "scriptpubkey".
-    const CScript destination{GetScriptForDestination(PKHash(coinbaseKey.GetPubKey()))};
-    const CMutableTransaction spend{CreateValidMempoolTransaction(
-        /*input_transaction=*/m_coinbase_txns[0], /*input_vout=*/0, /*input_height=*/0,
-        /*input_signing_key=*/coinbaseKey, /*output_destination=*/destination,
-        /*output_amount=*/m_coinbase_txns[0]->vout[0].nValue - CAmount{10000},
-        /*submit=*/true)};
-    const CTransactionRef spend_ref{MakeTransactionRef(spend)};
-
-    auto client{ConnectTo(*server, server->AuthorityPubKey())};
-    const auto tmpl{GetTemplate(*client)};
-
-    BOOST_REQUIRE(SendTxDataRequest(*client, tmpl.template_id));
-    bool closed{false};
-    const auto reply{ReadMessage(*client, closed)};
-    BOOST_REQUIRE(reply.has_value());
-    const auto data{sv2::DecodePayload<sv2::RequestTransactionDataSuccess>(reply->payload)};
-
-    BOOST_REQUIRE_EQUAL(data.transaction_list.size(), 1u);
-    // Serialized with witnesses, and byte-identical to what the node holds:
-    // a pool has to be able to rebuild the exact block.
-    DataStream expected{};
-    expected << TX_WITH_WITNESS(*spend_ref);
-    const std::vector<uint8_t> expected_bytes{UCharCast(expected.data()),
-                                              UCharCast(expected.data()) + expected.size()};
-    BOOST_CHECK(data.transaction_list[0] == expected_bytes);
-
-    // And the merkle path is no longer trivial, because the block now has more
-    // than just a coinbase.
-    BOOST_CHECK(!tmpl.merkle_path.empty());
-}
-
-BOOST_AUTO_TEST_CASE(transaction_data_for_an_unknown_template)
-{
-    auto server{StartTemplateServer(m_node, m_args.GetDataDirNet())};
-    auto client{ConnectTo(*server, server->AuthorityPubKey())};
-    const auto tmpl{GetTemplate(*client)};
-
-    BOOST_REQUIRE(SendTxDataRequest(*client, tmpl.template_id + 1000));
-    bool closed{false};
-    const auto reply{ReadMessage(*client, closed)};
-    BOOST_REQUIRE(reply.has_value());
-    BOOST_CHECK_EQUAL(reply->header.msg_type,
-                      static_cast<uint8_t>(sv2::CoreMsg::REQUEST_TRANSACTION_DATA_ERROR));
-    const auto err{sv2::DecodePayload<sv2::RequestTransactionDataError>(reply->payload)};
-    BOOST_CHECK_EQUAL(err.error_code, "template-id-not-found");
-    // An error is not a disconnection: the client simply asked for the wrong
-    // thing.
-    BOOST_CHECK_EQUAL(server->connman->ClientCount(), 1u);
-}
-
-BOOST_AUTO_TEST_CASE(transaction_data_for_a_stale_template)
-{
-    // Only the newest template survives a tip change, and a client that was
-    // mid-request needs to know the difference between work that expired and
-    // an id that never existed.
-    auto server{StartTemplateServer(m_node, m_args.GetDataDirNet())};
-    auto client{ConnectTo(*server, server->AuthorityPubKey())};
-    const auto first{GetTemplate(*client)};
-
-    CreateAndProcessBlock({}, CScript() << OP_TRUE);
-    bool closed{false};
-    BOOST_REQUIRE(ReadMessage(*client, closed).has_value()); // pushed NewTemplate
-    BOOST_REQUIRE(ReadMessage(*client, closed).has_value()); // SetNewPrevHash
-    BOOST_REQUIRE(ReadMessage(*client, closed).has_value()); // AvianTimeConstraints
-
-    BOOST_REQUIRE(SendTxDataRequest(*client, first.template_id));
-    const auto reply{ReadMessage(*client, closed)};
-    BOOST_REQUIRE(reply.has_value());
-    BOOST_CHECK_EQUAL(reply->header.msg_type,
-                      static_cast<uint8_t>(sv2::CoreMsg::REQUEST_TRANSACTION_DATA_ERROR));
-    const auto err{sv2::DecodePayload<sv2::RequestTransactionDataError>(reply->payload)};
-    BOOST_CHECK_EQUAL(err.error_code, "stale-template");
-}
-
-BOOST_AUTO_TEST_CASE(transaction_data_is_rate_limited)
-{
-    // This is the one message where a few request bytes buy a whole block
-    // serialized, encrypted and buffered, so it is metered.
-    auto server{StartTemplateServer(m_node, m_args.GetDataDirNet())};
-    auto client{ConnectTo(*server, server->AuthorityPubKey())};
-    const auto tmpl{GetTemplate(*client)};
-
-    bool closed{false};
-    for (size_t i = 0; i < sv2::MAX_TXDATA_REQUESTS; ++i) {
-        BOOST_REQUIRE(SendTxDataRequest(*client, tmpl.template_id));
-        BOOST_REQUIRE(ReadMessage(*client, closed).has_value());
-    }
-
-    // One past the allowance ends the connection rather than being answered.
-    BOOST_REQUIRE(SendTxDataRequest(*client, tmpl.template_id));
-    ReadMessage(*client, closed);
-    BOOST_CHECK(closed);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

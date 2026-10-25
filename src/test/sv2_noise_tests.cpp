@@ -7,6 +7,7 @@
 #include <pubkey.h>
 #include <sv2/noise.h>
 #include <test/util/setup_common.h>
+#include <tinyformat.h>
 #include <uint256.h>
 
 #include <array>
@@ -156,7 +157,7 @@ BOOST_AUTO_TEST_CASE(handshake_derives_matching_transport_keys)
     // Several messages in each direction, to exercise nonce sequencing rather
     // than just the first frame.
     for (int i = 0; i < 3; ++i) {
-        const auto plain{ToBytes("initiator frame " + std::to_string(i))};
+        const auto plain{ToBytes(strprintf("initiator frame %d", i))};
         std::vector<std::byte> cipher(plain.size() + sv2::MAC_SIZE);
         i_send.Encrypt(plain, {}, cipher);
         std::vector<std::byte> out(plain.size());
@@ -165,7 +166,7 @@ BOOST_AUTO_TEST_CASE(handshake_derives_matching_transport_keys)
     }
 
     for (int i = 0; i < 3; ++i) {
-        const auto plain{ToBytes("responder frame " + std::to_string(i))};
+        const auto plain{ToBytes(strprintf("responder frame %d", i))};
         std::vector<std::byte> cipher(plain.size() + sv2::MAC_SIZE);
         r_send.Encrypt(plain, {}, cipher);
         std::vector<std::byte> out(plain.size());
