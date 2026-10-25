@@ -237,29 +237,20 @@ BOOST_AUTO_TEST_CASE(powalgo_parsing)
     BOOST_CHECK(!sv2::ReadOptions(m_args, ChainType::REGTEST));
 }
 
-BOOST_AUTO_TEST_CASE(version_mask_never_opens_algorithm_bits)
+BOOST_AUTO_TEST_CASE(version_rolling_is_never_offered)
 {
-    // Bits 16-23 hold the algorithm. BIP320's mask covers bits 13-28 and so
-    // contains them outright, which is why anything a user asks for gets
-    // filtered rather than trusted.
-    m_args.ForceSetArg("-sv2versionmask", "0x1fffe000");
-    {
-        const auto opts{sv2::ReadOptions(m_args, ChainType::REGTEST)};
-        BOOST_REQUIRE(opts);
-        BOOST_CHECK_EQUAL(opts->version_rolling_mask & sv2::POW_TYPE_VERSION_BITS, 0u);
-        BOOST_CHECK_EQUAL(opts->version_rolling_mask, 0x1fffe000u & ~sv2::POW_TYPE_VERSION_BITS);
-    }
-
-    // Accepted with or without the 0x prefix.
-    m_args.ForceSetArg("-sv2versionmask", "e000");
-    {
-        const auto opts{sv2::ReadOptions(m_args, ChainType::REGTEST)};
-        BOOST_REQUIRE(opts);
-        BOOST_CHECK_EQUAL(opts->version_rolling_mask, 0xe000u);
-    }
-
-    m_args.ForceSetArg("-sv2versionmask", "not-hex");
-    BOOST_CHECK(!sv2::ReadOptions(m_args, ChainType::REGTEST));
+    // Not configurable, by design. Every nVersion bit is either the algorithm
+    // at 16-23, VERSIONBITS_TOP_MASK at 29-31, or BIP9 deployment space where
+    // bits 2, 11, 12 and 28 are assigned and the rest is where the next
+    // deployment lands. A mask that looked safe today would not stay safe, and
+    // Avian's GPU and CPU algorithms have no use for the search space anyway.
+    //
+    // CheckSolution still honours a non-zero mask, which is what a later
+    // protocol version would use; see sv2_solution_check_tests. This only
+    // pins that nothing in the configuration can turn it on.
+    const auto opts{sv2::ReadOptions(m_args, ChainType::REGTEST)};
+    BOOST_REQUIRE(opts);
+    BOOST_CHECK_EQUAL(opts->version_rolling_mask, 0u);
 }
 
 BOOST_AUTO_TEST_CASE(extension_id_override_is_development_only)

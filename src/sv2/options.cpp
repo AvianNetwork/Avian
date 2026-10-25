@@ -14,7 +14,6 @@
 #include <util/translation.h>
 
 #include <algorithm>
-#include <charconv>
 #include <string>
 #include <system_error>
 
@@ -155,28 +154,6 @@ util::Result<Options> ReadOptions(const ArgsManager& args, ChainType chain)
                 return util::Error{Untranslated(strprintf("Invalid -sv2powalgo '%s'", name))};
             }
         }
-    }
-
-    if (args.IsArgSet("-sv2versionmask")) {
-        std::string mask_str{args.GetArg("-sv2versionmask", "0")};
-        // A bitmask reads naturally in hex, so hex is what this takes, with or
-        // without an 0x prefix.
-        if (mask_str.rfind("0x", 0) == 0 || mask_str.rfind("0X", 0) == 0) {
-            mask_str = mask_str.substr(2);
-        }
-        uint32_t mask{0};
-        const char* begin{mask_str.data()};
-        const char* end{mask_str.data() + mask_str.size()};
-        const auto parsed{std::from_chars(begin, end, mask, 16)};
-        if (mask_str.empty() || parsed.ec != std::errc{} || parsed.ptr != end) {
-            return util::Error{Untranslated(strprintf(
-                "Invalid -sv2versionmask '%s'; expected a hexadecimal mask", args.GetArg("-sv2versionmask", "")))};
-        }
-        const uint32_t safe{mask & ~POW_TYPE_VERSION_BITS};
-        if (safe != mask) {
-            LogWarning("sv2: -sv2versionmask 0x%08x would open nVersion bits 16-23, which hold the proof-of-work algorithm; using 0x%08x instead", mask, safe);
-        }
-        opts.version_rolling_mask = safe;
     }
 
     const int64_t max_rejects{args.GetIntArg("-sv2maxrejects", opts.max_rejects)};

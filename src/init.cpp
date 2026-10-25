@@ -682,7 +682,6 @@ void SetupServerArgs(ArgsManager& argsman, bool can_listen_ipc)
     argsman.AddArg("-sv2interval=<n>", strprintf("Seconds between Stratum v2 template refreshes when the tip has not moved, which is what picks up new fees. Clamped to 120 so X16RT work never outlives its epoch. (default: %u)", 30), ArgsManager::ALLOW_ANY, OptionsCategory::SV2);
     argsman.AddArg("-sv2ntimeforward=<n>", strprintf("How many seconds above a template's own timestamp a Stratum v2 client may roll ntime (default: %u)", 600), ArgsManager::ALLOW_ANY, OptionsCategory::SV2);
     argsman.AddArg("-sv2timemargin=<n>", strprintf("Seconds of margin to leave below the consensus future-time limit when bounding ntime (default: %u)", 60), ArgsManager::ALLOW_ANY, OptionsCategory::SV2);
-    argsman.AddArg("-sv2versionmask=<hex>", "Which nVersion bits a Stratum v2 client may roll, as a hexadecimal mask. Bits 16-23 hold the proof-of-work algorithm and are always masked off. (default: 0)", ArgsManager::ALLOW_ANY, OptionsCategory::SV2);
     argsman.AddArg("-sv2extensionid=<n>", strprintf("Identifier for Avian's Stratum v2 multi-PoW extension (default: 0x%04x). For development only and rejected on mainnet, where the wire identity must be fixed.", sv2::AVIAN_EXTENSION_ID), ArgsManager::ALLOW_ANY | ArgsManager::DEBUG_ONLY, OptionsCategory::SV2);
     argsman.AddArg("-sv2staticprivkey=<file>", "Stratum v2 server static private key, generated on first use (default: sv2_static_key in the network directory)", ArgsManager::ALLOW_ANY, OptionsCategory::SV2);
     argsman.AddArg("-sv2authoritykey=<file>", "Stratum v2 authority private key that signs the server certificate, generated on first use (default: sv2_authority_key in the network directory)", ArgsManager::ALLOW_ANY, OptionsCategory::SV2);
@@ -702,7 +701,6 @@ void SetupServerArgs(ArgsManager& argsman, bool can_listen_ipc)
     hidden_args.emplace_back("-sv2interval=<n>");
     hidden_args.emplace_back("-sv2ntimeforward=<n>");
     hidden_args.emplace_back("-sv2timemargin=<n>");
-    hidden_args.emplace_back("-sv2versionmask=<hex>");
     hidden_args.emplace_back("-sv2extensionid=<n>");
     hidden_args.emplace_back("-sv2staticprivkey=<file>");
     hidden_args.emplace_back("-sv2authoritykey=<file>");

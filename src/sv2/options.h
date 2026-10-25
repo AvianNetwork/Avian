@@ -77,11 +77,23 @@ struct Options {
     //! connection gets if it does not select one.
     std::vector<POW_TYPE> pow_algos{POW_TYPE_X16RT};
 
-    //! Which nVersion bits a client may roll.
+    //! Which nVersion bits a client may roll. Always zero, and deliberately
+    //! not configurable.
     //!
-    //! Zero, and always masked so bits 16-23 stay shut: those hold the
-    //! algorithm, and rolling them either trips bad-algo-id or silently
-    //! switches a share to the other algorithm and the wrong pow limit.
+    //! There is no durable safe subset to expose. Bits 16-23 hold the
+    //! algorithm, so rolling them either trips bad-algo-id or silently
+    //! switches a share to the other algorithm and the wrong pow limit. Bits
+    //! 29-31 are VERSIONBITS_TOP_MASK, which Avian also uses to signal
+    //! assets. What is left is BIP9 deployment space, where bits 2, 11, 12
+    //! and 28 are already assigned and the rest is where future deployments
+    //! will land, so a mask that is safe today would not stay safe.
+    //!
+    //! Version rolling exists to give ASICs search space past nonce and
+    //! extranonce at very high hash rates. X16RT and MinotaurX are GPU and
+    //! CPU algorithms where nonce plus extranonce is ample, so this buys
+    //! nothing to set against that. The field stays in the wire format, and
+    //! CheckSolution honours a non-zero value, so a later protocol version
+    //! can use it without a format change.
     uint32_t version_rolling_mask{0};
 
     //! How many solutions a client may have refused before it is dropped. A
@@ -122,10 +134,6 @@ util::Result<Options> ReadOptions(const ArgsManager& args, ChainType chain);
 //! exist. The file holds the raw 32-byte key and is created with the process
 //! umask, which init sets to 0077.
 util::Result<CKey> LoadOrCreateKey(const fs::path& path);
-
-//! nVersion bits that must never be opened for rolling, because they hold
-//! the proof-of-work algorithm (src/primitives/block.h GetPoWType).
-static constexpr uint32_t POW_TYPE_VERSION_BITS{0x00ff0000};
 
 //! Sign a certificate for `static_key` with `authority`, valid from now for
 //! `validity_days`.

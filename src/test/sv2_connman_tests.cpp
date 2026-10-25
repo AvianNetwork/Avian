@@ -495,14 +495,18 @@ BOOST_AUTO_TEST_CASE(algorithm_selection_succeeds)
     BOOST_CHECK_EQUAL(ok.version_rolling_mask, 0u);
 }
 
-BOOST_AUTO_TEST_CASE(version_rolling_mask_never_opens_algorithm_bits)
+BOOST_AUTO_TEST_CASE(a_configured_mask_is_reported_faithfully)
 {
-    // Even asked for the full BIP320 mask, bits 16-23 stay shut, because
-    // rolling them either trips bad-algo-id or silently switches the share to
-    // the other algorithm and the wrong pow limit.
+    // No configuration can set a non-zero mask, so this reaches past
+    // ReadOptions to set the field directly. What it pins is the wire half:
+    // AvianSelectAlgorithm.Success carries the mask exactly as the node holds
+    // it, which is what a later protocol version would depend on if it ever
+    // allowed rolling. The algorithm bits are absent because the node never
+    // puts them there.
+    constexpr uint32_t mask{0x0000e000};
     auto server{StartServer(m_args.GetDataDirNet(), [](sv2::Options& o) {
         ProductionLike(o);
-        o.version_rolling_mask = 0x1fffe000 & ~sv2::POW_TYPE_VERSION_BITS;
+        o.version_rolling_mask = mask;
     })};
     auto client{Connect(*server, server->AuthorityPubKey())};
     BOOST_REQUIRE(SetupSession(*client));
@@ -513,7 +517,8 @@ BOOST_AUTO_TEST_CASE(version_rolling_mask_never_opens_algorithm_bits)
     const auto reply{ReadMessage(*client, closed)};
     BOOST_REQUIRE(reply.has_value());
     const auto ok{sv2::DecodePayload<sv2::AvianSelectAlgorithmSuccess>(reply->payload)};
-    BOOST_CHECK_EQUAL(ok.version_rolling_mask & sv2::POW_TYPE_VERSION_BITS, 0u);
+    BOOST_CHECK_EQUAL(ok.version_rolling_mask, mask);
+    BOOST_CHECK_EQUAL(ok.version_rolling_mask & 0x00ff0000u, 0u);
 }
 
 BOOST_AUTO_TEST_CASE(unknown_pow_type_is_rejected)
