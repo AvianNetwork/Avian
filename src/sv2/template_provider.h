@@ -20,6 +20,7 @@
 #include <deque>
 #include <map>
 #include <memory>
+#include <optional>
 #include <span>
 #include <thread>
 
@@ -125,6 +126,10 @@ private:
         //! that has since been dropped can be told apart from one that never
         //! existed.
         uint64_t highest_template_id{0};
+        //! The prev hash this client has already been told about, so
+        //! SetNewPrevHash is sent when it changes and not on every refresh.
+        //! Absent until the first template, which always needs one.
+        std::optional<uint256> announced_prev_hash;
         //! When recent transaction-data requests arrived.
         std::deque<std::chrono::steady_clock::time_point> txdata_requests;
         //! When recent solutions arrived. A Template Provider submission means
