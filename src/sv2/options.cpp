@@ -179,6 +179,14 @@ util::Result<Options> ReadOptions(const ArgsManager& args, ChainType chain)
         opts.version_rolling_mask = safe;
     }
 
+    const int64_t interval{args.GetIntArg("-sv2interval", opts.refresh_interval.count())};
+    // An X16RT template dies at its 128-second epoch boundary, so refreshing
+    // less often than that would leave clients holding dead work.
+    if (interval < 1 || interval > 120) {
+        return util::Error{Untranslated("-sv2interval must be between 1 and 120 seconds")};
+    }
+    opts.refresh_interval = std::chrono::seconds{interval};
+
     const int64_t ntime_forward{args.GetIntArg("-sv2ntimeforward", opts.ntime_forward)};
     if (ntime_forward < 0) {
         return util::Error{Untranslated("-sv2ntimeforward cannot be negative")};

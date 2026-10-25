@@ -7,6 +7,7 @@
 #include <netbase.h>
 #include <pubkey.h>
 #include <primitives/block.h>
+#include <arith_uint256.h>
 #include <chainparams.h>
 #include <consensus/amount.h>
 #include <interfaces/mining.h>
@@ -281,7 +282,10 @@ struct TemplateServer {
 
     ~TemplateServer()
     {
+        // The listener holds the clients whose templates reference the mining
+        // interface, so it stops first.
         if (connman) connman->Stop();
+        if (provider) provider->Stop();
     }
 };
 
@@ -316,6 +320,7 @@ std::unique_ptr<TemplateServer> StartTemplateServer(node::NodeContext& node, con
     server->provider = std::make_unique<sv2::TemplateProvider>(*server->mining, opts);
     server->connman = std::make_unique<sv2::Connman>(opts, server->static_key, server->cert);
     server->provider->SetConnman(server->connman.get());
+    server->provider->Start();
     BOOST_REQUIRE(server->connman->Start(server->provider.get()));
 
     const auto bound{server->connman->BoundAddresses()};
@@ -974,13 +979,28 @@ BOOST_AUTO_TEST_CASE(serves_a_new_template)
     const CAmount subsidy{GetBlockSubsidy(height, Params().GetConsensus())};
     BOOST_CHECK_EQUAL(static_cast<CAmount>(tmpl.coinbase_tx_value_remaining) + required_total, subsidy);
 
-    // The time constraints follow immediately, because the spec gives
-    // SubmitSolution no upper ntime bound of its own.
+    // NewTemplate carries no prev hash, so the work is unusable until this
+    // arrives.
     const auto second{ReadMessage(*client, closed)};
     BOOST_REQUIRE(second.has_value());
-    BOOST_CHECK_EQUAL(second->header.extension_type, sv2::AVIAN_EXTENSION_ID);
-    BOOST_CHECK_EQUAL(second->header.msg_type, static_cast<uint8_t>(sv2::AvianMsg::TIME_CONSTRAINTS));
-    const auto times{sv2::DecodePayload<sv2::AvianTimeConstraints>(second->payload)};
+    BOOST_CHECK_EQUAL(second->header.msg_type, static_cast<uint8_t>(sv2::CoreMsg::SET_NEW_PREV_HASH));
+    const auto prev{sv2::DecodePayload<sv2::SetNewPrevHash>(second->payload)};
+    BOOST_CHECK_EQUAL(prev.template_id, tmpl.template_id);
+    // Avian chains proof-of-work hashes rather than SHA256d, and this must be
+    // whatever the next header has to point at.
+    BOOST_CHECK_EQUAL(prev.prev_hash, m_node.chainman->ActiveChain().Tip()->GetBlockHash());
+    BOOST_CHECK(prev.nbits != 0);
+    // The target is nBits expanded, and nBits already came from the per
+    // algorithm difficulty.
+    BOOST_CHECK_EQUAL(prev.target, ArithToUint256(arith_uint256{}.SetCompact(prev.nbits)));
+
+    // The time constraints follow, because the spec gives SubmitSolution no
+    // upper ntime bound of its own.
+    const auto third{ReadMessage(*client, closed)};
+    BOOST_REQUIRE(third.has_value());
+    BOOST_CHECK_EQUAL(third->header.extension_type, sv2::AVIAN_EXTENSION_ID);
+    BOOST_CHECK_EQUAL(third->header.msg_type, static_cast<uint8_t>(sv2::AvianMsg::TIME_CONSTRAINTS));
+    const auto times{sv2::DecodePayload<sv2::AvianTimeConstraints>(third->payload)};
     BOOST_CHECK_EQUAL(times.template_id, tmpl.template_id);
     BOOST_CHECK(times.ntime_max >= times.ntime_min);
     // Regtest allows minimum-difficulty blocks, where nBits depends on nTime,
@@ -1055,6 +1075,44 @@ BOOST_AUTO_TEST_CASE(templates_need_constraints_first)
     BOOST_CHECK(client->sock->Wait(std::chrono::milliseconds{300}, Sock::RECV, &occurred));
     BOOST_CHECK_EQUAL(occurred & Sock::RECV, 0);
     BOOST_CHECK(!closed);
+}
+
+
+BOOST_AUTO_TEST_CASE(new_tip_reissues_work)
+{
+    // A tip change invalidates every outstanding template, so the provider
+    // has to push replacements rather than wait to be asked.
+    auto server{StartTemplateServer(m_node, m_args.GetDataDirNet())};
+    auto client{ConnectTo(*server, server->AuthorityPubKey())};
+    BOOST_REQUIRE(Ready(*client, POW_TYPE_X16RT));
+    BOOST_REQUIRE(SendConstraints(*client));
+
+    bool closed{false};
+    const auto first{ReadMessage(*client, closed)};
+    BOOST_REQUIRE(first.has_value());
+    const auto before{sv2::DecodePayload<sv2::NewTemplate>(first->payload)};
+    BOOST_REQUIRE(ReadMessage(*client, closed).has_value()); // SetNewPrevHash
+    BOOST_REQUIRE(ReadMessage(*client, closed).has_value()); // AvianTimeConstraints
+
+    const uint256 old_tip{m_node.chainman->ActiveChain().Tip()->GetBlockHash()};
+    CreateAndProcessBlock({}, CScript() << OP_TRUE);
+    BOOST_REQUIRE(m_node.chainman->ActiveChain().Tip()->GetBlockHash() != old_tip);
+
+    // Unprompted work for the new tip, pushed from the watcher thread.
+    const auto pushed{ReadMessage(*client, closed)};
+    BOOST_REQUIRE(pushed.has_value());
+    BOOST_CHECK_EQUAL(pushed->header.msg_type, static_cast<uint8_t>(sv2::CoreMsg::NEW_TEMPLATE));
+    const auto after{sv2::DecodePayload<sv2::NewTemplate>(pushed->payload)};
+    BOOST_CHECK(after.template_id != before.template_id);
+
+    const auto new_prev{ReadMessage(*client, closed)};
+    BOOST_REQUIRE(new_prev.has_value());
+    BOOST_CHECK_EQUAL(new_prev->header.msg_type, static_cast<uint8_t>(sv2::CoreMsg::SET_NEW_PREV_HASH));
+    const auto prev{sv2::DecodePayload<sv2::SetNewPrevHash>(new_prev->payload)};
+    BOOST_CHECK_EQUAL(prev.template_id, after.template_id);
+    // It must point at the block just mined, not the one it replaced.
+    BOOST_CHECK_EQUAL(prev.prev_hash, m_node.chainman->ActiveChain().Tip()->GetBlockHash());
+    BOOST_CHECK(prev.prev_hash != old_tip);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

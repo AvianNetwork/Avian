@@ -84,6 +84,11 @@ struct Options {
     //! switches a share to the other algorithm and the wrong pow limit.
     uint32_t version_rolling_mask{0};
 
+    //! How often to rebuild templates when the tip has not moved, which is
+    //! what picks up new fees. Clamped so an X16RT client always gets a fresh
+    //! template before its epoch boundary expires.
+    std::chrono::seconds refresh_interval{30};
+
     //! How far above a template's own timestamp a client may roll ntime, and
     //! how much margin to leave below the consensus future-time limit.
     int64_t ntime_forward{600};
