@@ -293,6 +293,12 @@ class Sv2Transport:
 
     def msg1(self):
         self.state.mix_hash(self.eph_pub)
+        # Act 1 step 4: EncryptAndHash over an empty payload. No key exists
+        # yet, so it adds no bytes and reduces to MixHash on empty data, but
+        # it is part of the transcript. Omitting it leaves h one SHA256
+        # iteration apart from a conforming peer, and h is the associated data
+        # for message 2, so the only symptom is an unexplained MAC failure.
+        self.state.mix_hash(b'')
         return self.eph_pub
 
     def _ecdh(self, theirs):

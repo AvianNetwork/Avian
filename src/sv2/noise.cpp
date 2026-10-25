@@ -205,6 +205,14 @@ void HandshakeState::WriteMsg1(std::span<std::byte> out)
     GenerateEphemeral(m_ephemeral, m_ephemeral_pub);
     std::copy(m_ephemeral_pub.begin(), m_ephemeral_pub.end(), out.begin());
     m_state.MixHash(out);
+
+    // Act 1 step 4: EncryptAndHash over an empty payload. No key exists yet,
+    // so it writes nothing to the wire and degrades to MixHash on empty data,
+    // which is why message 1 is still 64 bytes. It is still part of the
+    // transcript: a peer that skips it derives an h one SHA256 iteration
+    // apart, and since h is the associated data for message 2, the only
+    // symptom is a MAC failure with no diagnostic.
+    m_state.EncryptAndHash({}, {});
 }
 
 bool HandshakeState::ReadMsg1(std::span<const std::byte> in)
@@ -214,6 +222,10 @@ bool HandshakeState::ReadMsg1(std::span<const std::byte> in)
 
     m_remote_ephemeral_pub = EllSwiftPubKey{in};
     m_state.MixHash(in);
+    // The counterpart of act 1 step 4, over the empty remainder of the
+    // message. Cannot fail without a key, but kept in this form so the
+    // transcript reads as the specification states it.
+    if (!m_state.DecryptAndHash({}, {})) return false;
     return true;
 }
 
