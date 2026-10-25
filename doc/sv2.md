@@ -334,6 +334,25 @@ SetNewPrevHash               activates the job
 A worker **must not** begin hashing an Avian job until it holds both the
 applicable time constraints and the activation information.
 
+Note that the node does the opposite on its own link, and deliberately.
+`aviand` sends `NewTemplate`, then `SetNewPrevHash`, then
+`AvianTimeConstraints` last. The asymmetry is not an oversight:
+
+- A worker activated by `SetNewPrevHash` is required by Stratum v2 to start
+  hashing immediately, so constraints arriving afterwards leave a real instant
+  in which it is working without knowing when its work expires.
+- A Template Distribution client is a pool, and it cannot do anything with a
+  template until it has the whole round: the merkle path, the required
+  outputs, the prev hash and the window all have to be in hand before it can
+  build a single job. There is no equivalent instant.
+
+Putting `AvianTimeConstraints` last on that link buys something instead. It
+gives a work round an unambiguous terminator, which a blocking client needs,
+because `SetNewPrevHash` is only sent when the tip moved and so cannot be used
+to tell a new-tip round from an in-place refresh. `test_framework/sv2.py`
+relies on exactly that: it reads until the constraints arrive and then knows
+the round is complete.
+
 That distinction is not optional to handle. Stratum v2 requires the first
 `NewMiningJob` after a channel opens to be a future job, with `ntime_start`
 unset, so every connection meets the second case before it ever meets the

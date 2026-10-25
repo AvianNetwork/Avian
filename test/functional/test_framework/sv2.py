@@ -570,6 +570,12 @@ class Sv2Client:
         SetNewPrevHash only accompanies a template built on a tip the client
         has not seen, while AvianTimeConstraints follows every template, so a
         caller cannot assume a fixed number of messages.
+
+        The node sends AvianTimeConstraints last, which is what makes this
+        loop terminate correctly: without a fixed final message there is no
+        way to tell a new-tip round from an in-place refresh without blocking.
+        Callers that check prev_hash is not None are therefore also asserting
+        that SetNewPrevHash arrived before the constraints.
         """
         work = {'template': decode_new_template(self.recv_expect(EXT_CORE, NEW_TEMPLATE)),
                 'prev_hash': None,
