@@ -35,7 +35,14 @@ uint16_t DefaultPort(ChainType chain)
 util::Result<Options> ReadOptions(const ArgsManager& args, ChainType chain)
 {
     Options opts;
-    const uint16_t default_port{static_cast<uint16_t>(args.GetIntArg("-sv2port", DefaultPort(chain)))};
+    const int64_t port{args.GetIntArg("-sv2port", DefaultPort(chain))};
+    // The only -sv2 option that was narrowed rather than checked. A bare cast
+    // turns 65536 into 0, which binds an ephemeral port: the node comes up,
+    // reports success, and listens somewhere nobody was told about.
+    if (port < 1 || port > 65535) {
+        return util::Error{Untranslated("-sv2port must be between 1 and 65535")};
+    }
+    const uint16_t default_port{static_cast<uint16_t>(port)};
 
     for (const std::string& spec : args.GetArgs("-sv2bind")) {
         // Numeric only: a listener must not depend on name resolution, and a
@@ -88,8 +95,12 @@ util::Result<Options> ReadOptions(const ArgsManager& args, ChainType chain)
     opts.max_send_buffer = static_cast<size_t>(send_buffer) << 20;
 
     const int64_t validity{args.GetIntArg("-sv2certvalidity", opts.cert_validity_days)};
-    if (validity < 1) {
-        return util::Error{Untranslated("-sv2certvalidity must be at least 1 day")};
+    // The ceiling is not pedantry. not_valid_after is a uint32 of seconds, so
+    // a large enough validity wraps and every client then rejects the
+    // certificate as long expired, which presents as a handshake that fails
+    // for no visible reason.
+    if (validity < 1 || validity > 36500) {
+        return util::Error{Untranslated("-sv2certvalidity must be between 1 and 36500 days")};
     }
     opts.cert_validity_days = validity;
 
@@ -103,6 +114,23 @@ util::Result<Options> ReadOptions(const ArgsManager& args, ChainType chain)
     } else {
         return util::Error{Untranslated(strprintf(
             "Invalid -sv2extensionpolicy '%s'; expected require, optional or off", policy))};
+    }
+
+    // The specification reserves 0x4000-0x7fff for experimental extensions and
+    // says they must not be present in production equipment. While the
+    // compiled-in identifier is still one of those, mainnet is refused
+    // outright: the alternative is a node that looks like it speaks a
+    // protocol and is using a number nobody has allocated it.
+    //
+    // This is the check that lifts when a registry allocation lands, and it
+    // is deliberately on the constant rather than on the override, because
+    // the override was never the thing that would put 0x4001 on mainnet.
+    // Starting aviand -sv2 on mainnet with no arguments at all was.
+    if (chain == ChainType::MAIN && AVIAN_EXTENSION_ID >= 0x4000 && AVIAN_EXTENSION_ID <= 0x7fff) {
+        return util::Error{Untranslated(strprintf(
+            "Stratum v2 cannot be enabled on mainnet: the Avian extension still uses the "
+            "experimental identifier 0x%04x, which the specification forbids in production. "
+            "See doc/sv2.md.", AVIAN_EXTENSION_ID))};
     }
 
     // Development override only. On mainnet the wire identity must be fixed

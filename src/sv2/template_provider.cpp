@@ -74,6 +74,13 @@ void TemplateProvider::ClientReady(ClientId id, POW_TYPE pow_type)
 {
     LOCK(m_mutex);
     ClientState& state{m_clients[id]};
+    // Reachable twice for one client: under the optional policy it becomes
+    // ready at SetupConnection and again when it selects an algorithm. Any
+    // templates cached in between are for the wrong algorithm, so they go.
+    if (state.pow_type != pow_type) {
+        state.templates.clear();
+        state.announced_prev_hash.reset();
+    }
     state.pow_type = pow_type;
     LogPrintLevel(BCLog::SV2, BCLog::Level::Debug, "client=%d ready for %s templates\n", id,
                   POW_TYPE_NAMES[pow_type]);
@@ -541,7 +548,13 @@ bool TemplateProvider::HandleSubmitSolution(ClientId id, ClientState& state,
     // attacker able to reach it could wipe a legitimately warm cache.
     const auto& consensus{Params().GetConsensus()};
     const PoWHasher hasher{[&consensus](const CBlockHeader& header) {
-        return header.ComputePoWHash(consensus.nX16rtTimestamp, consensus.powForkTime);
+        // The same two values chainparams.cpp arms SetPoWHashParams with, so
+        // this path and GetHash() can never disagree about which algorithm a
+        // header uses. consensus.nX16rtTimestamp looks like the right field
+        // and is never assigned by any chain, so it is always zero.
+        return header.ComputePoWHash(
+            consensus.vUpgrades[Consensus::UPGRADE_X16RT_SWITCH].nTimestamp,
+            consensus.vUpgrades[Consensus::UPGRADE_DUAL_ALGO].nTimestamp);
     }};
 
     const auto check{CheckSolution(ctx, solution, GetTime(), consensus, hasher)};
@@ -699,16 +712,18 @@ void InterruptSv2()
 
 void StopSv2()
 {
-    // The listener goes first: it holds the clients whose cached templates
-    // reference the mining interface.
-    if (g_connman) {
-        g_connman->Stop();
-        g_connman.reset();
-    }
-    if (g_provider) {
-        g_provider->Stop();
-        g_provider.reset();
-    }
+    // Stop everything before destroying anything. The provider's watcher
+    // thread holds a raw Connman* and calls Send() on it, so destroying the
+    // listener while that thread is still running is a use-after-free. The
+    // listener is stopped first so no new work arrives, but it outlives the
+    // thread that might still be talking to it.
+    if (g_connman) g_connman->Stop();
+    if (g_provider) g_provider->Stop();
+
+    // Now nothing is running. The provider goes first because it is the one
+    // holding the pointer.
+    g_provider.reset();
+    g_connman.reset();
 }
 
 } // namespace sv2
