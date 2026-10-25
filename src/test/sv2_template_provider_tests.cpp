@@ -506,6 +506,30 @@ BOOST_AUTO_TEST_CASE(transaction_data_for_a_stale_template)
     BOOST_CHECK_EQUAL(err.error_code, "stale-template");
 }
 
+BOOST_AUTO_TEST_CASE(coinbase_constraints_are_rate_limited)
+{
+    // This was the only handler that was free, and it is not cheap: each one
+    // rebuilds this client's template, which takes cs_main. A single full
+    // socket read holds about fifteen hundred of these six-byte messages.
+    auto server{StartTemplateServer(m_node, m_args.GetDataDirNet())};
+    auto client{ConnectTo(*server, server->AuthorityPubKey())};
+    BOOST_REQUIRE(Ready(*client, POW_TYPE_X16RT));
+
+    bool closed{false};
+    for (size_t i = 0; i < sv2::MAX_CONSTRAINTS; ++i) {
+        BOOST_REQUIRE(SendConstraints(*client, 1000 + static_cast<uint32_t>(i)));
+        // Each one is answered with fresh work, so the allowance is real
+        // rather than the client simply being ignored.
+        BOOST_REQUIRE(ReadMessage(*client, closed, sv2test::PUSH_TIMEOUT).has_value());
+    }
+
+    BOOST_REQUIRE(SendConstraints(*client, 2000));
+    while (ReadMessage(*client, closed).has_value()) {
+        // Drain whatever was already queued for us.
+    }
+    BOOST_CHECK(closed);
+}
+
 BOOST_AUTO_TEST_CASE(transaction_data_is_rate_limited)
 {
     // This is the one message where a few request bytes buy a whole block

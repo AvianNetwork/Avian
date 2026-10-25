@@ -34,6 +34,11 @@ static constexpr uint32_t MAX_COINBASE_ADDITIONAL_SIZE{8000};
 //! Transaction data is the one message where a few request bytes produce a
 //! whole block of encrypted output, so it is metered rather than merely
 //! bounded.
+//! A client sends CoinbaseOutputConstraints once in normal operation. The
+//! allowance is for a client that changes its mind, not for a stream of them.
+static constexpr size_t MAX_CONSTRAINTS{4};
+static constexpr auto CONSTRAINTS_WINDOW{std::chrono::seconds{10}};
+
 static constexpr size_t MAX_TXDATA_REQUESTS{2};
 static constexpr auto TXDATA_WINDOW{std::chrono::seconds{10}};
 
@@ -46,7 +51,10 @@ static constexpr auto SOLUTION_WINDOW{std::chrono::seconds{10}};
 //! Everything derived from a block template at the moment it is sent, so that
 //! answering a later request or validating a solution costs no block work.
 struct CachedTemplate {
-    std::unique_ptr<interfaces::BlockTemplate> handle;
+    //! Shared rather than unique so a submission can keep it alive across
+    //! the unlocked proof-of-work hash: the watcher thread may prune this
+    //! template while that hash is in flight.
+    std::shared_ptr<interfaces::BlockTemplate> handle;
 
     POW_TYPE pow_type{POW_TYPE_X16RT};
     //! nVersion as issued, algorithm bits included. A solution must match it.
@@ -130,6 +138,10 @@ private:
         //! SetNewPrevHash is sent when it changes and not on every refresh.
         //! Absent until the first template, which always needs one.
         std::optional<uint256> announced_prev_hash;
+        //! When recent coinbase-constraint messages arrived. Each one
+        //! rebuilds a template, which takes cs_main and can cost tens of
+        //! milliseconds on a full block, so it is metered like the rest.
+        std::deque<std::chrono::steady_clock::time_point> constraints;
         //! When recent transaction-data requests arrived.
         std::deque<std::chrono::steady_clock::time_point> txdata_requests;
         //! When recent solutions arrived. A Template Provider submission means
@@ -159,9 +171,15 @@ private:
                                                      std::span<const uint8_t> payload)
         EXCLUSIVE_LOCKS_REQUIRED(m_mutex);
 
-    [[nodiscard]] bool HandleSubmitSolution(ClientId id, ClientState& state,
-                                            std::span<const uint8_t> payload)
-        EXCLUSIVE_LOCKS_REQUIRED(m_mutex);
+    //! Takes and releases m_mutex itself rather than being called under it:
+    //! this is the path that ends in a proof-of-work hash, and holding a
+    //! provider-wide lock across that would let one client stall every other.
+    [[nodiscard]] bool HandleSubmitSolution(ClientId id, std::span<const uint8_t> payload)
+        EXCLUSIVE_LOCKS_REQUIRED(!m_mutex);
+
+    //! Record a refused solution and say whether the client may stay.
+    [[nodiscard]] bool RecordRefusal(ClientId id, uint64_t template_id, SolutionError error)
+        EXCLUSIVE_LOCKS_REQUIRED(!m_mutex);
 
     //! Rebuild and reissue work for every client that has asked for it.
     void RefreshClients(bool tip_changed) EXCLUSIVE_LOCKS_REQUIRED(!m_mutex);

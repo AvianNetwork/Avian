@@ -620,6 +620,19 @@ void Connman::ServiceClients(const Sock::EventsPerSock& events)
             }
 
             client.transport.Received(std::as_bytes(std::span{buf, static_cast<size_t>(got)}));
+
+            // The option existed, was documented as the per-client cap, and
+            // was never read by anything. A client that sends without ever
+            // completing a frame, or stalls partway through one, is holding
+            // memory for nothing.
+            if (client.transport.RecvBufferSize() > m_opts.max_recv_buffer) {
+                LogPrintLevel(BCLog::SV2, BCLog::Level::Debug,
+                              "client=%d buffered %d bytes without completing a message\n",
+                              client.id, client.transport.RecvBufferSize());
+                client.disconnect = true;
+                continue;
+            }
+
             if (!client.transport.Advance(unix_now)) {
                 LogPrintLevel(BCLog::SV2, BCLog::Level::Debug,
                               "client=%d transport error, disconnecting\n", client.id);

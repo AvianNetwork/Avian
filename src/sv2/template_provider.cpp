@@ -95,10 +95,6 @@ void TemplateProvider::ClientDisconnected(ClientId id)
 bool TemplateProvider::ReceivedMessage(ClientId id, const NetHeader& header,
                                        std::span<const uint8_t> payload)
 {
-    LOCK(m_mutex);
-    const auto it{m_clients.find(id)};
-    if (it == m_clients.end()) return false;
-
     if (header.Extension() != EXT_CORE) {
         LogPrintLevel(BCLog::SV2, BCLog::Level::Debug,
                       "client=%d sent extension 0x%04x, which carries no template messages\n", id,
@@ -106,13 +102,21 @@ bool TemplateProvider::ReceivedMessage(ClientId id, const NetHeader& header,
         return false;
     }
 
+    // Handled without the provider lock, because it ends in a proof-of-work
+    // hash. It finds its own client and takes the lock in pieces.
+    if (static_cast<CoreMsg>(header.msg_type) == CoreMsg::SUBMIT_SOLUTION) {
+        return HandleSubmitSolution(id, payload);
+    }
+
+    LOCK(m_mutex);
+    const auto it{m_clients.find(id)};
+    if (it == m_clients.end()) return false;
+
     switch (static_cast<CoreMsg>(header.msg_type)) {
     case CoreMsg::COINBASE_OUTPUT_CONSTRAINTS:
         return HandleCoinbaseOutputConstraints(id, it->second, payload);
     case CoreMsg::REQUEST_TRANSACTION_DATA:
         return HandleRequestTransactionData(id, it->second, payload);
-    case CoreMsg::SUBMIT_SOLUTION:
-        return HandleSubmitSolution(id, it->second, payload);
     default:
         LogPrintLevel(BCLog::SV2, BCLog::Level::Debug,
                       "client=%d sent msg_type=0x%02x, which is not yet served\n", id,
@@ -124,6 +128,22 @@ bool TemplateProvider::ReceivedMessage(ClientId id, const NetHeader& header,
 bool TemplateProvider::HandleCoinbaseOutputConstraints(ClientId id, ClientState& state,
                                                        std::span<const uint8_t> payload)
 {
+    // Metered before anything is parsed, like the other handlers. This was
+    // the only one that was free, and it is not cheap: every one of them
+    // rebuilds this client's template under cs_main. A single full socket
+    // read holds about fifteen hundred of these six-byte messages.
+    const auto arrived{std::chrono::steady_clock::now()};
+    while (!state.constraints.empty() && arrived - state.constraints.front() > CONSTRAINTS_WINDOW) {
+        state.constraints.pop_front();
+    }
+    if (state.constraints.size() >= MAX_CONSTRAINTS) {
+        LogPrintLevel(BCLog::SV2, BCLog::Level::Debug,
+                      "client=%d sent more than %d CoinbaseOutputConstraints in %ds\n", id,
+                      MAX_CONSTRAINTS, CONSTRAINTS_WINDOW.count());
+        return false;
+    }
+    state.constraints.push_back(arrived);
+
     CoinbaseOutputConstraints constraints;
     try {
         constraints = DecodePayload<CoinbaseOutputConstraints>(payload);
@@ -472,76 +492,104 @@ bool TemplateProvider::HandleRequestTransactionData(ClientId id, ClientState& st
     return true;
 }
 
-bool TemplateProvider::HandleSubmitSolution(ClientId id, ClientState& state,
-                                            std::span<const uint8_t> payload)
+bool TemplateProvider::RecordRefusal(ClientId id, uint64_t template_id, SolutionError error)
 {
-    // Metered before anything is parsed. This is the primary control: every
-    // check after it is cheap, but the hash at the end is not, and a few
-    // request bytes must not be able to buy one.
-    const auto arrived{std::chrono::steady_clock::now()};
-    while (!state.solutions.empty() && arrived - state.solutions.front() > SOLUTION_WINDOW) {
-        state.solutions.pop_front();
-    }
-    if (state.solutions.size() >= MAX_SOLUTIONS) {
-        LogPrintLevel(BCLog::SV2, BCLog::Level::Debug,
-                      "client=%d submitted more than %d solutions in %ds\n", id, MAX_SOLUTIONS,
-                      SOLUTION_WINDOW.count());
-        return false;
-    }
-    state.solutions.push_back(arrived);
-
-    SubmitSolution solution;
-    try {
-        solution = DecodePayload<SubmitSolution>(payload);
-    } catch (const std::ios_base::failure& e) {
-        LogPrintLevel(BCLog::SV2, BCLog::Level::Debug,
-                      "client=%d sent a malformed SubmitSolution: %s\n", id, e.what());
-        return false;
-    }
+    LOCK(m_mutex);
+    const auto it{m_clients.find(id)};
+    if (it == m_clients.end()) return false;
+    ClientState& state{it->second};
 
     // There is no SubmitSolution.Error in the Template Distribution Protocol,
     // so a refusal can only be logged and counted. Inventing a reply message
     // would break a stock client's dispatch.
-    const auto refuse{[&](SolutionError error) {
-        ++state.rejects;
-        LogPrintLevel(BCLog::SV2, BCLog::Level::Debug,
-                      "client=%d solution for template %d refused: %s (%d of %d)\n", id,
-                      solution.template_id, SolutionErrorString(error), state.rejects,
-                      m_opts.max_rejects);
-        if (state.rejects >= m_opts.max_rejects) {
-            LogPrintLevel(BCLog::SV2, BCLog::Level::Warning,
-                          "client=%d refused too many solutions; it is most likely rolling a field "
-                          "it was told not to, and will never find a valid block\n", id);
+    ++state.rejects;
+    LogPrintLevel(BCLog::SV2, BCLog::Level::Debug,
+                  "client=%d solution for template %d refused: %s (%d of %d)\n", id, template_id,
+                  SolutionErrorString(error), state.rejects, m_opts.max_rejects);
+    if (state.rejects >= m_opts.max_rejects) {
+        LogPrintLevel(BCLog::SV2, BCLog::Level::Warning,
+                      "client=%d refused too many solutions; it is most likely rolling a field "
+                      "it was told not to, and will never find a valid block\n", id);
+        return false;
+    }
+    return true;
+}
+
+bool TemplateProvider::HandleSubmitSolution(ClientId id, std::span<const uint8_t> payload)
+{
+    SubmitSolution solution;
+    SolutionContext ctx;
+    std::shared_ptr<interfaces::BlockTemplate> handle;
+    POW_TYPE pow_type{POW_TYPE_X16RT};
+
+    // Everything needing the provider's state happens here, and nothing
+    // expensive does. The hash below costs orders of magnitude more than all
+    // of it, and holding this lock across that would stall every other client
+    // and block the watcher thread from touching any of them.
+    {
+        LOCK(m_mutex);
+        const auto it{m_clients.find(id)};
+        if (it == m_clients.end()) return false;
+        ClientState& state{it->second};
+
+        // Metered before anything is parsed. This is the primary control:
+        // every check after it is cheap, but the hash at the end is not, and
+        // a few request bytes must not be able to buy one.
+        const auto arrived{std::chrono::steady_clock::now()};
+        while (!state.solutions.empty() && arrived - state.solutions.front() > SOLUTION_WINDOW) {
+            state.solutions.pop_front();
+        }
+        if (state.solutions.size() >= MAX_SOLUTIONS) {
+            LogPrintLevel(BCLog::SV2, BCLog::Level::Debug,
+                          "client=%d submitted more than %d solutions in %ds\n", id, MAX_SOLUTIONS,
+                          SOLUTION_WINDOW.count());
             return false;
         }
-        return true;
-    }};
+        state.solutions.push_back(arrived);
 
-    const auto it{state.templates.find(solution.template_id)};
-    if (it == state.templates.end()) {
-        return refuse(SolutionError::UNKNOWN_TEMPLATE);
+        try {
+            solution = DecodePayload<SubmitSolution>(payload);
+        } catch (const std::ios_base::failure& e) {
+            LogPrintLevel(BCLog::SV2, BCLog::Level::Debug,
+                          "client=%d sent a malformed SubmitSolution: %s\n", id, e.what());
+            return false;
+        }
+
+        const auto cached_it{state.templates.find(solution.template_id)};
+        if (cached_it == state.templates.end()) {
+            ++state.rejects;
+            LogPrintLevel(BCLog::SV2, BCLog::Level::Debug,
+                          "client=%d solution for template %d refused: %s (%d of %d)\n", id,
+                          solution.template_id, SolutionErrorString(SolutionError::UNKNOWN_TEMPLATE),
+                          state.rejects, m_opts.max_rejects);
+            return state.rejects < m_opts.max_rejects;
+        }
+        const CachedTemplate& cached{cached_it->second};
+
+        ctx.pow_type = cached.pow_type;
+        ctx.version = cached.version;
+        ctx.version_rolling_mask = m_opts.version_rolling_mask;
+        ctx.nbits = cached.nbits;
+        ctx.prev_hash = cached.prev_hash;
+        ctx.ntime = cached.ntime;
+        ctx.ntime_min = cached.ntime_min;
+        ctx.ntime_max = cached.ntime_max;
+        ctx.coinbase_tx_version = cached.coinbase_tx_version;
+        ctx.coinbase_tx_input_sequence = cached.coinbase_tx_input_sequence;
+        ctx.coinbase_tx_locktime = cached.coinbase_tx_locktime;
+        ctx.coinbase_prefix = cached.coinbase_prefix;
+        ctx.required_outputs = cached.required_txouts;
+        ctx.value_remaining = static_cast<int64_t>(cached.value_remaining);
+        ctx.max_coinbase_size = cached.max_coinbase_size;
+        ctx.max_coinbase_weight = cached.max_coinbase_weight;
+        ctx.max_coinbase_sigops = cached.max_coinbase_sigops;
+        ctx.merkle_path = cached.merkle_path;
+
+        // A copy of the pointer, not of the block. The template can be pruned
+        // out from under us while the hash runs; the handle survives it.
+        handle = cached.handle;
+        pow_type = cached.pow_type;
     }
-    const CachedTemplate& cached{it->second};
-
-    SolutionContext ctx;
-    ctx.pow_type = cached.pow_type;
-    ctx.version = cached.version;
-    ctx.version_rolling_mask = m_opts.version_rolling_mask;
-    ctx.nbits = cached.nbits;
-    ctx.prev_hash = cached.prev_hash;
-    ctx.ntime = cached.ntime;
-    ctx.ntime_min = cached.ntime_min;
-    ctx.ntime_max = cached.ntime_max;
-    ctx.coinbase_tx_version = cached.coinbase_tx_version;
-    ctx.coinbase_tx_input_sequence = cached.coinbase_tx_input_sequence;
-    ctx.coinbase_tx_locktime = cached.coinbase_tx_locktime;
-    ctx.coinbase_prefix = cached.coinbase_prefix;
-    ctx.required_outputs = cached.required_txouts;
-    ctx.value_remaining = static_cast<int64_t>(cached.value_remaining);
-    ctx.max_coinbase_size = cached.max_coinbase_size;
-    ctx.max_coinbase_weight = cached.max_coinbase_weight;
-    ctx.max_coinbase_sigops = cached.max_coinbase_sigops;
-    ctx.merkle_path = cached.merkle_path;
 
     // ComputePoWHash, deliberately not GetHash: GetHash inserts into a
     // disk-persisted cache that evicts by clearing itself entirely, so an
@@ -559,26 +607,29 @@ bool TemplateProvider::HandleSubmitSolution(ClientId id, ClientState& state,
 
     const auto check{CheckSolution(ctx, solution, GetTime(), consensus, hasher)};
     if (check.error != SolutionError::NONE) {
-        return refuse(check.error);
+        return RecordRefusal(id, solution.template_id, check.error);
     }
 
     // min_pow_checked is justified now, and only now: the proof of work was
-    // verified above against this algorithm's own limit.
-    if (!cached.handle->submitSolution(solution.version, solution.ntime, solution.nonce,
-                                       check.coinbase)) {
+    // verified above against this algorithm's own limit. Unlocked too, since
+    // this ends in ProcessNewBlock.
+    if (!handle->submitSolution(solution.version, solution.ntime, solution.nonce, check.coinbase)) {
         // The block was rejected by validation rather than by us, which means
         // our checks and consensus disagree. Worth saying loudly.
         LogPrintLevel(BCLog::SV2, BCLog::Level::Warning,
                       "client=%d submitted a block that passed every Stratum v2 check and was "
                       "still refused by validation; template %d\n", id, solution.template_id);
-        return refuse(SolutionError::NONE);
+        return RecordRefusal(id, solution.template_id, SolutionError::NONE);
     }
 
-    state.rejects = 0;
+    LOCK(m_mutex);
+    const auto it{m_clients.find(id)};
+    if (it != m_clients.end()) it->second.rejects = 0;
     LogPrintf("sv2: client=%d found a block for template %d (%s)\n", id, solution.template_id,
-              POW_TYPE_NAMES[cached.pow_type]);
+              POW_TYPE_NAMES[pow_type]);
     return true;
 }
+
 
 void TemplateProvider::ThreadWatcher()
 {
