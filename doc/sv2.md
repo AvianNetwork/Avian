@@ -664,6 +664,39 @@ miner that assumed otherwise would be checking nothing.
 Seeing the full transaction list is what the Job Declaration Protocol is for,
 and that is not part of this.
 
+**A miner also cannot tell whether its own share is a block.** It is given a
+share target and never the network target, because only the pool holds the
+template and only the pool forwards a winner to the node. This catches Stratum
+v1 miners out: there the convention is to compare against the network target
+and announce a block locally, and a port of such a miner will look for a field
+that is not sent and cannot be. A miner learns its share was a block, if at
+all, from the pool or from the chain.
+
+### A miner's side of the exchange
+
+This document is written from the node's and the pool's side, because that is
+what Avian Core implements. But the extension is equally what a third-party
+miner has to implement, so, in brief:
+
+```
+SetupConnection          protocol 0, REQUIRES_STANDARD_JOBS only if
+                         the miner cannot process extended jobs,
+                         and never REQUIRES_VERSION_ROLLING
+RequestExtensions        0x4001, or the pool will not serve you
+AvianSelectAlgorithm     one algorithm per connection, immutable
+OpenMiningChannel        user_identity carries address.workername
+                         on a solo pool
+NewMiningJob             or NewExtendedMiningJob, with the coinbase
+                         to assemble yourself
+AvianJobTimeConstraints  the window ntime must stay inside
+SubmitShares             nonce, and ntime within that window
+```
+
+Three rules a miner must hold to, each of which fails silently if it does not:
+submit `version` exactly as the job gave it, keep `ntime` within
+`[ntime_min, ntime_max]` inclusive, and discard work in flight when a
+connection drops, because job ids are only unique within a connection.
+
 ### Changing this extension
 
 A registry allocation covers an `extension_type`, and the message numbers inside
