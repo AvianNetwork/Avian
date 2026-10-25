@@ -67,6 +67,15 @@ static_assert(ENCRYPTED_HEADER_SIZE == 22);
 //! Payloads are split into chunks of at most this many plaintext bytes; each
 //! gains a MAC, so no ciphertext chunk exceeds the 65535-byte Noise limit.
 static constexpr size_t MAX_PLAINTEXT_CHUNK{65519};
+
+//! The largest payload a Template Provider will accept from a client.
+//!
+//! The U24 msg_length ceiling is 16 MiB, which is what an eight megabyte
+//! block costs to *send*. Nothing a client sends is anywhere near it: the
+//! largest is SubmitSolution, whose coinbase is a B0_64K. Accepting the
+//! generic ceiling meant a client could make the node buffer 16 MiB per
+//! connection before the message was dispatched and refused.
+static constexpr size_t MAX_INBOUND_PAYLOAD{256 * 1024};
 static constexpr size_t MAX_CIPHERTEXT_CHUNK{MAX_PLAINTEXT_CHUNK + MAC_SIZE};
 static_assert(MAX_CIPHERTEXT_CHUNK == 65535);
 

@@ -168,6 +168,38 @@ BOOST_AUTO_TEST_CASE(multi_chunk_payloads)
     }
 }
 
+BOOST_AUTO_TEST_CASE(an_oversized_payload_is_refused_before_it_is_buffered)
+{
+    // msg_length is a U24, so the format allows 16 MiB. Nothing a client
+    // sends is near that: the largest is SubmitSolution, whose coinbase is a
+    // B0_64K. Honouring the format's ceiling meant a client could make the
+    // node buffer 16 MiB per connection before the message was dispatched and
+    // refused, which is the kind of limit that is only tested by someone
+    // attacking it.
+    BOOST_CHECK(sv2::MAX_INBOUND_PAYLOAD < sv2::MAX_PAYLOAD);
+
+    const auto peers{MakePeers()};
+    auto initiator{sv2::Transport::Initiator(XOnlyPubKey{peers.authority.GetPubKey()})};
+    auto responder{sv2::Transport::Responder(peers.static_key, peers.cert)};
+    BOOST_REQUIRE(Pump(initiator, responder));
+    BOOST_REQUIRE(Pump(responder, initiator));
+
+    // One byte inside the cap still works, so the limit is not simply
+    // refusing everything large.
+    const auto fits{Pattern(sv2::MAX_INBOUND_PAYLOAD)};
+    BOOST_REQUIRE(initiator.Send(sv2::NetHeader{sv2::EXT_CORE, 0x74, 0}, fits));
+    BOOST_REQUIRE(Pump(initiator, responder));
+    auto msg{responder.Next()};
+    BOOST_REQUIRE(msg.has_value());
+    BOOST_CHECK_EQUAL(msg->payload.size(), sv2::MAX_INBOUND_PAYLOAD);
+
+    // One byte over is fatal, and fatal on the header rather than after the
+    // body has been read, which is the whole point.
+    const auto over{Pattern(sv2::MAX_INBOUND_PAYLOAD + 1)};
+    BOOST_REQUIRE(initiator.Send(sv2::NetHeader{sv2::EXT_CORE, 0x74, 0}, over));
+    BOOST_CHECK(!Pump(initiator, responder));
+}
+
 BOOST_AUTO_TEST_CASE(byte_at_a_time_delivery)
 {
     // This is the case a loopback test never produces, and it exercises

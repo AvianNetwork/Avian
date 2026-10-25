@@ -107,7 +107,9 @@ bool Transport::ReadFrame(bool& progress)
         } catch (const std::ios_base::failure&) {
             return false;
         }
-        if (header.msg_length > MAX_PAYLOAD) return false;
+        // Bounded by what a client can legitimately send, not by what the
+        // field can describe. Rejected here, before the body is buffered.
+        if (header.msg_length > MAX_INBOUND_PAYLOAD) return false;
 
         m_pending = PendingFrame{header, CiphertextLen(header.msg_length)};
     }
