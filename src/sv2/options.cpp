@@ -91,6 +91,18 @@ util::Result<Options> ReadOptions(const ArgsManager& args, ChainType chain)
     }
     opts.cert_validity_days = validity;
 
+    const std::string policy{args.GetArg("-sv2extensionpolicy", "optional")};
+    if (policy == "require") {
+        opts.extension_policy = ExtensionPolicy::REQUIRE;
+    } else if (policy == "optional") {
+        opts.extension_policy = ExtensionPolicy::OPTIONAL;
+    } else if (policy == "off") {
+        opts.extension_policy = ExtensionPolicy::OFF;
+    } else {
+        return util::Error{Untranslated(strprintf(
+            "Invalid -sv2extensionpolicy '%s'; expected require, optional or off", policy))};
+    }
+
     opts.static_key_file = args.GetPathArg("-sv2staticprivkey", args.GetDataDirNet() / "sv2_static_key");
     opts.authority_key_file = args.GetPathArg("-sv2authoritykey", args.GetDataDirNet() / "sv2_authority_key");
 

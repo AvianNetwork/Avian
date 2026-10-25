@@ -98,14 +98,30 @@ public:
     std::vector<CService> BoundAddresses() const;
 
 private:
+    //! Where a connection is in the Common protocol exchange.
+    enum class State : uint8_t {
+        //! Awaiting SetupConnection. Nothing else may be sent.
+        SETUP,
+        //! Setup answered; awaiting RequestExtensions. Only reached when the
+        //! policy demands negotiation.
+        NEGOTIATE,
+        //! May exchange Template Distribution messages.
+        READY,
+    };
+
     struct Client {
         ClientId id;
         std::shared_ptr<Sock> sock;
         CService addr;
         Transport transport;
         std::chrono::steady_clock::time_point connected;
-        //! Set once SetupConnection has been answered.
-        bool ready{false};
+        State state{State::SETUP};
+        //! A client that omits a required extension gets one chance to ask
+        //! again, as the spec allows, before it is dropped.
+        bool extensions_retried{false};
+        //! Negotiation happens before protocol messages, so it is answered at
+        //! most once per connection.
+        bool extensions_answered{false};
         //! Close immediately, discarding anything still queued.
         bool disconnect{false};
         //! Stop reading and close once the send buffer drains, so a rejection
@@ -127,6 +143,13 @@ private:
 
     //! Handle a message the Common protocol owns. Returns false to disconnect.
     [[nodiscard]] bool HandleCommon(Client& client, const ReceivedMsg& msg) EXCLUSIVE_LOCKS_REQUIRED(m_mutex);
+    [[nodiscard]] bool HandleSetupConnection(Client& client, const ReceivedMsg& msg) EXCLUSIVE_LOCKS_REQUIRED(m_mutex);
+    [[nodiscard]] bool HandleRequestExtensions(Client& client, const ReceivedMsg& msg) EXCLUSIVE_LOCKS_REQUIRED(m_mutex);
+
+    //! Reject a client with `msg`, flushing the reply before closing.
+    template <typename M>
+    [[nodiscard]] bool Reject(Client& client, uint16_t ext, uint8_t type, const M& msg, const std::string& why)
+        EXCLUSIVE_LOCKS_REQUIRED(m_mutex);
 
     //! Serialize `msg` into a frame on `client`.
     template <typename M>

@@ -19,6 +19,9 @@
 #include <algorithm>
 #include <cassert>
 #include <memory>
+#include <set>
+#include <string>
+#include <vector>
 
 namespace sv2 {
 
@@ -151,7 +154,7 @@ bool Connman::Send(ClientId id, const NetHeader& header, std::span<const uint8_t
     LOCK(m_mutex);
     for (auto& client : m_clients) {
         if (client.id != id) continue;
-        if (!client.ready || client.disconnect) return false;
+        if (client.state != State::READY || client.disconnect) return false;
         if (!client.transport.Send(header, payload)) return false;
         if (client.transport.SendBuffer().size() > m_opts.max_send_buffer) {
             LogPrintLevel(BCLog::SV2, BCLog::Level::Warning,
@@ -180,6 +183,152 @@ bool Connman::SendTo(Client& client, uint16_t ext, uint8_t type, const M& msg)
     return client.transport.Send(NetHeader{ext, type, 0}, payload);
 }
 
+template <typename M>
+bool Connman::Reject(Client& client, uint16_t ext, uint8_t type, const M& msg, const std::string& why)
+{
+    LogPrintLevel(BCLog::SV2, BCLog::Level::Debug, "client=%d rejected: %s\n", client.id, why);
+    (void)SendTo(client, ext, type, msg);
+    // Drain rather than disconnect, so the reply actually gets written. Closing
+    // the moment it is queued would leave the client knowing only that it was
+    // dropped.
+    client.drain = true;
+    client.drain_until = std::chrono::steady_clock::now() + DRAIN_TIMEOUT;
+    return false;
+}
+
+bool Connman::HandleSetupConnection(Client& client, const ReceivedMsg& msg)
+{
+    SetupConnection setup;
+    try {
+        setup = DecodePayload<SetupConnection>(msg.payload);
+    } catch (const std::ios_base::failure& e) {
+        LogPrintLevel(BCLog::SV2, BCLog::Level::Debug,
+                      "client=%d sent a malformed SetupConnection: %s\n", client.id, e.what());
+        return false;
+    }
+
+    if (setup.protocol != static_cast<uint8_t>(Protocol::TEMPLATE_DISTRIBUTION)) {
+        return Reject(client, EXT_CORE, static_cast<uint8_t>(CoreMsg::SETUP_CONNECTION_ERROR),
+                      SetupConnectionError{0, "unsupported-protocol"}, "unsupported-protocol");
+    }
+    if (setup.min_version > PROTOCOL_VERSION || setup.max_version < PROTOCOL_VERSION) {
+        return Reject(client, EXT_CORE, static_cast<uint8_t>(CoreMsg::SETUP_CONNECTION_ERROR),
+                      SetupConnectionError{0, "protocol-version-mismatch"}, "protocol-version-mismatch");
+    }
+    if (setup.flags != 0) {
+        // No flags are defined for template distribution, so echo back the
+        // bits we could not honour rather than pretending we did.
+        return Reject(client, EXT_CORE, static_cast<uint8_t>(CoreMsg::SETUP_CONNECTION_ERROR),
+                      SetupConnectionError{setup.flags, "unsupported-feature-flags"},
+                      "unsupported-feature-flags");
+    }
+
+    if (!SendTo(client, EXT_CORE, static_cast<uint8_t>(CoreMsg::SETUP_CONNECTION_SUCCESS),
+                SetupConnectionSuccess{PROTOCOL_VERSION, 0})) {
+        return false;
+    }
+
+    LogPrintLevel(BCLog::SV2, BCLog::Level::Debug,
+                  "client=%d setup complete (vendor=%s firmware=%s device=%s)\n", client.id,
+                  setup.vendor, setup.firmware, setup.device_id);
+
+    // Negotiation only gates the session when the policy demands it.
+    if (m_opts.extension_policy == ExtensionPolicy::REQUIRE) {
+        client.state = State::NEGOTIATE;
+        return true;
+    }
+    client.state = State::READY;
+    if (m_events) m_events->ClientReady(client.id);
+    return true;
+}
+
+bool Connman::HandleRequestExtensions(Client& client, const ReceivedMsg& msg)
+{
+    if (client.extensions_answered) {
+        LogPrintLevel(BCLog::SV2, BCLog::Level::Debug,
+                      "client=%d sent a second RequestExtensions\n", client.id);
+        return false;
+    }
+
+    RequestExtensions req;
+    try {
+        req = DecodePayload<RequestExtensions>(msg.payload);
+    } catch (const std::ios_base::failure& e) {
+        LogPrintLevel(BCLog::SV2, BCLog::Level::Debug,
+                      "client=%d sent a malformed RequestExtensions: %s\n", client.id, e.what());
+        return false;
+    }
+
+    // Extension 0x0001 is the negotiation mechanism itself, so it is supported
+    // by definition. OFF withholds everything else, which is how a stock
+    // client can be proven to still work.
+    std::set<uint16_t> supported{EXT_NEGOTIATION};
+    if (m_opts.extension_policy != ExtensionPolicy::OFF) {
+        supported.insert(m_opts.supported_extensions.begin(), m_opts.supported_extensions.end());
+    }
+
+    const std::set<uint16_t> requested{req.requested_extensions.begin(), req.requested_extensions.end()};
+    std::vector<uint16_t> agreed;
+    std::vector<uint16_t> unsupported;
+    for (const uint16_t ext : requested) {
+        (supported.count(ext) > 0 ? agreed : unsupported).push_back(ext);
+    }
+
+    std::vector<uint16_t> missing;
+    if (m_opts.extension_policy == ExtensionPolicy::REQUIRE) {
+        for (const uint16_t ext : m_opts.required_extensions) {
+            if (requested.count(ext) == 0) missing.push_back(ext);
+        }
+    }
+
+    if (!missing.empty()) {
+        RequestExtensionsError err;
+        err.request_id = req.request_id;
+        err.unsupported_extensions = unsupported;
+        err.required_extensions = missing;
+        if (client.extensions_retried) {
+            return Reject(client, EXT_NEGOTIATION,
+                          static_cast<uint8_t>(NegotiationMsg::REQUEST_EXTENSIONS_ERROR), err,
+                          "a required extension was still missing after a retry");
+        }
+        // The spec allows one further attempt, so say what is missing and wait
+        // rather than closing on the first omission.
+        client.extensions_retried = true;
+        LogPrintLevel(BCLog::SV2, BCLog::Level::Debug,
+                      "client=%d omitted %d required extension(s), awaiting a retry\n", client.id,
+                      missing.size());
+        return SendTo(client, EXT_NEGOTIATION,
+                      static_cast<uint8_t>(NegotiationMsg::REQUEST_EXTENSIONS_ERROR), err);
+    }
+
+    if (!requested.empty() && agreed.empty()) {
+        // Nothing the client asked for exists here. Not fatal: with nothing
+        // required, the spec lets it carry on without extensions.
+        RequestExtensionsError err;
+        err.request_id = req.request_id;
+        err.unsupported_extensions = unsupported;
+        if (!SendTo(client, EXT_NEGOTIATION,
+                    static_cast<uint8_t>(NegotiationMsg::REQUEST_EXTENSIONS_ERROR), err)) {
+            return false;
+        }
+    } else {
+        RequestExtensionsSuccess ok;
+        ok.request_id = req.request_id;
+        ok.supported_extensions = agreed;
+        if (!SendTo(client, EXT_NEGOTIATION,
+                    static_cast<uint8_t>(NegotiationMsg::REQUEST_EXTENSIONS_SUCCESS), ok)) {
+            return false;
+        }
+    }
+
+    client.extensions_answered = true;
+    if (client.state == State::NEGOTIATE) {
+        client.state = State::READY;
+        if (m_events) m_events->ClientReady(client.id);
+    }
+    return true;
+}
+
 bool Connman::HandleCommon(Client& client, const ReceivedMsg& msg)
 {
     // A channel-scoped message has no meaning on a Template Distribution
@@ -191,79 +340,60 @@ bool Connman::HandleCommon(Client& client, const ReceivedMsg& msg)
         return false;
     }
 
-    if (!client.ready) {
-        // Nothing but SetupConnection may come first; anything else means the
-        // peer is out of step and there is no session to reply on.
-        if (msg.header.Extension() != EXT_CORE ||
-            msg.header.msg_type != static_cast<uint8_t>(CoreMsg::SETUP_CONNECTION)) {
+    const bool is_setup{msg.header.Extension() == EXT_CORE &&
+                        msg.header.msg_type == static_cast<uint8_t>(CoreMsg::SETUP_CONNECTION)};
+    const bool is_request_extensions{msg.header.Extension() == EXT_NEGOTIATION &&
+                                     msg.header.msg_type ==
+                                         static_cast<uint8_t>(NegotiationMsg::REQUEST_EXTENSIONS)};
+
+    switch (client.state) {
+    case State::SETUP:
+        if (!is_setup) {
+            // There is no session to reply on yet, so the only option is to
+            // close.
             LogPrintLevel(BCLog::SV2, BCLog::Level::Debug,
-                          "client=%d sent msg_type=0x%02x before SetupConnection\n",
+                          "client=%d sent msg_type=0x%02x before SetupConnection\n", client.id,
+                          msg.header.msg_type);
+            return false;
+        }
+        return HandleSetupConnection(client, msg);
+
+    case State::NEGOTIATE:
+        if (is_setup) {
+            // Renegotiating a live session is not something the protocol has a
+            // notion of.
+            LogPrintLevel(BCLog::SV2, BCLog::Level::Debug,
+                          "client=%d sent a second SetupConnection\n", client.id);
+            return false;
+        }
+        if (!is_request_extensions) {
+            // A server cannot announce a required extension unprompted:
+            // RequestExtensions.Error is only ever a response. So a client that
+            // never negotiates can only be dropped, with no on-wire
+            // explanation. That is the documented cost of this policy.
+            LogPrintLevel(BCLog::SV2, BCLog::Level::Debug,
+                          "client=%d sent msg_type=0x%02x instead of negotiating extensions\n",
                           client.id, msg.header.msg_type);
             return false;
         }
+        return HandleRequestExtensions(client, msg);
 
-        SetupConnection setup;
-        try {
-            setup = DecodePayload<SetupConnection>(msg.payload);
-        } catch (const std::ios_base::failure& e) {
+    case State::READY:
+        if (is_setup) {
             LogPrintLevel(BCLog::SV2, BCLog::Level::Debug,
-                          "client=%d sent a malformed SetupConnection: %s\n", client.id, e.what());
+                          "client=%d sent a second SetupConnection\n", client.id);
             return false;
         }
-
-        const auto reject{[&](uint32_t flags, const std::string& code) {
-            SetupConnectionError err;
-            err.flags = flags;
-            err.error_code = code;
-            LogPrintLevel(BCLog::SV2, BCLog::Level::Debug, "client=%d setup rejected: %s\n",
-                          client.id, code);
-            (void)SendTo(client, EXT_CORE, static_cast<uint8_t>(CoreMsg::SETUP_CONNECTION_ERROR), err);
-            // Drain rather than disconnect, so the reply actually gets written.
-            client.drain = true;
-            client.drain_until = std::chrono::steady_clock::now() + DRAIN_TIMEOUT;
-            return false;
-        }};
-
-        if (setup.protocol != static_cast<uint8_t>(Protocol::TEMPLATE_DISTRIBUTION)) {
-            return reject(0, "unsupported-protocol");
-        }
-        if (setup.min_version > PROTOCOL_VERSION || setup.max_version < PROTOCOL_VERSION) {
-            return reject(0, "protocol-version-mismatch");
-        }
-        if (setup.flags != 0) {
-            // No flags are defined for template distribution, so echo back the
-            // bits we could not honour rather than pretending we did.
-            return reject(setup.flags, "unsupported-feature-flags");
-        }
-
-        if (!SendTo(client, EXT_CORE, static_cast<uint8_t>(CoreMsg::SETUP_CONNECTION_SUCCESS),
-                    SetupConnectionSuccess{PROTOCOL_VERSION, 0})) {
+        if (is_request_extensions) return HandleRequestExtensions(client, msg);
+        if (!m_events) {
+            LogPrintLevel(BCLog::SV2, BCLog::Level::Debug,
+                          "client=%d sent msg_type=0x%02x but no template provider is attached\n",
+                          client.id, msg.header.msg_type);
             return false;
         }
-        client.ready = true;
-        LogPrintLevel(BCLog::SV2, BCLog::Level::Debug,
-                      "client=%d setup complete (vendor=%s firmware=%s device=%s)\n", client.id,
-                      setup.vendor, setup.firmware, setup.device_id);
-        if (m_events) m_events->ClientReady(client.id);
-        return true;
+        return m_events->ReceivedMessage(client.id, msg.header, msg.payload);
     }
-
-    // A second SetupConnection would renegotiate a live session, which the
-    // protocol has no notion of.
-    if (msg.header.Extension() == EXT_CORE &&
-        msg.header.msg_type == static_cast<uint8_t>(CoreMsg::SETUP_CONNECTION)) {
-        LogPrintLevel(BCLog::SV2, BCLog::Level::Debug,
-                      "client=%d sent a second SetupConnection\n", client.id);
-        return false;
-    }
-
-    if (!m_events) {
-        LogPrintLevel(BCLog::SV2, BCLog::Level::Debug,
-                      "client=%d sent msg_type=0x%02x but no template provider is attached\n",
-                      client.id, msg.header.msg_type);
-        return false;
-    }
-    return m_events->ReceivedMessage(client.id, msg.header, msg.payload);
+    return false;
 }
 
 Sock::EventsPerSock Connman::GenerateWaitSockets()
@@ -325,9 +455,10 @@ void Connman::AcceptNew(const Sock::EventsPerSock& events)
         }
 
         const ClientId id{m_next_id++};
+        // The remaining members use their default initializers.
         m_clients.push_back(Client{id, std::shared_ptr<Sock>{sock.release()}, addr,
                                    Transport::Responder(m_static_key, m_cert),
-                                   std::chrono::steady_clock::now(), false, false});
+                                   std::chrono::steady_clock::now()});
         LogPrintLevel(BCLog::SV2, BCLog::Level::Debug, "client=%d connected from %s\n", id,
                       addr.ToStringAddrPort());
     }
@@ -343,7 +474,7 @@ void Connman::ServiceClients(const Sock::EventsPerSock& events)
 
         // A client that connects and then says nothing holds a slot, so bound
         // how long it may do so.
-        if (!client.ready && now - client.connected > m_opts.handshake_timeout) {
+        if (client.state != State::READY && now - client.connected > m_opts.handshake_timeout) {
             LogPrintLevel(BCLog::SV2, BCLog::Level::Debug,
                           "client=%d did not finish setup within -sv2handshaketimeout\n", client.id);
             client.disconnect = true;
@@ -420,7 +551,7 @@ void Connman::DropMarked()
             continue;
         }
         const ClientId id{it->id};
-        const bool was_ready{it->ready};
+        const bool was_ready{it->state == State::READY};
         it = m_clients.erase(it);
         if (was_ready && m_events) m_events->ClientDisconnected(id);
     }

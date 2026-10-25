@@ -30,6 +30,18 @@ namespace sv2 {
 //! collide with 18445 and stopped the node listening at all.
 uint16_t DefaultPort(ChainType chain);
 
+//! What a client must negotiate before it may ask for templates.
+enum class ExtensionPolicy {
+    //! The client must send RequestExtensions and include everything in
+    //! `required_extensions`, or it is disconnected.
+    REQUIRE,
+    //! RequestExtensions is answered if sent, but is not demanded.
+    OPTIONAL,
+    //! Avian extensions are not advertised at all. For proving that an
+    //! unmodified client can still complete a session.
+    OFF,
+};
+
 //! How the Template Provider listener is configured.
 struct Options {
     //! Addresses to listen on. Defaults to loopback, because the Noise NX
@@ -50,6 +62,20 @@ struct Options {
     //! what RequestTransactionData.Success will eventually carry.
     size_t max_recv_buffer{1 << 20};
     size_t max_send_buffer{size_t{32} << 20};
+
+    ExtensionPolicy extension_policy{ExtensionPolicy::OPTIONAL};
+
+    //! Avian extensions this server implements. Extension 0x0001 itself is
+    //! always supported and is not listed here.
+    std::vector<uint16_t> supported_extensions;
+
+    //! Extensions a client must request. A client that omits one is told so
+    //! and disconnected if it does not retry.
+    //!
+    //! Empty for now: there is nothing to require until the multi-PoW
+    //! extension exists, and demanding negotiation on its own would reject
+    //! stock clients for no benefit.
+    std::vector<uint16_t> required_extensions;
 
     //! Long-term key proving this server's identity, and the key that signs a
     //! certificate for it. Both are generated on first run.
