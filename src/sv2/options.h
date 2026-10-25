@@ -7,6 +7,7 @@
 
 #include <key.h>
 #include <netaddress.h>
+#include <primitives/block.h>
 #include <sv2/noise.h>
 #include <util/chaintype.h>
 #include <util/fs.h>
@@ -63,7 +64,25 @@ struct Options {
     size_t max_recv_buffer{1 << 20};
     size_t max_send_buffer{size_t{32} << 20};
 
-    ExtensionPolicy extension_policy{ExtensionPolicy::OPTIONAL};
+    ExtensionPolicy extension_policy{ExtensionPolicy::REQUIRE};
+
+    //! Identifier for Avian's multi-PoW extension.
+    //!
+    //! Overridable for development and migration only. The default lies in
+    //! the spec's experimental range, which production equipment must not
+    //! use, so this has to become a registry-allocated value before mainnet.
+    uint16_t extension_id{AVIAN_EXTENSION_ID};
+
+    //! Algorithms this server will build templates for. The first is what a
+    //! connection gets if it does not select one.
+    std::vector<POW_TYPE> pow_algos{POW_TYPE_X16RT};
+
+    //! Which nVersion bits a client may roll.
+    //!
+    //! Zero, and always masked so bits 16-23 stay shut: those hold the
+    //! algorithm, and rolling them either trips bad-algo-id or silently
+    //! switches a share to the other algorithm and the wrong pow limit.
+    uint32_t version_rolling_mask{0};
 
     //! Avian extensions this server implements. Extension 0x0001 itself is
     //! always supported and is not listed here.
@@ -71,10 +90,6 @@ struct Options {
 
     //! Extensions a client must request. A client that omits one is told so
     //! and disconnected if it does not retry.
-    //!
-    //! Empty for now: there is nothing to require until the multi-PoW
-    //! extension exists, and demanding negotiation on its own would reject
-    //! stock clients for no benefit.
     std::vector<uint16_t> required_extensions;
 
     //! Long-term key proving this server's identity, and the key that signs a
@@ -92,6 +107,10 @@ util::Result<Options> ReadOptions(const ArgsManager& args, ChainType chain);
 //! exist. The file holds the raw 32-byte key and is created with the process
 //! umask, which init sets to 0077.
 util::Result<CKey> LoadOrCreateKey(const fs::path& path);
+
+//! nVersion bits that must never be opened for rolling, because they hold
+//! the proof-of-work algorithm (src/primitives/block.h GetPoWType).
+static constexpr uint32_t POW_TYPE_VERSION_BITS{0x00ff0000};
 
 //! Sign a certificate for `static_key` with `authority`, valid from now for
 //! `validity_days`.

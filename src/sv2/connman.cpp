@@ -322,10 +322,63 @@ bool Connman::HandleRequestExtensions(Client& client, const ReceivedMsg& msg)
     }
 
     client.extensions_answered = true;
-    if (client.state == State::NEGOTIATE) {
-        client.state = State::READY;
-        if (m_events) m_events->ClientReady(client.id);
+    client.avian_extension =
+        std::find(agreed.begin(), agreed.end(), m_opts.extension_id) != agreed.end();
+
+    if (client.state != State::NEGOTIATE) return true;
+
+    // With Avian's extension agreed, an algorithm must be chosen before any
+    // template can be built for this connection.
+    if (client.avian_extension) {
+        client.state = State::SELECT_ALGO;
+        return true;
     }
+    client.state = State::READY;
+    if (m_events) m_events->ClientReady(client.id);
+    return true;
+}
+
+bool Connman::HandleAvianSelectAlgorithm(Client& client, const ReceivedMsg& msg)
+{
+    AvianSelectAlgorithm select;
+    try {
+        select = DecodePayload<AvianSelectAlgorithm>(msg.payload);
+    } catch (const std::ios_base::failure& e) {
+        LogPrintLevel(BCLog::SV2, BCLog::Level::Debug,
+                      "client=%d sent a malformed AvianSelectAlgorithm: %s\n", client.id, e.what());
+        return false;
+    }
+
+    const auto reject{[&](const std::string& code) {
+        AvianSelectAlgorithmError err;
+        err.error_code = code;
+        return Reject(client, m_opts.extension_id,
+                      static_cast<uint8_t>(AvianMsg::SELECT_ALGORITHM_ERROR), err, code);
+    }};
+
+    if (select.pow_type >= NUM_BLOCK_TYPES) return reject("unsupported-pow-type");
+    const auto algo{static_cast<POW_TYPE>(select.pow_type)};
+    if (std::find(m_opts.pow_algos.begin(), m_opts.pow_algos.end(), algo) == m_opts.pow_algos.end()) {
+        return reject("pow-type-not-enabled");
+    }
+
+    AvianSelectAlgorithmSuccess ok;
+    ok.pow_type = select.pow_type;
+    // Zero in this version. Bits 16-23 can never be opened, so a client that
+    // obeys this mask cannot change which algorithm its share is judged under.
+    ok.version_rolling_mask = m_opts.version_rolling_mask;
+    if (!SendTo(client, m_opts.extension_id,
+                static_cast<uint8_t>(AvianMsg::SELECT_ALGORITHM_SUCCESS), ok)) {
+        return false;
+    }
+
+    client.pow_type = algo;
+    client.algo_selected = true;
+    client.state = State::READY;
+    LogPrintLevel(BCLog::SV2, BCLog::Level::Debug,
+                  "client=%d selected %s, version rolling mask 0x%08x\n", client.id,
+                  POW_TYPE_NAMES[algo], m_opts.version_rolling_mask);
+    if (m_events) m_events->ClientReady(client.id);
     return true;
 }
 
@@ -345,6 +398,9 @@ bool Connman::HandleCommon(Client& client, const ReceivedMsg& msg)
     const bool is_request_extensions{msg.header.Extension() == EXT_NEGOTIATION &&
                                      msg.header.msg_type ==
                                          static_cast<uint8_t>(NegotiationMsg::REQUEST_EXTENSIONS)};
+    const bool is_avian_select{msg.header.Extension() == m_opts.extension_id &&
+                               msg.header.msg_type ==
+                                   static_cast<uint8_t>(AvianMsg::SELECT_ALGORITHM)};
 
     switch (client.state) {
     case State::SETUP:
@@ -378,6 +434,15 @@ bool Connman::HandleCommon(Client& client, const ReceivedMsg& msg)
         }
         return HandleRequestExtensions(client, msg);
 
+    case State::SELECT_ALGO:
+        if (!is_avian_select) {
+            LogPrintLevel(BCLog::SV2, BCLog::Level::Debug,
+                          "client=%d sent msg_type=0x%02x before selecting an algorithm\n",
+                          client.id, msg.header.msg_type);
+            return false;
+        }
+        return HandleAvianSelectAlgorithm(client, msg);
+
     case State::READY:
         if (is_setup) {
             LogPrintLevel(BCLog::SV2, BCLog::Level::Debug,
@@ -385,6 +450,23 @@ bool Connman::HandleCommon(Client& client, const ReceivedMsg& msg)
             return false;
         }
         if (is_request_extensions) return HandleRequestExtensions(client, msg);
+        if (is_avian_select) {
+            if (!client.avian_extension) {
+                // The spec forbids using a feature from an extension the
+                // server never confirmed.
+                LogPrintLevel(BCLog::SV2, BCLog::Level::Debug,
+                              "client=%d used extension 0x%04x without negotiating it\n", client.id,
+                              m_opts.extension_id);
+                return false;
+            }
+            // The algorithm fixes this connection's nBits and target stream,
+            // so it cannot be changed underneath templates already issued.
+            AvianSelectAlgorithmError err;
+            err.error_code = "algo-already-selected";
+            return Reject(client, m_opts.extension_id,
+                          static_cast<uint8_t>(AvianMsg::SELECT_ALGORITHM_ERROR), err,
+                          "algo-already-selected");
+        }
         if (!m_events) {
             LogPrintLevel(BCLog::SV2, BCLog::Level::Debug,
                           "client=%d sent msg_type=0x%02x but no template provider is attached\n",
@@ -459,6 +541,8 @@ void Connman::AcceptNew(const Sock::EventsPerSock& events)
         m_clients.push_back(Client{id, std::shared_ptr<Sock>{sock.release()}, addr,
                                    Transport::Responder(m_static_key, m_cert),
                                    std::chrono::steady_clock::now()});
+        m_clients.back().pow_type =
+            m_opts.pow_algos.empty() ? POW_TYPE_X16RT : m_opts.pow_algos.front();
         LogPrintLevel(BCLog::SV2, BCLog::Level::Debug, "client=%d connected from %s\n", id,
                       addr.ToStringAddrPort());
     }
