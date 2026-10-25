@@ -697,6 +697,20 @@ submit `version` exactly as the job gave it, keep `ntime` within
 `[ntime_min, ntime_max]` inclusive, and discard work in flight when a
 connection drops, because job ids are only unique within a connection.
 
+On the second of those, one thing a miner author cannot tell from here.
+**For X16RT the window is already epoch-bounded**, because a conforming pool
+folds `(nTime & 0xffffff80) + 127` into `ntime_max` when it narrows the node's
+window. So trusting the window is safe and no separate epoch clamp is needed.
+A miner that computes its own bound anyway, as defence against a pool that got
+this wrong, must apply that same rule rather than a wider one: X16RT work does
+not survive a 128-second boundary even where the window would allow it.
+MinotaurX has no such boundary and must not be clamped as though it does.
+
+And when the nonce range is exhausted while the window is pinned shut, which
+is the normal case on every chain except mainnet because the test chains all
+set `fPowAllowMinDifficultyBlocks`, there is nothing left to vary: wait for
+the next job rather than rolling anything.
+
 ### Changing this extension
 
 A registry allocation covers an `extension_type`, and the message numbers inside
