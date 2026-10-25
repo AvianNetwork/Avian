@@ -46,7 +46,6 @@ Algorithms and protocol policy:
 -sv2powalgo=<algo>              x16rt or minotaurx; repeatable. The first given is
                                 used by a client that does not select one.
 -sv2extensionpolicy=<policy>    require, optional or off (default: require)
--sv2versionmask=<hex>           version-rolling mask (default: 0, see below)
 -sv2maxrejects=<n>              drop a client after this many refused solutions
 ```
 
@@ -220,9 +219,23 @@ constraints differ, because the two protocols name work differently.
 | `pow_type` | `U8` | the algorithm now bound to this connection |
 | `version_rolling_mask` | `U32` | bits of `nVersion` the client may change |
 
-`version_rolling_mask` is `0` in this version, and the node ANDs any configured
-value with `~0x00ff0000` so that bits 16–23 can never be opened. A client must
-submit `version` exactly as the template gave it unless the mask says otherwise.
+`version_rolling_mask` is **always `0`**, and there is no option to change it.
+A client must submit `version` exactly as the template gave it.
+
+The field exists, and `CheckSolution` honours a non-zero value, so a later
+protocol version can allow rolling without a format change. Nothing in this
+version can turn it on, because there is no durable safe subset of `nVersion`
+to open. Bits 16–23 hold the algorithm, so rolling them either trips
+`bad-algo-id` or silently moves the share to the other algorithm and the wrong
+proof-of-work limit. Bits 29–31 are `VERSIONBITS_TOP_MASK`, which Avian also
+uses to signal assets. What remains is BIP9 deployment space, where bits 2, 11,
+12 and 28 are already assigned and the rest is where the next deployment will
+land, so a mask chosen as safe today would not stay safe.
+
+Set against that, rolling buys Avian nothing. Version rolling exists to give
+ASICs search space beyond nonce and extranonce at very high hash rates, and
+X16RT and MinotaurX are GPU and CPU algorithms where nonce plus extranonce is
+ample.
 
 **`AvianSelectAlgorithm.Error`**
 
@@ -299,11 +312,27 @@ active job, ntime_start present
     AvianJobTimeConstraints.ntime_min MUST equal NewMiningJob.ntime_start
 
 future job, ntime_start absent
-    the constraints may be sent with the job, but the bound takes effect when
-    SetNewPrevHash supplies ntime_start, and that value MUST equal ntime_min;
-    if the pool cannot promise that in advance it sends the constraints on
-    activation instead
+    the constraints MAY be sent with the job, if the bounds are known then
+    otherwise they MUST be sent immediately before the SetNewPrevHash that
+    activates the job
+    either way, the ntime_start that SetNewPrevHash supplies MUST equal
+    the ntime_min in force for that job
 ```
+
+"Before the `SetNewPrevHash`", not after. A worker must never have an instant
+in which a job is active and its `ntime_max` is unknown, because the only safe
+thing it could do in that instant is idle. So the ordering is:
+
+```
+NewMiningJob                 future job
+[AvianJobTimeConstraints]    optional here, if the bounds are known
+...
+AvianJobTimeConstraints      required here if not sent above
+SetNewPrevHash               activates the job
+```
+
+A worker **must not** begin hashing an Avian job until it holds both the
+applicable time constraints and the activation information.
 
 That distinction is not optional to handle. Stratum v2 requires the first
 `NewMiningJob` after a channel opens to be a future job, with `ntime_start`
@@ -471,7 +500,9 @@ flowchart TD
    that from a silent failure into an explicit one.
 2. **`extension_type = 0x4001` is experimental.** Registry allocation is a
    mainnet release blocker. See above.
-3. **Version rolling is unsupported** in this version. The mask is 0.
+3. **Version rolling is unsupported** in this version, and not configurable.
+   `version_rolling_mask` is always 0 and `REQUIRES_FIXED_VERSION` is always
+   set on a mining connection.
 4. **There is no cheap pre-filter for Avian's proof of work.** Rate limiting and
    the loopback default are the defence for that final hash.
 5. **Exposing the Stratum v2 port is equivalent to exposing RPC.**
