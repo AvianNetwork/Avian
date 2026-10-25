@@ -184,10 +184,11 @@ error; it just burns hashrate and looks unlucky. That is why the extension is
 required by default rather than optional.
 
 The first two recur verbatim on the Mining Protocol. A worker has to be told
-which algorithm its connection carries, and `NewMiningJob` has a `min_ntime`
-with no maximum, so an X16RT miner rolling ntime off the end of a job's epoch
-computes the wrong hash function there too. The third does not: the algorithm
-is fixed per connection, so one `version_rolling_mask` covers every job on it.
+which algorithm its connection carries, and a job carries an `ntime_start` but
+no maximum permitted `ntime`, so an X16RT miner rolling off the end of a job's
+epoch computes the wrong hash function there too. The third does not: the
+algorithm is fixed per connection, so one `version_rolling_mask` covers every
+job on it.
 
 ### Messages
 
@@ -281,11 +282,38 @@ actually given. It is a separate message rather than a reinterpretation of the
 same field so that an implementation handling both links, such as a pool, can
 never confuse a template id with a job id.
 
-`ntime_min` duplicates the `min_ntime` already in `NewMiningJob` and
-`SetNewPrevHash`. That is deliberate: carrying both bounds in one message means
-a worker has the whole window in one place and does not have to decide which of
-two sources is authoritative, and a pool that computes the window once cannot
-emit halves that disagree.
+`ntime_min` restates the job's `ntime_start`, and the restatement is doing real
+work rather than padding. Stratum v2 says of `ntime_start` that it is the
+`nTime` at which hashing starts and that it **is not the consensus minimum**.
+Avian's `ntime_min` is a different kind of statement: it is a lower bound on
+what will be accepted, because below it the node refuses the submission. The
+two carry the same number and mean different things, so the extension states
+the one it enforces rather than leaving a worker to read a start value as a
+rule. Carrying both bounds together also means a pool that computes the window
+once cannot emit halves that disagree.
+
+How it lines up with the job depends on whether the job is active:
+
+```
+active job, ntime_start present
+    AvianJobTimeConstraints.ntime_min MUST equal NewMiningJob.ntime_start
+
+future job, ntime_start absent
+    the constraints may be sent with the job, but the bound takes effect when
+    SetNewPrevHash supplies ntime_start, and that value MUST equal ntime_min;
+    if the pool cannot promise that in advance it sends the constraints on
+    activation instead
+```
+
+That distinction is not optional to handle. Stratum v2 requires the first
+`NewMiningJob` after a channel opens to be a future job, with `ntime_start`
+unset, so every connection meets the second case before it ever meets the
+first.
+
+The same invariant already holds one link up, where `AvianTimeConstraints`
+`ntime_min` equals the `ntime_start` in the `SetNewPrevHash` for that template.
+`mining_sv2.py` asserts it, so a pool can rely on the node's two messages
+agreeing and has only to preserve the property as it narrows.
 
 A pool derives these bounds from the `AvianTimeConstraints` it received for the
 template the job came from. It must **narrow, never widen**: the node will
