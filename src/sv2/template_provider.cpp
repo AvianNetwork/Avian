@@ -102,10 +102,15 @@ bool TemplateProvider::ReceivedMessage(ClientId id, const NetHeader& header,
         return false;
     }
 
-    // Handled without the provider lock, because it ends in a proof-of-work
-    // hash. It finds its own client and takes the lock in pieces.
+    // Both of these are handled without the provider lock held, because both
+    // end in work measured in milliseconds rather than microseconds: a
+    // proof-of-work hash, and serializing a block that can be eight
+    // megabytes. Each finds its own client and takes the lock in pieces.
     if (static_cast<CoreMsg>(header.msg_type) == CoreMsg::SUBMIT_SOLUTION) {
         return HandleSubmitSolution(id, payload);
+    }
+    if (static_cast<CoreMsg>(header.msg_type) == CoreMsg::REQUEST_TRANSACTION_DATA) {
+        return HandleRequestTransactionData(id, payload);
     }
 
     LOCK(m_mutex);
@@ -115,8 +120,6 @@ bool TemplateProvider::ReceivedMessage(ClientId id, const NetHeader& header,
     switch (static_cast<CoreMsg>(header.msg_type)) {
     case CoreMsg::COINBASE_OUTPUT_CONSTRAINTS:
         return HandleCoinbaseOutputConstraints(id, it->second, payload);
-    case CoreMsg::REQUEST_TRANSACTION_DATA:
-        return HandleRequestTransactionData(id, it->second, payload);
     default:
         LogPrintLevel(BCLog::SV2, BCLog::Level::Debug,
                       "client=%d sent msg_type=0x%02x, which is not yet served\n", id,
@@ -269,6 +272,13 @@ bool TemplateProvider::SendNewTemplate(ClientId id, ClientState& state, bool fut
         GetLegacySigOpCount(*coinbase) + state.coinbase_max_additional_sigops;
     cached.value_remaining = static_cast<uint64_t>(coinbase->vout[0].nValue);
     cached.merkle_path = handle->getCoinbaseMerklePath();
+    // The published specification says excess data "is usually the SegWit
+    // commitment", so this is conformant today. sv2-spec#241 proposes
+    // requiring the field empty instead, SRI's own template provider already
+    // sends it empty, and the question is outstanding with the maintainers.
+    // Revisit before anything depends on Avian's production interoperability:
+    // a pool has the commitment already, verbatim, among the required
+    // outputs, so emptying this loses nothing.
     cached.excess_data = commitment;
 
     const auto& consensus{Params().GetConsensus()};
@@ -389,11 +399,7 @@ void TemplateProvider::PruneTemplates(ClientState& state)
     // been told to replace, and RequestTransactionData rebuilds it from the
     // handle if one ever does.
     for (auto it{state.templates.begin()}; it != std::prev(state.templates.end()); ++it) {
-        if (it->second.transaction_list_built) {
-            it->second.transaction_list.clear();
-            it->second.transaction_list.shrink_to_fit();
-            it->second.transaction_list_built = false;
-        }
+        it->second.transaction_list.reset();
     }
 }
 
@@ -413,8 +419,7 @@ void TemplateProvider::Stop()
     m_clients.clear();
 }
 
-bool TemplateProvider::HandleRequestTransactionData(ClientId id, ClientState& state,
-                                                    std::span<const uint8_t> payload)
+bool TemplateProvider::HandleRequestTransactionData(ClientId id, std::span<const uint8_t> payload)
 {
     RequestTransactionData request;
     try {
@@ -424,20 +429,6 @@ bool TemplateProvider::HandleRequestTransactionData(ClientId id, ClientState& st
                       "client=%d sent a malformed RequestTransactionData: %s\n", id, e.what());
         return false;
     }
-
-    // Meter before doing any work: a handful of request bytes otherwise buys a
-    // whole block serialized, encrypted and buffered.
-    const auto now{std::chrono::steady_clock::now()};
-    while (!state.txdata_requests.empty() && now - state.txdata_requests.front() > TXDATA_WINDOW) {
-        state.txdata_requests.pop_front();
-    }
-    if (state.txdata_requests.size() >= MAX_TXDATA_REQUESTS) {
-        LogPrintLevel(BCLog::SV2, BCLog::Level::Debug,
-                      "client=%d asked for transaction data more than %d times in %ds\n", id,
-                      MAX_TXDATA_REQUESTS, TXDATA_WINDOW.count());
-        return false;
-    }
-    state.txdata_requests.push_back(now);
 
     const auto sendError{[&](const std::string& code) {
         RequestTransactionDataError err;
@@ -451,34 +442,78 @@ bool TemplateProvider::HandleRequestTransactionData(ClientId id, ClientState& st
             EncodePayload(err));
     }};
 
-    const auto it{state.templates.find(request.template_id)};
-    if (it == state.templates.end()) {
-        // Retention is bounded, so an id we once issued is stale rather than
-        // unknown. The distinction tells a client whether to wait for new work
-        // or stop asking.
-        return sendError(request.template_id != 0 && request.template_id <= state.highest_template_id
-                             ? "stale-template"
-                             : "template-id-not-found");
+    std::shared_ptr<interfaces::BlockTemplate> handle;
+    std::shared_ptr<const std::vector<std::vector<uint8_t>>> transactions;
+    std::vector<uint8_t> excess_data;
+
+    {
+        LOCK(m_mutex);
+        const auto client_it{m_clients.find(id)};
+        if (client_it == m_clients.end()) return false;
+        ClientState& state{client_it->second};
+
+        // Meter before doing any work: a handful of request bytes otherwise
+        // buys a whole block serialized, encrypted and buffered.
+        const auto now{std::chrono::steady_clock::now()};
+        while (!state.txdata_requests.empty() && now - state.txdata_requests.front() > TXDATA_WINDOW) {
+            state.txdata_requests.pop_front();
+        }
+        if (state.txdata_requests.size() >= MAX_TXDATA_REQUESTS) {
+            LogPrintLevel(BCLog::SV2, BCLog::Level::Debug,
+                          "client=%d asked for transaction data more than %d times in %ds\n", id,
+                          MAX_TXDATA_REQUESTS, TXDATA_WINDOW.count());
+            return false;
+        }
+        state.txdata_requests.push_back(now);
+
+        const auto it{state.templates.find(request.template_id)};
+        if (it == state.templates.end()) {
+            // Retention is bounded, so an id we once issued is stale rather
+            // than unknown. The distinction tells a client whether to wait
+            // for new work or stop asking.
+            return sendError(request.template_id != 0 && request.template_id <= state.highest_template_id
+                                 ? "stale-template"
+                                 : "template-id-not-found");
+        }
+
+        // Both of these are pointer copies. The list is null when nobody has
+        // asked for this template's transactions yet.
+        handle = it->second.handle;
+        transactions = it->second.transaction_list;
+        excess_data = it->second.excess_data;
     }
 
-    CachedTemplate& cached{it->second};
-    if (!cached.transaction_list_built) {
-        // getBlock copies the whole block, so this happens once per template
-        // and only if someone actually asks.
-        const CBlock block{cached.handle->getBlock()};
-        cached.transaction_list.reserve(block.vtx.size() > 0 ? block.vtx.size() - 1 : 0);
+    if (!transactions) {
+        // Unlocked. getBlock copies a block that can be eight megabytes and
+        // then every transaction is serialized again, which is not work to do
+        // while every other client waits.
+        auto built{std::make_shared<std::vector<std::vector<uint8_t>>>()};
+        const CBlock block{handle->getBlock()};
+        built->reserve(block.vtx.size() > 0 ? block.vtx.size() - 1 : 0);
         for (size_t i = 1; i < block.vtx.size(); ++i) {
             DataStream ss{};
             ss << TX_WITH_WITNESS(*block.vtx[i]);
-            cached.transaction_list.emplace_back(UCharCast(ss.data()), UCharCast(ss.data()) + ss.size());
+            built->emplace_back(UCharCast(ss.data()), UCharCast(ss.data()) + ss.size());
         }
-        cached.transaction_list_built = true;
+        transactions = std::move(built);
+
+        // Install it for the next asker, if the template is still here and
+        // nobody beat us to it. Losing that race costs one wasted
+        // construction, which is cheaper than holding the lock to prevent it.
+        LOCK(m_mutex);
+        const auto client_it{m_clients.find(id)};
+        if (client_it != m_clients.end()) {
+            const auto it{client_it->second.templates.find(request.template_id)};
+            if (it != client_it->second.templates.end() && !it->second.transaction_list) {
+                it->second.transaction_list = transactions;
+            }
+        }
     }
 
     RequestTransactionDataSuccess success;
     success.template_id = request.template_id;
-    success.excess_data = cached.excess_data;
-    success.transaction_list = cached.transaction_list;
+    success.excess_data = std::move(excess_data);
+    success.transaction_list = *transactions;
 
     if (!m_connman->Send(
             id, NetHeader{EXT_CORE, static_cast<uint8_t>(CoreMsg::REQUEST_TRANSACTION_DATA_SUCCESS), 0},
@@ -488,7 +523,7 @@ bool TemplateProvider::HandleRequestTransactionData(ClientId id, ClientState& st
 
     LogPrintLevel(BCLog::SV2, BCLog::Level::Debug,
                   "client=%d sent %d transactions for template %d\n", id,
-                  cached.transaction_list.size(), request.template_id);
+                  transactions->size(), request.template_id);
     return true;
 }
 
@@ -635,7 +670,7 @@ bool TemplateProvider::HandleSubmitSolution(ClientId id, std::span<const uint8_t
         LogPrintLevel(BCLog::SV2, BCLog::Level::Warning,
                       "client=%d submitted a block that passed every Stratum v2 check and was "
                       "still refused by validation; template %d\n", id, solution.template_id);
-        return RecordRefusal(id, solution.template_id, SolutionError::NONE);
+        return RecordRefusal(id, solution.template_id, SolutionError::CONSENSUS_REJECTED);
     }
 
     LOCK(m_mutex);

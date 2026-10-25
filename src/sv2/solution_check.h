@@ -85,6 +85,11 @@ enum class SolutionError {
     TOO_MANY_SIGOPS,
     BLOCK_TOO_LARGE,
     POW_INSUFFICIENT,
+    //! Not produced by CheckSolution. Reserved for the caller to report a
+    //! submission that passed every check here and was then refused by
+    //! validation, which means these checks and consensus disagree. Logging
+    //! that as NONE read as "refused: ok".
+    CONSENSUS_REJECTED,
 };
 
 const char* SolutionErrorString(SolutionError error);

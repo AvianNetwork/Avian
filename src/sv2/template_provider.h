@@ -93,8 +93,11 @@ struct CachedTemplate {
     //! The non-coinbase transactions, serialized with witnesses. Built on
     //! first request rather than up front, because getBlock() copies a block
     //! that can be eight megabytes.
-    std::vector<std::vector<uint8_t>> transaction_list;
-    bool transaction_list_built{false};
+    //!
+    //! Shared and const so a request can take a reference to it under the
+    //! lock and then encode and send without holding anything. Null until
+    //! somebody asks, and null again once this template is superseded.
+    std::shared_ptr<const std::vector<std::vector<uint8_t>>> transaction_list;
 };
 
 //! Serves block templates over the Template Distribution Protocol.
@@ -176,9 +179,11 @@ private:
     //! the rest no longer need. Called after each template is issued.
     void PruneTemplates(ClientState& state) EXCLUSIVE_LOCKS_REQUIRED(m_mutex);
 
-    [[nodiscard]] bool HandleRequestTransactionData(ClientId id, ClientState& state,
-                                                     std::span<const uint8_t> payload)
-        EXCLUSIVE_LOCKS_REQUIRED(m_mutex);
+    //! Takes and releases m_mutex itself, like HandleSubmitSolution and for
+    //! the same reason: serializing a block that can be eight megabytes is
+    //! not something to do while every other client waits.
+    [[nodiscard]] bool HandleRequestTransactionData(ClientId id, std::span<const uint8_t> payload)
+        EXCLUSIVE_LOCKS_REQUIRED(!m_mutex);
 
     //! Takes and releases m_mutex itself rather than being called under it:
     //! this is the path that ends in a proof-of-work hash, and holding a

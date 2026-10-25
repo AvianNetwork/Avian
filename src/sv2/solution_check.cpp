@@ -41,6 +41,7 @@ const char* SolutionErrorString(SolutionError error)
     case SolutionError::TOO_MANY_SIGOPS: return "too-many-sigops";
     case SolutionError::BLOCK_TOO_LARGE: return "block-too-large";
     case SolutionError::POW_INSUFFICIENT: return "pow-insufficient";
+    case SolutionError::CONSENSUS_REJECTED: return "consensus-rejected";
     }
     return "unknown";
 }
