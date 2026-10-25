@@ -692,6 +692,25 @@ void Connman::ThreadHandler()
     }
 }
 
+//! Deliver queued events to the provider.
+//!
+//! These run on the socket thread, which is the only one this class has. So
+//! while a callback runs, nothing is being read, written, accepted or
+//! handshaked for any client. Two of the provider's handlers take
+//! milliseconds rather than microseconds: a submission ends in a MinotaurX or
+//! X16RT hash and then ProcessNewBlock, and a transaction-data request
+//! serializes a block that can be eight megabytes.
+//!
+//! That is bounded rather than solved. Both handlers are metered per client
+//! before they do any work, a submission whose proof of work verifies is
+//! refunded so honest pools are not charged, and -sv2maxclients bounds how
+//! many clients there are. With a pool opening one connection per algorithm,
+//! the exposure is small.
+//!
+//! The structural fix is to hand provider work to a worker thread and leave
+//! this one doing transport only. Worth doing before this serves many
+//! independent pools; not worth the concurrency it introduces while it
+//! serves a handful.
 void Connman::DispatchNotifications()
 {
     std::vector<Notification> pending;
