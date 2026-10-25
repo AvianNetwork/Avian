@@ -599,14 +599,70 @@ miner's, because it holds whatever the pool does.
   contract with the node, not the worker's with the pool.
 
 `AvianJobTimeConstraints` applies to extended channels too, unchanged: a job's
-ntime window does not depend on who assembles the coinbase. Extended-channel
-coinbase reconstruction, and how Avian's coinbase contract is enforced across
-it, are **deferred** until extended channels are implemented. They are not a
-simple extension of the standard-channel case: Stratum v2 defines
-`coinbase_tx_prefix` and `coinbase_tx_suffix` without the BIP141 marker, flag
-and witness data, and Avian's contract requires a specific witness stack and a
-canonical byte-for-byte reconstruction, so the two have to be reconciled
-deliberately rather than assumed compatible.
+ntime window does not depend on who assembles the coinbase.
+
+### Extended channels
+
+An earlier version of this document deferred these, on the grounds that
+Stratum v2 defines `coinbase_tx_prefix` and `coinbase_tx_suffix` without the
+BIP141 marker, flag and witness data while Avian's contract requires a
+specific witness stack and a canonical byte-for-byte reconstruction, so the
+two had to be reconciled deliberately.
+
+**There is nothing to reconcile.** A merkle root is folded from txids and a
+txid excludes witness data, so the witness-free split the specification asks
+for is exactly what a miner needs:
+
+```
+pool    splits the coinbase around the extranonce, without witness
+miner   inserts its extranonce, hashes the three parts to a txid,
+        folds the merkle path. It never needs the witness.
+pool    on a share, reconstructs the coinbase with its witness and
+        submits that
+```
+
+Avian's canonical check only ever applies to what the pool submits, which the
+pool controls entirely, and the witness commitment is unaffected by the
+extranonce because it commits to the witness root of the other transactions
+plus the coinbase's own fixed zero witness.
+
+Three things an implementer needs that are documented nowhere:
+
+- **The scriptSig length byte lives inside `coinbase_tx_prefix`**, before the
+  extranonce bytes it counts exist. A pool that does not reserve the whole
+  extranonce there produces a coinbase that is malformed for every extranonce,
+  and will see only shares that never become blocks.
+- **The 2-to-100-byte scriptSig is shared three ways** on an extended channel:
+  the BIP34 height push, any operator tag, and the extranonce. A pool must
+  refuse a `min_extranonce_size` it cannot fit rather than opening a channel
+  whose every coinbase the node will reject, which with no `SubmitSolution`
+  error reply would be silent. Stratum v2 has no code for that refusal, so
+  `min-extranonce-size-too-large` is normative here. It is the fourth time
+  this gap has appeared.
+- **`version_rolling_allowed` must be false** on `NewExtendedMiningJob`.
+  `REQUIRES_FIXED_VERSION` implies it but does not state it for a message that
+  carries its own flag, and a client should refuse a job that sets it rather
+  than ignore a permission it cannot honour safely.
+
+### What a miner can actually verify
+
+Worth stating precisely, because it is the argument for preferring extended
+channels and it is easy to overstate.
+
+An extended channel lets a miner **assemble the coinbase itself**, so it can
+confirm its own payout is in the block it is hashing, and that the coinbase it
+commits to is the one it built. For solo mining that is the question that
+matters.
+
+It does **not** let a miner see the block's transactions. `merkle_path` is
+hashes, and only its first element is ever a txid: every element above it is
+an interior node, the hash of two others. So a miner can check that one named
+transaction is its immediate sibling, which in a two-transaction block is the
+whole of the rest of the block and in a larger one is almost none of it. A
+miner that assumed otherwise would be checking nothing.
+
+Seeing the full transaction list is what the Job Declaration Protocol is for,
+and that is not part of this.
 
 ### Changing this extension
 
