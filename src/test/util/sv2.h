@@ -33,6 +33,16 @@ namespace sv2test {
 
 static constexpr auto TIMEOUT{std::chrono::seconds{10}};
 
+//! Deadline for work the node pushes of its own accord.
+//!
+//! Longer than TIMEOUT because it waits on something different. A reply to a
+//! request is produced on the socket thread and arrives promptly or not at
+//! all, whereas pushed work comes from the watcher thread, which polls for a
+//! tip change in one-second slices and then rebuilds templates under cs_main.
+//! On a machine running a whole test suite in parallel that chain has taken
+//! longer than TIMEOUT, which is a loaded machine rather than a defect.
+static constexpr auto PUSH_TIMEOUT{std::chrono::seconds{60}};
+
 struct Client {
     std::unique_ptr<Sock> sock;
     std::optional<sv2::Transport> transport;
@@ -52,10 +62,11 @@ struct Client {
 
     //! Read until `done` is satisfied, the peer closes, or the deadline passes.
     //! `closed` distinguishes a close from a timeout.
-    bool PumpUntil(const std::function<bool()>& done, bool& closed)
+    bool PumpUntil(const std::function<bool()>& done, bool& closed,
+                   std::chrono::seconds timeout = TIMEOUT)
     {
         closed = false;
-        const auto deadline{std::chrono::steady_clock::now() + TIMEOUT};
+        const auto deadline{std::chrono::steady_clock::now() + timeout};
         while (std::chrono::steady_clock::now() < deadline) {
             if (done()) return true;
             if (!Flush()) return false;
@@ -110,13 +121,14 @@ inline std::unique_ptr<Client> Connect(const CService& addr, const std::optional
 }
 
 //! Wait for one message to arrive.
-inline std::optional<sv2::ReceivedMsg> ReadMessage(Client& client, bool& closed)
+inline std::optional<sv2::ReceivedMsg> ReadMessage(Client& client, bool& closed,
+                                                   std::chrono::seconds timeout = TIMEOUT)
 {
     std::optional<sv2::ReceivedMsg> out;
     client.PumpUntil([&] {
         out = client.transport->Next();
         return out.has_value();
-    }, closed);
+    }, closed, timeout);
     return out;
 }
 
