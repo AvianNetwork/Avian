@@ -74,6 +74,10 @@ SELECT_ALGORITHM = 0x00
 SELECT_ALGORITHM_SUCCESS = 0x01
 SELECT_ALGORITHM_ERROR = 0x02
 TIME_CONSTRAINTS = 0x03
+# The Mining Protocol form, keyed on channel and job. A Template Provider has
+# no occasion to send it, so this client never sees it; the number is here so
+# the two halves of the extension stay in one place.
+JOB_TIME_CONSTRAINTS = 0x04
 
 POW_TYPE_X16RT = 0
 POW_TYPE_MINOTAURX = 1
