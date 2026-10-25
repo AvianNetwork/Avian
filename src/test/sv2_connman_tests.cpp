@@ -251,11 +251,15 @@ BOOST_AUTO_TEST_CASE(max_clients_enforced)
     BOOST_REQUIRE(DoHandshake(*first));
     BOOST_CHECK_EQUAL(server->connman->ClientCount(), 1u);
 
-    // The second connection is refused at accept, before any crypto, so the
-    // handshake never completes.
-    auto second{Connect(*server, server->AuthorityPubKey())};
-    bool closed{false};
-    BOOST_CHECK(!second->PumpUntil([&] { return second->transport->HandshakeComplete(); }, closed));
+    // The second connection is refused at accept, before any crypto. Whether
+    // the client sees a failed connect or a connected socket that then closes
+    // depends on how quickly the node gets there, so accept either: the claim
+    // is that no second client is admitted, not how the refusal surfaces.
+    auto second{sv2test::Connect(server->bound, server->AuthorityPubKey())};
+    if (second) {
+        bool closed{false};
+        BOOST_CHECK(!second->PumpUntil([&] { return second->transport->HandshakeComplete(); }, closed));
+    }
     BOOST_CHECK_EQUAL(server->connman->ClientCount(), 1u);
 }
 
