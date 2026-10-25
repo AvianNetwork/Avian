@@ -7,6 +7,7 @@
 #include <key.h>
 #include <pubkey.h>
 #include <netbase.h>
+#include <primitives/block.h>
 #include <sv2/options.h>
 #include <test/util/setup_common.h>
 #include <util/chaintype.h>
@@ -168,6 +169,118 @@ BOOST_AUTO_TEST_CASE(certificate_covers_the_static_key)
     CKey other;
     other.MakeNewKey(/*fCompressedIn=*/true);
     BOOST_CHECK(!cert->Verify(XOnlyPubKey{other.GetPubKey()}, authority_pub, now));
+}
+
+BOOST_AUTO_TEST_CASE(extension_defaults_require_the_avian_extension)
+{
+    // The default has to be require: the two failure modes it prevents,
+    // version rolling and ntime rolling, are both silent. They burn a farm's
+    // hashrate and look like bad luck.
+    const auto opts{sv2::ReadOptions(m_args, ChainType::REGTEST)};
+    BOOST_REQUIRE(opts);
+    BOOST_CHECK(opts->extension_policy == sv2::ExtensionPolicy::REQUIRE);
+    BOOST_CHECK_EQUAL(opts->extension_id, sv2::AVIAN_EXTENSION_ID);
+
+    const std::vector<uint16_t> expected{sv2::AVIAN_EXTENSION_ID};
+    BOOST_CHECK(opts->supported_extensions == expected);
+    BOOST_CHECK(opts->required_extensions == expected);
+
+    // One algorithm by default, and no version rolling at all.
+    const std::vector<POW_TYPE> algos{POW_TYPE_X16RT};
+    BOOST_CHECK(opts->pow_algos == algos);
+    BOOST_CHECK_EQUAL(opts->version_rolling_mask, 0u);
+}
+
+BOOST_AUTO_TEST_CASE(extension_policy_parsing)
+{
+    m_args.ForceSetArg("-sv2extensionpolicy", "optional");
+    {
+        const auto opts{sv2::ReadOptions(m_args, ChainType::REGTEST)};
+        BOOST_REQUIRE(opts);
+        BOOST_CHECK(opts->extension_policy == sv2::ExtensionPolicy::OPTIONAL);
+        // Still advertised, just not demanded.
+        BOOST_CHECK(!opts->supported_extensions.empty());
+        BOOST_CHECK(opts->required_extensions.empty());
+    }
+
+    m_args.ForceSetArg("-sv2extensionpolicy", "off");
+    {
+        const auto opts{sv2::ReadOptions(m_args, ChainType::REGTEST)};
+        BOOST_REQUIRE(opts);
+        BOOST_CHECK(opts->extension_policy == sv2::ExtensionPolicy::OFF);
+        // Off means not advertised at all, so a stock client sees nothing.
+        BOOST_CHECK(opts->supported_extensions.empty());
+        BOOST_CHECK(opts->required_extensions.empty());
+    }
+
+    m_args.ForceSetArg("-sv2extensionpolicy", "sometimes");
+    BOOST_CHECK(!sv2::ReadOptions(m_args, ChainType::REGTEST));
+}
+
+BOOST_AUTO_TEST_CASE(powalgo_parsing)
+{
+    m_args.ForceSetArg("-sv2powalgo", "minotaurx");
+    {
+        const auto opts{sv2::ReadOptions(m_args, ChainType::REGTEST)};
+        BOOST_REQUIRE(opts);
+        const std::vector<POW_TYPE> expected{POW_TYPE_MINOTAURX};
+        BOOST_CHECK(opts->pow_algos == expected);
+    }
+
+    m_args.ForceSetArg("-sv2powalgo", "sha256d");
+    BOOST_CHECK(!sv2::ReadOptions(m_args, ChainType::REGTEST));
+}
+
+BOOST_AUTO_TEST_CASE(version_mask_never_opens_algorithm_bits)
+{
+    // Bits 16-23 hold the algorithm. BIP320's mask covers bits 13-28 and so
+    // contains them outright, which is why anything a user asks for gets
+    // filtered rather than trusted.
+    m_args.ForceSetArg("-sv2versionmask", "0x1fffe000");
+    {
+        const auto opts{sv2::ReadOptions(m_args, ChainType::REGTEST)};
+        BOOST_REQUIRE(opts);
+        BOOST_CHECK_EQUAL(opts->version_rolling_mask & sv2::POW_TYPE_VERSION_BITS, 0u);
+        BOOST_CHECK_EQUAL(opts->version_rolling_mask, 0x1fffe000u & ~sv2::POW_TYPE_VERSION_BITS);
+    }
+
+    // Accepted with or without the 0x prefix.
+    m_args.ForceSetArg("-sv2versionmask", "e000");
+    {
+        const auto opts{sv2::ReadOptions(m_args, ChainType::REGTEST)};
+        BOOST_REQUIRE(opts);
+        BOOST_CHECK_EQUAL(opts->version_rolling_mask, 0xe000u);
+    }
+
+    m_args.ForceSetArg("-sv2versionmask", "not-hex");
+    BOOST_CHECK(!sv2::ReadOptions(m_args, ChainType::REGTEST));
+}
+
+BOOST_AUTO_TEST_CASE(extension_id_override_is_development_only)
+{
+    // On mainnet the wire identity must come from the constant alone. A
+    // runtime override would let a node look like it speaks this protocol
+    // while advertising someone else's registered extension number.
+    m_args.ForceSetArg("-sv2extensionid", "16572");
+    BOOST_CHECK(!sv2::ReadOptions(m_args, ChainType::MAIN));
+    {
+        const auto opts{sv2::ReadOptions(m_args, ChainType::REGTEST)};
+        BOOST_REQUIRE(opts);
+        BOOST_CHECK_EQUAL(opts->extension_id, 16572);
+        // The advertised sets follow the configured id, not the default.
+        const std::vector<uint16_t> expected{16572};
+        BOOST_CHECK(opts->supported_extensions == expected);
+    }
+
+    // Bit 15 is the channel_msg flag, so it is not part of an identifier.
+    m_args.ForceSetArg("-sv2extensionid", "32768");
+    BOOST_CHECK(!sv2::ReadOptions(m_args, ChainType::REGTEST));
+
+    // The core and negotiation namespaces already have meanings.
+    m_args.ForceSetArg("-sv2extensionid", "0");
+    BOOST_CHECK(!sv2::ReadOptions(m_args, ChainType::REGTEST));
+    m_args.ForceSetArg("-sv2extensionid", "1");
+    BOOST_CHECK(!sv2::ReadOptions(m_args, ChainType::REGTEST));
 }
 
 BOOST_AUTO_TEST_SUITE_END()

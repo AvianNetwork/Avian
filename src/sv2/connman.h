@@ -105,6 +105,10 @@ private:
         //! Setup answered; awaiting RequestExtensions. Only reached when the
         //! policy demands negotiation.
         NEGOTIATE,
+        //! Extensions agreed and Avian's is among them; awaiting an algorithm
+        //! choice. A connection carries one nBits and target stream, so this
+        //! has to be settled before any template is built.
+        SELECT_ALGO,
         //! May exchange Template Distribution messages.
         READY,
     };
@@ -122,6 +126,12 @@ private:
         //! Negotiation happens before protocol messages, so it is answered at
         //! most once per connection.
         bool extensions_answered{false};
+        //! True once Avian's extension was agreed, which is what entitles the
+        //! client to select an algorithm.
+        bool avian_extension{false};
+        bool algo_selected{false};
+        //! The algorithm templates for this connection are built for.
+        POW_TYPE pow_type{POW_TYPE_X16RT};
         //! Close immediately, discarding anything still queued.
         bool disconnect{false};
         //! Stop reading and close once the send buffer drains, so a rejection
@@ -145,6 +155,7 @@ private:
     [[nodiscard]] bool HandleCommon(Client& client, const ReceivedMsg& msg) EXCLUSIVE_LOCKS_REQUIRED(m_mutex);
     [[nodiscard]] bool HandleSetupConnection(Client& client, const ReceivedMsg& msg) EXCLUSIVE_LOCKS_REQUIRED(m_mutex);
     [[nodiscard]] bool HandleRequestExtensions(Client& client, const ReceivedMsg& msg) EXCLUSIVE_LOCKS_REQUIRED(m_mutex);
+    [[nodiscard]] bool HandleAvianSelectAlgorithm(Client& client, const ReceivedMsg& msg) EXCLUSIVE_LOCKS_REQUIRED(m_mutex);
 
     //! Reject a client with `msg`, flushing the reply before closing.
     template <typename M>

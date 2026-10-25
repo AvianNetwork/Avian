@@ -6,6 +6,7 @@
 #include <key.h>
 #include <netbase.h>
 #include <pubkey.h>
+#include <primitives/block.h>
 #include <sv2/connman.h>
 #include <sv2/options.h>
 #include <sv2/transport.h>
@@ -65,6 +66,7 @@ std::unique_ptr<Server> StartServer(const fs::path& datadir,
     opts.binds = {LookupNumeric("127.0.0.1", 0)};
     opts.static_key_file = datadir / "unused_static";
     opts.authority_key_file = datadir / "unused_authority";
+    opts.extension_policy = sv2::ExtensionPolicy::OPTIONAL;
     if (tweak) tweak(opts);
 
     server->connman = std::make_unique<sv2::Connman>(opts, server->static_key, server->cert);
@@ -575,6 +577,200 @@ BOOST_AUTO_TEST_CASE(second_request_extensions_disconnects)
     BOOST_REQUIRE(SendRequestExtensions(*client, 10, {sv2::EXT_NEGOTIATION}));
     ReadMessage(*client, closed);
     BOOST_CHECK(closed);
+}
+
+// Avian multi-PoW extension: algorithm selection.
+
+namespace {
+
+//! Options as a real node would have them: Avian's extension required, both
+//! algorithms offered.
+void ProductionLike(sv2::Options& o)
+{
+    o.extension_policy = sv2::ExtensionPolicy::REQUIRE;
+    o.extension_id = sv2::AVIAN_EXTENSION_ID;
+    o.supported_extensions = {sv2::AVIAN_EXTENSION_ID};
+    o.required_extensions = {sv2::AVIAN_EXTENSION_ID};
+    o.pow_algos = {POW_TYPE_X16RT, POW_TYPE_MINOTAURX};
+}
+
+bool NegotiateAvian(Client& client, uint16_t id = sv2::AVIAN_EXTENSION_ID)
+{
+    if (!SendRequestExtensions(client, 100, {id})) return false;
+    bool closed{false};
+    const auto reply{ReadMessage(client, closed)};
+    return reply.has_value() &&
+           reply->header.msg_type ==
+               static_cast<uint8_t>(sv2::NegotiationMsg::REQUEST_EXTENSIONS_SUCCESS);
+}
+
+bool SendSelectAlgorithm(Client& client, uint8_t pow_type, uint16_t id = sv2::AVIAN_EXTENSION_ID)
+{
+    sv2::AvianSelectAlgorithm select;
+    select.pow_type = pow_type;
+    return client.transport->Send(
+        sv2::NetHeader{id, static_cast<uint8_t>(sv2::AvianMsg::SELECT_ALGORITHM), 0},
+        sv2::EncodePayload(select));
+}
+
+} // namespace
+
+BOOST_AUTO_TEST_CASE(algorithm_selection_succeeds)
+{
+    auto server{StartServer(m_args.GetDataDirNet(), ProductionLike)};
+    auto client{Connect(*server, server->AuthorityPubKey())};
+    BOOST_REQUIRE(SetupSession(*client));
+    BOOST_REQUIRE(NegotiateAvian(*client));
+
+    BOOST_REQUIRE(SendSelectAlgorithm(*client, POW_TYPE_MINOTAURX));
+    bool closed{false};
+    const auto reply{ReadMessage(*client, closed)};
+    BOOST_REQUIRE(reply.has_value());
+    BOOST_CHECK_EQUAL(reply->header.extension_type, sv2::AVIAN_EXTENSION_ID);
+    BOOST_CHECK_EQUAL(reply->header.msg_type,
+                      static_cast<uint8_t>(sv2::AvianMsg::SELECT_ALGORITHM_SUCCESS));
+
+    const auto ok{sv2::DecodePayload<sv2::AvianSelectAlgorithmSuccess>(reply->payload)};
+    BOOST_CHECK_EQUAL(ok.pow_type, POW_TYPE_MINOTAURX);
+    // Rolling is refused outright in this version. A client obeying this mask
+    // cannot change which algorithm its share is judged under.
+    BOOST_CHECK_EQUAL(ok.version_rolling_mask, 0u);
+}
+
+BOOST_AUTO_TEST_CASE(version_rolling_mask_never_opens_algorithm_bits)
+{
+    // Even asked for the full BIP320 mask, bits 16-23 stay shut, because
+    // rolling them either trips bad-algo-id or silently switches the share to
+    // the other algorithm and the wrong pow limit.
+    auto server{StartServer(m_args.GetDataDirNet(), [](sv2::Options& o) {
+        ProductionLike(o);
+        o.version_rolling_mask = 0x1fffe000 & ~sv2::POW_TYPE_VERSION_BITS;
+    })};
+    auto client{Connect(*server, server->AuthorityPubKey())};
+    BOOST_REQUIRE(SetupSession(*client));
+    BOOST_REQUIRE(NegotiateAvian(*client));
+    BOOST_REQUIRE(SendSelectAlgorithm(*client, POW_TYPE_X16RT));
+
+    bool closed{false};
+    const auto reply{ReadMessage(*client, closed)};
+    BOOST_REQUIRE(reply.has_value());
+    const auto ok{sv2::DecodePayload<sv2::AvianSelectAlgorithmSuccess>(reply->payload)};
+    BOOST_CHECK_EQUAL(ok.version_rolling_mask & sv2::POW_TYPE_VERSION_BITS, 0u);
+}
+
+BOOST_AUTO_TEST_CASE(unknown_pow_type_is_rejected)
+{
+    auto server{StartServer(m_args.GetDataDirNet(), ProductionLike)};
+    auto client{Connect(*server, server->AuthorityPubKey())};
+    BOOST_REQUIRE(SetupSession(*client));
+    BOOST_REQUIRE(NegotiateAvian(*client));
+
+    BOOST_REQUIRE(SendSelectAlgorithm(*client, NUM_BLOCK_TYPES));
+    bool closed{false};
+    const auto reply{ReadMessage(*client, closed)};
+    BOOST_REQUIRE(reply.has_value());
+    BOOST_CHECK_EQUAL(reply->header.msg_type,
+                      static_cast<uint8_t>(sv2::AvianMsg::SELECT_ALGORITHM_ERROR));
+    const auto err{sv2::DecodePayload<sv2::AvianSelectAlgorithmError>(reply->payload)};
+    BOOST_CHECK_EQUAL(err.error_code, "unsupported-pow-type");
+}
+
+BOOST_AUTO_TEST_CASE(disabled_pow_type_is_rejected)
+{
+    // The algorithm exists but this node was not told to serve it.
+    auto server{StartServer(m_args.GetDataDirNet(), [](sv2::Options& o) {
+        ProductionLike(o);
+        o.pow_algos = {POW_TYPE_X16RT};
+    })};
+    auto client{Connect(*server, server->AuthorityPubKey())};
+    BOOST_REQUIRE(SetupSession(*client));
+    BOOST_REQUIRE(NegotiateAvian(*client));
+
+    BOOST_REQUIRE(SendSelectAlgorithm(*client, POW_TYPE_MINOTAURX));
+    bool closed{false};
+    const auto reply{ReadMessage(*client, closed)};
+    BOOST_REQUIRE(reply.has_value());
+    const auto err{sv2::DecodePayload<sv2::AvianSelectAlgorithmError>(reply->payload)};
+    BOOST_CHECK_EQUAL(err.error_code, "pow-type-not-enabled");
+}
+
+BOOST_AUTO_TEST_CASE(templates_refused_before_algorithm_is_selected)
+{
+    // A connection carries one nBits and target stream, so there is nothing
+    // coherent to serve until the algorithm is settled.
+    auto server{StartServer(m_args.GetDataDirNet(), ProductionLike)};
+    auto client{Connect(*server, server->AuthorityPubKey())};
+    BOOST_REQUIRE(SetupSession(*client));
+    BOOST_REQUIRE(NegotiateAvian(*client));
+
+    BOOST_REQUIRE(client->transport->Send(
+        sv2::NetHeader{sv2::EXT_CORE,
+                       static_cast<uint8_t>(sv2::CoreMsg::REQUEST_TRANSACTION_DATA), 0},
+        sv2::EncodePayload(sv2::RequestTransactionData{1})));
+    bool closed{false};
+    ReadMessage(*client, closed);
+    BOOST_CHECK(closed);
+}
+
+BOOST_AUTO_TEST_CASE(second_algorithm_selection_is_rejected)
+{
+    auto server{StartServer(m_args.GetDataDirNet(), ProductionLike)};
+    auto client{Connect(*server, server->AuthorityPubKey())};
+    BOOST_REQUIRE(SetupSession(*client));
+    BOOST_REQUIRE(NegotiateAvian(*client));
+    BOOST_REQUIRE(SendSelectAlgorithm(*client, POW_TYPE_X16RT));
+    bool closed{false};
+    BOOST_REQUIRE(ReadMessage(*client, closed).has_value());
+
+    // Changing algorithm mid-session would move the target under templates
+    // already issued.
+    BOOST_REQUIRE(SendSelectAlgorithm(*client, POW_TYPE_MINOTAURX));
+    const auto reply{ReadMessage(*client, closed)};
+    BOOST_REQUIRE(reply.has_value());
+    const auto err{sv2::DecodePayload<sv2::AvianSelectAlgorithmError>(reply->payload)};
+    BOOST_CHECK_EQUAL(err.error_code, "algo-already-selected");
+}
+
+BOOST_AUTO_TEST_CASE(selection_without_negotiating_disconnects)
+{
+    // The spec forbids using a feature from an extension the server never
+    // confirmed, so this is a protocol violation rather than an error reply.
+    auto server{StartServer(m_args.GetDataDirNet(), [](sv2::Options& o) {
+        ProductionLike(o);
+        o.extension_policy = sv2::ExtensionPolicy::OPTIONAL;
+        o.required_extensions.clear();
+    })};
+    auto client{Connect(*server, server->AuthorityPubKey())};
+    BOOST_REQUIRE(SetupSession(*client));
+
+    BOOST_REQUIRE(SendSelectAlgorithm(*client, POW_TYPE_X16RT));
+    bool closed{false};
+    ReadMessage(*client, closed);
+    BOOST_CHECK(closed);
+}
+
+BOOST_AUTO_TEST_CASE(configured_extension_id_is_honoured)
+{
+    // The identifier is overridable for development and migration, so the
+    // dispatch must follow it rather than the compiled-in default.
+    constexpr uint16_t ALT_ID{0x4abc};
+    auto server{StartServer(m_args.GetDataDirNet(), [](sv2::Options& o) {
+        ProductionLike(o);
+        o.extension_id = ALT_ID;
+        o.supported_extensions = {ALT_ID};
+        o.required_extensions = {ALT_ID};
+    })};
+    auto client{Connect(*server, server->AuthorityPubKey())};
+    BOOST_REQUIRE(SetupSession(*client));
+    BOOST_REQUIRE(NegotiateAvian(*client, ALT_ID));
+    BOOST_REQUIRE(SendSelectAlgorithm(*client, POW_TYPE_X16RT, ALT_ID));
+
+    bool closed{false};
+    const auto reply{ReadMessage(*client, closed)};
+    BOOST_REQUIRE(reply.has_value());
+    BOOST_CHECK_EQUAL(reply->header.extension_type, ALT_ID);
+    BOOST_CHECK_EQUAL(reply->header.msg_type,
+                      static_cast<uint8_t>(sv2::AvianMsg::SELECT_ALGORITHM_SUCCESS));
 }
 
 BOOST_AUTO_TEST_SUITE_END()

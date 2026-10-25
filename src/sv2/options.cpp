@@ -13,7 +13,9 @@
 #include <util/translation.h>
 
 #include <algorithm>
+#include <charconv>
 #include <string>
+#include <system_error>
 
 namespace sv2 {
 
@@ -91,7 +93,7 @@ util::Result<Options> ReadOptions(const ArgsManager& args, ChainType chain)
     }
     opts.cert_validity_days = validity;
 
-    const std::string policy{args.GetArg("-sv2extensionpolicy", "optional")};
+    const std::string policy{args.GetArg("-sv2extensionpolicy", "require")};
     if (policy == "require") {
         opts.extension_policy = ExtensionPolicy::REQUIRE;
     } else if (policy == "optional") {
@@ -101,6 +103,79 @@ util::Result<Options> ReadOptions(const ArgsManager& args, ChainType chain)
     } else {
         return util::Error{Untranslated(strprintf(
             "Invalid -sv2extensionpolicy '%s'; expected require, optional or off", policy))};
+    }
+
+    // Development override only. On mainnet the wire identity must be fixed
+    // by the constant alone: a runtime substitution would let a node look like
+    // it speaks this protocol while advertising someone else's registered
+    // extension number.
+    if (args.IsArgSet("-sv2extensionid")) {
+        if (chain == ChainType::MAIN) {
+            return util::Error{Untranslated("-sv2extensionid cannot be used on mainnet")};
+        }
+        const int64_t id{args.GetIntArg("-sv2extensionid", AVIAN_EXTENSION_ID)};
+        if (id < 0 || id > 0x7fff) {
+            // Bit 15 is the channel_msg flag, so it is not part of the id.
+            return util::Error{Untranslated("-sv2extensionid must be between 0 and 0x7fff")};
+        }
+        if (id == EXT_CORE || id == EXT_NEGOTIATION) {
+            // Those namespaces already have meanings; reusing one would make
+            // message dispatch ambiguous.
+            return util::Error{Untranslated(
+                "-sv2extensionid cannot be 0x0000 (core) or 0x0001 (extension negotiation)")};
+        }
+        opts.extension_id = static_cast<uint16_t>(id);
+    }
+
+    if (opts.extension_policy != ExtensionPolicy::OFF) {
+        opts.supported_extensions = {opts.extension_id};
+        if (opts.extension_policy == ExtensionPolicy::REQUIRE) {
+            opts.required_extensions = {opts.extension_id};
+        }
+    }
+
+    const std::vector<std::string> algo_args{args.GetArgs("-sv2powalgo")};
+    if (!algo_args.empty()) {
+        opts.pow_algos.clear();
+        for (const std::string& name : algo_args) {
+            bool found{false};
+            for (int i = 0; i < NUM_BLOCK_TYPES; ++i) {
+                if (name != POW_TYPE_NAMES[i]) continue;
+                const auto algo{static_cast<POW_TYPE>(i)};
+                // Repeating one is a configuration mistake, not a request to
+                // serve it twice.
+                if (std::find(opts.pow_algos.begin(), opts.pow_algos.end(), algo) == opts.pow_algos.end()) {
+                    opts.pow_algos.push_back(algo);
+                }
+                found = true;
+                break;
+            }
+            if (!found) {
+                return util::Error{Untranslated(strprintf("Invalid -sv2powalgo '%s'", name))};
+            }
+        }
+    }
+
+    if (args.IsArgSet("-sv2versionmask")) {
+        std::string mask_str{args.GetArg("-sv2versionmask", "0")};
+        // A bitmask reads naturally in hex, so hex is what this takes, with or
+        // without an 0x prefix.
+        if (mask_str.rfind("0x", 0) == 0 || mask_str.rfind("0X", 0) == 0) {
+            mask_str = mask_str.substr(2);
+        }
+        uint32_t mask{0};
+        const char* begin{mask_str.data()};
+        const char* end{mask_str.data() + mask_str.size()};
+        const auto parsed{std::from_chars(begin, end, mask, 16)};
+        if (mask_str.empty() || parsed.ec != std::errc{} || parsed.ptr != end) {
+            return util::Error{Untranslated(strprintf(
+                "Invalid -sv2versionmask '%s'; expected a hexadecimal mask", args.GetArg("-sv2versionmask", "")))};
+        }
+        const uint32_t safe{mask & ~POW_TYPE_VERSION_BITS};
+        if (safe != mask) {
+            LogWarning("sv2: -sv2versionmask 0x%08x would open nVersion bits 16-23, which hold the proof-of-work algorithm; using 0x%08x instead", mask, safe);
+        }
+        opts.version_rolling_mask = safe;
     }
 
     opts.static_key_file = args.GetPathArg("-sv2staticprivkey", args.GetDataDirNet() / "sv2_static_key");
