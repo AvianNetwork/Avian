@@ -90,6 +90,22 @@ is to compute the whole hash. The node's defence is the validation ladder in
 rate limit on submissions, and the loopback default. If the port is exposed to
 an untrusted network, those three are the whole defence.
 
+### One thread serves every client
+
+The listener has a single thread, and the provider's handlers run on it. While
+a submission is being hashed, or a block serialized for a transaction-data
+request, no other client is being read, written or accepted.
+
+Bounded rather than solved, and deliberately so. Both of those handlers are
+metered per client before they do any work, a submission whose proof of work
+verifies is refunded so a pool finding blocks is not charged for it, and
+`-sv2maxclients` bounds how many clients exist. A pool opens one connection
+per algorithm, so a node serving a handful of pools is nowhere near this.
+
+It is a real limit for a node serving many independent pools, and the fix is
+to move provider work onto a worker thread so the listener does transport
+only. Worth knowing before pointing a lot of unrelated pools at one node.
+
 ## Session flow
 
 ```mermaid
