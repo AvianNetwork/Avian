@@ -728,6 +728,7 @@ const std::vector<std::string> TEST_OPTIONS_DOC{
     "addrman (use deterministic addrman)",
     "reindex_after_failure_noninteractive_yes (When asked for a reindex after failure interactively, simulate as-if answered with 'yes')",
     "bip94 (enforce BIP94 consensus rules)",
+    "no_min_difficulty (disable the minimum-difficulty rule, so nBits stops depending on a candidate block's own nTime)",
 };
 
 bool HasTestOption(const ArgsManager& args, const std::string& test_option)

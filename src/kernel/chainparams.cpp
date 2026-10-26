@@ -633,7 +633,7 @@ public:
         consensus.powLimit = uint256{"7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"};
         consensus.nPowTargetTimespan = 2016 * 30; // 1.4 days
         consensus.nPowTargetSpacing = 1 * 30; // 30 seconds
-        consensus.fPowAllowMinDifficultyBlocks = true;
+        consensus.fPowAllowMinDifficultyBlocks = opts.pow_allow_min_difficulty;
         consensus.enforce_BIP94 = opts.enforce_bip94;
         consensus.fPowNoRetargeting = true;
 

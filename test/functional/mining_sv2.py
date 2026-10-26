@@ -95,6 +95,7 @@ class Sv2TemplateProviderTest(BitcoinTestFramework):
         self.test_mines_a_block(POW_TYPE_MINOTAURX)
         self.test_mines_a_block_on_superseded_work()
         self.test_finding_blocks_quickly_is_not_rate_limited()
+        self.test_ntime_window_opens_without_min_difficulty()
 
     def test_handshake_and_certificate(self):
         self.log.info("Noise handshake, with the certificate checked against the authority key")
@@ -212,9 +213,8 @@ class Sv2TemplateProviderTest(BitcoinTestFramework):
                 # makes nBits a function of nTime, so rolling ntime at all can
                 # produce bad-diff even though the template's nBits was right
                 # when it was issued. The window is therefore pinned, not just
-                # narrowed. Mainnet is where it opens, and the X16RT epoch
-                # ceiling that matters there is covered directly by
-                # x16rt_ntime_may_not_cross_its_epoch in the unit tests.
+                # narrowed. What the node does once it opens is
+                # test_ntime_window_opens_without_min_difficulty below.
                 assert_equal(bounds['ntime_min'], bounds['ntime_max'])
                 assert_equal(bounds['ntime_min'] & TIME_MASK, bounds['ntime_max'] & TIME_MASK)
 
@@ -368,6 +368,89 @@ class Sv2TemplateProviderTest(BitcoinTestFramework):
                      coinbase.txid_hex)
         self.restart_node(0, extra_args=self.extra_args[0])
 
+
+    def test_ntime_window_opens_without_min_difficulty(self):
+        """What the node advertises once nBits stops following the candidate's nTime.
+
+        Every chain this suite can run on allows minimum-difficulty blocks,
+        which makes nBits a function of the candidate's own timestamp. The
+        node therefore pins ntime shut, and the entire window computation in
+        BuildTemplate never executes: not the -sv2ntimeforward ceiling, not
+        the consensus future-time ceiling, and not the X16RT epoch ceiling
+        that is the whole reason the window exists. Mainnet would be the
+        first place that code ran, which is the wrong place to find out.
+
+        -test=no_min_difficulty is regtest-only and turns that rule off.
+        fPowNoRetargeting still holds nBits constant, so the chain stays
+        trivially mineable while timestamps stop steering difficulty.
+        """
+        self.log.info("Without min-difficulty blocks the ntime window opens, bounded by X16RT's epoch")
+        before = self.nodes[0].getblockcount()
+        self.restart_node(0, extra_args=self.extra_args[0] + ['-test=no_min_difficulty'])
+
+        with self.connect() as client:
+            bounds = client.get_work(POW_TYPE_MINOTAURX)['time_constraints']
+            # MinotaurX has no epoch, so -sv2ntimeforward is the binding
+            # ceiling: a fresh chain is nowhere near the consensus future-time
+            # limit, which sits 1290 seconds out.
+            assert_equal(bounds['ntime_max'], bounds['ntime_min'] + 600)
+
+        with self.connect() as client:
+            bounds = client.get_work(POW_TYPE_X16RT)['time_constraints']
+            # X16RT rederives its hash chain from nTime & TIME_MASK, so the
+            # window stops at that boundary however much room the other two
+            # ceilings leave. Since the boundary is at most 127 seconds out
+            # and -sv2ntimeforward is 600, the epoch always wins and the value
+            # is exact rather than merely bounded.
+            assert_equal(bounds['ntime_max'], (bounds['ntime_min'] & TIME_MASK) + 127)
+            assert_equal(bounds['ntime_min'] & TIME_MASK, bounds['ntime_max'] & TIME_MASK)
+            # Deliberately not asserting the window is non-empty: a template
+            # built in the last second of an epoch legitimately has
+            # ntime_max == ntime_min, which is a 1-in-128 flake rather than a
+            # fault. The MinotaurX case above carries that claim.
+
+        # And the window is usable. Pinning has meant this suite could never
+        # show a block accepted at a timestamp other than the template's own.
+        with self.connect() as client:
+            work = client.get_work(POW_TYPE_MINOTAURX)
+            template = work['template']
+            bounds = work['time_constraints']
+            coinbase = build_coinbase(template)
+            ntime = bounds['ntime_min'] + 30
+            assert_greater_than(bounds['ntime_max'], ntime)
+
+            for nonce in range(MAX_NONCE_ATTEMPTS):
+                client.submit_solution(template['template_id'], template['version'],
+                                       ntime, nonce, coinbase)
+                if self.nodes[0].getblockcount() > before:
+                    break
+                time.sleep(SUBMIT_INTERVAL)
+            else:
+                raise AssertionError(
+                    "no nonce in {} attempts met the target at a rolled ntime".format(
+                        MAX_NONCE_ATTEMPTS))
+
+        assert_equal(self.nodes[0].getblockcount(), before + 1)
+        tip = self.nodes[0].getblock(self.nodes[0].getbestblockhash())
+        # The rolled timestamp is the one that got mined, so nBits really did
+        # hold still while it moved.
+        assert_equal(tip['time'], ntime)
+        assert_greater_than(ntime, bounds['ntime_min'])
+
+        # An ntime past the ceiling is still refused, which on a pinned chain
+        # was indistinguishable from refusing every roll.
+        with self.connect() as client:
+            work = client.get_work(POW_TYPE_X16RT)
+            template = work['template']
+            held = self.nodes[0].getblockcount()
+            client.submit_solution(template['template_id'], template['version'],
+                                   work['time_constraints']['ntime_max'] + 1, 0,
+                                   build_coinbase(template))
+            reply = client.request_transaction_data(template['template_id'])
+            assert_equal(reply['template_id'], template['template_id'])
+        assert_equal(self.nodes[0].getblockcount(), held)
+
+        self.restart_node(0, extra_args=self.extra_args[0])
 
     def test_finding_blocks_quickly_is_not_rate_limited(self):
         """A pool that keeps finding blocks must not be disconnected for it.

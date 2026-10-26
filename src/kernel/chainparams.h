@@ -143,6 +143,13 @@ public:
         std::unordered_map<Consensus::BuriedDeployment, int> activation_heights{};
         bool fastprune{false};
         bool enforce_bip94{false};
+        //! Regtest allows minimum-difficulty blocks, which makes nBits a
+        //! function of the candidate's own nTime. Anything whose correctness
+        //! depends on nBits holding still while a timestamp moves therefore
+        //! cannot be exercised on any chain but mainnet. Turning this off
+        //! leaves fPowNoRetargeting to hold nBits constant, so the chain stays
+        //! trivially mineable while timestamps stop steering difficulty.
+        bool pow_allow_min_difficulty{true};
     };
 
     static std::unique_ptr<const CChainParams> RegTest(const RegTestOptions& options);
