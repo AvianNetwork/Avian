@@ -792,11 +792,25 @@ belongs in core Stratum v2, and is worth raising there.
 ### Changing this extension
 
 A registry allocation covers an `extension_type`, and the message numbers inside
-it are Avian's to assign. So **adding** a message later needs no new allocation:
-a future `0x05` is a compatible extension of this one, and an implementation
-that does not know it will not have negotiated it.
+it are Avian's to assign. So **adding** a message later needs no new allocation,
+but only on one condition, which this document previously got wrong by assuming
+that an implementation ignorant of a message would not have negotiated the
+extension carrying it. Negotiation agrees an `extension_type`. It says nothing
+about which message numbers inside it either side knows, because the two were
+built at different times.
 
-What is not free is **changing** `0x00` through `0x04`. Their field layouts and
+So: **a receiver MUST ignore a message whose `extension_type` it negotiated and
+whose `msg_type` it does not recognise.** Log it and read the next frame. It
+must not be treated as a protocol violation, and the connection must not be
+closed.
+
+Without that rule, adding a message is not compatible at all: it breaks every
+peer built before it. The first deployment of `AvianBlockFound` demonstrated
+exactly this, where a correctly encoded `0x05` from an up-to-date pool killed
+the session of a miner linked against an older client, which then went on
+hashing and submitting into a connection that was no longer being served.
+
+What is not free is **changing** `0x00` through `0x05`. Their field layouts and
 meanings are what third-party pools and miners will have compiled against, and
 altering one silently is the same class of failure the extension exists to
 prevent. Treat any such change as a new extension version with its own

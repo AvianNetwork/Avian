@@ -287,6 +287,41 @@ BOOST_AUTO_TEST_CASE(unserved_message_disconnects)
     BOOST_CHECK(closed);
 }
 
+BOOST_AUTO_TEST_CASE(unknown_message_in_our_own_extension_is_ignored)
+{
+    // The other half of the rule above. Message numbers inside Avian's
+    // extension grow over time, and negotiating the extension_type says
+    // nothing about which of those numbers either side knows, because the two
+    // were built at different times. So an unrecognised one is read past
+    // rather than treated as a violation.
+    //
+    // This is not hypothetical. AvianBlockFound was added as 0x05 and the
+    // first pool to send it killed the session of every miner linked against
+    // a client that predated it, which then went on hashing and submitting
+    // into a connection nobody was serving.
+    auto server{StartTemplateServer(m_node, m_args.GetDataDirNet())};
+    auto client{ConnectTo(*server, server->AuthorityPubKey())};
+    BOOST_REQUIRE(Ready(*client, POW_TYPE_X16RT));
+
+    BOOST_REQUIRE(client->transport->Send(
+        sv2::NetHeader{sv2::AVIAN_EXTENSION_ID, 0x7f, 0}, std::vector<uint8_t>{1, 2, 3}));
+
+    bool closed{false};
+    Sock::Event occurred{0};
+    BOOST_CHECK(client->sock->Wait(std::chrono::milliseconds{300}, Sock::RECV, &occurred));
+    BOOST_CHECK_EQUAL(occurred & Sock::RECV, 0);
+    BOOST_CHECK(!closed);
+    BOOST_CHECK_EQUAL(server->connman->ClientCount(), 1u);
+
+    // Still being served, which is the point: ignoring a frame must not leave
+    // the session in a state where nothing else works either.
+    BOOST_REQUIRE(SendConstraints(*client));
+    const auto tmpl{ReadMessage(*client, closed)};
+    BOOST_REQUIRE(tmpl.has_value());
+    BOOST_CHECK_EQUAL(tmpl->header.extension_type, sv2::EXT_CORE);
+    BOOST_CHECK_EQUAL(tmpl->header.msg_type, static_cast<uint8_t>(sv2::CoreMsg::NEW_TEMPLATE));
+}
+
 BOOST_AUTO_TEST_CASE(templates_need_constraints_first)
 {
     // Without knowing how much coinbase room the client needs, the reserved
