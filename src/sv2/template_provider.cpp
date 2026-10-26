@@ -95,7 +95,28 @@ void TemplateProvider::ClientDisconnected(ClientId id)
 bool TemplateProvider::ReceivedMessage(ClientId id, const NetHeader& header,
                                        std::span<const uint8_t> payload)
 {
+    if (header.Extension() == m_opts.extension_id) {
+        // Avian's extension carries one client-to-server message, and that one
+        // is handled during setup. Anything else arriving here is either a
+        // server-to-client message sent the wrong way or a number this build
+        // predates, and from the outside those two are indistinguishable.
+        //
+        // So ignore it and read the next frame, which is what doc/sv2.md now
+        // requires: a receiver must tolerate an unknown msg_type inside an
+        // extension it negotiated. Negotiation agrees the extension_type and
+        // says nothing about which numbers inside it either side knows,
+        // because the two were built at different times. Disconnecting
+        // instead would mean no message could ever be added without breaking
+        // every peer built before it.
+        LogPrintLevel(BCLog::SV2, BCLog::Level::Debug,
+                      "client=%d sent extension 0x%04x msg_type=0x%02x, which this build does "
+                      "not serve; ignoring it\n",
+                      id, header.Extension(), header.msg_type);
+        return true;
+    }
     if (header.Extension() != EXT_CORE) {
+        // An extension that was never negotiated is a different matter. That
+        // client is not version-skewed, it is confused.
         LogPrintLevel(BCLog::SV2, BCLog::Level::Debug,
                       "client=%d sent extension 0x%04x, which carries no template messages\n", id,
                       header.Extension());
