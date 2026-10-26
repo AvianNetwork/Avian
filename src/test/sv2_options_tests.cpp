@@ -84,11 +84,15 @@ BOOST_AUTO_TEST_CASE(invalid_values_are_rejected)
     // on name resolution, and it is far more likely to be a mistake.
     m_args.ForceSetArg("-sv2bind", "not a host");
     BOOST_CHECK(!sv2::ReadOptions(m_args, ChainType::REGTEST));
-    m_args.ForceSetArg("-sv2bind", "");
+    // Reset to a good value rather than to "", which ForceSetArg sets rather
+    // than unsets and which ReadOptions then rejects on its own. Every check
+    // below expects a failure, so a leftover empty argument would satisfy all
+    // of them and prove nothing.
+    m_args.ForceSetArg("-sv2bind", "127.0.0.1");
 
     m_args.ForceSetArg("-sv2allowip", "999.0.0.1/8");
     BOOST_CHECK(!sv2::ReadOptions(m_args, ChainType::REGTEST));
-    m_args.ForceSetArg("-sv2allowip", "");
+    m_args.ForceSetArg("-sv2allowip", "10.0.0.0/8");
 
     m_args.ForceSetArg("-sv2maxclients", "0");
     BOOST_CHECK(!sv2::ReadOptions(m_args, ChainType::REGTEST));
@@ -122,6 +126,54 @@ BOOST_AUTO_TEST_CASE(allowip_parsing)
     BOOST_REQUIRE_EQUAL(opts->allow.size(), 1u);
     BOOST_CHECK(opts->allow.front().Match(LookupNumeric("10.1.2.3", 0)));
     BOOST_CHECK(!opts->allow.front().Match(LookupNumeric("11.1.2.3", 0)));
+}
+
+BOOST_AUTO_TEST_CASE(listening_on_all_interfaces_needs_an_allow_list)
+{
+    // Naming one interface is itself a restriction, so it needs no allow list.
+    // It still admits loopback peers only until one is given, which is
+    // Connman::IsAllowed's business rather than this function's.
+    m_args.ForceSetArg("-sv2bind", "127.0.0.1:7777");
+    BOOST_CHECK(sv2::ReadOptions(m_args, ChainType::REGTEST));
+
+    // A container operator's first instinct. This used to be reported as an
+    // invalid address, because CService::IsValid() rejects the unspecified
+    // one; now it is accepted, but only alongside an allow list.
+    m_args.ForceSetArg("-sv2bind", "0.0.0.0");
+    BOOST_CHECK(!sv2::ReadOptions(m_args, ChainType::REGTEST));
+
+    // Parsed, but not something to listen on.
+    m_args.ForceSetArg("-sv2bind", "255.255.255.255");
+    BOOST_CHECK(!sv2::ReadOptions(m_args, ChainType::REGTEST));
+
+    // The reason this takes Lookup rather than LookupNumeric: the latter
+    // reports failure with a default-constructed CService, which is sixteen
+    // zero bytes tagged IPv6 and so passes IsBindAny(). A typo must stay an
+    // error and must not become a wildcard bind.
+    for (const char* typo : {"256.256.256.256", "localhost", "1.2.3.4:0", ":::", ""}) {
+        m_args.ForceSetArg("-sv2bind", typo);
+        BOOST_CHECK_MESSAGE(!sv2::ReadOptions(m_args, ChainType::REGTEST),
+                            std::string{"-sv2bind accepted '"} + typo + "'");
+    }
+
+    m_args.ForceSetArg("-sv2allowip", "172.18.0.0/16");
+    m_args.ForceSetArg("-sv2bind", "0.0.0.0");
+    {
+        const auto opts{sv2::ReadOptions(m_args, ChainType::REGTEST)};
+        BOOST_REQUIRE(opts);
+        BOOST_REQUIRE_EQUAL(opts->binds.size(), 1u);
+        BOOST_CHECK(opts->binds.front().IsBindAny());
+        BOOST_CHECK_EQUAL(opts->binds.front().GetPort(), sv2::DefaultPort(ChainType::REGTEST));
+    }
+
+    m_args.ForceSetArg("-sv2bind", "[::]:7777");
+    {
+        const auto opts{sv2::ReadOptions(m_args, ChainType::REGTEST)};
+        BOOST_REQUIRE(opts);
+        BOOST_REQUIRE_EQUAL(opts->binds.size(), 1u);
+        BOOST_CHECK(opts->binds.front().IsBindAny());
+        BOOST_CHECK_EQUAL(opts->binds.front().GetPort(), 7777);
+    }
 }
 
 BOOST_AUTO_TEST_CASE(key_is_created_then_reused)

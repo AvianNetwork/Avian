@@ -37,6 +37,13 @@ continue to work alongside this.
 -sv2allowip=<ip>                subnet allowed to connect; repeatable
 ```
 
+`-sv2bind=0.0.0.0` and `-sv2bind=[::]` listen on every interface and so
+**require** `-sv2allowip`. Without one the node refuses to start, because an
+empty allow list admits loopback only and the combination would otherwise
+listen everywhere while serving nobody, one refused connection at a time. A
+bind to a single named address needs no allow list, since choosing the
+interface is itself a restriction.
+
 Default ports are 8442 (mainnet), 18442 (testnet), 28442 (testnet4), 38442
 (signet) and 18447 (regtest).
 
@@ -81,6 +88,9 @@ client to the server. A client learns that it is talking to a node holding a
 static key endorsed by the pool authority key; the node learns nothing about the
 client. Noise is therefore transport security, not access control. Use
 `-sv2allowip`, which is checked at accept time before any cryptography runs.
+With no `-sv2allowip` at all, only loopback peers are admitted whatever the
+bind address says, so the allow list is the thing to get right rather than the
+bind.
 
 There is **no cheap pre-filter for Avian's proof of work**. SHA256d chains let a
 server do a quick partial check before committing to real work, but X16RT and
