@@ -518,6 +518,15 @@ describe, and both are refusals this extension exists to make possible:
 | --- | --- |
 | `invalid-version` | `version` differs from the job's, which `REQUIRES_FIXED_VERSION` forbids and which would move the share to the other algorithm's proof-of-work limit |
 | `invalid-ntime` | `ntime` is outside the window `AvianJobTimeConstraints` gave for that job |
+| `too-many-shares` | the channel exceeded its submission allowance |
+
+`too-many-shares` is not about validity. A pool must meter submissions for the
+same reason the node does, that Avian has no cheap proof-of-work pre-filter so
+every share costs a whole hash, and a miner whose share target is set far below
+its hashrate will reach that allowance while doing nothing wrong. The answer is
+a harder share target rather than a larger allowance: the allowance exists
+because the hashes are expensive, so raising it buys the same flood at the same
+cost. A miner seeing this should expect its target to change, not retry.
 
 `error_code` is a `STR0_255`, so inventing values is legal, but a miner cannot
 recognise one it has never been told about. Undocumented, these two sit exactly
