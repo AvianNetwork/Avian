@@ -14,6 +14,7 @@
 #include <util/translation.h>
 
 #include <algorithm>
+#include <optional>
 #include <string>
 #include <system_error>
 
@@ -47,11 +48,32 @@ util::Result<Options> ReadOptions(const ArgsManager& args, ChainType chain)
     for (const std::string& spec : args.GetArgs("-sv2bind")) {
         // Numeric only: a listener must not depend on name resolution, and a
         // hostname here is far more likely to be a mistake than an intent.
-        const CService bind{LookupNumeric(spec, default_port)};
-        if (!bind.IsValid()) {
+        //
+        // Lookup rather than LookupNumeric, which reports failure by returning
+        // a default-constructed CService. That is sixteen zero bytes tagged
+        // IPv6, so it is indistinguishable from a deliberate "::", and a typo
+        // would quietly become a wildcard bind.
+        const std::optional<CService> bind{Lookup(spec, default_port, /*fAllowLookup=*/false)};
+        if (!bind) {
             return util::Error{Untranslated(strprintf("Invalid -sv2bind address '%s'", spec))};
         }
-        opts.binds.push_back(bind);
+        // IsValid() alone is the wrong test: it rejects the unspecified
+        // address, which is a legitimate request to listen on every interface
+        // and is what -bind and -rpcbind both take. The rest of what it
+        // rejects, such as 255.255.255.255 or a documentation prefix, is worth
+        // catching here rather than as a bind() failure.
+        if (!bind->IsValid() && !bind->IsBindAny()) {
+            return util::Error{Untranslated(strprintf("Cannot listen on -sv2bind address '%s'", spec))};
+        }
+        // Lookup discards SplitHostPort's return value, which is how init.cpp
+        // comes to check -bind's port separately. So an explicit ":0" arrives
+        // here intact and would bind an ephemeral port: the node comes up,
+        // reports success, and listens somewhere nobody was told about, which
+        // is the same hole -sv2port was narrowed to close.
+        if (bind->GetPort() == 0) {
+            return util::Error{Untranslated(strprintf("-sv2bind '%s' must name a port between 1 and 65535", spec))};
+        }
+        opts.binds.push_back(*bind);
     }
     if (opts.binds.empty()) {
         // Loopback by default. The Noise NX handshake proves the server's
@@ -66,6 +88,19 @@ util::Result<Options> ReadOptions(const ArgsManager& args, ChainType chain)
             return util::Error{Untranslated(strprintf("Invalid -sv2allowip subnet '%s'", spec))};
         }
         opts.allow.push_back(subnet);
+    }
+
+    // A wildcard bind is the one case where the operator has named no
+    // restriction whatsoever, and the Noise NX handshake authenticates the
+    // server to the client rather than the other way round. Connman::IsAllowed
+    // would hold the line anyway, because an empty allow list admits loopback
+    // only, but it would do so one refused connection at a time with the
+    // reason in the node's log rather than in front of whoever started it.
+    if (opts.allow.empty() &&
+        std::any_of(opts.binds.begin(), opts.binds.end(),
+                    [](const CService& bind) { return bind.IsBindAny(); })) {
+        return util::Error{Untranslated(
+            "-sv2bind on all interfaces requires -sv2allowip to say which peers may connect")};
     }
 
     const int64_t max_clients{args.GetIntArg("-sv2maxclients", opts.max_clients)};
