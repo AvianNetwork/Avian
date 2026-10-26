@@ -109,6 +109,11 @@ enum class AvianMsg : uint8_t {
     //! number cannot be reused; a pool implements it, a Template Provider has
     //! no occasion to send it.
     JOB_TIME_CONSTRAINTS = 0x04,
+    //! Also Mining Protocol only, and also a pool's to send: tells a miner
+    //! that one of its shares was a block, which it has no way to determine
+    //! for itself. Specified in doc/sv2.md and reserved here so the number
+    //! cannot be reused.
+    BLOCK_FOUND = 0x05,
 };
 
 //! Frame header: extension_type, msg_type, then a U24 payload length.

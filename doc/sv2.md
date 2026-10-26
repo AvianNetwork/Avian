@@ -238,6 +238,7 @@ All integers are little-endian, as everywhere in Stratum v2.
 | `0x02` | `AvianSelectAlgorithm.Error` | upstream → downstream | both |
 | `0x03` | `AvianTimeConstraints` | upstream → downstream | template distribution |
 | `0x04` | `AvianJobTimeConstraints` | upstream → downstream | mining |
+| `0x05` | `AvianBlockFound` | upstream → downstream | mining |
 
 "Upstream" is the node for a pool, and the pool for a worker. The three
 `AvianSelectAlgorithm` messages are identical on both protocols: they are
@@ -689,9 +690,11 @@ miner that assumed otherwise would be checking nothing.
 Seeing the full transaction list is what the Job Declaration Protocol is for,
 and that is not part of this.
 
-**A miner also cannot tell whether its own share is a block.** It is given a
+**A miner cannot tell on its own whether its share is a block.** It is given a
 share target and never the network target, because only the pool holds the
-template and only the pool forwards a winner to the node. This catches Stratum
+template and only the pool forwards a winner to the node. `AvianBlockFound`
+exists so a pool can say so explicitly; without it, or against a pool that
+does not send it, a miner has no way to know. This catches Stratum
 v1 miners out: there the convention is to compare against the network target
 and announce a block locally, and a port of such a miner will look for a field
 that is not sent and cannot be. A miner learns its share was a block, if at
@@ -735,6 +738,46 @@ And when the nonce range is exhausted while the window is pinned shut, which
 is the normal case on every chain except mainnet because the test chains all
 set `fPowAllowMinDifficultyBlocks`, there is nothing left to vary: wait for
 the next job rather than rolling anything.
+
+### `AvianBlockFound` (`0x05`, Mining)
+
+A **channel message**, so bit 15 of `extension_type` is set.
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `channel_id` | `U32` | the channel whose share this was |
+| `sequence_number` | `U32` | the `SubmitShares` sequence number it refers to |
+| `block_hash` | `U256` | the hash of the block that share produced |
+| `confirmed` | `BOOL` | false when submitted, true once it became the tip |
+
+Sent when a pool forwards a share to the node as a block, and sent a second
+time with `confirmed` true if that block later becomes the chain tip. A block
+that loses a race gets no second message, so a miner should treat the absence
+of one as unresolved rather than as failure.
+
+**Why this exists.** A miner is given a share target and never the network
+target, so it cannot tell whether its own share was a block. For a pool paying
+by share that is unremarkable, since blocks are the pool's business. For a
+solo pool it is backwards: the whole proposition is that consensus pays the
+miner directly for blocks it finds, and the miner is the one piece of software
+that cannot see them.
+
+The pool has the information twice over. It knows a share met the network
+target, because that is the test it applies to decide whether to forward it.
+And it can tell whether the block was accepted without asking the node
+anything: it already hashes every share to validate it, so it knows the hash
+it submitted, and the next `SetNewPrevHash` carries the new tip. A match means
+the block connected. That also answers a question the Template Distribution
+Protocol leaves open, since `SubmitSolution` has no reply and a pool otherwise
+cannot know what the node did with a block.
+
+**This is not really Avian's.** Nothing about it concerns multiple algorithms
+or time bounds; any solo pool on any chain has the same gap. It lives here
+because the gap is real now and the specification process is not fast, and it
+is deliberately **excluded from the registry submission** for the same reason
+the payout-address codes and the job-id reuse note are: an extension allocated
+for multi-algorithm work should not quietly carry unrelated additions. It
+belongs in core Stratum v2, and is worth raising there.
 
 ### Changing this extension
 
