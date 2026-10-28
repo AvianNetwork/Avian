@@ -1,0 +1,673 @@
+// Copyright (c) 2026 The Avian Core developers
+// Distributed under the MIT software license, see the accompanying
+// file COPYING or http://www.opensource.org/licenses/mit-license.php.
+
+#include <compat/compat.h>
+#include <key.h>
+#include <netbase.h>
+#include <primitives/block.h>
+#include <pubkey.h>
+#include <sv2/connman.h>
+#include <sv2/options.h>
+#include <sv2/transport.h>
+#include <test/util/setup_common.h>
+#include <test/util/sv2.h>
+#include <util/sock.h>
+#include <util/time.h>
+
+#include <chrono>
+#include <functional>
+#include <memory>
+#include <optional>
+#include <vector>
+
+#include <boost/test/unit_test.hpp>
+
+using namespace sv2test;
+
+namespace {
+
+//! A placeholder identifier for exercising negotiation independently of
+//! Avian's real extension.
+constexpr uint16_t TEST_EXT{0x4001};
+constexpr uint16_t UNKNOWN_EXT{0x4ffe};
+
+//! A listener with no Template Provider attached, over loopback.
+struct Server {
+    CKey authority;
+    CKey static_key;
+    sv2::SignatureNoiseMessage cert;
+    std::unique_ptr<sv2::Connman> connman;
+    CService bound;
+
+    XOnlyPubKey AuthorityPubKey() const { return XOnlyPubKey{authority.GetPubKey()}; }
+
+    ~Server()
+    {
+        if (connman) connman->Stop();
+    }
+};
+
+std::unique_ptr<Server> StartServer(const fs::path& datadir,
+                                    const std::function<void(sv2::Options&)>& tweak = nullptr)
+{
+    auto server{std::make_unique<Server>()};
+    server->authority.MakeNewKey(/*fCompressedIn=*/true);
+    server->static_key.MakeNewKey(/*fCompressedIn=*/true);
+
+    auto cert{sv2::MakeCertificate(server->authority, server->static_key, GetTime(), 3650)};
+    BOOST_REQUIRE(cert);
+    server->cert = *cert;
+
+    sv2::Options opts;
+    // Port 0 lets the OS choose, so concurrent test runs cannot collide.
+    opts.binds = {LookupNumeric("127.0.0.1", 0)};
+    opts.static_key_file = datadir / "unused_static";
+    opts.authority_key_file = datadir / "unused_authority";
+    // Tests pin the policy they exercise; the production default is covered by
+    // its own cases and by sv2_options_tests.
+    opts.extension_policy = sv2::ExtensionPolicy::OPTIONAL;
+    if (tweak) tweak(opts);
+
+    server->connman = std::make_unique<sv2::Connman>(opts, server->static_key, server->cert);
+    BOOST_REQUIRE(server->connman->Start(/*events=*/nullptr));
+
+    const auto bound{server->connman->BoundAddresses()};
+    BOOST_REQUIRE_EQUAL(bound.size(), 1u);
+    server->bound = bound.front();
+    return server;
+}
+
+std::unique_ptr<Client> Connect(const Server& server, const std::optional<XOnlyPubKey>& authority)
+{
+    auto client{sv2test::Connect(server.bound, authority)};
+    BOOST_REQUIRE(client);
+    return client;
+}
+
+//! Options as a real node would have them.
+void ProductionLike(sv2::Options& o)
+{
+    o.extension_policy = sv2::ExtensionPolicy::REQUIRE;
+    o.extension_id = sv2::AVIAN_EXTENSION_ID;
+    o.supported_extensions = {sv2::AVIAN_EXTENSION_ID};
+    o.required_extensions = {sv2::AVIAN_EXTENSION_ID};
+    o.pow_algos = {POW_TYPE_X16RT, POW_TYPE_MINOTAURX};
+}
+
+bool NegotiateAvian(Client& client, uint16_t id = sv2::AVIAN_EXTENSION_ID)
+{
+    if (!SendRequestExtensions(client, 100, {id})) return false;
+    bool closed{false};
+    const auto reply{ReadMessage(client, closed)};
+    return reply.has_value() &&
+           reply->header.msg_type ==
+               static_cast<uint8_t>(sv2::NegotiationMsg::REQUEST_EXTENSIONS_SUCCESS);
+}
+
+} // namespace
+
+BOOST_FIXTURE_TEST_SUITE(sv2_connman_tests, BasicTestingSetup)
+
+
+BOOST_AUTO_TEST_CASE(handshake_and_setup_connection)
+{
+    auto server{StartServer(m_args.GetDataDirNet())};
+    auto client{Connect(*server, server->AuthorityPubKey())};
+
+    BOOST_REQUIRE(DoHandshake(*client));
+    // The client verified the server certificate against the authority key, so
+    // it now knows which static key it is talking to.
+    BOOST_REQUIRE(client->transport->RemoteStaticKey().has_value());
+    BOOST_CHECK(*client->transport->RemoteStaticKey() == XOnlyPubKey{server->static_key.GetPubKey()});
+
+    BOOST_REQUIRE(client->transport->Send(
+        sv2::NetHeader{sv2::EXT_CORE, static_cast<uint8_t>(sv2::CoreMsg::SETUP_CONNECTION), 0},
+        sv2::EncodePayload(MakeSetup())));
+
+    bool closed{false};
+    const auto reply{ReadMessage(*client, closed)};
+    BOOST_REQUIRE(reply.has_value());
+    BOOST_CHECK_EQUAL(reply->header.msg_type, static_cast<uint8_t>(sv2::CoreMsg::SETUP_CONNECTION_SUCCESS));
+
+    const auto success{sv2::DecodePayload<sv2::SetupConnectionSuccess>(reply->payload)};
+    BOOST_CHECK_EQUAL(success.used_version, sv2::PROTOCOL_VERSION);
+    BOOST_CHECK_EQUAL(success.flags, 0u);
+    BOOST_CHECK_EQUAL(server->connman->ClientCount(), 1u);
+}
+
+BOOST_AUTO_TEST_CASE(trust_on_first_use_client)
+{
+    // A client with no configured authority key still completes the handshake;
+    // it simply does not verify the certificate.
+    auto server{StartServer(m_args.GetDataDirNet())};
+    auto client{Connect(*server, std::nullopt)};
+    BOOST_CHECK(DoHandshake(*client));
+}
+
+BOOST_AUTO_TEST_CASE(rejects_wrong_protocol)
+{
+    auto server{StartServer(m_args.GetDataDirNet())};
+    auto client{Connect(*server, server->AuthorityPubKey())};
+    BOOST_REQUIRE(DoHandshake(*client));
+
+    // The Mining Protocol is not what a Template Provider speaks.
+    BOOST_REQUIRE(client->transport->Send(
+        sv2::NetHeader{sv2::EXT_CORE, static_cast<uint8_t>(sv2::CoreMsg::SETUP_CONNECTION), 0},
+        sv2::EncodePayload(MakeSetup(static_cast<uint8_t>(sv2::Protocol::MINING)))));
+
+    bool closed{false};
+    const auto reply{ReadMessage(*client, closed)};
+    BOOST_REQUIRE(reply.has_value());
+    BOOST_CHECK_EQUAL(reply->header.msg_type, static_cast<uint8_t>(sv2::CoreMsg::SETUP_CONNECTION_ERROR));
+    const auto err{sv2::DecodePayload<sv2::SetupConnectionError>(reply->payload)};
+    BOOST_CHECK_EQUAL(err.error_code, "unsupported-protocol");
+}
+
+BOOST_AUTO_TEST_CASE(rejects_unsupported_flags)
+{
+    auto server{StartServer(m_args.GetDataDirNet())};
+    auto client{Connect(*server, server->AuthorityPubKey())};
+    BOOST_REQUIRE(DoHandshake(*client));
+
+    // No flags are defined for template distribution, so the bits we could not
+    // honour must be echoed back rather than silently ignored.
+    BOOST_REQUIRE(client->transport->Send(
+        sv2::NetHeader{sv2::EXT_CORE, static_cast<uint8_t>(sv2::CoreMsg::SETUP_CONNECTION), 0},
+        sv2::EncodePayload(MakeSetup(static_cast<uint8_t>(sv2::Protocol::TEMPLATE_DISTRIBUTION), 0x5))));
+
+    bool closed{false};
+    const auto reply{ReadMessage(*client, closed)};
+    BOOST_REQUIRE(reply.has_value());
+    const auto err{sv2::DecodePayload<sv2::SetupConnectionError>(reply->payload)};
+    BOOST_CHECK_EQUAL(err.error_code, "unsupported-feature-flags");
+    BOOST_CHECK_EQUAL(err.flags, 0x5u);
+}
+
+BOOST_AUTO_TEST_CASE(rejects_version_mismatch)
+{
+    auto server{StartServer(m_args.GetDataDirNet())};
+    auto client{Connect(*server, server->AuthorityPubKey())};
+    BOOST_REQUIRE(DoHandshake(*client));
+
+    auto setup{MakeSetup()};
+    setup.min_version = 3;
+    setup.max_version = 4;
+    BOOST_REQUIRE(client->transport->Send(
+        sv2::NetHeader{sv2::EXT_CORE, static_cast<uint8_t>(sv2::CoreMsg::SETUP_CONNECTION), 0},
+        sv2::EncodePayload(setup)));
+
+    bool closed{false};
+    const auto reply{ReadMessage(*client, closed)};
+    BOOST_REQUIRE(reply.has_value());
+    const auto err{sv2::DecodePayload<sv2::SetupConnectionError>(reply->payload)};
+    BOOST_CHECK_EQUAL(err.error_code, "protocol-version-mismatch");
+}
+
+BOOST_AUTO_TEST_CASE(message_before_setup_disconnects)
+{
+    auto server{StartServer(m_args.GetDataDirNet())};
+    auto client{Connect(*server, server->AuthorityPubKey())};
+    BOOST_REQUIRE(DoHandshake(*client));
+
+    // There is no session yet, so there is nothing to answer on: the only
+    // correct response is to close.
+    BOOST_REQUIRE(client->transport->Send(
+        sv2::NetHeader{sv2::EXT_CORE, static_cast<uint8_t>(sv2::CoreMsg::REQUEST_TRANSACTION_DATA), 0},
+        sv2::EncodePayload(sv2::RequestTransactionData{1})));
+
+    bool closed{false};
+    ReadMessage(*client, closed);
+    BOOST_CHECK(closed);
+}
+
+BOOST_AUTO_TEST_CASE(template_message_refused_without_provider)
+{
+    // No EventsInterface is attached, so the node cannot serve templates.
+    // Accepting the session and then ignoring requests would be worse than
+    // closing, so the client is dropped.
+    auto server{StartServer(m_args.GetDataDirNet())};
+    auto client{Connect(*server, server->AuthorityPubKey())};
+    BOOST_REQUIRE(DoHandshake(*client));
+
+    BOOST_REQUIRE(client->transport->Send(
+        sv2::NetHeader{sv2::EXT_CORE, static_cast<uint8_t>(sv2::CoreMsg::SETUP_CONNECTION), 0},
+        sv2::EncodePayload(MakeSetup())));
+    bool closed{false};
+    BOOST_REQUIRE(ReadMessage(*client, closed).has_value());
+
+    BOOST_REQUIRE(client->transport->Send(
+        sv2::NetHeader{sv2::EXT_CORE, static_cast<uint8_t>(sv2::CoreMsg::REQUEST_TRANSACTION_DATA), 0},
+        sv2::EncodePayload(sv2::RequestTransactionData{1})));
+    ReadMessage(*client, closed);
+    BOOST_CHECK(closed);
+}
+
+BOOST_AUTO_TEST_CASE(max_clients_enforced)
+{
+    auto server{StartServer(m_args.GetDataDirNet(), [](sv2::Options& o) { o.max_clients = 1; })};
+
+    auto first{Connect(*server, server->AuthorityPubKey())};
+    BOOST_REQUIRE(DoHandshake(*first));
+    BOOST_CHECK_EQUAL(server->connman->ClientCount(), 1u);
+
+    // The second connection is refused at accept, before any crypto. Whether
+    // the client sees a failed connect or a connected socket that then closes
+    // depends on how quickly the node gets there, so accept either: the claim
+    // is that no second client is admitted, not how the refusal surfaces.
+    auto second{sv2test::Connect(server->bound, server->AuthorityPubKey())};
+    if (second) {
+        bool closed{false};
+        BOOST_CHECK(!second->PumpUntil([&] { return second->transport->HandshakeComplete(); }, closed));
+    }
+    BOOST_CHECK_EQUAL(server->connman->ClientCount(), 1u);
+}
+
+BOOST_AUTO_TEST_CASE(handshake_timeout_drops_idle_client)
+{
+    // A client that connects and says nothing holds a slot, so it must be
+    // reaped rather than kept forever.
+    auto server{StartServer(m_args.GetDataDirNet(),
+                            [](sv2::Options& o) { o.handshake_timeout = std::chrono::seconds{1}; })};
+    auto client{Connect(*server, server->AuthorityPubKey())};
+
+    const auto deadline{std::chrono::steady_clock::now() + TIMEOUT};
+    while (server->connman->ClientCount() > 0 && std::chrono::steady_clock::now() < deadline) {
+        UninterruptibleSleep(std::chrono::milliseconds{50});
+    }
+    BOOST_CHECK_EQUAL(server->connman->ClientCount(), 0u);
+}
+
+// Extension negotiation (sv2-spec extension 0x0001).
+
+
+BOOST_AUTO_TEST_CASE(negotiation_agrees_on_supported_extensions)
+{
+    auto server{StartServer(m_args.GetDataDirNet(), [](sv2::Options& o) {
+        o.extension_policy = sv2::ExtensionPolicy::OPTIONAL;
+        o.supported_extensions = {TEST_EXT};
+    })};
+    auto client{Connect(*server, server->AuthorityPubKey())};
+    BOOST_REQUIRE(SetupSession(*client));
+
+    BOOST_REQUIRE(SendRequestExtensions(*client, 7, {sv2::EXT_NEGOTIATION, TEST_EXT}));
+    bool closed{false};
+    const auto reply{ReadMessage(*client, closed)};
+    BOOST_REQUIRE(reply.has_value());
+    BOOST_CHECK_EQUAL(reply->header.extension_type, sv2::EXT_NEGOTIATION);
+    BOOST_CHECK_EQUAL(reply->header.msg_type,
+                      static_cast<uint8_t>(sv2::NegotiationMsg::REQUEST_EXTENSIONS_SUCCESS));
+
+    const auto ok{sv2::DecodePayload<sv2::RequestExtensionsSuccess>(reply->payload)};
+    // The request id is echoed so a client can pair the response.
+    BOOST_CHECK_EQUAL(ok.request_id, 7);
+    const std::vector<uint16_t> expected{sv2::EXT_NEGOTIATION, TEST_EXT};
+    BOOST_CHECK(ok.supported_extensions == expected);
+}
+
+BOOST_AUTO_TEST_CASE(negotiation_always_supports_itself)
+{
+    // 0x0001 is the negotiation mechanism, so asking for it must succeed even
+    // when no other extension is offered.
+    auto server{StartServer(m_args.GetDataDirNet())};
+    auto client{Connect(*server, server->AuthorityPubKey())};
+    BOOST_REQUIRE(SetupSession(*client));
+
+    BOOST_REQUIRE(SendRequestExtensions(*client, 1, {sv2::EXT_NEGOTIATION}));
+    bool closed{false};
+    const auto reply{ReadMessage(*client, closed)};
+    BOOST_REQUIRE(reply.has_value());
+    BOOST_CHECK_EQUAL(reply->header.msg_type,
+                      static_cast<uint8_t>(sv2::NegotiationMsg::REQUEST_EXTENSIONS_SUCCESS));
+    const auto ok{sv2::DecodePayload<sv2::RequestExtensionsSuccess>(reply->payload)};
+    const std::vector<uint16_t> expected{sv2::EXT_NEGOTIATION};
+    BOOST_CHECK(ok.supported_extensions == expected);
+}
+
+BOOST_AUTO_TEST_CASE(unsupported_extension_is_reported_but_not_fatal)
+{
+    // Nothing the client asked for exists here, and nothing is required, so
+    // the spec lets it carry on without extensions. Disconnecting would be
+    // wrong.
+    auto server{StartServer(m_args.GetDataDirNet())};
+    auto client{Connect(*server, server->AuthorityPubKey())};
+    BOOST_REQUIRE(SetupSession(*client));
+
+    BOOST_REQUIRE(SendRequestExtensions(*client, 2, {UNKNOWN_EXT}));
+    bool closed{false};
+    const auto reply{ReadMessage(*client, closed)};
+    BOOST_REQUIRE(reply.has_value());
+    BOOST_CHECK_EQUAL(reply->header.msg_type,
+                      static_cast<uint8_t>(sv2::NegotiationMsg::REQUEST_EXTENSIONS_ERROR));
+
+    const auto err{sv2::DecodePayload<sv2::RequestExtensionsError>(reply->payload)};
+    BOOST_CHECK_EQUAL(err.request_id, 2);
+    const std::vector<uint16_t> expected{UNKNOWN_EXT};
+    BOOST_CHECK(err.unsupported_extensions == expected);
+    // Nothing was required, so the client is not being asked to retry.
+    BOOST_CHECK(err.required_extensions.empty());
+    BOOST_CHECK_EQUAL(server->connman->ClientCount(), 1u);
+}
+
+BOOST_AUTO_TEST_CASE(required_extension_omitted_gets_one_retry)
+{
+    auto server{StartServer(m_args.GetDataDirNet(), [](sv2::Options& o) {
+        o.extension_policy = sv2::ExtensionPolicy::REQUIRE;
+        o.supported_extensions = {TEST_EXT};
+        o.required_extensions = {TEST_EXT};
+    })};
+    auto client{Connect(*server, server->AuthorityPubKey())};
+    BOOST_REQUIRE(SetupSession(*client));
+
+    // First attempt omits it: the server says what is missing and waits.
+    BOOST_REQUIRE(SendRequestExtensions(*client, 3, {sv2::EXT_NEGOTIATION}));
+    bool closed{false};
+    const auto first{ReadMessage(*client, closed)};
+    BOOST_REQUIRE(first.has_value());
+    BOOST_CHECK_EQUAL(first->header.msg_type,
+                      static_cast<uint8_t>(sv2::NegotiationMsg::REQUEST_EXTENSIONS_ERROR));
+    const auto err{sv2::DecodePayload<sv2::RequestExtensionsError>(first->payload)};
+    const std::vector<uint16_t> required{TEST_EXT};
+    BOOST_CHECK(err.required_extensions == required);
+    BOOST_CHECK_EQUAL(server->connman->ClientCount(), 1u);
+
+    // The retry includes it and is accepted.
+    BOOST_REQUIRE(SendRequestExtensions(*client, 4, {TEST_EXT}));
+    const auto second{ReadMessage(*client, closed)};
+    BOOST_REQUIRE(second.has_value());
+    BOOST_CHECK_EQUAL(second->header.msg_type,
+                      static_cast<uint8_t>(sv2::NegotiationMsg::REQUEST_EXTENSIONS_SUCCESS));
+    const auto ok{sv2::DecodePayload<sv2::RequestExtensionsSuccess>(second->payload)};
+    BOOST_CHECK_EQUAL(ok.request_id, 4);
+}
+
+BOOST_AUTO_TEST_CASE(required_extension_omitted_twice_disconnects)
+{
+    auto server{StartServer(m_args.GetDataDirNet(), [](sv2::Options& o) {
+        o.extension_policy = sv2::ExtensionPolicy::REQUIRE;
+        o.supported_extensions = {TEST_EXT};
+        o.required_extensions = {TEST_EXT};
+    })};
+    auto client{Connect(*server, server->AuthorityPubKey())};
+    BOOST_REQUIRE(SetupSession(*client));
+
+    BOOST_REQUIRE(SendRequestExtensions(*client, 5, {}));
+    bool closed{false};
+    BOOST_REQUIRE(ReadMessage(*client, closed).has_value());
+
+    // One retry is allowed; a second omission ends the connection, and the
+    // final error is still delivered before the close.
+    BOOST_REQUIRE(SendRequestExtensions(*client, 6, {}));
+    const auto last{ReadMessage(*client, closed)};
+    BOOST_REQUIRE(last.has_value());
+    BOOST_CHECK_EQUAL(last->header.msg_type,
+                      static_cast<uint8_t>(sv2::NegotiationMsg::REQUEST_EXTENSIONS_ERROR));
+    ReadMessage(*client, closed);
+    BOOST_CHECK(closed);
+}
+
+BOOST_AUTO_TEST_CASE(require_policy_demands_negotiation_before_templates)
+{
+    // A server cannot announce a required extension unprompted, because
+    // RequestExtensions.Error is only ever a response. So a client that skips
+    // negotiation can only be dropped, with no on-wire explanation. This test
+    // pins that cost rather than hiding it.
+    auto server{StartServer(m_args.GetDataDirNet(), [](sv2::Options& o) {
+        o.extension_policy = sv2::ExtensionPolicy::REQUIRE;
+        o.supported_extensions = {TEST_EXT};
+        o.required_extensions = {TEST_EXT};
+    })};
+    auto client{Connect(*server, server->AuthorityPubKey())};
+    BOOST_REQUIRE(SetupSession(*client));
+
+    BOOST_REQUIRE(client->transport->Send(
+        sv2::NetHeader{sv2::EXT_CORE,
+                       static_cast<uint8_t>(sv2::CoreMsg::REQUEST_TRANSACTION_DATA), 0},
+        sv2::EncodePayload(sv2::RequestTransactionData{1})));
+    bool closed{false};
+    ReadMessage(*client, closed);
+    BOOST_CHECK(closed);
+}
+
+BOOST_AUTO_TEST_CASE(off_policy_withholds_avian_extensions)
+{
+    // Used to prove an unmodified client can still complete a session.
+    auto server{StartServer(m_args.GetDataDirNet(), [](sv2::Options& o) {
+        o.extension_policy = sv2::ExtensionPolicy::OFF;
+        o.supported_extensions = {TEST_EXT};
+        o.required_extensions = {TEST_EXT};
+    })};
+    auto client{Connect(*server, server->AuthorityPubKey())};
+    BOOST_REQUIRE(SetupSession(*client));
+
+    BOOST_REQUIRE(SendRequestExtensions(*client, 8, {TEST_EXT}));
+    bool closed{false};
+    const auto reply{ReadMessage(*client, closed)};
+    BOOST_REQUIRE(reply.has_value());
+    BOOST_CHECK_EQUAL(reply->header.msg_type,
+                      static_cast<uint8_t>(sv2::NegotiationMsg::REQUEST_EXTENSIONS_ERROR));
+    const auto err{sv2::DecodePayload<sv2::RequestExtensionsError>(reply->payload)};
+    const std::vector<uint16_t> expected{TEST_EXT};
+    BOOST_CHECK(err.unsupported_extensions == expected);
+    // Nothing is demanded while the policy is off.
+    BOOST_CHECK(err.required_extensions.empty());
+}
+
+BOOST_AUTO_TEST_CASE(second_request_extensions_disconnects)
+{
+    // Negotiation happens once, before protocol messages, so a repeat means
+    // the peer is out of step.
+    auto server{StartServer(m_args.GetDataDirNet())};
+    auto client{Connect(*server, server->AuthorityPubKey())};
+    BOOST_REQUIRE(SetupSession(*client));
+
+    BOOST_REQUIRE(SendRequestExtensions(*client, 9, {sv2::EXT_NEGOTIATION}));
+    bool closed{false};
+    BOOST_REQUIRE(ReadMessage(*client, closed).has_value());
+
+    BOOST_REQUIRE(SendRequestExtensions(*client, 10, {sv2::EXT_NEGOTIATION}));
+    ReadMessage(*client, closed);
+    BOOST_CHECK(closed);
+}
+
+// Avian multi-PoW extension: algorithm selection.
+
+
+BOOST_AUTO_TEST_CASE(algorithm_selection_succeeds)
+{
+    auto server{StartServer(m_args.GetDataDirNet(), ProductionLike)};
+    auto client{Connect(*server, server->AuthorityPubKey())};
+    BOOST_REQUIRE(SetupSession(*client));
+    BOOST_REQUIRE(NegotiateAvian(*client));
+
+    BOOST_REQUIRE(SendSelectAlgorithm(*client, POW_TYPE_MINOTAURX));
+    bool closed{false};
+    const auto reply{ReadMessage(*client, closed)};
+    BOOST_REQUIRE(reply.has_value());
+    BOOST_CHECK_EQUAL(reply->header.extension_type, sv2::AVIAN_EXTENSION_ID);
+    BOOST_CHECK_EQUAL(reply->header.msg_type,
+                      static_cast<uint8_t>(sv2::AvianMsg::SELECT_ALGORITHM_SUCCESS));
+
+    const auto ok{sv2::DecodePayload<sv2::AvianSelectAlgorithmSuccess>(reply->payload)};
+    BOOST_CHECK_EQUAL(ok.pow_type, POW_TYPE_MINOTAURX);
+    // Rolling is refused outright in this version. A client obeying this mask
+    // cannot change which algorithm its share is judged under.
+    BOOST_CHECK_EQUAL(ok.version_rolling_mask, 0u);
+}
+
+BOOST_AUTO_TEST_CASE(a_configured_mask_is_reported_faithfully)
+{
+    // No configuration can set a non-zero mask, so this reaches past
+    // ReadOptions to set the field directly. What it pins is the wire half:
+    // AvianSelectAlgorithm.Success carries the mask exactly as the node holds
+    // it, which is what a later protocol version would depend on if it ever
+    // allowed rolling. The algorithm bits are absent because the node never
+    // puts them there.
+    constexpr uint32_t mask{0x0000e000};
+    auto server{StartServer(m_args.GetDataDirNet(), [](sv2::Options& o) {
+        ProductionLike(o);
+        o.version_rolling_mask = mask;
+    })};
+    auto client{Connect(*server, server->AuthorityPubKey())};
+    BOOST_REQUIRE(SetupSession(*client));
+    BOOST_REQUIRE(NegotiateAvian(*client));
+    BOOST_REQUIRE(SendSelectAlgorithm(*client, POW_TYPE_X16RT));
+
+    bool closed{false};
+    const auto reply{ReadMessage(*client, closed)};
+    BOOST_REQUIRE(reply.has_value());
+    const auto ok{sv2::DecodePayload<sv2::AvianSelectAlgorithmSuccess>(reply->payload)};
+    BOOST_CHECK_EQUAL(ok.version_rolling_mask, mask);
+    BOOST_CHECK_EQUAL(ok.version_rolling_mask & 0x00ff0000u, 0u);
+}
+
+BOOST_AUTO_TEST_CASE(optional_policy_still_serves_a_first_algorithm_selection)
+{
+    // Under the optional and off policies a client reaches READY straight from
+    // SetupConnection, and READY was taken as evidence that an algorithm had
+    // been chosen. So the first AvianSelectAlgorithm was refused as a second
+    // one and -sv2extensionpolicy=optional could not serve minotaurx to
+    // anybody. Only the require policy was tested, which is why it survived.
+    auto server{StartServer(m_args.GetDataDirNet(), [](sv2::Options& o) {
+        o.extension_policy = sv2::ExtensionPolicy::OPTIONAL;
+        o.extension_id = sv2::AVIAN_EXTENSION_ID;
+        o.supported_extensions = {sv2::AVIAN_EXTENSION_ID};
+        o.pow_algos = {POW_TYPE_X16RT, POW_TYPE_MINOTAURX};
+    })};
+    auto client{Connect(*server, server->AuthorityPubKey())};
+    BOOST_REQUIRE(SetupSession(*client));
+    BOOST_REQUIRE(NegotiateAvian(*client));
+    BOOST_REQUIRE(SendSelectAlgorithm(*client, POW_TYPE_MINOTAURX));
+
+    bool closed{false};
+    const auto reply{ReadMessage(*client, closed)};
+    BOOST_REQUIRE(reply.has_value());
+    BOOST_REQUIRE_EQUAL(reply->header.msg_type,
+                        static_cast<uint8_t>(sv2::AvianMsg::SELECT_ALGORITHM_SUCCESS));
+    const auto ok{sv2::DecodePayload<sv2::AvianSelectAlgorithmSuccess>(reply->payload)};
+    BOOST_CHECK_EQUAL(ok.pow_type, POW_TYPE_MINOTAURX);
+
+    // A genuine second selection is still refused.
+    BOOST_REQUIRE(SendSelectAlgorithm(*client, POW_TYPE_X16RT));
+    const auto second{ReadMessage(*client, closed)};
+    BOOST_REQUIRE(second.has_value());
+    BOOST_CHECK_EQUAL(second->header.msg_type,
+                      static_cast<uint8_t>(sv2::AvianMsg::SELECT_ALGORITHM_ERROR));
+}
+
+BOOST_AUTO_TEST_CASE(unknown_pow_type_is_rejected)
+{
+    auto server{StartServer(m_args.GetDataDirNet(), ProductionLike)};
+    auto client{Connect(*server, server->AuthorityPubKey())};
+    BOOST_REQUIRE(SetupSession(*client));
+    BOOST_REQUIRE(NegotiateAvian(*client));
+
+    BOOST_REQUIRE(SendSelectAlgorithm(*client, NUM_BLOCK_TYPES));
+    bool closed{false};
+    const auto reply{ReadMessage(*client, closed)};
+    BOOST_REQUIRE(reply.has_value());
+    BOOST_CHECK_EQUAL(reply->header.msg_type,
+                      static_cast<uint8_t>(sv2::AvianMsg::SELECT_ALGORITHM_ERROR));
+    const auto err{sv2::DecodePayload<sv2::AvianSelectAlgorithmError>(reply->payload)};
+    BOOST_CHECK_EQUAL(err.error_code, "unsupported-pow-type");
+}
+
+BOOST_AUTO_TEST_CASE(disabled_pow_type_is_rejected)
+{
+    // The algorithm exists but this node was not told to serve it.
+    auto server{StartServer(m_args.GetDataDirNet(), [](sv2::Options& o) {
+        ProductionLike(o);
+        o.pow_algos = {POW_TYPE_X16RT};
+    })};
+    auto client{Connect(*server, server->AuthorityPubKey())};
+    BOOST_REQUIRE(SetupSession(*client));
+    BOOST_REQUIRE(NegotiateAvian(*client));
+
+    BOOST_REQUIRE(SendSelectAlgorithm(*client, POW_TYPE_MINOTAURX));
+    bool closed{false};
+    const auto reply{ReadMessage(*client, closed)};
+    BOOST_REQUIRE(reply.has_value());
+    const auto err{sv2::DecodePayload<sv2::AvianSelectAlgorithmError>(reply->payload)};
+    BOOST_CHECK_EQUAL(err.error_code, "pow-type-not-enabled");
+}
+
+BOOST_AUTO_TEST_CASE(templates_refused_before_algorithm_is_selected)
+{
+    // A connection carries one nBits and target stream, so there is nothing
+    // coherent to serve until the algorithm is settled.
+    auto server{StartServer(m_args.GetDataDirNet(), ProductionLike)};
+    auto client{Connect(*server, server->AuthorityPubKey())};
+    BOOST_REQUIRE(SetupSession(*client));
+    BOOST_REQUIRE(NegotiateAvian(*client));
+
+    BOOST_REQUIRE(client->transport->Send(
+        sv2::NetHeader{sv2::EXT_CORE,
+                       static_cast<uint8_t>(sv2::CoreMsg::REQUEST_TRANSACTION_DATA), 0},
+        sv2::EncodePayload(sv2::RequestTransactionData{1})));
+    bool closed{false};
+    ReadMessage(*client, closed);
+    BOOST_CHECK(closed);
+}
+
+BOOST_AUTO_TEST_CASE(second_algorithm_selection_is_rejected)
+{
+    auto server{StartServer(m_args.GetDataDirNet(), ProductionLike)};
+    auto client{Connect(*server, server->AuthorityPubKey())};
+    BOOST_REQUIRE(SetupSession(*client));
+    BOOST_REQUIRE(NegotiateAvian(*client));
+    BOOST_REQUIRE(SendSelectAlgorithm(*client, POW_TYPE_X16RT));
+    bool closed{false};
+    BOOST_REQUIRE(ReadMessage(*client, closed).has_value());
+
+    // Changing algorithm mid-session would move the target under templates
+    // already issued.
+    BOOST_REQUIRE(SendSelectAlgorithm(*client, POW_TYPE_MINOTAURX));
+    const auto reply{ReadMessage(*client, closed)};
+    BOOST_REQUIRE(reply.has_value());
+    const auto err{sv2::DecodePayload<sv2::AvianSelectAlgorithmError>(reply->payload)};
+    BOOST_CHECK_EQUAL(err.error_code, "algo-already-selected");
+}
+
+BOOST_AUTO_TEST_CASE(selection_without_negotiating_disconnects)
+{
+    // The spec forbids using a feature from an extension the server never
+    // confirmed, so this is a protocol violation rather than an error reply.
+    auto server{StartServer(m_args.GetDataDirNet(), [](sv2::Options& o) {
+        ProductionLike(o);
+        o.extension_policy = sv2::ExtensionPolicy::OPTIONAL;
+        o.required_extensions.clear();
+    })};
+    auto client{Connect(*server, server->AuthorityPubKey())};
+    BOOST_REQUIRE(SetupSession(*client));
+
+    BOOST_REQUIRE(SendSelectAlgorithm(*client, POW_TYPE_X16RT));
+    bool closed{false};
+    ReadMessage(*client, closed);
+    BOOST_CHECK(closed);
+}
+
+BOOST_AUTO_TEST_CASE(configured_extension_id_is_honoured)
+{
+    // The identifier is overridable for development and migration, so the
+    // dispatch must follow it rather than the compiled-in default.
+    constexpr uint16_t ALT_ID{0x4abc};
+    auto server{StartServer(m_args.GetDataDirNet(), [](sv2::Options& o) {
+        ProductionLike(o);
+        o.extension_id = ALT_ID;
+        o.supported_extensions = {ALT_ID};
+        o.required_extensions = {ALT_ID};
+    })};
+    auto client{Connect(*server, server->AuthorityPubKey())};
+    BOOST_REQUIRE(SetupSession(*client));
+    BOOST_REQUIRE(NegotiateAvian(*client, ALT_ID));
+    BOOST_REQUIRE(SendSelectAlgorithm(*client, POW_TYPE_X16RT, ALT_ID));
+
+    bool closed{false};
+    const auto reply{ReadMessage(*client, closed)};
+    BOOST_REQUIRE(reply.has_value());
+    BOOST_CHECK_EQUAL(reply->header.extension_type, ALT_ID);
+    BOOST_CHECK_EQUAL(reply->header.msg_type,
+                      static_cast<uint8_t>(sv2::AvianMsg::SELECT_ALGORITHM_SUCCESS));
+}
+
+BOOST_AUTO_TEST_SUITE_END()

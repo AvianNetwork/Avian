@@ -1,0 +1,306 @@
+// Copyright (c) 2026 The Avian Core developers
+// Distributed under the MIT software license, see the accompanying
+// file COPYING or http://www.opensource.org/licenses/mit-license.php.
+
+#include <sv2/options.h>
+
+#include <chain.h>
+#include <common/args.h>
+#include <logging.h>
+#include <netbase.h>
+#include <pubkey.h>
+#include <tinyformat.h>
+#include <util/readwritefile.h>
+#include <util/translation.h>
+
+#include <algorithm>
+#include <optional>
+#include <string>
+#include <system_error>
+
+namespace sv2 {
+
+uint16_t DefaultPort(ChainType chain)
+{
+    switch (chain) {
+    case ChainType::MAIN: return 8442;
+    case ChainType::TESTNET: return 18442;
+    case ChainType::TESTNET4: return 28442;
+    case ChainType::SIGNET: return 38442;
+    // Not 18445: that is regtest's onion service target (18444 + 1).
+    case ChainType::REGTEST: return 18447;
+    }
+    assert(false);
+}
+
+util::Result<Options> ReadOptions(const ArgsManager& args, ChainType chain)
+{
+    Options opts;
+    const int64_t port{args.GetIntArg("-sv2port", DefaultPort(chain))};
+    // The only -sv2 option that was narrowed rather than checked. A bare cast
+    // turns 65536 into 0, which binds an ephemeral port: the node comes up,
+    // reports success, and listens somewhere nobody was told about.
+    if (port < 1 || port > 65535) {
+        return util::Error{Untranslated("-sv2port must be between 1 and 65535")};
+    }
+    const uint16_t default_port{static_cast<uint16_t>(port)};
+
+    for (const std::string& spec : args.GetArgs("-sv2bind")) {
+        // Numeric only: a listener must not depend on name resolution, and a
+        // hostname here is far more likely to be a mistake than an intent.
+        //
+        // Lookup rather than LookupNumeric, which reports failure by returning
+        // a default-constructed CService. That is sixteen zero bytes tagged
+        // IPv6, so it is indistinguishable from a deliberate "::", and a typo
+        // would quietly become a wildcard bind.
+        const std::optional<CService> bind{Lookup(spec, default_port, /*fAllowLookup=*/false)};
+        if (!bind) {
+            return util::Error{Untranslated(strprintf("Invalid -sv2bind address '%s'", spec))};
+        }
+        // IsValid() alone is the wrong test: it rejects the unspecified
+        // address, which is a legitimate request to listen on every interface
+        // and is what -bind and -rpcbind both take. The rest of what it
+        // rejects, such as 255.255.255.255 or a documentation prefix, is worth
+        // catching here rather than as a bind() failure.
+        if (!bind->IsValid() && !bind->IsBindAny()) {
+            return util::Error{Untranslated(strprintf("Cannot listen on -sv2bind address '%s'", spec))};
+        }
+        // Lookup discards SplitHostPort's return value, which is how init.cpp
+        // comes to check -bind's port separately. So an explicit ":0" arrives
+        // here intact and would bind an ephemeral port: the node comes up,
+        // reports success, and listens somewhere nobody was told about, which
+        // is the same hole -sv2port was narrowed to close.
+        if (bind->GetPort() == 0) {
+            return util::Error{Untranslated(strprintf("-sv2bind '%s' must name a port between 1 and 65535", spec))};
+        }
+        opts.binds.push_back(*bind);
+    }
+    if (opts.binds.empty()) {
+        // Loopback by default. The Noise NX handshake proves the server's
+        // identity to the client, not the client's to the server, so exposing
+        // this port is equivalent to exposing RPC.
+        opts.binds.emplace_back(LookupNumeric("127.0.0.1", default_port));
+    }
+
+    for (const std::string& spec : args.GetArgs("-sv2allowip")) {
+        const CSubNet subnet{LookupSubNet(spec)};
+        if (!subnet.IsValid()) {
+            return util::Error{Untranslated(strprintf("Invalid -sv2allowip subnet '%s'", spec))};
+        }
+        opts.allow.push_back(subnet);
+    }
+
+    // A wildcard bind is the one case where the operator has named no
+    // restriction whatsoever, and the Noise NX handshake authenticates the
+    // server to the client rather than the other way round. Connman::IsAllowed
+    // would hold the line anyway, because an empty allow list admits loopback
+    // only, but it would do so one refused connection at a time with the
+    // reason in the node's log rather than in front of whoever started it.
+    if (opts.allow.empty() &&
+        std::any_of(opts.binds.begin(), opts.binds.end(),
+                    [](const CService& bind) { return bind.IsBindAny(); })) {
+        return util::Error{Untranslated(
+            "-sv2bind on all interfaces requires -sv2allowip to say which peers may connect")};
+    }
+
+    const int64_t max_clients{args.GetIntArg("-sv2maxclients", opts.max_clients)};
+    if (max_clients < 1) {
+        return util::Error{Untranslated("-sv2maxclients must be at least 1")};
+    }
+    opts.max_clients = static_cast<size_t>(max_clients);
+
+    const int64_t per_ip{args.GetIntArg("-sv2maxclientsperip", opts.max_clients_per_ip)};
+    if (per_ip < 1) {
+        return util::Error{Untranslated("-sv2maxclientsperip must be at least 1")};
+    }
+    opts.max_clients_per_ip = static_cast<size_t>(per_ip);
+
+    const int64_t timeout{args.GetIntArg("-sv2handshaketimeout", opts.handshake_timeout.count())};
+    if (timeout < 1) {
+        return util::Error{Untranslated("-sv2handshaketimeout must be at least 1 second")};
+    }
+    opts.handshake_timeout = std::chrono::seconds{timeout};
+
+    const int64_t send_buffer{args.GetIntArg("-sv2maxsendbuffer", opts.max_send_buffer >> 20)};
+    // A single RequestTransactionData.Success carries a whole block, so this
+    // cannot be tightened below the block size without stalling that message.
+    if (send_buffer < 16) {
+        return util::Error{Untranslated("-sv2maxsendbuffer must be at least 16 MiB, enough for one block")};
+    }
+    opts.max_send_buffer = static_cast<size_t>(send_buffer) << 20;
+
+    const int64_t validity{args.GetIntArg("-sv2certvalidity", opts.cert_validity_days)};
+    // The ceiling is not pedantry. not_valid_after is a uint32 of seconds, so
+    // a large enough validity wraps and every client then rejects the
+    // certificate as long expired, which presents as a handshake that fails
+    // for no visible reason.
+    if (validity < 1 || validity > 36500) {
+        return util::Error{Untranslated("-sv2certvalidity must be between 1 and 36500 days")};
+    }
+    opts.cert_validity_days = validity;
+
+    const std::string policy{args.GetArg("-sv2extensionpolicy", "require")};
+    if (policy == "require") {
+        opts.extension_policy = ExtensionPolicy::REQUIRE;
+    } else if (policy == "optional") {
+        opts.extension_policy = ExtensionPolicy::OPTIONAL;
+    } else if (policy == "off") {
+        opts.extension_policy = ExtensionPolicy::OFF;
+    } else {
+        return util::Error{Untranslated(strprintf(
+            "Invalid -sv2extensionpolicy '%s'; expected require, optional or off", policy))};
+    }
+
+    // The specification reserves 0x4000-0x7fff for experimental extensions and
+    // says they must not be present in production equipment. While the
+    // compiled-in identifier is still one of those, mainnet is refused
+    // outright: the alternative is a node that looks like it speaks a
+    // protocol and is using a number nobody has allocated it.
+    //
+    // This is the check that lifts when a registry allocation lands, and it
+    // is deliberately on the constant rather than on the override, because
+    // the override was never the thing that would put 0x4001 on mainnet.
+    // Starting aviand -sv2 on mainnet with no arguments at all was.
+    if (chain == ChainType::MAIN && AVIAN_EXTENSION_ID >= 0x4000 && AVIAN_EXTENSION_ID <= 0x7fff) {
+        return util::Error{Untranslated(strprintf(
+            "Stratum v2 cannot be enabled on mainnet: the Avian extension still uses the "
+            "experimental identifier 0x%04x, which the specification forbids in production. "
+            "See doc/sv2.md.", AVIAN_EXTENSION_ID))};
+    }
+
+    // Development override only. On mainnet the wire identity must be fixed
+    // by the constant alone: a runtime substitution would let a node look like
+    // it speaks this protocol while advertising someone else's registered
+    // extension number.
+    if (args.IsArgSet("-sv2extensionid")) {
+        if (chain == ChainType::MAIN) {
+            return util::Error{Untranslated("-sv2extensionid cannot be used on mainnet")};
+        }
+        const int64_t id{args.GetIntArg("-sv2extensionid", AVIAN_EXTENSION_ID)};
+        if (id < 0 || id > 0x7fff) {
+            // Bit 15 is the channel_msg flag, so it is not part of the id.
+            return util::Error{Untranslated("-sv2extensionid must be between 0 and 0x7fff")};
+        }
+        if (id == EXT_CORE || id == EXT_NEGOTIATION) {
+            // Those namespaces already have meanings; reusing one would make
+            // message dispatch ambiguous.
+            return util::Error{Untranslated(
+                "-sv2extensionid cannot be 0x0000 (core) or 0x0001 (extension negotiation)")};
+        }
+        opts.extension_id = static_cast<uint16_t>(id);
+    }
+
+    if (opts.extension_policy != ExtensionPolicy::OFF) {
+        opts.supported_extensions = {opts.extension_id};
+        if (opts.extension_policy == ExtensionPolicy::REQUIRE) {
+            opts.required_extensions = {opts.extension_id};
+        }
+    }
+
+    const std::vector<std::string> algo_args{args.GetArgs("-sv2powalgo")};
+    if (!algo_args.empty()) {
+        opts.pow_algos.clear();
+        for (const std::string& name : algo_args) {
+            bool found{false};
+            for (int i = 0; i < NUM_BLOCK_TYPES; ++i) {
+                if (name != POW_TYPE_NAMES[i]) continue;
+                const auto algo{static_cast<POW_TYPE>(i)};
+                // Repeating one is a configuration mistake, not a request to
+                // serve it twice.
+                if (std::find(opts.pow_algos.begin(), opts.pow_algos.end(), algo) == opts.pow_algos.end()) {
+                    opts.pow_algos.push_back(algo);
+                }
+                found = true;
+                break;
+            }
+            if (!found) {
+                return util::Error{Untranslated(strprintf("Invalid -sv2powalgo '%s'", name))};
+            }
+        }
+    }
+
+    const int64_t max_rejects{args.GetIntArg("-sv2maxrejects", opts.max_rejects)};
+    if (max_rejects < 1) {
+        return util::Error{Untranslated("-sv2maxrejects must be at least 1")};
+    }
+    opts.max_rejects = static_cast<size_t>(max_rejects);
+
+    const int64_t max_templates{args.GetIntArg("-sv2maxtemplates", opts.max_templates)};
+    // One would mean a solution found on work issued before the last refresh
+    // is thrown away, which is the whole reason this is configurable.
+    if (max_templates < 1) {
+        return util::Error{Untranslated("-sv2maxtemplates must be at least 1")};
+    }
+    opts.max_templates = static_cast<size_t>(max_templates);
+
+    const int64_t interval{args.GetIntArg("-sv2interval", opts.refresh_interval.count())};
+    // An X16RT template dies at its 128-second epoch boundary, so refreshing
+    // less often than that would leave clients holding dead work.
+    if (interval < 1 || interval > 120) {
+        return util::Error{Untranslated("-sv2interval must be between 1 and 120 seconds")};
+    }
+    opts.refresh_interval = std::chrono::seconds{interval};
+
+    const int64_t ntime_forward{args.GetIntArg("-sv2ntimeforward", opts.ntime_forward)};
+    if (ntime_forward < 0) {
+        return util::Error{Untranslated("-sv2ntimeforward cannot be negative")};
+    }
+    opts.ntime_forward = ntime_forward;
+
+    const int64_t ntime_margin{args.GetIntArg("-sv2timemargin", opts.ntime_margin)};
+    if (ntime_margin < 0 || ntime_margin >= MAX_FUTURE_BLOCK_TIME_DUAL_ALGO) {
+        return util::Error{Untranslated(strprintf(
+            "-sv2timemargin must be between 0 and %d", MAX_FUTURE_BLOCK_TIME_DUAL_ALGO - 1))};
+    }
+    opts.ntime_margin = ntime_margin;
+
+    opts.static_key_file = args.GetPathArg("-sv2staticprivkey", args.GetDataDirNet() / "sv2_static_key");
+    opts.authority_key_file = args.GetPathArg("-sv2authoritykey", args.GetDataDirNet() / "sv2_authority_key");
+
+    return opts;
+}
+
+util::Result<CKey> LoadOrCreateKey(const fs::path& path)
+{
+    if (fs::exists(path)) {
+        const auto [ok, data]{ReadBinaryFile(path, 32)};
+        if (!ok) {
+            return util::Error{Untranslated(strprintf("Cannot read %s", fs::PathToString(path)))};
+        }
+        if (data.size() != 32) {
+            return util::Error{Untranslated(strprintf("%s is not a 32-byte private key", fs::PathToString(path)))};
+        }
+        CKey key;
+        key.Set(data.begin(), data.end(), /*fCompressedIn=*/true);
+        if (!key.IsValid()) {
+            return util::Error{Untranslated(strprintf("%s does not contain a valid private key", fs::PathToString(path)))};
+        }
+        return key;
+    }
+
+    CKey key;
+    key.MakeNewKey(/*fCompressedIn=*/true);
+    // umask is 0077 for the process, so this lands mode 0600.
+    if (!WriteBinaryFile(path, std::string{UCharCast(key.begin()), UCharCast(key.end())})) {
+        return util::Error{Untranslated(strprintf("Cannot write %s", fs::PathToString(path)))};
+    }
+    LogPrintf("sv2: generated a new private key at %s\n", fs::PathToString(path));
+    return key;
+}
+
+util::Result<SignatureNoiseMessage> MakeCertificate(const CKey& authority, const CKey& static_key,
+                                                    int64_t now, int64_t validity_days)
+{
+    SignatureNoiseMessage cert;
+    cert.version = 0;
+    cert.valid_from = static_cast<uint32_t>(now);
+    cert.not_valid_after = static_cast<uint32_t>(now + validity_days * 24 * 60 * 60);
+
+    const XOnlyPubKey static_pub{static_key.GetPubKey()};
+    if (!cert.Sign(authority, static_pub)) {
+        return util::Error{Untranslated("Cannot sign the Sv2 server certificate")};
+    }
+    return cert;
+}
+
+} // namespace sv2

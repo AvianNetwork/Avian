@@ -29,6 +29,10 @@ const std::string POW_TYPE_NAMES[] = {
     "x16rt",
     "minotaurx"};
 
+// Dual Algo: X16RT derives its hash chain order from the block time masked to
+// a 128-second epoch, so work does not survive a boundary crossing.
+static constexpr uint32_t TIME_MASK{0xffffff80};
+
 // Dual Algo: Pow type IDs
 enum POW_TYPE {
     POW_TYPE_X16RT,
@@ -41,6 +45,13 @@ enum POW_TYPE {
 // Must be called before any block hashing occurs (except genesis).
 void SetPoWHashParams(uint32_t nX16rtTimestamp, uint32_t nDualAlgoTimestamp);
 bool ArePoWHashParamsSet();
+
+// Number of entries in the proof-of-work hash cache.
+//
+// Exposed so that callers handling untrusted headers can show they did not
+// cause an expensive hash: GetHash() inserts into this cache, whereas
+// ComputePoWHash() does not.
+size_t PowCacheSize();
 
 // PowCache disk persistence: save/load expensive PoW hash cache to/from disk
 bool SavePowCache(const fs::path& cache_path);

@@ -74,6 +74,7 @@
 #include <scheduler.h>
 #include <script/sigcache.h>
 #include <sync.h>
+#include <sv2/template_provider.h>
 #include <torcontrol.h>
 #include <txdb.h>
 #include <txmempool.h>
@@ -301,6 +302,7 @@ void Interrupt(NodeContext& node)
     InterruptRPC();
     InterruptREST();
     InterruptTorControl();
+    sv2::InterruptSv2();
     InterruptMapPort();
     if (node.connman)
         node.connman->Interrupt();
@@ -343,6 +345,7 @@ void Shutdown(NodeContext& node)
     if (node.peerman && node.validation_signals) node.validation_signals->UnregisterValidationInterface(node.peerman.get());
     if (node.connman) node.connman->Stop();
 
+    sv2::StopSv2();
     StopTorControl();
 
     if (node.background_init_thread.joinable()) node.background_init_thread.join();
@@ -663,6 +666,48 @@ void SetupServerArgs(ArgsManager& argsman, bool can_listen_ipc)
         "Can be specified multiple times.", ArgsManager::ALLOW_ANY, OptionsCategory::CONNECTION);
 
     g_wallet_init_interface.AddWalletOptions(argsman);
+
+#ifdef ENABLE_SV2
+    argsman.AddArg("-sv2", strprintf("Serve block templates over the Stratum v2 Template Distribution Protocol (default: %u)", false), ArgsManager::ALLOW_ANY, OptionsCategory::SV2);
+    argsman.AddArg("-sv2bind=<addr>[:<port>]", "Bind the Stratum v2 Template Provider to the given address. Defaults to loopback, because the handshake authenticates this server to the client and not the reverse, so exposing this port is equivalent to exposing RPC. Can be specified multiple times. Listening on all interfaces (0.0.0.0 or [::]) requires -sv2allowip.", ArgsManager::ALLOW_ANY | ArgsManager::NETWORK_ONLY, OptionsCategory::SV2);
+    argsman.AddArg("-sv2port=<port>", strprintf("Default port for -sv2bind (default: %u, testnet3: %u, testnet4: %u, signet: %u, regtest: %u)", sv2::DefaultPort(ChainType::MAIN), sv2::DefaultPort(ChainType::TESTNET), sv2::DefaultPort(ChainType::TESTNET4), sv2::DefaultPort(ChainType::SIGNET), sv2::DefaultPort(ChainType::REGTEST)), ArgsManager::ALLOW_ANY | ArgsManager::NETWORK_ONLY, OptionsCategory::SV2);
+    argsman.AddArg("-sv2allowip=<ip>", "Allow Stratum v2 connections from the given IP or subnet, checked before any handshake. Default is loopback only. Can be specified multiple times.", ArgsManager::ALLOW_ANY, OptionsCategory::SV2);
+    argsman.AddArg("-sv2maxclients=<n>", strprintf("Maximum concurrent Stratum v2 clients (default: %u)", 16), ArgsManager::ALLOW_ANY, OptionsCategory::SV2);
+    argsman.AddArg("-sv2maxclientsperip=<n>", strprintf("Maximum concurrent Stratum v2 clients from one address (default: %u)", 4), ArgsManager::ALLOW_ANY, OptionsCategory::SV2);
+    argsman.AddArg("-sv2handshaketimeout=<n>", strprintf("Drop a Stratum v2 client that has not completed setup within this many seconds (default: %u)", 10), ArgsManager::ALLOW_ANY, OptionsCategory::SV2);
+    argsman.AddArg("-sv2maxsendbuffer=<n>", strprintf("Maximum per-client Stratum v2 send buffer in MiB; must hold one block (default: %u)", 32), ArgsManager::ALLOW_ANY, OptionsCategory::SV2);
+    argsman.AddArg("-sv2extensionpolicy=<policy>", "How a Stratum v2 client must negotiate Avian protocol extensions: require, optional or off (default: require)", ArgsManager::ALLOW_ANY, OptionsCategory::SV2);
+    argsman.AddArg("-sv2powalgo=<algo>", strprintf("Proof-of-work algorithm to build Stratum v2 templates for: %s or %s. The first given is used by a client that does not select one. Can be specified multiple times. (default: %s)", POW_TYPE_NAMES[0], POW_TYPE_NAMES[1], DEFAULT_POW_TYPE), ArgsManager::ALLOW_ANY, OptionsCategory::SV2);
+    argsman.AddArg("-sv2maxtemplates=<n>", strprintf("How many templates to keep live per Stratum v2 client. Work issued before the last refresh is still valid for the same tip, so this is what decides whether a late block is accepted or discarded. (default: %u)", 3), ArgsManager::ALLOW_ANY, OptionsCategory::SV2);
+    argsman.AddArg("-sv2maxrejects=<n>", strprintf("Drop a Stratum v2 client after this many refused solutions, which almost always means it is rolling a field it was told not to (default: %u)", 10), ArgsManager::ALLOW_ANY, OptionsCategory::SV2);
+    argsman.AddArg("-sv2interval=<n>", strprintf("Seconds between Stratum v2 template refreshes when the tip has not moved, which is what picks up new fees. Clamped to 120 so X16RT work never outlives its epoch. (default: %u)", 30), ArgsManager::ALLOW_ANY, OptionsCategory::SV2);
+    argsman.AddArg("-sv2ntimeforward=<n>", strprintf("How many seconds above a template's own timestamp a Stratum v2 client may roll ntime (default: %u)", 600), ArgsManager::ALLOW_ANY, OptionsCategory::SV2);
+    argsman.AddArg("-sv2timemargin=<n>", strprintf("Seconds of margin to leave below the consensus future-time limit when bounding ntime (default: %u)", 60), ArgsManager::ALLOW_ANY, OptionsCategory::SV2);
+    argsman.AddArg("-sv2extensionid=<n>", strprintf("Identifier for Avian's Stratum v2 multi-PoW extension (default: 0x%04x). For development only and rejected on mainnet, where the wire identity must be fixed.", sv2::AVIAN_EXTENSION_ID), ArgsManager::ALLOW_ANY | ArgsManager::DEBUG_ONLY, OptionsCategory::SV2);
+    argsman.AddArg("-sv2staticprivkey=<file>", "Stratum v2 server static private key, generated on first use (default: sv2_static_key in the network directory)", ArgsManager::ALLOW_ANY, OptionsCategory::SV2);
+    argsman.AddArg("-sv2authoritykey=<file>", "Stratum v2 authority private key that signs the server certificate, generated on first use (default: sv2_authority_key in the network directory)", ArgsManager::ALLOW_ANY, OptionsCategory::SV2);
+    argsman.AddArg("-sv2certvalidity=<n>", strprintf("Validity of the generated Stratum v2 server certificate, in days (default: %u)", 3650), ArgsManager::ALLOW_ANY, OptionsCategory::SV2);
+#else
+    hidden_args.emplace_back("-sv2");
+    hidden_args.emplace_back("-sv2bind=<addr>[:<port>]");
+    hidden_args.emplace_back("-sv2port=<port>");
+    hidden_args.emplace_back("-sv2allowip=<ip>");
+    hidden_args.emplace_back("-sv2maxclients=<n>");
+    hidden_args.emplace_back("-sv2maxclientsperip=<n>");
+    hidden_args.emplace_back("-sv2handshaketimeout=<n>");
+    hidden_args.emplace_back("-sv2maxsendbuffer=<n>");
+    hidden_args.emplace_back("-sv2extensionpolicy=<policy>");
+    hidden_args.emplace_back("-sv2powalgo=<algo>");
+    hidden_args.emplace_back("-sv2maxtemplates=<n>");
+    hidden_args.emplace_back("-sv2maxrejects=<n>");
+    hidden_args.emplace_back("-sv2interval=<n>");
+    hidden_args.emplace_back("-sv2ntimeforward=<n>");
+    hidden_args.emplace_back("-sv2timemargin=<n>");
+    hidden_args.emplace_back("-sv2extensionid=<n>");
+    hidden_args.emplace_back("-sv2staticprivkey=<file>");
+    hidden_args.emplace_back("-sv2authoritykey=<file>");
+    hidden_args.emplace_back("-sv2certvalidity=<n>");
+#endif
 
 #ifdef ENABLE_ZMQ
     argsman.AddArg("-zmqpubhashblock=<address>", "Enable publish hash block in <address>", ArgsManager::ALLOW_ANY, OptionsCategory::ZMQ);
@@ -2332,6 +2377,13 @@ bool AppInitMain(NodeContext& node, interfaces::BlockAndHeaderTipInfo* tip_info)
         }
         StartTorControl(onion_service_target);
     }
+
+#ifdef ENABLE_SV2
+    if (args.GetBoolArg("-sv2", false)) {
+        if (!node.mining) return InitError(Untranslated("Stratum v2 requires the mining interface"));
+        if (!sv2::StartSv2(args, chainparams.GetChainType(), *node.mining)) return false;
+    }
+#endif
 
     if (connOptions.bind_on_any) {
         // Only add all IP addresses of the machine if we would be listening on
