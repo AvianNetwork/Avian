@@ -189,6 +189,11 @@ private:
     const CKey m_static_key;
     const SignatureNoiseMessage m_cert;
 
+    //! Set once the certificate above has lapsed, so the warning in AcceptNew
+    //! is said one time rather than per connection. Touched only on the
+    //! connman thread, like the rest of this state.
+    bool m_cert_lapsed_logged{false};
+
     EventsInterface* m_events{nullptr};
     std::vector<std::shared_ptr<Sock>> m_listen;
     std::thread m_thread;

@@ -806,6 +806,12 @@ bool StartSv2(const ArgsManager& args, ChainType chain, interfaces::Mining& mini
     // certificate against it, so it belongs in the log at startup.
     const XOnlyPubKey authority_pub{authority_key->GetPubKey()};
     LogPrintf("sv2: authority public key %s\n", HexStr(authority_pub));
+    // The window as well as the key. A certificate outside it is rejected by
+    // every client, the handshake carries no reason back, and the only symptom
+    // is clients that connect and vanish. See -sv2certvalidity.
+    LogPrintf("sv2: server certificate valid from %s to %s\n",
+              FormatISO8601DateTime(cert->valid_from),
+              FormatISO8601DateTime(cert->not_valid_after));
     if (opts->extension_id != AVIAN_EXTENSION_ID) {
         LogWarning("sv2: using extension id 0x%04x instead of the default 0x%04x", opts->extension_id,
                    AVIAN_EXTENSION_ID);

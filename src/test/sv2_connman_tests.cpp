@@ -48,14 +48,19 @@ struct Server {
     }
 };
 
+//! `cert_from` dates the certificate, so a test can start a server whose
+//! certificate has already lapsed. 0 means now, which is what a node does.
 std::unique_ptr<Server> StartServer(const fs::path& datadir,
-                                    const std::function<void(sv2::Options&)>& tweak = nullptr)
+                                    const std::function<void(sv2::Options&)>& tweak = nullptr,
+                                    int64_t cert_from = 0)
 {
     auto server{std::make_unique<Server>()};
     server->authority.MakeNewKey(/*fCompressedIn=*/true);
     server->static_key.MakeNewKey(/*fCompressedIn=*/true);
 
-    auto cert{sv2::MakeCertificate(server->authority, server->static_key, GetTime(), 3650)};
+    const int64_t from{cert_from == 0 ? GetTime() : cert_from};
+    const int64_t days{cert_from == 0 ? 3650 : 1};
+    auto cert{sv2::MakeCertificate(server->authority, server->static_key, from, days)};
     BOOST_REQUIRE(cert);
     server->cert = *cert;
 
@@ -668,6 +673,30 @@ BOOST_AUTO_TEST_CASE(configured_extension_id_is_honoured)
     BOOST_CHECK_EQUAL(reply->header.extension_type, ALT_ID);
     BOOST_CHECK_EQUAL(reply->header.msg_type,
                       static_cast<uint8_t>(sv2::AvianMsg::SELECT_ALGORITHM_SUCCESS));
+}
+
+BOOST_AUTO_TEST_CASE(a_lapsed_certificate_splits_checking_clients_from_the_rest)
+{
+    // The asymmetry is the whole reason Connman logs its certificate window. A
+    // client that verifies the certificate walks away, and one that does not
+    // connects happily, so the server's own connection count tells it nothing
+    // and the handshake has no message to carry a reason back. The reference
+    // implementation has the same gap open against itself, as
+    // stratum-mining/stratum#2425, so neither end can rely on the other to
+    // explain it.
+    const int64_t long_ago{GetTime() - 10 * 24 * 60 * 60};
+    auto server{StartServer(m_args.GetDataDirNet(), /*tweak=*/nullptr, /*cert_from=*/long_ago)};
+
+    auto checking{Connect(*server, server->AuthorityPubKey())};
+    BOOST_CHECK(!DoHandshake(*checking));
+
+    auto trusting{Connect(*server, /*authority=*/std::nullopt)};
+    BOOST_CHECK(DoHandshake(*trusting));
+
+    // And the reason is available rather than implied, which is what the log
+    // line and any future client can report.
+    BOOST_CHECK(server->cert.Verify(XOnlyPubKey{server->static_key.GetPubKey()},
+                                    server->AuthorityPubKey(), GetTime()) == sv2::CertStatus::EXPIRED);
 }
 
 BOOST_AUTO_TEST_SUITE_END()
