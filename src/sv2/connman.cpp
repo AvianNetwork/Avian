@@ -546,6 +546,18 @@ void Connman::AcceptNew(const Sock::EventsPerSock& events)
             continue;
         }
 
+        // A certificate that lapsed while the node was running is rejected by
+        // every client, and the handshake cannot carry the reason back, so
+        // without this the operator sees only clients that connect and
+        // disappear. Once, because the condition holds until a restart mints a
+        // new certificate.
+        if (!m_cert_lapsed_logged && GetTime() > static_cast<int64_t>(m_cert.not_valid_after)) {
+            m_cert_lapsed_logged = true;
+            LogWarning("sv2: the server certificate expired at %s, so every client will reject it; "
+                       "restart to mint a new one",
+                       FormatISO8601DateTime(m_cert.not_valid_after));
+        }
+
         const ClientId id{m_next_id++};
         // The remaining members use their default initializers.
         m_clients.push_back(Client{id, std::shared_ptr<Sock>{sock.release()}, addr,

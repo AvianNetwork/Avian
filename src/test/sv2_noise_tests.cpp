@@ -110,26 +110,41 @@ BOOST_AUTO_TEST_CASE(certificate_sign_and_verify)
     const XOnlyPubKey authority_pub{authority.GetPubKey()};
     const auto server{MakeServer(authority)};
 
-    BOOST_CHECK(server.cert.Verify(server.static_pub, authority_pub, 1500));
+    using sv2::CertStatus;
+
+    BOOST_CHECK(server.cert.Verify(server.static_pub, authority_pub, 1500) == CertStatus::OK);
     // Validity window is inclusive at both ends.
-    BOOST_CHECK(server.cert.Verify(server.static_pub, authority_pub, 1000));
-    BOOST_CHECK(server.cert.Verify(server.static_pub, authority_pub, 2000));
-    BOOST_CHECK(!server.cert.Verify(server.static_pub, authority_pub, 999));
-    BOOST_CHECK(!server.cert.Verify(server.static_pub, authority_pub, 2001));
+    BOOST_CHECK(server.cert.Verify(server.static_pub, authority_pub, 1000) == CertStatus::OK);
+    BOOST_CHECK(server.cert.Verify(server.static_pub, authority_pub, 2000) == CertStatus::OK);
+    // Each rejection names its own cause, so a failing handshake can say which
+    // of the four it was. The peer will not tell us.
+    BOOST_CHECK(server.cert.Verify(server.static_pub, authority_pub, 999) == CertStatus::NOT_YET_VALID);
+    BOOST_CHECK(server.cert.Verify(server.static_pub, authority_pub, 2001) == CertStatus::EXPIRED);
 
     // A different authority key must not validate.
     CKey other;
     other.MakeNewKey(/*fCompressedIn=*/true);
-    BOOST_CHECK(!server.cert.Verify(server.static_pub, XOnlyPubKey{other.GetPubKey()}, 1500));
+    BOOST_CHECK(server.cert.Verify(server.static_pub, XOnlyPubKey{other.GetPubKey()}, 1500) ==
+                CertStatus::BAD_SIGNATURE);
 
     // The signature covers the static key, so it must not validate for another.
     CKey other_static;
     other_static.MakeNewKey(/*fCompressedIn=*/true);
-    BOOST_CHECK(!server.cert.Verify(XOnlyPubKey{other_static.GetPubKey()}, authority_pub, 1500));
+    BOOST_CHECK(server.cert.Verify(XOnlyPubKey{other_static.GetPubKey()}, authority_pub, 1500) ==
+                CertStatus::BAD_SIGNATURE);
 
-    // An unknown certificate version is rejected rather than interpreted.
+    // An unknown certificate version is rejected rather than interpreted, and
+    // is distinguishable from a bad signature: the fix is a software update,
+    // not a new key.
     const auto future{MakeServer(authority, 1000, 2000, /*version=*/1)};
-    BOOST_CHECK(!future.cert.Verify(future.static_pub, authority_pub, 1500));
+    BOOST_CHECK(future.cert.Verify(future.static_pub, authority_pub, 1500) ==
+                CertStatus::UNKNOWN_VERSION);
+
+    // Every status has a non-empty reason, so a log site needs no branch.
+    for (const CertStatus s : {CertStatus::OK, CertStatus::UNKNOWN_VERSION, CertStatus::NOT_YET_VALID,
+                               CertStatus::EXPIRED, CertStatus::BAD_SIGNATURE}) {
+        BOOST_CHECK(!sv2::CertStatusString(s).empty());
+    }
 }
 
 BOOST_AUTO_TEST_CASE(handshake_derives_matching_transport_keys)

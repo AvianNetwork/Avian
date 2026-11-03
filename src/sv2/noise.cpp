@@ -65,14 +65,29 @@ bool SignatureNoiseMessage::Sign(const CKey& authority, const XOnlyPubKey& stati
     return authority.SignSchnorr(Digest(static_key), signature, /*merkle_root=*/nullptr, GetRandHash());
 }
 
-bool SignatureNoiseMessage::Verify(const XOnlyPubKey& static_key, const XOnlyPubKey& authority, int64_t now) const
+std::string_view CertStatusString(CertStatus status)
+{
+    switch (status) {
+    case CertStatus::OK: return "ok";
+    case CertStatus::UNKNOWN_VERSION: return "unknown certificate version";
+    case CertStatus::NOT_YET_VALID: return "certificate is not valid yet";
+    case CertStatus::EXPIRED: return "certificate has expired";
+    case CertStatus::BAD_SIGNATURE: return "certificate is not signed by the authority key";
+    }
+    // No default case, so the compiler warns when a status is added.
+    assert(false);
+}
+
+CertStatus SignatureNoiseMessage::Verify(const XOnlyPubKey& static_key, const XOnlyPubKey& authority,
+                                         int64_t now) const
 {
     // Reject a version we do not understand rather than assuming the fields
     // mean what they mean today.
-    if (version != 0) return false;
-    if (now < static_cast<int64_t>(valid_from)) return false;
-    if (now > static_cast<int64_t>(not_valid_after)) return false;
-    return authority.VerifySchnorr(Digest(static_key), signature);
+    if (version != 0) return CertStatus::UNKNOWN_VERSION;
+    if (now < static_cast<int64_t>(valid_from)) return CertStatus::NOT_YET_VALID;
+    if (now > static_cast<int64_t>(not_valid_after)) return CertStatus::EXPIRED;
+    if (!authority.VerifySchnorr(Digest(static_key), signature)) return CertStatus::BAD_SIGNATURE;
+    return CertStatus::OK;
 }
 
 void CipherState::SetKey(const uint256& key)
@@ -305,7 +320,10 @@ bool HandshakeState::ReadMsg2(std::span<const std::byte> in, int64_t now)
     // Without an authority key this is trust on first use: the server is
     // authenticated only by the handshake, not by the pool. The caller decides
     // whether that is acceptable.
-    if (m_authority.has_value() && !cert.Verify(their_static_xonly, *m_authority, now)) return false;
+    if (m_authority.has_value()) {
+        m_cert_status = cert.Verify(their_static_xonly, *m_authority, now);
+        if (m_cert_status != CertStatus::OK) return false;
+    }
 
     m_remote_static = their_static_xonly;
     return true;

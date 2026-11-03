@@ -87,6 +87,28 @@ static_assert(MAX_CIPHERTEXT_CHUNK == 65535);
 //! binary chaining key.
 void Hkdf2(std::span<const std::byte> salt, std::span<const std::byte> ikm, uint256& out1, uint256& out2);
 
+//! Why a certificate was not accepted.
+//!
+//! Reported rather than collapsed into one false, because the four causes call
+//! for four different fixes and the peer cannot tell us which it hit: the Sv2
+//! handshake carries no reason on the wire, and the reference implementation
+//! has the same gap open against itself as stratum-mining/stratum#2425. So
+//! both ends of an interop failure are silent unless each says what it saw.
+//! ReadOptions already names the symptom, "a handshake that fails for no
+//! visible reason", in the -sv2certvalidity bound.
+enum class CertStatus : uint8_t {
+    OK,
+    //! A version this build does not know, so the other fields cannot be
+    //! trusted to mean what they mean here.
+    UNKNOWN_VERSION,
+    NOT_YET_VALID,
+    EXPIRED,
+    BAD_SIGNATURE,
+};
+
+//! A reason fit for a log line. Never empty, so a log site needs no branch.
+std::string_view CertStatusString(CertStatus status);
+
 //! The payload of handshake message 2: a certificate attesting that the
 //! server's static key is endorsed by the pool authority key.
 struct SignatureNoiseMessage {
@@ -109,7 +131,9 @@ struct SignatureNoiseMessage {
     [[nodiscard]] bool Sign(const CKey& authority, const XOnlyPubKey& static_key);
 
     //! Verify the signature and that `now` falls inside the validity window.
-    [[nodiscard]] bool Verify(const XOnlyPubKey& static_key, const XOnlyPubKey& authority, int64_t now) const;
+    //! Returns why it failed rather than a bare false; see CertStatus.
+    [[nodiscard]] CertStatus Verify(const XOnlyPubKey& static_key, const XOnlyPubKey& authority,
+                                    int64_t now) const;
 };
 
 //! Noise CipherState: a key plus a message counter.
@@ -205,6 +229,12 @@ public:
     //! The server static key, as learned by the initiator from message 2.
     const std::optional<XOnlyPubKey>& RemoteStaticKey() const { return m_remote_static; }
 
+    //! Why the peer's certificate was rejected. Worth reading when ReadMsg2
+    //! returned false, since that is the one failure a correct peer can cause.
+    //! OK otherwise, including when no authority key was given and so nothing
+    //! was checked.
+    CertStatus PeerCertStatus() const { return m_cert_status; }
+
 private:
     HandshakeState() = default;
 
@@ -223,6 +253,7 @@ private:
     std::optional<XOnlyPubKey> m_authority;
     std::optional<XOnlyPubKey> m_remote_static;
     EllSwiftPubKey m_remote_ephemeral_pub;
+    CertStatus m_cert_status{CertStatus::OK};
 };
 
 //! Generate a fresh ephemeral key and its ElligatorSwift encoding.

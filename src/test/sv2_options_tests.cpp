@@ -218,15 +218,19 @@ BOOST_AUTO_TEST_CASE(certificate_covers_the_static_key)
 
     const XOnlyPubKey authority_pub{authority.GetPubKey()};
     const XOnlyPubKey static_pub{static_key.GetPubKey()};
-    BOOST_CHECK(cert->Verify(static_pub, authority_pub, now));
-    // Valid for the requested window and no longer.
-    BOOST_CHECK(cert->Verify(static_pub, authority_pub, now + 23 * 60 * 60));
-    BOOST_CHECK(!cert->Verify(static_pub, authority_pub, now + 25 * 60 * 60));
+    BOOST_CHECK(cert->Verify(static_pub, authority_pub, now) == sv2::CertStatus::OK);
+    // Valid for the requested window and no longer. The reason matters here:
+    // "expired" is what -sv2certvalidity gets wrong, and it must not be
+    // confused with a key problem.
+    BOOST_CHECK(cert->Verify(static_pub, authority_pub, now + 23 * 60 * 60) == sv2::CertStatus::OK);
+    BOOST_CHECK(cert->Verify(static_pub, authority_pub, now + 25 * 60 * 60) ==
+                sv2::CertStatus::EXPIRED);
 
     // It must not vouch for a different static key.
     CKey other;
     other.MakeNewKey(/*fCompressedIn=*/true);
-    BOOST_CHECK(!cert->Verify(XOnlyPubKey{other.GetPubKey()}, authority_pub, now));
+    BOOST_CHECK(cert->Verify(XOnlyPubKey{other.GetPubKey()}, authority_pub, now) ==
+                sv2::CertStatus::BAD_SIGNATURE);
 }
 
 BOOST_AUTO_TEST_CASE(extension_defaults_require_the_avian_extension)
