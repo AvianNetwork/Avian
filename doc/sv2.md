@@ -656,6 +656,13 @@ Note that the node does the opposite on its own link, and deliberately.
   outputs, the prev hash and the window all have to be in hand before it can
   build a single job. There is no equivalent instant.
 
+The template in such a round is marked `future_template`, because the
+`SetNewPrevHash` after it is what activates it. A refresh on an unchanged tip
+is not: it carries no `SetNewPrevHash`, and the prev hash it belongs to was
+announced already. So the flag says exactly whether a `SetNewPrevHash` is
+still to come for that template, which is the only reading under which a
+client never binds a template to a tip that has already been replaced.
+
 Putting `AvianTimeConstraints` last on that link buys something instead. It
 gives a work round an unambiguous terminator, which a blocking client needs,
 because `SetNewPrevHash` is only sent when the tip moved and so cannot be used
@@ -1195,6 +1202,15 @@ flowchart TD
    extension, so a client that negotiates the wrong thing can correct itself.
    A client that never negotiates at all can only be disconnected, with a log
    line and no on-wire explanation. That is the cost of `require`.
+8. **Nothing from `0x4001` is sent to a client that did not negotiate it.**
+   Under `optional` or `off` a session exists without the extension, and the
+   server may have just answered that it supports nothing at all, so sending
+   an extension frame regardless would contradict its own reply. Such a client
+   is served templates and gets no `AvianTimeConstraints` and no verdict on a
+   submission. It therefore mines with no ntime window, which on X16RT means a
+   rolled timestamp silently hashes a different function past the 128-second
+   boundary. The node logs a warning naming the client. That is the cost of
+   the two non-default policies, and the reason `require` is the default.
 
 ## Testing
 

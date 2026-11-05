@@ -15,6 +15,7 @@
 #include <util/result.h>
 #include <util/time.h>
 
+#include <limits>
 #include <set>
 #include <string>
 
@@ -231,6 +232,31 @@ BOOST_AUTO_TEST_CASE(certificate_covers_the_static_key)
     other.MakeNewKey(/*fCompressedIn=*/true);
     BOOST_CHECK(cert->Verify(XOnlyPubKey{other.GetPubKey()}, authority_pub, now) ==
                 sv2::CertStatus::BAD_SIGNATURE);
+}
+
+BOOST_AUTO_TEST_CASE(the_longest_permitted_validity_does_not_expire_in_the_past)
+{
+    // not_valid_after is a uint32 of seconds and -sv2certvalidity permits
+    // 36500 days, which lands past 2106. Narrowing the sum wrapped it, so the
+    // longest window an operator could ask for minted a certificate dated in
+    // the 1990s that every client rejected as expired: exactly the failure
+    // the ceiling's own comment claimed to prevent.
+    CKey authority;
+    authority.MakeNewKey(/*fCompressedIn=*/true);
+    CKey static_key;
+    static_key.MakeNewKey(/*fCompressedIn=*/true);
+
+    const int64_t now{GetTime()};
+    const auto cert{sv2::MakeCertificate(authority, static_key, now, /*validity_days=*/36500)};
+    BOOST_REQUIRE(cert);
+    BOOST_CHECK_EQUAL(cert->not_valid_after, std::numeric_limits<uint32_t>::max());
+    BOOST_CHECK(cert->not_valid_after > cert->valid_from);
+
+    const XOnlyPubKey authority_pub{authority.GetPubKey()};
+    const XOnlyPubKey static_pub{static_key.GetPubKey()};
+    BOOST_CHECK(cert->Verify(static_pub, authority_pub, now) == sv2::CertStatus::OK);
+    // 2100-01-01, past any plausible deployment and still inside the field.
+    BOOST_CHECK(cert->Verify(static_pub, authority_pub, 4102444800) == sv2::CertStatus::OK);
 }
 
 BOOST_AUTO_TEST_CASE(extension_defaults_require_the_avian_extension)

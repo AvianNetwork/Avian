@@ -189,10 +189,10 @@ bool TemplateProvider::HandleCoinbaseOutputConstraints(ClientId id, ClientState&
                   "client=%d reserved %d coinbase bytes and %d sigops\n", id,
                   state.coinbase_max_additional_size, state.coinbase_max_additional_sigops);
 
-    return SendNewTemplate(id, state, /*future=*/false);
+    return SendNewTemplate(id, state);
 }
 
-bool TemplateProvider::SendNewTemplate(ClientId id, ClientState& state, bool future)
+bool TemplateProvider::SendNewTemplate(ClientId id, ClientState& state)
 {
     if (!m_connman || !state.constraints_received) return false;
 
@@ -284,11 +284,15 @@ bool TemplateProvider::SendNewTemplate(ClientId id, ClientState& state, bool fut
     cached.required_txouts = required;
     cached.required_outputs_count = static_cast<uint32_t>(required.size());
     // What the client may send is the template's own coinbase plus what it
-    // reserved. The weight ceiling is the reservation the assembler honoured,
-    // which gives the block limits transitively.
+    // reserved. The weight ceiling is read back from the template rather than
+    // taken from the request above, because the request is not binding:
+    // -blockreservedweight replaces it outright. A ceiling above what the
+    // assembler actually reserved would admit a coinbase that puts the block
+    // over MAX_BLOCK_WEIGHT, which validation refuses once the proof of work
+    // has already been spent on it.
     const size_t own_size{static_cast<size_t>(::GetSerializeSize(TX_WITH_WITNESS(*coinbase)))};
     cached.max_coinbase_size = own_size + state.coinbase_max_additional_size;
-    cached.max_coinbase_weight = create.block_reserved_weight;
+    cached.max_coinbase_weight = handle->getBlockReservedWeight();
     cached.max_coinbase_sigops =
         GetLegacySigOpCount(*coinbase) + state.coinbase_max_additional_sigops;
     cached.value_remaining = static_cast<uint64_t>(coinbase->vout[0].nValue);
@@ -327,9 +331,22 @@ bool TemplateProvider::SendNewTemplate(ClientId id, ClientState& state, bool fut
     // Pinning ntime there is simpler than tracking that cliff, and costs a
     // test chain nothing.
 
+    // A SetNewPrevHash follows only when the tip this template belongs to has
+    // not been announced on this connection yet, which is a client's first
+    // template and every tip change.
+    const bool announce_prev_hash{state.announced_prev_hash != cached.prev_hash};
+    state.announced_prev_hash = cached.prev_hash;
+
     NewTemplate msg;
     msg.template_id = template_id;
-    msg.future_template = future;
+    // True exactly when the SetNewPrevHash below is what activates it. The
+    // specification gives future_template the meaning "not valid under the
+    // current prev hash, wait for the SetNewPrevHash that names this
+    // template", so a template that arrives before its own activation has to
+    // say so or a conformant client binds it to the tip it has just replaced.
+    // A refresh on an unchanged tip is the other case: its prev hash was
+    // announced already, so it is valid the moment it lands.
+    msg.future_template = announce_prev_hash;
     msg.version = cached.version;
     msg.coinbase_tx_version = cached.coinbase_tx_version;
     msg.coinbase_prefix = cached.coinbase_prefix;
@@ -354,9 +371,6 @@ bool TemplateProvider::SendNewTemplate(ClientId id, ClientState& state, bool fut
     times.ntime_min = cached.ntime_min;
     times.ntime_max = cached.ntime_max;
 
-    const bool announce_prev_hash{state.announced_prev_hash != prev.prev_hash};
-    state.announced_prev_hash = prev.prev_hash;
-
     cached.handle = std::move(handle);
     state.templates.emplace(template_id, std::move(cached));
 
@@ -367,10 +381,10 @@ bool TemplateProvider::SendNewTemplate(ClientId id, ClientState& state, bool fut
     // NewTemplate carries no prev hash of its own, so without this the client
     // has no header to hash. Sent when the prev hash changes and on a client's
     // first template, not on every refresh: the specification has it follow
-    // the validation of a new best block, and a future_template of false
-    // already says the template belongs to the SetNewPrevHash before it. A
-    // client that took its arrival to mean the tip had moved would otherwise
-    // discard its in-flight work on every refresh.
+    // the validation of a new best block, and a refresh is marked not-future
+    // to say it is already valid under the prev hash in force. A client that
+    // read a SetNewPrevHash on every refresh as the tip having moved would
+    // discard its in-flight work about twice a block at Avian's cadence.
     if (announce_prev_hash) {
         if (!m_connman->Send(id,
                              NetHeader{EXT_CORE, static_cast<uint8_t>(CoreMsg::SET_NEW_PREV_HASH), 0},
@@ -379,12 +393,27 @@ bool TemplateProvider::SendNewTemplate(ClientId id, ClientState& state, bool fut
         }
     }
     // The spec gives SubmitSolution no upper ntime bound, so the client is
-    // told one here or it has no way to know when its work expires.
-    if (!m_connman->Send(id,
-                         NetHeader{m_opts.extension_id,
-                                   static_cast<uint8_t>(AvianMsg::TIME_CONSTRAINTS), 0},
-                         EncodePayload(times))) {
-        return false;
+    // told one here or it has no way to know when its work expires. Only a
+    // client that agreed the extension, though: under a policy other than
+    // `require` one is served without negotiating, and the server may have
+    // just answered that it supports nothing at all, so sending an extension
+    // frame anyway is the violation rather than the courtesy.
+    if (m_connman->NegotiatedAvianExtension(id)) {
+        if (!m_connman->Send(id,
+                             NetHeader{m_opts.extension_id,
+                                       static_cast<uint8_t>(AvianMsg::TIME_CONSTRAINTS), 0},
+                             EncodePayload(times))) {
+            return false;
+        }
+    } else if (!state.warned_no_window) {
+        // Worth a warning rather than silence. This is the failure the
+        // extension exists to prevent: on X16RT a timestamp rolled past the
+        // 128-second boundary hashes a different function, and the only
+        // symptom is a farm whose shares stop being accepted.
+        state.warned_no_window = true;
+        LogPrintLevel(BCLog::SV2, BCLog::Level::Warning,
+                      "client=%d never negotiated extension 0x%04x, so it is being served work "
+                      "with no ntime window and no solution feedback\n", id, m_opts.extension_id);
     }
 
     LogPrintLevel(BCLog::SV2, BCLog::Level::Debug,
@@ -572,17 +601,20 @@ bool TemplateProvider::RecordRefusal(ClientId id, uint64_t template_id, Solution
     }
 
     // The Template Distribution Protocol gives SubmitSolution no reply, so
-    // the Avian extension supplies one. Sent outside the lock, as every other
-    // Send here is, and sent before the drop below rather than after: the
-    // refusal that explains a disconnect is the one worth arriving.
-    AvianSubmitSolutionError refusal;
-    refusal.template_id = template_id;
-    refusal.error_code = SolutionErrorString(error);
-    if (!m_connman->Send(id,
-                         NetHeader{m_opts.extension_id,
-                                   static_cast<uint8_t>(AvianMsg::SUBMIT_SOLUTION_ERROR), 0},
-                         EncodePayload(refusal))) {
-        return false;
+    // the Avian extension supplies one, to a client that negotiated it. Sent
+    // outside the lock, as every other Send here is, and sent before the drop
+    // below rather than after: the refusal that explains a disconnect is the
+    // one worth arriving.
+    if (m_connman->NegotiatedAvianExtension(id)) {
+        AvianSubmitSolutionError refusal;
+        refusal.template_id = template_id;
+        refusal.error_code = SolutionErrorString(error);
+        if (!m_connman->Send(id,
+                             NetHeader{m_opts.extension_id,
+                                       static_cast<uint8_t>(AvianMsg::SUBMIT_SOLUTION_ERROR), 0},
+                             EncodePayload(refusal))) {
+            return false;
+        }
     }
 
     if (rejects >= m_opts.max_rejects) {
@@ -715,15 +747,18 @@ bool TemplateProvider::HandleSubmitSolution(ClientId id, std::span<const uint8_t
 
     // Validation took it. Not that it won: a block that loses a race is
     // accepted here too, and the client learns the rest from whether the next
-    // SetNewPrevHash carries this hash.
-    AvianSubmitSolutionSuccess accepted;
-    accepted.template_id = solution.template_id;
-    accepted.block_hash = check.pow_hash;
-    if (!m_connman->Send(id,
-                         NetHeader{m_opts.extension_id,
-                                   static_cast<uint8_t>(AvianMsg::SUBMIT_SOLUTION_SUCCESS), 0},
-                         EncodePayload(accepted))) {
-        return false;
+    // SetNewPrevHash carries this hash. Told only if it negotiated the
+    // extension that carries the message.
+    if (m_connman->NegotiatedAvianExtension(id)) {
+        AvianSubmitSolutionSuccess accepted;
+        accepted.template_id = solution.template_id;
+        accepted.block_hash = check.pow_hash;
+        if (!m_connman->Send(id,
+                             NetHeader{m_opts.extension_id,
+                                       static_cast<uint8_t>(AvianMsg::SUBMIT_SOLUTION_SUCCESS), 0},
+                             EncodePayload(accepted))) {
+            return false;
+        }
     }
 
     LOCK(m_mutex);
@@ -791,7 +826,7 @@ void TemplateProvider::RefreshClients(bool tip_changed)
                 // A tip change invalidates every outstanding template, so
                 // nothing is left that a solution could still be valid for.
                 if (tip_changed) it->second.templates.clear();
-                keep = SendNewTemplate(id, it->second, /*future=*/false);
+                keep = SendNewTemplate(id, it->second);
             }
         });
         if (!keep && m_connman) m_connman->Disconnect(id);
@@ -855,9 +890,13 @@ bool StartSv2(const ArgsManager& args, ChainType chain, interfaces::Mining& mini
     g_provider->Start();
 
     if (!g_connman->Start(g_provider.get())) {
-        g_connman.reset();
+        // Same order as StopSv2, and for the same reason: Start() is called
+        // after the provider's watcher thread is already running, and that
+        // thread holds a raw Connman* it calls Send() on. The listener cannot
+        // be destroyed until the thread holding the pointer has been joined.
         g_provider->Stop();
         g_provider.reset();
+        g_connman.reset();
         return InitError(Untranslated("Cannot start the Stratum v2 Template Provider"));
     }
     return true;

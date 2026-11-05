@@ -164,15 +164,20 @@ private:
         //! Consecutive refusals, so a client that cannot get it right stops
         //! being given the chance.
         size_t rejects{0};
+        //! Whether this client has been warned that it is mining without an
+        //! ntime window, so the warning is logged once rather than per
+        //! template.
+        bool warned_no_window{false};
     };
 
     [[nodiscard]] bool HandleCoinbaseOutputConstraints(ClientId id, ClientState& state,
                                                        std::span<const uint8_t> payload)
         EXCLUSIVE_LOCKS_REQUIRED(m_mutex);
 
-    //! Build a template for `state` and send NewTemplate followed by the
-    //! Avian time constraints. Returns false to disconnect the client.
-    [[nodiscard]] bool SendNewTemplate(ClientId id, ClientState& state, bool future)
+    //! Build a template for `state` and send NewTemplate, the SetNewPrevHash
+    //! that activates it if the tip has not been announced yet, and the Avian
+    //! time constraints. Returns false to disconnect the client.
+    [[nodiscard]] bool SendNewTemplate(ClientId id, ClientState& state)
         EXCLUSIVE_LOCKS_REQUIRED(m_mutex);
 
     //! Drop templates a solution could no longer use, and release the memory

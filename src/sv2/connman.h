@@ -104,6 +104,14 @@ public:
 
     size_t ClientCount() const EXCLUSIVE_LOCKS_REQUIRED(!m_mutex);
 
+    //! Whether this client agreed to Avian's extension.
+    //!
+    //! Asked at send time rather than recorded when the client became ready:
+    //! under a policy other than `require` a client is ready before it has
+    //! negotiated anything, and may negotiate later or never. False for an id
+    //! that is no longer connected, which is what a caller wants anyway.
+    bool NegotiatedAvianExtension(ClientId id) const EXCLUSIVE_LOCKS_REQUIRED(!m_mutex);
+
     //! The addresses actually bound, which is what a test needs when it asked
     //! for port 0.
     std::vector<CService> BoundAddresses() const;

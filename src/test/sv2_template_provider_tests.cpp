@@ -11,6 +11,7 @@
 #include <key.h>
 #include <netbase.h>
 #include <node/context.h>
+#include <policy/policy.h>
 #include <primitives/block.h>
 #include <pubkey.h>
 #include <script/solver.h>
@@ -172,8 +173,10 @@ BOOST_AUTO_TEST_CASE(serves_a_new_template)
 
     const auto tmpl{sv2::DecodePayload<sv2::NewTemplate>(first->payload)};
     BOOST_CHECK(tmpl.template_id != 0);
-    // Request-driven, so this is for the current tip rather than a future one.
-    BOOST_CHECK(!tmpl.future_template);
+    // Future, because the SetNewPrevHash that activates it has not arrived
+    // yet. Claiming otherwise would have a conformant client treat this
+    // template as valid under a prev hash it has never been told.
+    BOOST_CHECK(tmpl.future_template);
 
     // The algorithm lives in nVersion bits 16-23, which is how a client learns
     // what it is mining without any extra field.
@@ -755,11 +758,11 @@ uint64_t AwaitRefresh(Client& client, uint64_t previous)
 BOOST_AUTO_TEST_CASE(a_refresh_does_not_resend_the_prev_hash)
 {
     // The specification has SetNewPrevHash follow the validation of a new best
-    // block, and a future_template of false already says the template belongs
-    // to the SetNewPrevHash before it. Sending one on every refresh would
-    // contradict that, and a client reading its arrival as the tip having
-    // moved would discard its in-flight work roughly twice a block at Avian's
-    // cadence.
+    // block, so a refresh on an unchanged tip must not carry one. It is marked
+    // not-future instead, which says it is valid under the prev hash already
+    // in force. A client reading a SetNewPrevHash as the tip having moved
+    // would otherwise discard its in-flight work roughly twice a block at
+    // Avian's cadence.
     //
     // The tip-change half of this is new_tip_reissues_work, and the
     // first-template half is asserted in GetTemplate.
@@ -847,6 +850,55 @@ BOOST_AUTO_TEST_CASE(a_new_tip_drops_the_old_templates)
     BOOST_REQUIRE(reply.has_value());
     BOOST_CHECK_EQUAL(reply->header.msg_type,
                       static_cast<uint8_t>(sv2::CoreMsg::REQUEST_TRANSACTION_DATA_ERROR));
+}
+
+BOOST_AUTO_TEST_CASE(the_coinbase_ceiling_is_what_the_assembler_reserved)
+{
+    // The provider bounds a client-built coinbase by the weight reserved for
+    // it, and has to read that back from the template rather than reuse the
+    // figure it asked for, because a request is not binding: ClampOptions
+    // raises one below MINIMUM_BLOCK_RESERVED_WEIGHT, and -blockreservedweight
+    // replaces it outright. A ceiling above what was actually reserved admits
+    // a coinbase that puts the block over MAX_BLOCK_WEIGHT, which validation
+    // refuses only once the proof of work has been spent on it.
+    auto mining{interfaces::MakeMining(m_node)};
+    BOOST_REQUIRE(mining);
+    node::BlockCreateOptions create;
+    create.block_reserved_weight = 100;
+    const auto handle{mining->createNewBlock(create)};
+    BOOST_REQUIRE(handle);
+    BOOST_CHECK_EQUAL(handle->getBlockReservedWeight(), MINIMUM_BLOCK_RESERVED_WEIGHT);
+}
+
+BOOST_AUTO_TEST_CASE(a_client_without_the_extension_is_sent_no_extension_frames)
+{
+    // With the policy off the server supports nothing beyond negotiation
+    // itself, so every frame it sends afterwards has to be a core one.
+    // Sending an extension frame regardless would contradict the answer it
+    // just gave, and proving a stock client works is the whole point of off.
+    auto server{StartTemplateServer(m_node, m_args.GetDataDirNet(), [](sv2::Options& opts) {
+        opts.extension_policy = sv2::ExtensionPolicy::OFF;
+    })};
+    auto client{ConnectTo(*server, server->AuthorityPubKey())};
+    BOOST_REQUIRE(SetupSession(*client));
+    BOOST_REQUIRE(SendConstraints(*client));
+
+    bool closed{false};
+    const auto tmpl{ReadMessage(*client, closed)};
+    BOOST_REQUIRE(tmpl.has_value());
+    BOOST_CHECK_EQUAL(tmpl->header.extension_type, sv2::EXT_CORE);
+    BOOST_CHECK_EQUAL(tmpl->header.msg_type, static_cast<uint8_t>(sv2::CoreMsg::NEW_TEMPLATE));
+
+    const auto prev{ReadMessage(*client, closed)};
+    BOOST_REQUIRE(prev.has_value());
+    BOOST_CHECK_EQUAL(prev->header.extension_type, sv2::EXT_CORE);
+    BOOST_CHECK_EQUAL(prev->header.msg_type, static_cast<uint8_t>(sv2::CoreMsg::SET_NEW_PREV_HASH));
+
+    // And nothing after it. AvianTimeConstraints is an extension message, so
+    // this client is left with no ntime window at all, which is what off costs
+    // and why it is not the default.
+    BOOST_CHECK(!ReadMessage(*client, closed, std::chrono::seconds{2}).has_value());
+    BOOST_CHECK(!closed);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

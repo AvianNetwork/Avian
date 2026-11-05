@@ -80,8 +80,8 @@ public:
     void Sent(size_t count);
 
     //! Bytes received and not yet consumed. The socket loop bounds this
-    //! against -sv2maxrecvbuffer: a client that sends a valid frame header
-    //! and then stalls would otherwise hold whatever it promised.
+    //! against Options::max_recv_buffer: a client that sends a valid frame
+    //! header and then stalls would otherwise hold whatever it promised.
     size_t RecvBufferSize() const { return m_recv.size() - m_recv_pos; }
 
     //! True once there is nothing left to write.
