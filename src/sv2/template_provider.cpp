@@ -560,22 +560,39 @@ void TemplateProvider::RefundSolution(ClientId id)
 
 bool TemplateProvider::RecordRefusal(ClientId id, uint64_t template_id, SolutionError error)
 {
-    LOCK(m_mutex);
-    const auto it{m_clients.find(id)};
-    if (it == m_clients.end()) return false;
-    ClientState& state{it->second};
+    size_t rejects{0};
+    {
+        LOCK(m_mutex);
+        const auto it{m_clients.find(id)};
+        if (it == m_clients.end()) return false;
+        rejects = ++it->second.rejects;
+        LogPrintLevel(BCLog::SV2, BCLog::Level::Debug,
+                      "client=%d solution for template %d refused: %s (%d of %d)\n", id,
+                      template_id, SolutionErrorString(error), rejects, m_opts.max_rejects);
+    }
 
-    // There is no SubmitSolution.Error in the Template Distribution Protocol,
-    // so a refusal can only be logged and counted. Inventing a reply message
-    // would break a stock client's dispatch.
-    ++state.rejects;
-    LogPrintLevel(BCLog::SV2, BCLog::Level::Debug,
-                  "client=%d solution for template %d refused: %s (%d of %d)\n", id, template_id,
-                  SolutionErrorString(error), state.rejects, m_opts.max_rejects);
-    if (state.rejects >= m_opts.max_rejects) {
+    // The Template Distribution Protocol gives SubmitSolution no reply, so
+    // the Avian extension supplies one. Sent outside the lock, as every other
+    // Send here is, and sent before the drop below rather than after: the
+    // refusal that explains a disconnect is the one worth arriving.
+    AvianSubmitSolutionError refusal;
+    refusal.template_id = template_id;
+    refusal.error_code = SolutionErrorString(error);
+    if (!m_connman->Send(id,
+                         NetHeader{m_opts.extension_id,
+                                   static_cast<uint8_t>(AvianMsg::SUBMIT_SOLUTION_ERROR), 0},
+                         EncodePayload(refusal))) {
+        return false;
+    }
+
+    if (rejects >= m_opts.max_rejects) {
         LogPrintLevel(BCLog::SV2, BCLog::Level::Warning,
                       "client=%d refused too many solutions; it is most likely rolling a field "
                       "it was told not to, and will never find a valid block\n", id);
+        // Drain rather than disconnect, or the refusal queued above goes with
+        // the socket and the drop arrives with nothing attached. That refusal
+        // is the one worth having, because it names the field.
+        m_connman->Drain(id);
         return false;
     }
     return true;
@@ -587,6 +604,7 @@ bool TemplateProvider::HandleSubmitSolution(ClientId id, std::span<const uint8_t
     SolutionContext ctx;
     std::shared_ptr<interfaces::BlockTemplate> handle;
     POW_TYPE pow_type{POW_TYPE_X16RT};
+    bool unknown_template{false};
 
     // Everything needing the provider's state happens here, and nothing
     // expensive does. The hash below costs orders of magnitude more than all
@@ -623,38 +641,39 @@ bool TemplateProvider::HandleSubmitSolution(ClientId id, std::span<const uint8_t
 
         const auto cached_it{state.templates.find(solution.template_id)};
         if (cached_it == state.templates.end()) {
-            ++state.rejects;
-            LogPrintLevel(BCLog::SV2, BCLog::Level::Debug,
-                          "client=%d solution for template %d refused: %s (%d of %d)\n", id,
-                          solution.template_id, SolutionErrorString(SolutionError::UNKNOWN_TEMPLATE),
-                          state.rejects, m_opts.max_rejects);
-            return state.rejects < m_opts.max_rejects;
+            // Counted, logged and answered by RecordRefusal like every other
+            // refusal, which needs this lock released first.
+            unknown_template = true;
+        } else {
+            const CachedTemplate& cached{cached_it->second};
+
+            ctx.pow_type = cached.pow_type;
+            ctx.version = cached.version;
+            ctx.version_rolling_mask = m_opts.version_rolling_mask;
+            ctx.nbits = cached.nbits;
+            ctx.prev_hash = cached.prev_hash;
+            ctx.ntime = cached.ntime;
+            ctx.ntime_min = cached.ntime_min;
+            ctx.ntime_max = cached.ntime_max;
+            ctx.coinbase_tx_version = cached.coinbase_tx_version;
+            ctx.coinbase_tx_input_sequence = cached.coinbase_tx_input_sequence;
+            ctx.coinbase_tx_locktime = cached.coinbase_tx_locktime;
+            ctx.coinbase_prefix = cached.coinbase_prefix;
+            ctx.required_outputs = cached.required_txouts;
+            ctx.value_remaining = static_cast<int64_t>(cached.value_remaining);
+            ctx.max_coinbase_size = cached.max_coinbase_size;
+            ctx.max_coinbase_weight = cached.max_coinbase_weight;
+            ctx.max_coinbase_sigops = cached.max_coinbase_sigops;
+            ctx.merkle_path = cached.merkle_path;
+
+            // A copy of the pointer, not of the block. The template can be pruned
+            // out from under us while the hash runs; the handle survives it.
+            handle = cached.handle;
+            pow_type = cached.pow_type;
         }
-        const CachedTemplate& cached{cached_it->second};
-
-        ctx.pow_type = cached.pow_type;
-        ctx.version = cached.version;
-        ctx.version_rolling_mask = m_opts.version_rolling_mask;
-        ctx.nbits = cached.nbits;
-        ctx.prev_hash = cached.prev_hash;
-        ctx.ntime = cached.ntime;
-        ctx.ntime_min = cached.ntime_min;
-        ctx.ntime_max = cached.ntime_max;
-        ctx.coinbase_tx_version = cached.coinbase_tx_version;
-        ctx.coinbase_tx_input_sequence = cached.coinbase_tx_input_sequence;
-        ctx.coinbase_tx_locktime = cached.coinbase_tx_locktime;
-        ctx.coinbase_prefix = cached.coinbase_prefix;
-        ctx.required_outputs = cached.required_txouts;
-        ctx.value_remaining = static_cast<int64_t>(cached.value_remaining);
-        ctx.max_coinbase_size = cached.max_coinbase_size;
-        ctx.max_coinbase_weight = cached.max_coinbase_weight;
-        ctx.max_coinbase_sigops = cached.max_coinbase_sigops;
-        ctx.merkle_path = cached.merkle_path;
-
-        // A copy of the pointer, not of the block. The template can be pruned
-        // out from under us while the hash runs; the handle survives it.
-        handle = cached.handle;
-        pow_type = cached.pow_type;
+    }
+    if (unknown_template) {
+        return RecordRefusal(id, solution.template_id, SolutionError::UNKNOWN_TEMPLATE);
     }
 
     // ComputePoWHash, deliberately not GetHash: GetHash inserts into a
@@ -692,6 +711,19 @@ bool TemplateProvider::HandleSubmitSolution(ClientId id, std::span<const uint8_t
                       "client=%d submitted a block that passed every Stratum v2 check and was "
                       "still refused by validation; template %d\n", id, solution.template_id);
         return RecordRefusal(id, solution.template_id, SolutionError::CONSENSUS_REJECTED);
+    }
+
+    // Validation took it. Not that it won: a block that loses a race is
+    // accepted here too, and the client learns the rest from whether the next
+    // SetNewPrevHash carries this hash.
+    AvianSubmitSolutionSuccess accepted;
+    accepted.template_id = solution.template_id;
+    accepted.block_hash = check.pow_hash;
+    if (!m_connman->Send(id,
+                         NetHeader{m_opts.extension_id,
+                                   static_cast<uint8_t>(AvianMsg::SUBMIT_SOLUTION_SUCCESS), 0},
+                         EncodePayload(accepted))) {
+        return false;
     }
 
     LOCK(m_mutex);

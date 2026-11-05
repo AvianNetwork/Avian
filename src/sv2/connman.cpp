@@ -169,7 +169,24 @@ void Connman::Disconnect(ClientId id)
 {
     LOCK(m_mutex);
     for (auto& client : m_clients) {
-        if (client.id == id) client.disconnect = true;
+        if (client.id != id) continue;
+        // A client already draining is on its way out with a reason queued
+        // and a deadline of its own, so closing it here would discard the one
+        // thing that makes the drop legible. DispatchNotifications calls this
+        // for every handler that returns false, including the ones that asked
+        // to drain first.
+        if (client.drain) continue;
+        client.disconnect = true;
+    }
+}
+
+void Connman::Drain(ClientId id)
+{
+    LOCK(m_mutex);
+    for (auto& client : m_clients) {
+        if (client.id != id || client.disconnect) continue;
+        client.drain = true;
+        client.drain_until = std::chrono::steady_clock::now() + DRAIN_TIMEOUT;
     }
 }
 

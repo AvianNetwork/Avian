@@ -94,6 +94,14 @@ public:
 
     void Disconnect(ClientId id) EXCLUSIVE_LOCKS_REQUIRED(!m_mutex);
 
+    //! Close once whatever is queued has been written, rather than at once.
+    //!
+    //! For a drop that comes with a reason: the message saying why is queued
+    //! like any other, and disconnecting the moment it is queued throws it
+    //! away, leaving the client knowing only that it was dropped. The handler
+    //! returning false afterwards does not override this.
+    void Drain(ClientId id) EXCLUSIVE_LOCKS_REQUIRED(!m_mutex);
+
     size_t ClientCount() const EXCLUSIVE_LOCKS_REQUIRED(!m_mutex);
 
     //! The addresses actually bound, which is what a test needs when it asked
