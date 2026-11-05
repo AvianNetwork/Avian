@@ -235,6 +235,11 @@ void RegenerateCommitments(CBlock& block, ChainstateManager& chainman);
 /** Apply -blockmintxfee and -blockmaxweight options from ArgsManager to BlockAssembler options. */
 void ApplyArgsManOptions(const ArgsManager& gArgs, BlockAssembler::Options& options);
 
+/** Narrow options to the ranges the assembler will actually use. Idempotent, and
+ *  applied by the BlockAssembler constructor, so a caller only needs it to learn
+ *  what the assembler is going to do with what it was given. */
+BlockAssembler::Options ClampOptions(BlockAssembler::Options options);
+
 /* Compute the block's merkle root, insert or replace the coinbase transaction and the merkle root into the block */
 void AddMerkleRootAndCoinbase(CBlock& block, CTransactionRef coinbase, uint32_t version, uint32_t timestamp, uint32_t nonce);
 

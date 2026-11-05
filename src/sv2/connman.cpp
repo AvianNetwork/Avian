@@ -126,6 +126,15 @@ size_t Connman::ClientCount() const
     return m_clients.size();
 }
 
+bool Connman::NegotiatedAvianExtension(ClientId id) const
+{
+    LOCK(m_mutex);
+    for (const auto& client : m_clients) {
+        if (client.id == id) return client.avian_extension;
+    }
+    return false;
+}
+
 std::vector<CService> Connman::BoundAddresses() const
 {
     std::vector<CService> out;

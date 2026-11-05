@@ -174,7 +174,7 @@ size_t ConsumePayloadLen(FuzzedDataProvider& provider)
 
 //! What the receiver may still hold after Advance has taken everything it can:
 //! the tail of one incomplete frame, nothing more. The socket loop's
-//! -sv2maxrecvbuffer bound rests on this.
+//! Options::max_recv_buffer bound rests on this.
 constexpr size_t MAX_LEFTOVER{sv2::ENCRYPTED_HEADER_SIZE + sv2::CiphertextLen(sv2::MAX_INBOUND_PAYLOAD)};
 
 //! Advance the receiver and match what came out against what went in. Returns

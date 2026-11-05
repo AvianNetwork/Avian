@@ -14,6 +14,7 @@
 #include <util/translation.h>
 
 #include <algorithm>
+#include <limits>
 #include <optional>
 #include <string>
 #include <system_error>
@@ -130,10 +131,10 @@ util::Result<Options> ReadOptions(const ArgsManager& args, ChainType chain)
     opts.max_send_buffer = static_cast<size_t>(send_buffer) << 20;
 
     const int64_t validity{args.GetIntArg("-sv2certvalidity", opts.cert_validity_days)};
-    // The ceiling is not pedantry. not_valid_after is a uint32 of seconds, so
-    // a large enough validity wraps and every client then rejects the
-    // certificate as long expired, which presents as a handshake that fails
-    // for no visible reason.
+    // A bound on the typo, not on the overflow. not_valid_after is a uint32 of
+    // seconds, so whether a given validity wraps depends on what the clock
+    // says when the certificate is minted, and no fixed ceiling here can be
+    // the guard. MakeCertificate saturates instead.
     if (validity < 1 || validity > 36500) {
         return util::Error{Untranslated("-sv2certvalidity must be between 1 and 36500 days")};
     }
@@ -277,7 +278,14 @@ util::Result<SignatureNoiseMessage> MakeCertificate(const CKey& authority, const
     SignatureNoiseMessage cert;
     cert.version = 0;
     cert.valid_from = static_cast<uint32_t>(now);
-    cert.not_valid_after = static_cast<uint32_t>(now + validity_days * 24 * 60 * 60);
+    // The field is a uint32 of seconds, so it cannot express a date past 2106
+    // however many days are asked for. Saturated rather than narrowed: a wrap
+    // dates the certificate in the past, every client rejects it as long
+    // expired, and the handshake carries no reason back, so the symptom is
+    // clients that connect and vanish.
+    constexpr int64_t field_max{std::numeric_limits<uint32_t>::max()};
+    const int64_t expiry{now + validity_days * 24 * 60 * 60};
+    cert.not_valid_after = static_cast<uint32_t>(std::min(expiry, field_max));
 
     const XOnlyPubKey static_pub{static_key.GetPubKey()};
     if (!cert.Sign(authority, static_pub)) {
