@@ -29,6 +29,14 @@ Stratum v2 has no upper bound on `ntime`. Version rolling is not offered in this
 version, because Avian keeps the algorithm identifier in `nVersion` bits 16-23
 where BIP320's mask would otherwise let a miner change it.
 
+The same extension also carries the reply the Template Distribution Protocol
+does not define. Its message table ends at `SubmitSolution`, so a pool that
+submitted a block learned nothing: not that the node took it, not why it did
+not, and not even that it was heard. A node now answers every submission it
+can, either with the block hash validation accepted or with a named reason it
+was refused, so an operator debugging a pool reads the reason instead of
+inferring it from a tip that never moved.
+
 The extension uses identifier `0x4001`, allocated in Avian's own extension
 registry rather than Stratum v2's: an `extension_type` need only be unique among
 peers that can share a connection, and an Avian connection and a Bitcoin one

@@ -78,6 +78,10 @@ TIME_CONSTRAINTS = 0x03
 # no occasion to send it, so this client never sees it; the number is here so
 # the two halves of the extension stay in one place.
 JOB_TIME_CONSTRAINTS = 0x04
+# The reply the Template Distribution Protocol does not define. Its own table
+# ends at SubmitSolution, so these two are the extension's.
+SUBMIT_SOLUTION_SUCCESS = 0x05
+SUBMIT_SOLUTION_ERROR = 0x06
 
 POW_TYPE_X16RT = 0
 POW_TYPE_MINOTAURX = 1
@@ -465,6 +469,10 @@ class Sv2Client:
     """
 
     def __init__(self, host, port, authority_pubkey=None, timeout=60):
+        # Solution verdicts arrive whenever the node gets to them, which is
+        # not necessarily before whatever this client asks for next, so they
+        # are collected as they pass rather than waited for in place.
+        self.solution_replies = []
         self.sock = socket.create_connection((host, port), timeout)
         self.sock.settimeout(timeout)
         self.transport = Sv2Transport(authority_pubkey)
@@ -498,8 +506,41 @@ class Sv2Client:
     def recv(self):
         return self.transport.read_frame(self.recv_exact)
 
+    def absorb_solution_reply(self, got_ext, got_type, payload):
+        """Queue a solution verdict and say so, or say it was not one.
+
+        A submission is answered out of band: the node replies when it has
+        finished checking, which may be after this client has asked for
+        something else. Every read path therefore passes frames through here
+        first, so a verdict never looks like the wrong answer to a question.
+        """
+        if got_ext != AVIAN_EXTENSION_ID:
+            return False
+        r = Reader(payload)
+        if got_type == SUBMIT_SOLUTION_SUCCESS:
+            reply = {'accepted': True, 'template_id': r.u64(), 'block_hash': r.take(32)}
+        elif got_type == SUBMIT_SOLUTION_ERROR:
+            reply = {'accepted': False, 'template_id': r.u64(), 'error_code': r.text()}
+        else:
+            return False
+        r.done()
+        self.solution_replies.append(reply)
+        return True
+
+    def read_solution_reply(self):
+        """The next verdict, waiting for one if none has gone past yet."""
+        while not self.solution_replies:
+            got_ext, got_type, payload = self.recv()
+            if not self.absorb_solution_reply(got_ext, got_type, payload):
+                raise Sv2Error(
+                    "expected a solution reply, got extension 0x{:04x} message 0x{:02x}".format(
+                        got_ext, got_type))
+        return self.solution_replies.pop(0)
+
     def recv_expect(self, extension_type, msg_type):
         got_ext, got_type, payload = self.recv()
+        while self.absorb_solution_reply(got_ext, got_type, payload):
+            got_ext, got_type, payload = self.recv()
         if (got_ext, got_type) != (extension_type, msg_type):
             raise Sv2Error(
                 "expected extension 0x{:04x} message 0x{:02x}, got extension 0x{:04x} message 0x{:02x}".format(
@@ -592,6 +633,8 @@ class Sv2Client:
                 work['prev_hash'] = decode_set_new_prev_hash(payload)
             elif (got_ext, got_type) == (AVIAN_EXTENSION_ID, TIME_CONSTRAINTS):
                 work['time_constraints'] = decode_time_constraints(payload)
+            elif self.absorb_solution_reply(got_ext, got_type, payload):
+                pass
             else:
                 raise Sv2Error("unexpected extension 0x{:04x} message 0x{:02x} alongside a template".format(
                     got_ext, got_type))
@@ -608,6 +651,8 @@ class Sv2Client:
     def request_transaction_data(self, template_id):
         self.send(EXT_CORE, REQUEST_TRANSACTION_DATA, ser_uint(template_id, 8))
         got_ext, got_type, payload = self.recv()
+        while self.absorb_solution_reply(got_ext, got_type, payload):
+            got_ext, got_type, payload = self.recv()
         assert got_ext == EXT_CORE, got_ext
         if got_type == REQUEST_TRANSACTION_DATA_ERROR:
             r = Reader(payload)

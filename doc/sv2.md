@@ -412,6 +412,8 @@ All integers are little-endian, as everywhere in Stratum v2.
 | `0x02` | `AvianSelectAlgorithm.Error` | upstream → downstream | both |
 | `0x03` | `AvianTimeConstraints` | upstream → downstream | template distribution |
 | `0x04` | `AvianJobTimeConstraints` | upstream → downstream | mining |
+| `0x05` | `AvianSubmitSolution.Success` | upstream → downstream | template distribution |
+| `0x06` | `AvianSubmitSolution.Error` | upstream → downstream | template distribution |
 
 **`extension_type = 0x4002`**
 
@@ -523,6 +525,85 @@ worker, so the mining form keys on the channel and job that the worker was
 actually given. It is a separate message rather than a reinterpretation of the
 same field so that an implementation handling both links, such as a pool, can
 never confuse a template id with a job id.
+
+**`AvianSubmitSolution.Success`** and **`AvianSubmitSolution.Error`**
+
+The reply the Template Distribution Protocol does not have. Its message table
+ends at `SubmitSolution` with no `.Success` and no `.Error`, so a client that
+submits a block learns nothing from the protocol: not that the node took it,
+not why it did not, and not even that it was heard.
+
+| Field | Type | Meaning |
+| --- | --- | --- |
+| `template_id` | `U64` | the template the solution claimed |
+| `block_hash` | `U256` | the block hash, which on Avian is the proof-of-work hash |
+
+| Field | Type | Meaning |
+| --- | --- | --- |
+| `template_id` | `U64` | the template the solution claimed |
+| `error_code` | `STR0_255` | why it was refused |
+
+Defined `error_code` values, which are normative. They are also the strings the
+node writes to its own log, so an operator reading a log and an implementer
+reading a frame name one thing. What each requires of a client is
+[What a client must reproduce](#what-a-client-must-reproduce).
+
+| `error_code` | Meaning |
+| --- | --- |
+| `unknown-template` | no such template, or one this connection was never sent |
+| `version-mismatch` | `version` differs from the template's |
+| `bad-algo-id` | `nVersion` bits 16-23 name no algorithm this chain defines |
+| `ntime-out-of-range` | outside the window `AvianTimeConstraints` gave |
+| `ntime-wrong-epoch` | X16RT only: past the end of the template's 128-second epoch |
+| `coinbase-too-large` | over the advertised size, weight or the block limit |
+| `coinbase-malformed` | does not deserialize as a transaction |
+| `coinbase-non-canonical` | deserializes, but re-serializes to different bytes |
+| `coinbase-bad-scriptsig` | wrong length, or does not start with `coinbase_prefix` |
+| `coinbase-bad-fields` | version, locktime or input sequence differ from the template's |
+| `coinbase-bad-witness` | `vin[0]` witness is not the single 32-byte BIP141 reserved value |
+| `missing-required-output` | an output from `coinbase_tx_outputs` is absent |
+| `bad-commitment` | the witness commitment is wrong or is not the highest-indexed one |
+| `value-too-high` | outputs exceed `coinbase_tx_value_remaining` plus the required ones |
+| `too-many-sigops` | over the advertised sigop budget |
+| `block-too-large` | template plus this coinbase exceeds the block limit |
+| `pow-insufficient` | the proof-of-work hash does not meet this algorithm's target |
+| `consensus-rejected` | passed every check here and validation refused it anyway |
+
+`consensus-rejected` is the one worth acting on rather than retrying. It means
+these checks and consensus disagree, which is a node bug, and the node logs it
+at warning level for the same reason.
+
+`.Success` means the node constructed the block and validation accepted it. It
+does **not** mean the block became the tip: one that loses a race is accepted
+here and then orphaned. A client learns the rest by matching `block_hash`
+against the next `SetNewPrevHash`, which is also what `block_hash` is for on
+the error-free path, since `template_id` cannot say which of several nonces in
+flight against one template is being answered.
+
+`.Error` carries no `block_hash`, and the asymmetry is deliberate rather than
+an omission. Most refusals happen before the proof-of-work hash is computed,
+because that hash costs more than every check before it put together and a few
+attacker bytes must not be able to buy one. There is therefore nothing to name
+the submission with. A client with several nonces in flight learns the reason
+but not which nonce, which is the right way round: the reason is what it can
+act on.
+
+Two refusals are not answered. A solution that trips the rate limit is not,
+because replying to a flood is amplification, and one whose payload does not
+decode is not, because nothing in it can be trusted to name a template. Both
+drop the connection.
+
+A refusal that takes a client past `-sv2maxrejects` is sent **before** the
+connection closes, not after. The refusal that explains a disconnect is the one
+worth arriving, so the node drains the socket rather than closing it the moment
+the reply is queued.
+
+Neither message can be relied on by its absence. There is no way to ask a peer
+which message numbers inside a negotiated extension it implements, so a client
+cannot distinguish a node that refused silently from one built before these
+existed, and must not treat silence as a verdict or run a timeout off it. Both
+are positive information only, which leaves a client no worse off than it was
+without them.
 
 `ntime_min` restates the job's `ntime_start`, and the restatement is doing real
 work rather than padding. Stratum v2 says of `ntime_start` that it is the
@@ -877,10 +958,14 @@ compare its own proof-of-work hash against it. The information was on the wire
 all along.
 
 What it cannot establish from that comparison is whether the pool actually
-forwarded the solution, or what the node did with it. The Template
-Distribution Protocol gives `SubmitSolution` no reply, so even the pool learns
-that only by watching the tip. `BlockFound` is therefore **submission and
-acceptance feedback**, not the only way to know a share was a block.
+forwarded the solution, or what the node did with it. `BlockFound` is therefore
+**submission and acceptance feedback**, not the only way to know a share was a
+block.
+
+The pool is one link further up and has the same problem in its own terms. The
+Template Distribution Protocol gives `SubmitSolution` no reply, which is why
+`AvianSubmitSolution.Success` and `.Error` exist; against a node that does not
+send them, the pool is back to watching the tip.
 
 A Stratum v1 port is still caught out, but by something narrower than a
 missing field: there the convention is to compare against the network target
@@ -976,9 +1061,9 @@ target, because that is the test it applies to decide whether to forward it.
 And it can tell whether the block was accepted without asking the node
 anything: it already hashes every share to validate it, so it knows the hash
 it submitted, and the next `SetNewPrevHash` carries the new tip. A match means
-the block connected. That also answers a question the Template Distribution
-Protocol leaves open, since `SubmitSolution` has no reply and a pool otherwise
-cannot know what the node did with a block.
+the block connected. That is what a pool falls back on against a node that does
+not send `AvianSubmitSolution.Success`, since the Template Distribution
+Protocol itself gives `SubmitSolution` no reply at all.
 
 **Why this is its own extension.** Nothing about telling a miner what became of
 its share concerns multiple algorithms or time bounds, so it has no business
@@ -1095,12 +1180,16 @@ flowchart TD
 4. **There is no cheap pre-filter for Avian's proof of work.** Rate limiting and
    the loopback default are the defence for that final hash.
 5. **Exposing the Stratum v2 port is equivalent to exposing RPC.**
-6. **There is no `SubmitSolution.Error` in the Template Distribution Protocol.**
-   A refused solution can only be logged and counted, because inventing a reply
-   message would break a stock client's dispatch. Run with `-debug=sv2` to see
-   the reason. A client that keeps failing is dropped after `-sv2maxrejects`,
-   since one rolling a field it was told not to will never find a valid block
-   and has no other way of being told.
+6. **The Template Distribution Protocol gives `SubmitSolution` no reply**, so
+   Avian's extension supplies one: `AvianSubmitSolution.Success` and `.Error`,
+   `0x05` and `0x06` of `0x4001`. They are extension messages rather than new
+   core numbers, so no client's dispatch of the spec's own table is touched,
+   and one built before them reads past them under the rule above. Neither can
+   be relied on by its absence, since there is no way to ask which message
+   numbers a peer implements. A client that keeps failing is still dropped
+   after `-sv2maxrejects`, because being told why is not a substitute for being
+   stopped: one rolling a field it was told not to will never find a valid
+   block however clearly it is answered.
 7. **A server cannot proactively announce a required extension.**
    `RequestExtensions.Error` is only a response, and it does name the required
    extension, so a client that negotiates the wrong thing can correct itself.

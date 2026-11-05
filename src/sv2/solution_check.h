@@ -107,6 +107,12 @@ struct SolutionCheck {
     //! Only meaningful when error is NONE.
     CBlockHeader header;
     CTransactionRef coinbase;
+    //! The proof-of-work hash, which on Avian is the block hash. Returned
+    //! rather than recomputed by the caller: it cost more than every other
+    //! check put together, and CBlockHeader::GetHash() would both repeat it
+    //! and insert into the persistent cache this path exists to stay out of.
+    //! Only meaningful when error is NONE.
+    uint256 pow_hash;
 };
 
 //! Validate a submitted solution against the template it claims, cheapest

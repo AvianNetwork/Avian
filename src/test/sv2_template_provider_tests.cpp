@@ -642,11 +642,16 @@ BOOST_AUTO_TEST_CASE(a_refused_solution_never_reaches_the_proof_of_work)
     const uint32_t ntime{static_cast<uint32_t>(GetTime<std::chrono::seconds>().count())};
     BOOST_REQUIRE(SendSolution(*client, tmpl, tmpl.version ^ 0x1, ntime));
 
-    // Nothing is sent back for a solution, so the round trip is a separate
-    // request: once it is answered, the submission has certainly been handled.
+    // The refusal itself is the round trip, now that there is one: once it
+    // has arrived the submission has certainly been handled, and its reason
+    // says which tier refused it.
     bool closed{false};
-    BOOST_REQUIRE(SendTxDataRequest(*client, tmpl.template_id));
-    BOOST_REQUIRE(ReadMessage(*client, closed).has_value());
+    const auto refused{ReadMessage(*client, closed)};
+    BOOST_REQUIRE(refused.has_value());
+    BOOST_CHECK_EQUAL(refused->header.msg_type,
+                      static_cast<uint8_t>(sv2::AvianMsg::SUBMIT_SOLUTION_ERROR));
+    BOOST_CHECK_EQUAL(sv2::DecodePayload<sv2::AvianSubmitSolutionError>(refused->payload).error_code,
+                      "version-mismatch");
 
     BOOST_CHECK_EQUAL(PowCacheSize(), before);
 }
@@ -673,9 +678,9 @@ BOOST_AUTO_TEST_CASE(solutions_are_rate_limited)
 
 BOOST_AUTO_TEST_CASE(persistent_refusals_disconnect)
 {
-    // There is no SubmitSolution.Error in the protocol, so a client rolling a
-    // field it was told not to would otherwise mine forever into a void. The
-    // only way to tell it something is wrong is to drop it.
+    // Being told why is not a substitute for being stopped. A client rolling
+    // a field it was told not to will never find a valid block however clearly
+    // it is answered, so it still goes; what changed is that it now knows.
     auto server{StartTemplateServer(m_node, m_args.GetDataDirNet(),
                                     [](sv2::Options& opts) { opts.max_rejects = 2; })};
     auto client{ConnectTo(*server, server->AuthorityPubKey())};
@@ -684,12 +689,51 @@ BOOST_AUTO_TEST_CASE(persistent_refusals_disconnect)
 
     bool closed{false};
     BOOST_REQUIRE(SendSolution(*client, tmpl, tmpl.version ^ 0x1, ntime));
-    BOOST_REQUIRE(SendTxDataRequest(*client, tmpl.template_id));
-    BOOST_REQUIRE(ReadMessage(*client, closed).has_value());
+    const auto first{ReadMessage(*client, closed)};
+    BOOST_REQUIRE(first.has_value());
+    BOOST_CHECK_EQUAL(first->header.extension_type, sv2::AVIAN_EXTENSION_ID);
+    BOOST_CHECK_EQUAL(first->header.msg_type,
+                      static_cast<uint8_t>(sv2::AvianMsg::SUBMIT_SOLUTION_ERROR));
+    const auto refusal{sv2::DecodePayload<sv2::AvianSubmitSolutionError>(first->payload)};
+    BOOST_CHECK_EQUAL(refusal.template_id, tmpl.template_id);
+    BOOST_CHECK_EQUAL(refusal.error_code, "version-mismatch");
+    BOOST_CHECK(!closed);
 
+    // The one that reaches the limit is answered too, and only then is the
+    // connection dropped. A disconnect with no reason attached is the thing
+    // this whole message exists to stop, and the last refusal is the one that
+    // would explain it.
     BOOST_REQUIRE(SendSolution(*client, tmpl, tmpl.version ^ 0x1, ntime));
+    const auto second{ReadMessage(*client, closed)};
+    BOOST_REQUIRE(second.has_value());
+    BOOST_CHECK_EQUAL(second->header.msg_type,
+                      static_cast<uint8_t>(sv2::AvianMsg::SUBMIT_SOLUTION_ERROR));
     ReadMessage(*client, closed);
     BOOST_CHECK(closed);
+}
+
+BOOST_AUTO_TEST_CASE(an_unknown_template_is_refused_by_name)
+{
+    // Every refusal goes through one path now, including this one, which used
+    // to count and log itself inline while the template lock was held and so
+    // could not answer.
+    auto server{StartTemplateServer(m_node, m_args.GetDataDirNet())};
+    auto client{ConnectTo(*server, server->AuthorityPubKey())};
+    auto tmpl{GetTemplate(*client)};
+    const uint32_t ntime{static_cast<uint32_t>(GetTime<std::chrono::seconds>().count())};
+
+    tmpl.template_id += 1000;
+    BOOST_REQUIRE(SendSolution(*client, tmpl, tmpl.version, ntime));
+
+    bool closed{false};
+    const auto msg{ReadMessage(*client, closed)};
+    BOOST_REQUIRE(msg.has_value());
+    BOOST_CHECK_EQUAL(msg->header.msg_type,
+                      static_cast<uint8_t>(sv2::AvianMsg::SUBMIT_SOLUTION_ERROR));
+    const auto refusal{sv2::DecodePayload<sv2::AvianSubmitSolutionError>(msg->payload)};
+    BOOST_CHECK_EQUAL(refusal.template_id, tmpl.template_id);
+    BOOST_CHECK_EQUAL(refusal.error_code, "unknown-template");
+    BOOST_CHECK(!closed);
 }
 
 //! Wait for the refresh that supersedes `previous`, and return its id.

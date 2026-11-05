@@ -239,6 +239,7 @@ SolutionCheck CheckSolution(const SolutionContext& ctx, const SubmitSolution& so
     // Tier 4: the one expensive operation, reached only by a submission that
     // has passed everything above.
     const uint256 pow{hasher(result.header)};
+    result.pow_hash = pow;
 
     // Replicates CheckProofOfWorkDualAlgo, which is static in pow.cpp. The
     // per-algorithm limit matters: MinotaurX's floor is 256 times easier than

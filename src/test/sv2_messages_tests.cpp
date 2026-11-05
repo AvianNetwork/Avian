@@ -4,6 +4,7 @@
 
 #include <streams.h>
 #include <sv2/messages.h>
+#include <sv2/solution_check.h>
 #include <sv2/types.h>
 #include <test/util/setup_common.h>
 #include <uint256.h>
@@ -300,6 +301,35 @@ BOOST_AUTO_TEST_CASE(avian_extension_messages)
 
     const sv2::AvianTimeConstraints times{1, 0x11223344, 0x11223355};
     BOOST_CHECK_EQUAL(WireHex(times), "0100000000000000" "44332211" "55332211");
+}
+
+BOOST_AUTO_TEST_CASE(avian_solution_replies_round_trip)
+{
+    // The reply the Template Distribution Protocol does not define. Its own
+    // table ends at SubmitSolution, so these two are the Avian extension's,
+    // and a client built before them reads past them rather than failing.
+    sv2::AvianSubmitSolutionSuccess ok;
+    ok.template_id = 1;
+    ok.block_hash = uint256::ONE;
+    // uint256 goes out in its internal order, which is the reverse of how a
+    // block hash is printed, and is the order every other hash on this wire
+    // uses.
+    BOOST_CHECK_EQUAL(WireHex(ok),
+                      "0100000000000000"
+                      "0100000000000000000000000000000000000000000000000000000000000000");
+    const auto decoded{sv2::DecodePayload<sv2::AvianSubmitSolutionSuccess>(sv2::EncodePayload(ok))};
+    BOOST_CHECK_EQUAL(decoded.template_id, 1);
+    BOOST_CHECK_EQUAL(decoded.block_hash, uint256::ONE);
+
+    sv2::AvianSubmitSolutionError err;
+    err.template_id = 7;
+    // The same string the node logs, from SolutionErrorString, so the wire and
+    // the log name one thing.
+    err.error_code = sv2::SolutionErrorString(sv2::SolutionError::POW_INSUFFICIENT);
+    BOOST_CHECK_EQUAL(err.error_code, "pow-insufficient");
+    const auto refusal{sv2::DecodePayload<sv2::AvianSubmitSolutionError>(sv2::EncodePayload(err))};
+    BOOST_CHECK_EQUAL(refusal.template_id, 7);
+    BOOST_CHECK_EQUAL(refusal.error_code, "pow-insufficient");
 }
 
 BOOST_AUTO_TEST_CASE(trailing_bytes_rejected)

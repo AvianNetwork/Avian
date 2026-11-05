@@ -106,6 +106,25 @@ enum class AvianMsg : uint8_t {
     //! number cannot be reused; a pool implements it, a Template Provider has
     //! no occasion to send it.
     JOB_TIME_CONSTRAINTS = 0x04,
+    //! The reply the Template Distribution Protocol gives SubmitSolution,
+    //! which is none. Its message table ends at SubmitSolution with no
+    //! .Success and no .Error, so a client that submits a block learns
+    //! nothing: not that the node took it, not why it did not, and not even
+    //! that it was heard. Without these two the only signals are a tip that
+    //! does or does not carry its hash, minutes later, and a disconnect at
+    //! -sv2maxrejects that arrives with no reason attached.
+    //!
+    //! These are extension messages, not core ones, so no client's dispatch
+    //! of the spec's own numbers is touched, and one built before they
+    //! existed reads past them under the rule in doc/sv2.md that an unknown
+    //! msg_type inside a negotiated extension is ignored. They live in
+    //! AVIAN_EXTENSION_ID rather than in one of their own, unlike block
+    //! notifications: a required extension cannot carry an optional
+    //! capability, but a reply is not a capability. It answers something the
+    //! client chose to send, so a client that submits nothing receives
+    //! nothing and has nothing to decline.
+    SUBMIT_SOLUTION_SUCCESS = 0x05,
+    SUBMIT_SOLUTION_ERROR = 0x06,
 };
 
 //! Avian block notifications.
@@ -372,6 +391,48 @@ struct AvianTimeConstraints {
     uint32_t ntime_max{0};
 
     SERIALIZE_METHODS(AvianTimeConstraints, obj) { READWRITE(obj.template_id, obj.ntime_min, obj.ntime_max); }
+};
+
+//! The node built the block and validation accepted it.
+//!
+//! Not "you won", and the name is the furthest this message can honestly go.
+//! ProcessNewBlock accepting a block means it is valid and was relayed, not
+//! that it became the tip; a block that loses a race is accepted here and
+//! then orphaned. What the client does with block_hash is match it against
+//! the next SetNewPrevHash, which is how it learns the rest.
+//!
+//! block_hash is Avian's block hash, which is the proof-of-work hash rather
+//! than SHA256d, in the internal byte order of uint256 and so the reverse of
+//! how a block hash is printed. It also names which submission is being
+//! answered, because template_id cannot: a client may have several nonces in
+//! flight against one template.
+struct AvianSubmitSolutionSuccess {
+    uint64_t template_id{0};
+    uint256 block_hash;
+
+    SERIALIZE_METHODS(AvianSubmitSolutionSuccess, obj) { READWRITE(obj.template_id, obj.block_hash); }
+};
+
+//! The node refused the solution, with the reason it refused it.
+//!
+//! error_code is SolutionErrorString of the SolutionError, so the wire name
+//! and the node's own log name the same thing. No block_hash: most refusals
+//! happen before the hash is computed, deliberately, because that hash costs
+//! more than every check before it put together and an attacker must not be
+//! able to buy one with a few bytes. A client with several nonces in flight
+//! against one template therefore learns the reason but not which nonce,
+//! which is the right trade: the reason is what it can act on.
+//!
+//! Sent before the client is dropped at -sv2maxrejects rather than after, so
+//! the refusal that explains the disconnect is the one that arrives.
+struct AvianSubmitSolutionError {
+    uint64_t template_id{0};
+    std::string error_code;
+
+    SERIALIZE_METHODS(AvianSubmitSolutionError, obj)
+    {
+        READWRITE(obj.template_id, Using<Str0_255>(obj.error_code));
+    }
 };
 
 //! Serialize a message body to its payload bytes, without a frame header.

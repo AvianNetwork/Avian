@@ -284,6 +284,15 @@ class Sv2TemplateProviderTest(BitcoinTestFramework):
                                    work['time_constraints']['ntime_max'] + 1, 0,
                                    build_coinbase(template))
 
+            # Each is refused by name. The codes are normative, so a client
+            # can act on the difference rather than guessing from a silence.
+            for expected in ['version-mismatch', 'missing-required-output',
+                             'ntime-out-of-range']:
+                reply = client.read_solution_reply()
+                assert not reply['accepted'], reply
+                assert_equal(reply['template_id'], template['template_id'])
+                assert_equal(reply['error_code'], expected)
+
             # Still answered, so none of those closed the connection.
             reply = client.request_transaction_data(template['template_id'])
             assert_equal(reply['template_id'], template['template_id'])
