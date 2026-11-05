@@ -309,16 +309,18 @@ BOOST_AUTO_TEST_CASE(version_rolling_is_never_offered)
     BOOST_CHECK_EQUAL(opts->version_rolling_mask, 0u);
 }
 
-BOOST_AUTO_TEST_CASE(mainnet_is_refused_while_the_extension_is_experimental)
+BOOST_AUTO_TEST_CASE(no_chain_is_refused_by_default)
 {
-    // The specification reserves 0x4000-0x7fff for experimental extensions and
-    // forbids them in production equipment. Guarding only -sv2extensionid left
-    // the obvious route open: aviand -sv2 on mainnet, no arguments, using
-    // 0x4001 as the compiled-in default.
-    BOOST_CHECK(!sv2::ReadOptions(m_args, ChainType::MAIN));
-
-    // Every other network is unaffected, which is the point of the guard
-    // rather than a side effect of it.
+    // There used to be a guard here that refused mainnet outright, on the
+    // reading that Avian's identifiers were experimental squats in Stratum
+    // v2's range. They are not: an extension_type need only be unique among
+    // peers that can share a connection, so Avian allocates its own and the
+    // range it allocates from is asserted at compile time in messages.h.
+    //
+    // This case is the inverse of that one, and worth keeping as an inverse:
+    // a default configuration must serve every chain, and nothing about the
+    // extension identifier may single one out.
+    BOOST_CHECK(sv2::ReadOptions(m_args, ChainType::MAIN));
     BOOST_CHECK(sv2::ReadOptions(m_args, ChainType::TESTNET));
     BOOST_CHECK(sv2::ReadOptions(m_args, ChainType::SIGNET));
     BOOST_CHECK(sv2::ReadOptions(m_args, ChainType::REGTEST));

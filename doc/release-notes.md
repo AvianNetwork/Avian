@@ -29,13 +29,13 @@ Stratum v2 has no upper bound on `ntime`. Version rolling is not offered in this
 version, because Avian keeps the algorithm identifier in `nVersion` bits 16-23
 where BIP320's mask would otherwise let a miner change it.
 
-The extension currently uses the experimental identifier `0x4001`, which the
-Stratum v2 specification forbids in production equipment, so this is suitable
-for development and testnet only until a registry allocation is assigned.
-`doc/sv2.md` has the full configuration surface, the extension's wire format and
-the security considerations, the most important of which is that exposing the
-Stratum v2 port is equivalent to exposing an RPC port. It binds to loopback by
-default.
+The extension uses identifier `0x4001`, allocated in Avian's own extension
+registry rather than Stratum v2's: an `extension_type` need only be unique among
+peers that can share a connection, and an Avian connection and a Bitcoin one
+never do. `doc/sv2.md` is that registry, and also has the full configuration
+surface, the extension's wire format and the security considerations, the most
+important of which is that exposing the Stratum v2 port is equivalent to
+exposing an RPC port. It binds to loopback by default.
 
 Credits
 =======

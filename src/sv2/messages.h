@@ -37,25 +37,22 @@ static constexpr uint16_t CHANNEL_MSG_BIT{0x8000};
 static constexpr uint16_t EXT_CORE{0x0000};        //!< Messages defined by the core spec.
 static constexpr uint16_t EXT_NEGOTIATION{0x0001}; //!< Extensions Negotiation.
 
-//! Avian's multi-PoW extension.
+//! Avian's multi-PoW extension, allocated in Avian's own registry.
 //!
-//! 0x4001 lies in the spec's experimental range (0x4000-0x7fff). The spec
-//! requires experimental identifiers not to be present in production
-//! equipment, so this value MUST be replaced by a registry-allocated one
-//! before any mainnet release. It is defined here once and never written
-//! inline so that swap stays a one-line change. See doc/sv2.md.
-//! Experimental, and the node refuses to serve Stratum v2 on mainnet while
-//! it stays that way. See ReadOptions.
+//! An extension_type need only be unique among peers that can share a
+//! connection, and an Avian connection and a Bitcoin one never do, so Avian
+//! keeps its own registry rather than drawing from Stratum v2's. That is the
+//! Stratum v2 maintainers' own position, given when this extension was
+//! submitted upstream and declined as out of scope
+//! (stratum-mining/sv2-spec#250). 0x4001 is therefore allocated, not an
+//! experimental squat, and not a mainnet blocker.
 //!
-//! That refusal is a conservative reading rather than a settled decision. The
-//! specification reserves 0x4000-0x7fff for experimental use and says those
-//! values must not appear in production equipment, so failing closed is the
-//! only safe default while the question is open. What is open is whether a
-//! chain other than Bitcoin is expected to be allocated a registered
-//! identifier at all, or to stay in the experimental range even in
-//! production. That has been asked of the registry maintainers and is
-//! unanswered. If the answer is that non-Bitcoin chains stay experimental,
-//! this guard goes rather than the identifier.
+//! 0x4000-0x4fff is that registry's allocated space. 0x5000-0x7fff is what it
+//! offers a third party to prototype in before asking for an allocation here,
+//! and nothing in this tree uses it. The high range is deliberate: upstream
+//! allocates upward from 0x0003, so leaving the low numbers clear means an
+//! upstream extension can be adopted later without renumbering anything. See
+//! doc/sv2.md.
 static constexpr uint16_t AVIAN_EXTENSION_ID{0x4001};
 
 //! A Template Provider can only ever serve whole blocks inside a B0_16M
@@ -109,12 +106,41 @@ enum class AvianMsg : uint8_t {
     //! number cannot be reused; a pool implements it, a Template Provider has
     //! no occasion to send it.
     JOB_TIME_CONSTRAINTS = 0x04,
-    //! Also Mining Protocol only, and also a pool's to send: tells a miner
-    //! that one of its shares was a block, which it has no way to determine
-    //! for itself. Specified in doc/sv2.md and reserved here so the number
-    //! cannot be reused.
-    BLOCK_FOUND = 0x05,
 };
+
+//! Avian block notifications.
+//!
+//! Separate from AVIAN_EXTENSION_ID, and optional where that one is required.
+//! A required extension cannot carry an optional capability: negotiating it is
+//! mandatory, so a client has no way to decline one message within it. Block
+//! notifications were briefly message 0x05 of that extension during
+//! development, which is how that was noticed. A client that does not know
+//! about 0x4002 does not ask for it and is never sent one.
+//!
+//! Nothing about telling a miner what became of its share concerns multiple
+//! algorithms or time bounds either, so it had no business inside an
+//! identifier allocated for those.
+static constexpr uint16_t EXT_AVIAN_BLOCKS{0x4002};
+
+//! Message types within EXT_AVIAN_BLOCKS.
+//!
+//! Mining Protocol only, and a pool's to send. A Template Provider has no
+//! occasion to; reserved here so the number cannot be reused.
+enum class AvianBlocksMsg : uint8_t {
+    //! A share was also a block. A client can already recognise a candidate,
+    //! because SetNewPrevHash carries nbits; what it cannot establish is
+    //! whether the pool forwarded it and what the node did with it.
+    BLOCK_FOUND = 0x00,
+};
+
+//! Both identifiers are allocated, not prototyped.
+//!
+//! Asserted at compile time rather than refused at startup, because they are
+//! compile-time constants: a build that would put a prototype identifier on a
+//! production wire is a build that should not have linked, on any chain. A
+//! runtime check could only ever repeat what the compiler already knows.
+static_assert(AVIAN_EXTENSION_ID >= 0x4000 && AVIAN_EXTENSION_ID <= 0x4fff);
+static_assert(EXT_AVIAN_BLOCKS >= 0x4000 && EXT_AVIAN_BLOCKS <= 0x4fff);
 
 //! Frame header: extension_type, msg_type, then a U24 payload length.
 struct NetHeader {
