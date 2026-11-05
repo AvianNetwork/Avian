@@ -295,10 +295,11 @@ BOOST_AUTO_TEST_CASE(unknown_message_in_our_own_extension_is_ignored)
     // were built at different times. So an unrecognised one is read past
     // rather than treated as a violation.
     //
-    // This is not hypothetical. AvianBlockFound was added as 0x05 and the
-    // first pool to send it killed the session of every miner linked against
-    // a client that predated it, which then went on hashing and submitting
-    // into a connection nobody was serving.
+    // This is not hypothetical. AvianBlockFound was briefly 0x05, and a pool
+    // built after it killed the session of a miner built before, which then
+    // went on hashing and submitting into a connection nobody was serving.
+    // Both were in this tree, which is the only reason the number could be
+    // freed again afterwards.
     auto server{StartTemplateServer(m_node, m_args.GetDataDirNet())};
     auto client{ConnectTo(*server, server->AuthorityPubKey())};
     BOOST_REQUIRE(Ready(*client, POW_TYPE_X16RT));

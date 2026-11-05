@@ -151,23 +151,6 @@ util::Result<Options> ReadOptions(const ArgsManager& args, ChainType chain)
             "Invalid -sv2extensionpolicy '%s'; expected require, optional or off", policy))};
     }
 
-    // The specification reserves 0x4000-0x7fff for experimental extensions and
-    // says they must not be present in production equipment. While the
-    // compiled-in identifier is still one of those, mainnet is refused
-    // outright: the alternative is a node that looks like it speaks a
-    // protocol and is using a number nobody has allocated it.
-    //
-    // This is the check that lifts when a registry allocation lands, and it
-    // is deliberately on the constant rather than on the override, because
-    // the override was never the thing that would put 0x4001 on mainnet.
-    // Starting aviand -sv2 on mainnet with no arguments at all was.
-    if (chain == ChainType::MAIN && AVIAN_EXTENSION_ID >= 0x4000 && AVIAN_EXTENSION_ID <= 0x7fff) {
-        return util::Error{Untranslated(strprintf(
-            "Stratum v2 cannot be enabled on mainnet: the Avian extension still uses the "
-            "experimental identifier 0x%04x, which the specification forbids in production. "
-            "See doc/sv2.md.", AVIAN_EXTENSION_ID))};
-    }
-
     // Development override only. On mainnet the wire identity must be fixed
     // by the constant alone: a runtime substitution would let a node look like
     // it speaks this protocol while advertising someone else's registered

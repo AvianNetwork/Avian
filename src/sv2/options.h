@@ -68,9 +68,10 @@ struct Options {
 
     //! Identifier for Avian's multi-PoW extension.
     //!
-    //! Overridable for development and migration only. The default lies in
-    //! the spec's experimental range, which production equipment must not
-    //! use, so this has to become a registry-allocated value before mainnet.
+    //! Overridable for development and interoperability testing only, and
+    //! rejected on mainnet, so a mainnet node's wire identity is fixed by the
+    //! constant alone. The default is allocated in Avian's own registry; see
+    //! AVIAN_EXTENSION_ID.
     uint16_t extension_id{AVIAN_EXTENSION_ID};
 
     //! Algorithms this server will build templates for. The first is what a

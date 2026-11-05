@@ -2,8 +2,8 @@
 
 `aviand` can serve the Stratum v2 Template Distribution Protocol. This document
 is both the operator guide and the specification of Avian's protocol extension,
-because that extension is what a third-party pool or miner has to implement and
-what a registry allocation request will freeze.
+because that extension is what a third-party pool or miner has to implement.
+Avian keeps its own extension registry, and this document is it.
 
 Nothing here is enabled by default, and a node started without `-sv2` behaves
 exactly as it did before.
@@ -190,13 +190,120 @@ unchanged. Its key agreement is BIP324's `v2_ecdh`, down to the
 `extension_type = 0x4001`, negotiated through the standard Extensions
 Negotiation extension `0x0001`.
 
-> **0x4001 is temporary and MUST NOT be used for production deployments.**
+### Which registry this number comes from
 
-The Stratum v2 specification reserves `0x4000`–`0x7fff` for experimental use and
-states that experimental values must not be present in production equipment.
-A registry allocation at stratumprotocol.org is therefore a **mainnet release
-blocker**, not a nice-to-have. Until one is assigned, this extension is suitable
-for development, regtest and testnet only.
+An `extension_type` has to be unique only among peers that can share a
+connection, and an Avian connection and a Bitcoin one never do. So Avian keeps
+its own extension registry, and this document is it. The identifiers below are
+allocated there. They are not experimental squats and they are not a mainnet
+blocker.
+
+That is the Stratum v2 maintainers' own reading, given when this extension was
+submitted to the upstream registry and declined as out of scope:
+
+> An extension id only has to be unique among peers that can share a
+> connection, and an Avian pool and a Bitcoin pool never do. A fork of this
+> spec for another chain keeps its own registry, and the §3.4 rule about
+> experimental ids is that fork's to restate or drop.
+>
+> -- stratum-mining/sv2-spec#250
+
+Avian's registry inherits the two identifiers that must mean the same thing on
+every Stratum v2 connection, because negotiation itself runs over one of them:
+
+| `extension_type` | Extension | Allocated by |
+| --- | --- | --- |
+| `0x0000` | core protocol messages | Stratum v2 |
+| `0x0001` | Extensions Negotiation | Stratum v2 |
+| `0x4001` | algorithm selection and time-bounded work | Avian |
+| `0x4002` | block notifications | Avian |
+
+`0x4000`-`0x4fff` is Avian's allocated space. `0x5000`-`0x7fff` is what this
+registry offers a third party to prototype in before asking for an allocation
+here, and nothing in Avian's own tree uses it. Both of Avian's identifiers are
+compile-time constants, so that distinction is asserted when the node is built
+rather than checked when it starts: a build that would put a prototype
+identifier on a production wire is one that should not have linked.
+
+### Rules for every extension
+
+Stratum v2's §3.4 says what happens to a message whose `extension_type` is
+unknown: discard it. It says nothing about a message whose `extension_type` was
+negotiated and whose `msg_type` is unknown, and that gap is not hypothetical.
+Negotiation agrees an identifier and carries no per-extension version and no
+list of supported message types, so **negotiating an extension does not
+negotiate every message that extension will ever contain.** Two implementations
+built at different times can agree on an identifier and disagree about what is
+inside it.
+
+Avian closes that gap for its own connections. This is a rule of the protocol
+here, not of any one extension:
+
+> **A receiving endpoint MUST ignore a message whose `extension_type` it
+> negotiated and whose `msg_type` it does not recognise.** Log it and read the
+> next frame. It MUST NOT be treated as a protocol violation and the connection
+> MUST NOT be closed.
+
+Three limits, all of which the first statement of this rule missed.
+
+**It licenses optional additions only.** Ignoring an unknown message is safe
+when the message is a notification a peer can do without. It is not safe for
+anything that changes which work is valid: a future constraint message that
+narrowed a window, silently skipped, would leave a miner producing work the
+upstream will refuse, which is the exact failure `0x4001` exists to prevent.
+Such a message needs explicit capability negotiation, and since the
+`extension_type` is Stratum v2's only capability granularity, that means
+another identifier rather than another `msg_type`.
+
+**It binds the endpoint that receives the message.** A proxy or translating
+role that forwards Stratum v2 onward MUST forward what it does not recognise
+rather than discard it, or it silently strips capability from the roles behind
+it. Avian has no Stratum v2 to Stratum v2 proxy today, so this is
+forward-looking rather than live.
+
+**It cannot be retrofitted.** A document cannot fix a peer that has already
+shipped. Until a client carries the rule, the only safe way to add a capability
+is to put it behind its own `extension_type`, so an old client never asks for
+it and never receives it. `0x4002` exists for that reason, and development is
+what taught it: block notifications were briefly message `0x05` of `0x4001`,
+and a pool built after they existed ended the session of a miner built before,
+which went on hashing into a connection nobody was serving. Both were in this
+tree, weeks apart, which is as far as it got.
+
+### TLV fields, and which way round they go
+
+Section 3.4.3 lets an extension append Type-Length-Value fields to the end of
+a message somebody else defined, without changing that message's layout or its
+frame's `extension_type`. A field is a `U16` extension type, a `U8` field type,
+a `U16` length and then that many bytes.
+
+**Avian encodes those integers little-endian.** That needs saying, because the
+specification contradicts itself. Section 3.1 states that multibyte data types
+are *always* little-endian and lists `U16` as such, and 3.4.3 describes these
+fields as `U16` and `U8`. But 3.4.3's only worked example renders extension
+`0x0002`, field `0x01`, length 10 as:
+
+```
+00 02 01 00 0A ...
+```
+
+which is big-endian in both multibyte fields. Little-endian is what the
+normative type table requires, so the example is read here as a documentation
+error rather than as a second rule. The reference implementation does not
+settle it, because the SRI crates do not implement TLV at all.
+
+Anyone implementing against Avian should take the rule from this paragraph and
+not from that example. The same field, as Avian writes it:
+
+```
+02 00 01 0A 00 57 6F 72 6B 65 72 5F 30 30 31
+```
+
+The rest of 3.4.3 applies unchanged: fields come after everything the base
+message defines, they are ordered by `extension_type`, order within one
+extension is that extension's to define, and a length of zero means no value.
+A receiver skips fields belonging to extensions it did not negotiate rather
+than refusing them, which is the entire point of the encoding.
 
 `-sv2extensionid` can override the identifier for interoperability testing. It
 is hidden, validated `<= 0x7fff`, and **rejected on mainnet**, so a mainnet
@@ -233,13 +340,70 @@ required by default rather than optional.
 The first two recur verbatim on the Mining Protocol. A worker has to be told
 which algorithm its connection carries, and a job carries an `ntime_start` but
 no maximum permitted `ntime`, so an X16RT miner rolling off the end of a job's
-epoch computes the wrong hash function there too. The third does not: the
-algorithm is fixed per connection, so one `version_rolling_mask` covers every
-job on it.
+epoch computes the wrong hash function there too. The third does not: a
+channel's algorithm never changes once it is open, so one
+`version_rolling_mask` covers every job on it.
+
+### Per-channel algorithm
+
+`AvianSelectAlgorithm` settles the **connection's** algorithm, which is what a
+channel is served on when it asks for nothing. A channel may override it for
+itself by appending a TLV field to its `OpenStandardMiningChannel` or
+`OpenExtendedMiningChannel`:
+
+| field | type | value |
+| --- | --- | --- |
+| `0x4001`, field `0x01` | `U8` | the `pow_type` this channel carries |
+
+So an open that asks for MinotaurX on a connection that selected X16RT ends
+with:
+
+```
+01 40 01 01 00 01
+```
+
+the extension type, the field type, a length of one, and the algorithm.
+
+A pool serves each channel the work, target and `nbits` of the algorithm that
+channel asked for, on the same connection as channels asking for something
+else. The reason to want that is a proxy: without it, a proxy aggregating
+mixed rigs needs one upstream connection per algorithm, which is a deployment
+constraint standing in for a protocol field, exactly like the one algorithm
+selection exists to remove.
+
+**A channel's algorithm is fixed for its life.** There is no message to change
+it. A worker that wants a different one closes the channel and opens another,
+which is cheap and leaves no question about which jobs belong to which
+algorithm.
+
+**Omitting the field means the connection's algorithm**, which is what every
+miner built before this field sends, so nothing changed for them. That is the
+whole reason it is a TLV field rather than a new required message: section
+3.4.1 keeps the frame's `extension_type` at `0x0000` for a message the core
+protocol defined, a peer that does not know the field reads the open exactly
+as it always did, and there is no `request_id` matching to race.
+
+Two refusals, with different codes because a worker can act on the difference:
+
+| code | means |
+| --- | --- |
+| `unsupported-pow-type` | not a `pow_type` the chain defines, which is the worker's bug |
+| `pow-type-not-enabled` | a real algorithm this pool was not configured to serve, which is the operator's |
+
+Both are sent as `OpenMiningChannelError` and refuse that channel alone. The
+connection stands and its other channels keep working, because behind a proxy
+one rig asking for the wrong thing must not disconnect the rest.
+
+A **malformed** TLV region is different and does end the connection. A peer
+that cannot encode one correctly will not encode the next one correctly
+either, and unlike a mistyped address it is not something an operator fixes by
+retrying.
 
 ### Messages
 
 All integers are little-endian, as everywhere in Stratum v2.
+
+**`extension_type = 0x4001`**
 
 | `msg_type` | Message | Direction | Protocol |
 | --- | --- | --- | --- |
@@ -248,7 +412,12 @@ All integers are little-endian, as everywhere in Stratum v2.
 | `0x02` | `AvianSelectAlgorithm.Error` | upstream → downstream | both |
 | `0x03` | `AvianTimeConstraints` | upstream → downstream | template distribution |
 | `0x04` | `AvianJobTimeConstraints` | upstream → downstream | mining |
-| `0x05` | `AvianBlockFound` | upstream → downstream | mining |
+
+**`extension_type = 0x4002`**
+
+| `msg_type` | Message | Direction | Protocol |
+| --- | --- | --- | --- |
+| `0x00` | `BlockFound` | upstream → downstream | mining |
 
 "Upstream" is the node for a pool, and the pool for a worker. The three
 `AvianSelectAlgorithm` messages are identical on both protocols: they are
@@ -301,8 +470,7 @@ Defined values:
 | `algo-already-selected` | a second selection on one connection |
 
 These are normative. An extension whose only error message is "a `STR0_255`"
-cannot be implemented against, and this is part of what a registry allocation
-would freeze.
+cannot be implemented against.
 
 **`AvianTimeConstraints`**
 
@@ -700,15 +868,24 @@ miner that assumed otherwise would be checking nothing.
 Seeing the full transaction list is what the Job Declaration Protocol is for,
 and that is not part of this.
 
-**A miner cannot tell on its own whether its share is a block.** It is given a
-share target and never the network target, because only the pool holds the
-template and only the pool forwards a winner to the node. `AvianBlockFound`
-exists so a pool can say so explicitly; without it, or against a pool that
-does not send it, a miner has no way to know. This catches Stratum
-v1 miners out: there the convention is to compare against the network target
-and announce a block locally, and a port of such a miner will look for a field
-that is not sent and cannot be. A miner learns its share was a block, if at
-all, from the pool or from the chain.
+**A miner can tell that it found a block candidate, and cannot tell what
+became of it.** An earlier version of this document said the first half was
+impossible, on the grounds that a miner is given only a share target. That was
+wrong. Mining Protocol `SetNewPrevHash` carries `nbits`, the compact network
+target for the candidate header, so an Avian-aware miner can decode it and
+compare its own proof-of-work hash against it. The information was on the wire
+all along.
+
+What it cannot establish from that comparison is whether the pool actually
+forwarded the solution, or what the node did with it. The Template
+Distribution Protocol gives `SubmitSolution` no reply, so even the pool learns
+that only by watching the tip. `BlockFound` is therefore **submission and
+acceptance feedback**, not the only way to know a share was a block.
+
+A Stratum v1 port is still caught out, but by something narrower than a
+missing field: there the convention is to compare against the network target
+and announce locally, and that announcement means "I found one", not "it
+counted".
 
 ### A miner's side of the exchange
 
@@ -746,31 +923,53 @@ MinotaurX has no such boundary and must not be clamped as though it does.
 
 And when the nonce range is exhausted while the window is pinned shut, which
 is the normal case on every chain except mainnet because the test chains all
-set `fPowAllowMinDifficultyBlocks`, there is nothing left to vary: wait for
-the next job rather than rolling anything.
+set `fPowAllowMinDifficultyBlocks`, what is left to vary depends on the
+channel. On an **extended** channel the miner owns an extranonce and can
+advance it, which changes the coinbase txid and so the merkle root, giving a
+fresh search space without a new job. On a **standard** channel the pool built
+the coinbase and the merkle root is fixed, so with version pinned and ntime
+pinned there is genuinely nothing left: wait for the next job rather than
+rolling anything.
 
-### `AvianBlockFound` (`0x05`, Mining)
+### `BlockFound` (`0x4002`, message `0x00`, Mining)
 
-A **channel message**, so bit 15 of `extension_type` is set.
+A **channel message**, so bit 15 of the extension type is set and it travels
+under `0xc002`.
+
+This is **not** part of `0x4001`. It is its own extension, and where `0x4001`
+is required this one is optional: **a pool MUST NOT list `0x4002` in
+`required_extensions`.** A client that does not negotiate it is never sent one.
+Why that matters is below.
 
 | Field | Type | Description |
 | --- | --- | --- |
 | `channel_id` | `U32` | the channel whose share this was |
 | `sequence_number` | `U32` | the `SubmitShares` sequence number it refers to |
 | `block_hash` | `U256` | the hash of the block that share produced |
-| `confirmed` | `BOOL` | false when submitted, true once it became the tip |
+| `confirmed` | `BOOL` | false when submitted, true once observed as the reporting node's active tip |
 
 Sent when a pool forwards a share to the node as a block, and sent a second
-time with `confirmed` true if that block later becomes the chain tip. A block
-that loses a race gets no second message, so a miner should treat the absence
-of one as unresolved rather than as failure.
+time with `confirmed` true if that block is later observed as that node's
+active tip. A block that loses a race gets no second message, so a miner
+should treat the absence of one as unresolved rather than as failure.
 
-**Why this exists.** A miner is given a share target and never the network
-target, so it cannot tell whether its own share was a block. For a pool paying
-by share that is unremarkable, since blocks are the pool's business. For a
-solo pool it is backwards: the whole proposition is that consensus pays the
-miner directly for blocks it finds, and the miner is the one piece of software
-that cannot see them.
+`confirmed` is deliberately narrow: it means **one node adopted this block as
+its tip at the moment the pool looked**. It is not a depth, not a guarantee
+against a reorganisation, and not a statement about the rest of the network. A
+miner wanting more than that has to ask a node.
+
+**Why this exists.** Not because a miner cannot recognise a block candidate:
+`SetNewPrevHash` carries `nbits` and an Avian-aware miner can compare against
+it. The gap is what happens next. A miner hands a winning share to the pool
+and the protocol gives it nothing back beyond an ordinary
+`SubmitShares.Success`, which means "accepted as a share" and says nothing
+about whether the pool forwarded it or the node took it.
+
+For a pool paying by share that is unremarkable, since what became of the
+block is the pool's business. For a solo pool it is backwards: the whole
+proposition is that consensus pays the miner directly for blocks it finds, and
+without this the miner is left unable to distinguish a block it won from one
+that lost a race.
 
 The pool has the information twice over. It knows a share met the network
 target, because that is the test it applies to decide whether to forward it.
@@ -781,40 +980,38 @@ the block connected. That also answers a question the Template Distribution
 Protocol leaves open, since `SubmitSolution` has no reply and a pool otherwise
 cannot know what the node did with a block.
 
-**This is not really Avian's.** Nothing about it concerns multiple algorithms
-or time bounds; any solo pool on any chain has the same gap. It lives here
-because the gap is real now and the specification process is not fast, and it
-is deliberately **excluded from the registry submission** for the same reason
-the payout-address codes and the job-id reuse note are: an extension allocated
-for multi-algorithm work should not quietly carry unrelated additions. It
-belongs in core Stratum v2, and is worth raising there.
+**Why this is its own extension.** Nothing about telling a miner what became of
+its share concerns multiple algorithms or time bounds, so it has no business
+inside an identifier allocated for those. That is the tidy reason. The real one
+is that `0x4001` is required, and a required extension cannot carry an optional
+capability: negotiating it is mandatory, so a client has no way to decline one
+message within it. This began as message `0x05` there, and a client built
+before that message existed received it, treated it as a protocol violation and
+ended the session. A client that does not know about `0x4002` simply does not
+ask for it, which fixes that structurally rather than by documentation.
 
-### Changing this extension
+It was offered to the Stratum v2 registry as a chain-agnostic extension and
+declined as out of scope, on the grounds that Bitcoin's non-custodial design
+already answers it: a Job Declaration Client publishes its own blocks and knows
+the outcome. Avian has no Job Declaration role, so the gap is real here.
 
-A registry allocation covers an `extension_type`, and the message numbers inside
-it are Avian's to assign. So **adding** a message later needs no new allocation,
-but only on one condition, which this document previously got wrong by assuming
-that an implementation ignorant of a message would not have negotiated the
-extension carrying it. Negotiation agrees an `extension_type`. It says nothing
-about which message numbers inside it either side knows, because the two were
-built at different times.
+`0x05` of `0x4001` is free. Nothing carrying it was ever published, so there is
+no peer anywhere that compiled that number and nothing to protect by reserving
+it.
 
-So: **a receiver MUST ignore a message whose `extension_type` it negotiated and
-whose `msg_type` it does not recognise.** Log it and read the next frame. It
-must not be treated as a protocol violation, and the connection must not be
-closed.
+### Changing these extensions
 
-Without that rule, adding a message is not compatible at all: it breaks every
-peer built before it. The first deployment of `AvianBlockFound` demonstrated
-exactly this, where a correctly encoded `0x05` from an up-to-date pool killed
-the session of a miner linked against an older client, which then went on
-hashing and submitting into a connection that was no longer being served.
+Message numbers inside an `extension_type` are Avian's to assign, so **adding**
+a message later costs no new identifier, subject to the ignore rule in [Rules
+for every extension](#rules-for-every-extension) and the two limits stated
+there. In short: an optional notification may be added, and anything a peer
+must act on needs its own `extension_type` instead.
 
-What is not free is **changing** `0x00` through `0x05`. Their field layouts and
-meanings are what third-party pools and miners will have compiled against, and
-altering one silently is the same class of failure the extension exists to
-prevent. Treat any such change as a new extension version with its own
-identifier, not as an implementation detail.
+What is not free is **changing** a message that already exists. The field
+layouts of `0x4001`'s `0x00` through `0x04`, and `0x4002`'s `0x00`, are what a
+third-party pool or miner compiles against, and altering one silently is the
+same class of failure these extensions exist to prevent. Treat any such change
+as a new extension with its own identifier, not as an implementation detail.
 
 ## How long a template stays usable
 
@@ -887,8 +1084,11 @@ flowchart TD
    block hash is the X16RT or MinotaurX proof-of-work hash, not SHA256d, however
    byte-perfect the wire format is. Making the extension required is what turns
    that from a silent failure into an explicit one.
-2. **`extension_type = 0x4001` is experimental.** Registry allocation is a
-   mainnet release blocker. See above.
+2. **`extension_type = 0x4001` is allocated in Avian's own registry**, not in
+   the Stratum v2 one, because an `extension_type` need only be unique among
+   peers that can share a connection. It is not experimental and not a mainnet
+   blocker. `0x5000`-`0x7fff` is the prototype range this registry offers third
+   parties, and nothing here uses it.
 3. **Version rolling is unsupported** in this version, and not configurable.
    `version_rolling_mask` is always 0 and `REQUIRES_FIXED_VERSION` is always
    set on a mining connection.
