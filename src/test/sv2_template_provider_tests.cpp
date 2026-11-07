@@ -188,6 +188,8 @@ BOOST_AUTO_TEST_CASE(serves_a_new_template)
     const CScript expected_prefix{CScript() << height};
     const std::vector<uint8_t> expected_bytes{expected_prefix.begin(), expected_prefix.end()};
     BOOST_CHECK(tmpl.coinbase_prefix == expected_bytes);
+    // And the spec caps it at eight bytes, which a height push never reaches.
+    BOOST_CHECK_LE(tmpl.coinbase_prefix.size(), sv2::MAX_COINBASE_PREFIX_SIZE);
 
     // Copied to a local: the static member has no out-of-line definition, so
     // binding it to a reference would not link.
@@ -542,7 +544,7 @@ BOOST_AUTO_TEST_CASE(transaction_data_for_a_stale_template)
     BOOST_CHECK_EQUAL(reply->header.msg_type,
                       static_cast<uint8_t>(sv2::CoreMsg::REQUEST_TRANSACTION_DATA_ERROR));
     const auto err{sv2::DecodePayload<sv2::RequestTransactionDataError>(reply->payload)};
-    BOOST_CHECK_EQUAL(err.error_code, "stale-template");
+    BOOST_CHECK_EQUAL(err.error_code, "stale-template-id");
 }
 
 BOOST_AUTO_TEST_CASE(coinbase_constraints_are_rate_limited)
@@ -829,7 +831,7 @@ BOOST_AUTO_TEST_CASE(retention_is_bounded)
     const auto err{sv2::DecodePayload<sv2::RequestTransactionDataError>(reply->payload)};
     // Stale rather than unknown, so the client waits for new work instead of
     // concluding it invented an id.
-    BOOST_CHECK_EQUAL(err.error_code, "stale-template");
+    BOOST_CHECK_EQUAL(err.error_code, "stale-template-id");
 }
 
 BOOST_AUTO_TEST_CASE(a_new_tip_drops_the_old_templates)

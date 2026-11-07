@@ -173,8 +173,9 @@ Both are visible under `-debug=sv2` and only there.
 One naming note for anyone building on the Stratum v2 Reference
 Implementation: the specification names `SetNewPrevHash`'s third field
 `ntime_start`, in both the Template Distribution and Mining Protocols, and that
-is what this document and the node use. SRI's Rust struct calls the same field
-`header_timestamp`. The bytes are identical; only the label differs.
+is what this document and the node use. SRI's Rust struct called the same
+field `header_timestamp` until release 1.13.0, which renamed it to match. The
+bytes are identical; only the label differed, and only in the older crates.
 
 `SetNewPrevHash` accompanies a template built on a tip the client has not seen.
 An in-place refresh that picks up new fees sends only `NewTemplate` and
@@ -289,8 +290,10 @@ fields as `U16` and `U8`. But 3.4.3's only worked example renders extension
 
 which is big-endian in both multibyte fields. Little-endian is what the
 normative type table requires, so the example is read here as a documentation
-error rather than as a second rule. The reference implementation does not
-settle it, because the SRI crates do not implement TLV at all.
+error rather than as a second rule. The reference implementation agrees: the
+TLV codec in SRI's `parsers_sv2` reads and writes both fields with
+`from_le_bytes` and `to_le_bytes`, so that example is the only place the other
+order appears.
 
 Anyone implementing against Avian should take the rule from this paragraph and
 not from that example. The same field, as Avian writes it:
@@ -329,9 +332,13 @@ field:
    `ntime >= ntime_start`. X16RT's hash chain is derived from
    `SHA256d(nTime & 0xffffff80)`, so a miner rolling ntime past a 128-second
    boundary silently computes the wrong hash function.
-3. There is no way to tell a client **which version bits it may roll**. BIP320's
-   mask covers bits 13–28, which fully contains Avian's algorithm field at bits
-   16–23.
+3. There is no way to tell a client **which version bits it may roll**. BIP323
+   reserves bits 5–28 of `nVersion` as nonce space, which fully contains
+   Avian's algorithm field at bits 16–23, and the Template Distribution
+   Protocol says outright that a client may set those bits to any value in
+   `SubmitSolution` and must not rely on the node having set them to anything.
+   For Bitcoin that is free search space. For Avian, bit 16 silently moves the
+   share to the other algorithm and bits 17–23 make it `bad-algo-id`.
 
 Every one of those failure modes is silent. A miner hits none of them as an
 error; it just burns hashrate and looks unlucky. That is why the extension is
@@ -777,14 +784,17 @@ at all, so `aviand` rejects any non-zero `SetupConnection.flags` with
 
 ### `SubmitShares.Error` codes an Avian pool must send
 
-Stratum v2 defines `invalid-channel-id`, `stale-share`, `difficulty-too-low`
-and `invalid-job-id`. An Avian pool has to refuse two things none of those
-describe, and both are refusals this extension exists to make possible:
+Stratum v2 defines no `SubmitShares.Error` codes at all. The familiar
+`invalid-channel-id`, `stale-share`, `difficulty-too-low` and `invalid-job-id`
+are the reference implementation's constants, and so is `invalid-version`,
+which is why it is reused below rather than invented. An Avian pool has to
+refuse two things none of those describe, and both are refusals this extension
+exists to make possible:
 
 | `error_code` | Meaning |
 | --- | --- |
 | `invalid-version` | `version` differs from the job's, which `REQUIRES_FIXED_VERSION` forbids and which would move the share to the other algorithm's proof-of-work limit |
-| `invalid-ntime` | `ntime` is outside the window `AvianJobTimeConstraints` gave for that job |
+| `invalid-ntime` | `ntime` is outside the window `AvianJobTimeConstraints` gave for that job. SRI's `invalid-ntime-start` names only the lower bound; this covers both, since a worker past either has the same thing to fix |
 | `too-many-shares` | the channel exceeded its submission allowance |
 
 `too-many-shares` is not about validity. A pool must meter submissions for the
@@ -843,8 +853,10 @@ default, a burn address or the operator's own. A miner mistyping its address
 and being quietly mined to someone else's is the worst failure a solo pool
 has, and it is silent.
 
-Stratum v2 gives `OpenMiningChannel.Error` only `unknown-user` and
-`max-count-exceeded`, neither of which fits, so these are normative here:
+Stratum v2 defines no `OpenMiningChannel.Error` codes either. The reference
+implementation's `unknown-user`, `invalid-user-identity` and
+`max-count-exceeded` are the nearest, and none of them says which way an
+address is wrong, so these are normative here:
 
 | `error_code` | Meaning |
 | --- | --- |
@@ -928,8 +940,9 @@ Three things an implementer needs that are documented nowhere:
   the BIP34 height push, any operator tag, and the extranonce. A pool must
   refuse a `min_extranonce_size` it cannot fit rather than opening a channel
   whose every coinbase the node will reject, which with no `SubmitSolution`
-  error reply would be silent. Stratum v2 has no code for that refusal, so
-  `min-extranonce-size-too-large` is normative here. It is the fourth time
+  error reply would be silent. Stratum v2 has no code for that refusal; the
+  reference implementation does, `min-extranonce-size-too-large`, and that
+  exact string is normative here rather than a new one. It is the fourth time
   this gap has appeared.
 - **`version_rolling_allowed` must be false** on `NewExtendedMiningJob`.
   `REQUIRES_FIXED_VERSION` implies it but does not state it for a message that
@@ -1120,9 +1133,11 @@ What a pool can rely on:
   seconds
 - a template whose tip has been superseded is dropped **immediately**, because
   no solution against it can produce a block that connects
-- `RequestTransactionData` for a dropped id answers `stale-template` rather
+- `RequestTransactionData` for a dropped id answers `stale-template-id` rather
   than `template-id-not-found`, so a client can tell "that work has expired"
-  from "you invented an id"
+  from "you invented an id". The specification defines neither string; both
+  are the reference implementation's constants, used verbatim so that a client
+  built on its crates recognises them
 - `SubmitSolution` for a dropped id is refused as `unknown-template`, and since
   the protocol has no error reply for a submission, the only trace is a
   `-debug=sv2` log line
@@ -1141,7 +1156,8 @@ any proof of work is computed:
 - `coinbase_tx_version`, `coinbase_tx_locktime` and
   `coinbase_tx_input_sequence` exactly as advertised
 - one input with a null prevout, and a `scriptSig` of 2 to 100 bytes that
-  **starts with `coinbase_prefix`**, which is the BIP34 height push
+  **starts with `coinbase_prefix`**, which is the BIP34 height push and never
+  more than the 8 bytes the specification allows
 - `vin[0]` witness stack of exactly one 32-byte zero item, the BIP141 reserved
   value
 - every output in `coinbase_tx_outputs` present **verbatim**, with the witness
@@ -1209,8 +1225,11 @@ flowchart TD
    is served templates and gets no `AvianTimeConstraints` and no verdict on a
    submission. It therefore mines with no ntime window, which on X16RT means a
    rolled timestamp silently hashes a different function past the 128-second
-   boundary. The node logs a warning naming the client. That is the cost of
-   the two non-default policies, and the reason `require` is the default.
+   boundary, and under the stock `version` rule, which lets it roll BIP323's
+   bits 5–28 and so be refused `version-mismatch` for doing exactly what the
+   specification permits. The node logs a warning naming the client. That is
+   the cost of the two non-default policies, and the reason `require` is the
+   default.
 
 ## Testing
 

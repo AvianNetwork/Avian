@@ -267,6 +267,10 @@ struct CoinbaseOutputConstraints {
     }
 };
 
+//! The sender MUST NOT send a coinbase_prefix longer than this, excluding its
+//! length prefix (sv2-spec 7.3). A BIP34 height push is at most six bytes.
+static constexpr size_t MAX_COINBASE_PREFIX_SIZE{8};
+
 struct NewTemplate {
     uint64_t template_id{0};
     bool future_template{false};
