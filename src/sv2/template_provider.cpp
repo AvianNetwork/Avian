@@ -46,6 +46,7 @@ bool CoinbasePrefix(const CScript& script_sig, std::vector<uint8_t>& out)
     std::vector<unsigned char> push;
     if (!script_sig.GetOp(it, op, push)) return false;
     const auto len{static_cast<size_t>(it - script_sig.begin())};
+    if (len > MAX_COINBASE_PREFIX_SIZE) return false;
     out.assign(script_sig.begin(), script_sig.begin() + len);
     return true;
 }
@@ -240,7 +241,9 @@ bool TemplateProvider::SendNewTemplate(ClientId id, ClientState& state)
 
     CachedTemplate cached;
     if (!CoinbasePrefix(coinbase->vin[0].scriptSig, cached.coinbase_prefix)) {
-        LogPrintLevel(BCLog::SV2, BCLog::Level::Error, "the coinbase scriptSig has no height push\n");
+        LogPrintLevel(BCLog::SV2, BCLog::Level::Error,
+                      "the coinbase scriptSig has no height push, or one over the %d-byte prefix limit\n",
+                      MAX_COINBASE_PREFIX_SIZE);
         return false;
     }
 
@@ -520,9 +523,11 @@ bool TemplateProvider::HandleRequestTransactionData(ClientId id, std::span<const
         if (it == state.templates.end()) {
             // Retention is bounded, so an id we once issued is stale rather
             // than unknown. The distinction tells a client whether to wait
-            // for new work or stop asking.
+            // for new work or stop asking. Both strings are the reference
+            // implementation's constants, since the spec defines none and a
+            // client built on its crates matches on exactly these.
             return sendError(request.template_id != 0 && request.template_id <= state.highest_template_id
-                                 ? "stale-template"
+                                 ? "stale-template-id"
                                  : "template-id-not-found");
         }
 
