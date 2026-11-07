@@ -10,6 +10,41 @@ This release includes the following changes since the last release:
 Notable changes
 ===============
 
+Stratum v2 Template Provider
+----------------------------
+
+`aviand` can now serve the Stratum v2 Template Distribution Protocol, so a pool
+can take templates over an encrypted Stratum v2 connection instead of polling
+`getblocktemplate`. It acts as a Template Provider only: block construction,
+transaction selection and block submission stay in the node, while worker
+management, share accounting and payouts stay in a separate pool process. The
+existing JSON-RPC mining interface is untouched, and a node started without
+`-sv2` behaves exactly as before.
+
+Avian's two proof-of-work algorithms are handled by a small required protocol
+extension. A client selects X16RT or MinotaurX for the lifetime of a connection,
+and the node tells it the exact `ntime` window the work is valid for, which
+matters because X16RT rederives its hash chain every 128 seconds and stock
+Stratum v2 has no upper bound on `ntime`. Version rolling is not offered in this
+version, because Avian keeps the algorithm identifier in `nVersion` bits 16-23
+where BIP320's mask would otherwise let a miner change it.
+
+The same extension also carries the reply the Template Distribution Protocol
+does not define. Its message table ends at `SubmitSolution`, so a pool that
+submitted a block learned nothing: not that the node took it, not why it did
+not, and not even that it was heard. A node now answers every submission it
+can, either with the block hash validation accepted or with a named reason it
+was refused, so an operator debugging a pool reads the reason instead of
+inferring it from a tip that never moved.
+
+The extension uses identifier `0x4001`, allocated in Avian's own extension
+registry rather than Stratum v2's: an `extension_type` need only be unique among
+peers that can share a connection, and an Avian connection and a Bitcoin one
+never do. `doc/sv2.md` is that registry, and also has the full configuration
+surface, the extension's wire format and the security considerations, the most
+important of which is that exposing the Stratum v2 port is equivalent to
+exposing an RPC port. It binds to loopback by default.
+
 Credits
 =======
 

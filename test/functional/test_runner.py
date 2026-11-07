@@ -282,6 +282,7 @@ BASE_SCRIPTS = [
     'wallet_crosschain.py',
     'mining_basic.py',
     'mining_mainnet.py',
+    'mining_sv2.py',
     'feature_signet.py',
     'p2p_mutated_blocks.py',
     'rpc_named_arguments.py',
@@ -381,6 +382,7 @@ NON_SCRIPTS = [
     # These are python files that live in the functional tests directory, but are not test scripts.
     "combine_logs.py",
     "create_cache.py",
+    "gen_bip324_avian.py",
     "test_runner.py",
 ]
 

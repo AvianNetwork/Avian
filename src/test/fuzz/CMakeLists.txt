@@ -118,6 +118,8 @@ add_executable(fuzz
   span.cpp
   string.cpp
   strprintf.cpp
+  sv2_messages.cpp
+  sv2_transport.cpp
   system.cpp
   timeoffsets.cpp
   torcontrol.cpp

@@ -82,6 +82,7 @@ The Avian repo's [root README](/README.md) contains relevant information on the 
 - [PSBT support](psbt.md)
 - [Reduce Memory](reduce-memory.md)
 - [Reduce Traffic](reduce-traffic.md)
+- [Stratum v2 Template Provider](sv2.md)
 - [Tor Support](tor.md)
 - [Transaction Relay Policy](policy/README.md)
 - [ZMQ](zmq.md)

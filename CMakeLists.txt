@@ -122,6 +122,7 @@ option(WERROR "Treat compiler warnings as errors." OFF)
 option(WITH_CCACHE "Attempt to use ccache for compiling." ON)
 
 option(WITH_ZMQ "Enable ZMQ notifications." OFF)
+option(WITH_SV2 "Enable the Stratum v2 Template Provider." ON)
 if(WITH_ZMQ)
   find_package(ZeroMQ 4.0.0 MODULE REQUIRED)
 endif()
@@ -426,6 +427,10 @@ include(cmake/introspection.cmake)
 
 include(cmake/liboqs.cmake)
 
+if(WITH_SV2)
+  target_compile_definitions(core_interface INTERFACE ENABLE_SV2)
+endif()
+
 include(cmake/ccache.cmake)
 
 add_library(warn_interface INTERFACE)
@@ -686,6 +691,7 @@ message("Optional features:")
 message("  wallet support ...................... ${ENABLE_WALLET}")
 message("  external signer ..................... ${ENABLE_EXTERNAL_SIGNER}")
 message("  ZeroMQ .............................. ${WITH_ZMQ}")
+message("  Stratum v2 Template Provider ........ ${WITH_SV2}")
 if(ENABLE_IPC)
   if (WITH_EXTERNAL_LIBMULTIPROCESS)
     set(ipc_status "ON (with external libmultiprocess)")

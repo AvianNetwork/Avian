@@ -86,7 +86,7 @@ void RegenerateCommitments(CBlock& block, ChainstateManager& chainman)
     block.m_cachedPoWHash.SetNull();
 }
 
-static BlockAssembler::Options ClampOptions(BlockAssembler::Options options)
+BlockAssembler::Options ClampOptions(BlockAssembler::Options options)
 {
     options.block_reserved_weight = std::clamp<size_t>(options.block_reserved_weight, MINIMUM_BLOCK_RESERVED_WEIGHT, MAX_BLOCK_WEIGHT);
     options.coinbase_output_max_additional_sigops = std::clamp<size_t>(options.coinbase_output_max_additional_sigops, 0, MAX_BLOCK_SIGOPS_COST);
