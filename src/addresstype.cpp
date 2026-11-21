@@ -104,9 +104,20 @@ bool ExtractDestination(const CScript& scriptPubKey, CTxDestination& addressRet)
     case TxoutType::MULTISIG:
     case TxoutType::NULL_DATA:
     case TxoutType::NONSTANDARD:
-    case TxoutType::RESTRICTED_ASSET_DATA:
         addressRet = CNoDestination(scriptPubKey);
         return false;
+    case TxoutType::RESTRICTED_ASSET_DATA: {
+        // A qualifier tag or an address restriction names the address it applies to:
+        // OP_AVN_ASSET 0x14 <20-byte key hash> <data>. As in 4.x it is reported only when
+        // everything after the marker opcode is push-only. Global restrictions and
+        // verifier strings have no address.
+        if (!vSolutions.empty() && scriptPubKey.IsPushOnly(scriptPubKey.begin() + 1)) {
+            addressRet = PKHash(uint160(vSolutions[0]));
+            return true;
+        }
+        addressRet = CNoDestination(scriptPubKey);
+        return false;
+    }
     case TxoutType::NEW_ASSET:
     case TxoutType::REISSUE_ASSET:
     case TxoutType::TRANSFER_ASSET: {
