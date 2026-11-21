@@ -5,6 +5,8 @@
 
 #include <rpc/rawtransaction_util.h>
 
+#include <addresstype.h>
+#include <assets/assets.h>
 #include <assets/assettypes.h>
 #include <coins.h>
 #include <consensus/amount.h>
@@ -99,10 +101,347 @@ UniValue NormalizeOutputs(const UniValue& outputs_in)
     return outputs;
 }
 
+// AVN: the asset operations an output may name in place of an amount, as 4.x had them in
+// createrawtransaction. Each turns into one or more outputs that are a script and no AVN.
+namespace {
+using ParsedOutputs = std::vector<std::pair<CTxDestination, CAmount>>;
+
+[[noreturn]] void BadAssetParam(const std::string& what)
+{
+    throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid parameter, " + what);
+}
+
+void PushAssetScript(ParsedOutputs& outputs, const CScript& script)
+{
+    outputs.emplace_back(CNoDestination{script}, CAmount{0});
+}
+
+//! The contextual checks read the asset database, which a node has and a tool does not.
+CAssetsCache* AssetCache()
+{
+    if (!passets) throw JSONRPCError(RPC_MISC_ERROR, "The asset database is not available");
+    return passets;
+}
+
+std::string NeedStr(const UniValue& data, const std::string& key)
+{
+    const UniValue& value{data.find_value(key)};
+    if (!value.isStr()) BadAssetParam("missing data for key: " + key);
+    return value.get_str();
+}
+
+std::string OptStr(const UniValue& data, const std::string& key)
+{
+    const UniValue& value{data.find_value(key)};
+    if (value.isNull()) return {};
+    if (!value.isStr()) BadAssetParam(key + " must be a string");
+    return value.get_str();
+}
+
+int NeedInt(const UniValue& data, const std::string& key)
+{
+    const UniValue& value{data.find_value(key)};
+    if (!value.isNum()) BadAssetParam("missing data for key: " + key);
+    return value.getInt<int>();
+}
+
+int OptInt(const UniValue& data, const std::string& key, int fallback)
+{
+    const UniValue& value{data.find_value(key)};
+    if (value.isNull()) return fallback;
+    if (!value.isNum()) BadAssetParam(key + " must be a number");
+    return value.getInt<int>();
+}
+
+CAmount NeedAmount(const UniValue& data, const std::string& key)
+{
+    const UniValue& value{data.find_value(key)};
+    if (value.isNull()) BadAssetParam("missing data for key: " + key);
+    return AmountFromValue(value);
+}
+
+//! An address given in the data, or the output's own when it is left out.
+CTxDestination OptAddress(const UniValue& data, const std::string& key, const CTxDestination& fallback)
+{
+    const std::string address{OptStr(data, key)};
+    if (address.empty()) return fallback;
+    const CTxDestination dest{DecodeDestination(address)};
+    if (!IsValidDestination(dest)) BadAssetParam(key + " is not a valid Avian address");
+    return dest;
+}
+
+//! 1 when has_<what> says so, and then <what>'s own key has to be there.
+int OptFlagged(const UniValue& data, const std::string& flag, const std::string& key, std::string& value)
+{
+    const int has{OptInt(data, flag, 0)};
+    if (has != 0 && has != 1) BadAssetParam(flag + " must be 0 or 1");
+    value = has ? NeedStr(data, key) : std::string{};
+    return has;
+}
+
+//! The quantity of a qualifier that goes back to its holder, one unless said otherwise.
+CAmount ChangeQuantity(const UniValue& data)
+{
+    const UniValue& value{data.find_value("change_quantity")};
+    if (value.isNull()) return COIN;
+    const CAmount quantity{AmountFromValue(value)};
+    if (quantity < COIN) BadAssetParam("change_quantity must be at least 1");
+    return quantity;
+}
+
+//! OP_AVN_ASSET <key hash>, which the tag or the restriction is appended to.
+CScript NullAssetDataScript(const std::string& address)
+{
+    const CTxDestination dest{DecodeDestination(address)};
+    CScript script;
+    if (const auto* pkh = std::get_if<PKHash>(&dest)) {
+        script << OP_AVN_ASSET << ToByteVector(*pkh);
+    } else if (const auto* sh = std::get_if<ScriptHash>(&dest)) {
+        script << OP_AVN_ASSET << ToByteVector(*sh);
+    } else {
+        BadAssetParam("supplied address is not a valid Avian address: " + address);
+    }
+    return script;
+}
+
+std::vector<std::string> NeedAddresses(const UniValue& data)
+{
+    const UniValue& addresses{data.find_value("addresses")};
+    if (!addresses.isArray() || addresses.size() < 1 || addresses.size() > 10) {
+        BadAssetParam("value for key addresses must be an array of size 1 to 10");
+    }
+    std::vector<std::string> result;
+    for (size_t i = 0; i < addresses.size(); ++i) {
+        if (!addresses[i].isStr()) BadAssetParam("an address must be a string");
+        result.push_back(addresses[i].get_str());
+    }
+    return result;
+}
+
+void PushTransfer(ParsedOutputs& outputs, const CTxDestination& to, const std::string& name, CAmount amount,
+                  const std::string& message = "", int64_t expire_time = 0)
+{
+    const CAssetTransfer transfer{name, amount, message, expire_time};
+    std::string error;
+    if (!transfer.IsValid(error)) throw JSONRPCError(RPC_INVALID_PARAMETER, error);
+    CScript script{GetScriptForDestination(to)};
+    transfer.ConstructTransaction(script);
+    PushAssetScript(outputs, script);
+}
+
+void PushNewAsset(ParsedOutputs& outputs, const CTxDestination& to, const CNewAsset& asset)
+{
+    std::string error;
+    if (!ContextualCheckNewAsset(AssetCache(), asset, error)) throw JSONRPCError(RPC_INVALID_PARAMETER, error);
+    CScript script{GetScriptForDestination(to)};
+    asset.ConstructTransaction(script);
+    PushAssetScript(outputs, script);
+}
+
+//! A verifier string as it is stored, checked against the address the restricted asset goes to.
+std::string CheckedVerifier(const std::string& verifier, const CTxDestination& destination)
+{
+    const std::string stripped{GetStrippedVerifierString(verifier)};
+    std::string error;
+    if (!ContextualCheckVerifierString(AssetCache(), stripped, EncodeDestination(destination), error)) {
+        BadAssetParam("verifier string is not valid for this address. Error Msg - " + error);
+    }
+    return stripped;
+}
+
+void PushVerifier(ParsedOutputs& outputs, const std::string& stripped)
+{
+    CScript script;
+    CNullAssetTxVerifierString{stripped}.ConstructTransaction(script);
+    PushAssetScript(outputs, script);
+}
+
+void ParseAssetOperation(const std::string& op, const UniValue& data, const CTxDestination& destination, ParsedOutputs& outputs)
+{
+    if (!data.isObject()) BadAssetParam(strprintf("the format must follow { \"%s\": {\"key\": value, ...} }", op));
+
+    if (op == "transfer") {
+        // {"ASSET_NAME": quantity, ...}: one output an asset
+        const auto& names = data.getKeys();
+        const auto& quantities = data.getValues();
+        if (names.empty()) BadAssetParam("the format must follow { \"transfer\": {\"asset_name\": amount, ...} }");
+        for (size_t i = 0; i < names.size(); ++i) {
+            PushTransfer(outputs, destination, names[i], AmountFromValue(quantities[i]));
+        }
+    } else if (op == "transferwithmessage") {
+        // {"ASSET_NAME": quantity, "message": hash, "expire_time": n}. 4.x read this and built
+        // nothing: its whole body sat under the test for an invalid name.
+        std::string name;
+        for (const std::string& key : data.getKeys()) {
+            if (key != "message" && key != "expire_time") {
+                if (!name.empty()) BadAssetParam("transferwithmessage takes one asset");
+                name = key;
+            }
+        }
+        if (name.empty() || !IsAssetNameValid(name)) BadAssetParam("missing valid asset name to transferwithmessage");
+        const UniValue& expire_time{data.find_value("expire_time")};
+        if (!expire_time.isNull() && !expire_time.isNum()) BadAssetParam("expire_time must be a number");
+        PushTransfer(outputs, destination, name, NeedAmount(data, name), DecodeAssetData(NeedStr(data, "message")),
+                     expire_time.isNull() ? 0 : expire_time.getInt<int64_t>());
+    } else if (op == "issue") {
+        const std::string name{NeedStr(data, "asset_name")};
+        if (IsAssetNameAnRestricted(name)) BadAssetParam("asset_name can't be a restricted asset name. Please use issue_restricted with the correct parameters");
+        if (IsAssetNameAQualifier(name)) BadAssetParam("asset_name can't be a qualifier name. Please use issue_qualifier with the correct parameters");
+        AssetType type;
+        if (!IsAssetNameValid(name, type)) BadAssetParam("invalid asset name");
+
+        std::string ipfs_hash, ans_id;
+        const int has_ipfs{OptFlagged(data, "has_ipfs", "ipfs_hash", ipfs_hash)};
+        const int has_ans{OptFlagged(data, "has_ans", "ans_id", ans_id)};
+        const CNewAsset asset{name, NeedAmount(data, "asset_quantity"), NeedInt(data, "units"), NeedInt(data, "reissuable"),
+                              has_ipfs, DecodeAssetData(ipfs_hash), has_ans, ans_id};
+        std::string error;
+        if (!ContextualCheckNewAsset(AssetCache(), asset, error)) throw JSONRPCError(RPC_INVALID_PARAMETER, error);
+
+        // Only a root or a sub asset has an owner token of its own, and it comes first.
+        if (type == AssetType::ROOT || type == AssetType::SUB) {
+            CScript owner_script{GetScriptForDestination(destination)};
+            asset.ConstructOwnerTransaction(owner_script);
+            PushAssetScript(outputs, owner_script);
+        }
+        PushNewAsset(outputs, destination, asset);
+    } else if (op == "issue_unique") {
+        const std::string root_name{NeedStr(data, "root_name")};
+        const UniValue& tags{data.find_value("asset_tags")};
+        if (!tags.isArray() || tags.size() < 1) BadAssetParam("missing data for key: asset_tags");
+        // 4.x took the hashes only when both lists were given; each is on its own here.
+        const UniValue& ipfs_hashes{data.find_value("ipfs_hashes")};
+        if (!ipfs_hashes.isNull() && (!ipfs_hashes.isArray() || ipfs_hashes.size() != tags.size())) {
+            BadAssetParam("ipfs_hashes must be an array the size of asset_tags");
+        }
+        const UniValue& ans_ids{data.find_value("ans_ids")};
+        if (!ans_ids.isNull() && (!ans_ids.isArray() || ans_ids.size() != tags.size())) {
+            BadAssetParam("ans_ids must be an array the size of asset_tags");
+        }
+
+        // The root's owner token authorises this, and goes back
+        PushTransfer(outputs, destination, root_name + OWNER_TAG, OWNER_ASSET_AMOUNT);
+        for (size_t i = 0; i < tags.size(); ++i) {
+            const std::string ipfs_hash{ipfs_hashes.isNull() ? "" : DecodeAssetData(ipfs_hashes[i].get_str())};
+            const std::string ans_id{ans_ids.isNull() ? "" : ans_ids[i].get_str()};
+            PushNewAsset(outputs, destination,
+                         CNewAsset{GetUniqueAssetName(root_name, tags[i].get_str()), UNIQUE_ASSET_AMOUNT, UNIQUE_ASSET_UNITS,
+                                   UNIQUE_ASSETS_REISSUABLE, ipfs_hash.empty() ? 0 : 1, ipfs_hash, ans_id.empty() ? 0 : 1, ans_id});
+        }
+    } else if (op == "reissue" || op == "reissue_restricted") {
+        const bool restricted{op == "reissue_restricted"};
+        const std::string name{NeedStr(data, "asset_name")};
+        if (restricted && !IsAssetNameAnRestricted(name)) BadAssetParam("asset_name must be a restricted asset name. e.g $ASSET_NAME");
+        if (!restricted && IsAssetNameAnRestricted(name)) BadAssetParam("asset_name can't be a restricted asset name. Please use reissue_restricted with the correct parameters");
+
+        CReissueAsset reissue;
+        reissue.strName = name;
+        reissue.nAmount = NeedAmount(data, "asset_quantity");
+        reissue.nReissuable = int8_t(OptInt(data, "reissuable", 1));
+        if (reissue.nReissuable != 0 && reissue.nReissuable != 1) BadAssetParam("reissuable data must be a 0 or 1");
+        // -1 leaves the units as they are. 4.x sent 0 here, which only an asset of 0 units accepts.
+        reissue.nUnits = int8_t(OptInt(data, "new_units", -1));
+        reissue.strIPFSHash = DecodeAssetData(OptStr(data, "ipfs_hash"));
+        reissue.strANSID = OptStr(data, "ans_id");
+        const CTxDestination owner_change{OptAddress(data, "owner_change_address", destination)};
+
+        std::string verifier;
+        if (restricted && !data.find_value("verifier_string").isNull()) {
+            verifier = CheckedVerifier(NeedStr(data, "verifier_string"), destination);
+        }
+
+        std::string error;
+        if (!ContextualCheckReissueAsset(AssetCache(), reissue, error)) throw JSONRPCError(RPC_INVALID_PARAMETER, error);
+
+        // verifier string if it changes, owner token back, reissue last
+        if (!verifier.empty()) PushVerifier(outputs, verifier);
+        PushTransfer(outputs, owner_change, restricted ? RestrictedNameToOwnerName(name) : name + OWNER_TAG, OWNER_ASSET_AMOUNT);
+        CScript script{GetScriptForDestination(destination)};
+        reissue.ConstructTransaction(script);
+        PushAssetScript(outputs, script);
+    } else if (op == "issue_restricted") {
+        const std::string name{NeedStr(data, "asset_name")};
+        if (!IsAssetNameAnRestricted(name)) BadAssetParam("asset_name must be a restricted asset name. e.g $ASSET_NAME");
+        const CTxDestination owner_change{OptAddress(data, "owner_change_address", destination)};
+        const std::string verifier{CheckedVerifier(NeedStr(data, "verifier_string"), destination)};
+
+        std::string ipfs_hash, ans_id;
+        const int has_ipfs{OptFlagged(data, "has_ipfs", "ipfs_hash", ipfs_hash)};
+        const int has_ans{OptFlagged(data, "has_ans", "ans_id", ans_id)};
+        const CNewAsset asset{name, NeedAmount(data, "asset_quantity"), NeedInt(data, "units"), NeedInt(data, "reissuable"),
+                              has_ipfs, DecodeAssetData(ipfs_hash), has_ans, ans_id};
+        std::string error;
+        if (!ContextualCheckNewAsset(AssetCache(), asset, error)) throw JSONRPCError(RPC_INVALID_PARAMETER, error);
+
+        // verifier string, root owner token back, issuance last
+        PushVerifier(outputs, verifier);
+        PushTransfer(outputs, owner_change, RestrictedNameToOwnerName(name), OWNER_ASSET_AMOUNT);
+        PushNewAsset(outputs, destination, asset);
+    } else if (op == "issue_qualifier") {
+        const std::string name{NeedStr(data, "asset_name")};
+        if (!IsAssetNameAQualifier(name)) BadAssetParam("asset_name must be a qualifier or subqualifier name. e.g #MY_QUALIFIER or #MY_ROOT/#MY_SUB");
+        const bool sub_qualifier{IsAssetNameASubQualifier(name)};
+        if (!sub_qualifier && !data.find_value("root_change_address").isNull()) {
+            BadAssetParam("root_change_address only allowed when issuing a subqualifier.");
+        }
+        const CTxDestination root_change{OptAddress(data, "root_change_address", destination)};
+
+        const UniValue& quantity{data.find_value("asset_quantity")};
+        const CAmount amount{quantity.isNull() ? COIN : AmountFromValue(quantity)};
+        if (amount < QUALIFIER_ASSET_MIN_AMOUNT || amount > QUALIFIER_ASSET_MAX_AMOUNT) {
+            BadAssetParam("qualifiers are only allowed to be issued in quantities between 1 and 10.");
+        }
+        std::string ipfs_hash;
+        const int has_ipfs{OptFlagged(data, "has_ipfs", "ipfs_hash", ipfs_hash)};
+        const CNewAsset asset{name, amount, /*units=*/0, /*nReissuable=*/0, has_ipfs, DecodeAssetData(ipfs_hash)};
+        std::string error;
+        if (!ContextualCheckNewAsset(AssetCache(), asset, error)) throw JSONRPCError(RPC_INVALID_PARAMETER, error);
+
+        // A sub-qualifier is authorised by its root qualifier, which goes back first
+        if (sub_qualifier) PushTransfer(outputs, root_change, GetParentName(name), ChangeQuantity(data));
+        PushNewAsset(outputs, destination, asset);
+    } else if (op == "tag_addresses" || op == "untag_addresses") {
+        const std::string qualifier{NeedStr(data, "qualifier")};
+        if (!IsAssetNameAQualifier(qualifier)) BadAssetParam("a valid qualifier name must be provided, e.g. #MY_QUALIFIER");
+        const std::vector<std::string> addresses{NeedAddresses(data)};
+
+        // The qualifier authorises this, and goes back to the output's address
+        PushTransfer(outputs, destination, qualifier, ChangeQuantity(data));
+        for (const std::string& address : addresses) {
+            CScript script{NullAssetDataScript(address)};
+            CNullAssetTxData{qualifier, int8_t(op == "tag_addresses" ? 1 : 0)}.ConstructTransaction(script);
+            PushAssetScript(outputs, script);
+        }
+    } else if (op == "freeze_addresses" || op == "unfreeze_addresses") {
+        const std::string name{NeedStr(data, "asset_name")};
+        if (!IsAssetNameAnRestricted(name)) BadAssetParam("a valid restricted asset name must be provided, e.g. $MY_ASSET");
+        const std::vector<std::string> addresses{NeedAddresses(data)};
+
+        // The root owner token authorises this, and goes back to the output's address
+        PushTransfer(outputs, destination, RestrictedNameToOwnerName(name), OWNER_ASSET_AMOUNT);
+        for (const std::string& address : addresses) {
+            CScript script{NullAssetDataScript(address)};
+            CNullAssetTxData{name, int8_t(op == "freeze_addresses" ? 1 : 0)}.ConstructTransaction(script);
+            PushAssetScript(outputs, script);
+        }
+    } else if (op == "freeze_asset" || op == "unfreeze_asset") {
+        const std::string name{NeedStr(data, "asset_name")};
+        if (!IsAssetNameAnRestricted(name)) BadAssetParam("a valid restricted asset name must be provided, e.g. $MY_ASSET");
+
+        PushTransfer(outputs, destination, RestrictedNameToOwnerName(name), OWNER_ASSET_AMOUNT);
+        CScript script;
+        CNullAssetTxData{name, int8_t(op == "freeze_asset" ? 1 : 0)}.ConstructGlobalRestrictionTransaction(script);
+        PushAssetScript(outputs, script);
+    } else {
+        BadAssetParam("unknown output type: " + op);
+    }
+}
+} // namespace
+
 std::vector<std::pair<CTxDestination, CAmount>> ParseOutputs(const UniValue& outputs)
 {
-    // Track AVN and asset-transfer destinations separately so the same address
-    // may appear once as an AVN payment AND once as an asset transfer.
+    // Track AVN and asset destinations separately so the same address
+    // may appear once as an AVN payment AND once for an asset operation.
     std::set<CTxDestination> avn_destinations;
     std::set<CTxDestination> asset_destinations;
     std::vector<std::pair<CTxDestination, CAmount>> parsed_outputs;
@@ -132,24 +471,16 @@ std::vector<std::pair<CTxDestination, CAmount>> ParseOutputs(const UniValue& out
                 throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, std::string("Invalid Avian address: ") + name_);
             }
 
-            if (val.isObject() && val.exists("transfer")) {
-                // Asset transfer output: {"ADDRESS": {"transfer": {"ASSET_NAME": amount}}}
+            if (val.isObject()) {
+                // Asset operation: {"ADDRESS": {"operation": {...}}}
                 if (!asset_destinations.insert(destination).second) {
                     throw JSONRPCError(RPC_INVALID_PARAMETER,
-                                       std::string("Invalid parameter, duplicated asset transfer address: ") + name_);
+                                       std::string("Invalid parameter, duplicated asset operation address: ") + name_);
                 }
-                const UniValue& transferObj = val["transfer"];
-                if (transferObj.getKeys().size() != 1)
-                    throw JSONRPCError(RPC_INVALID_PARAMETER, "transfer must specify exactly one asset");
-
-                const std::string& assetName = transferObj.getKeys()[0];
-                CAmount assetAmount = AmountFromValue(transferObj[assetName]);
-
-                CScript assetScript = GetScriptForDestination(destination);
-                CAssetTransfer assetTransfer(assetName, assetAmount);
-                assetTransfer.ConstructTransaction(assetScript);
-
-                parsed_outputs.emplace_back(CNoDestination{assetScript}, 0);
+                if (val.getKeys().size() != 1) {
+                    throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid parameter, an output takes exactly one asset operation");
+                }
+                ParseAssetOperation(val.getKeys()[0], val.getValues()[0], destination, parsed_outputs);
             } else {
                 if (!avn_destinations.insert(destination).second) {
                     throw JSONRPCError(RPC_INVALID_PARAMETER,
