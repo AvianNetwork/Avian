@@ -2713,7 +2713,13 @@ static void WriteBlockMessages(const std::set<CMessage>& setMessages, int height
     extern CMessageDB* pmessagedb;
     if (AreMessagesDeployed() && fMessaging && !setMessages.empty()) {
         LOCK(cs_messaging);
-        for (const auto& message : setMessages) {
+        for (CMessage message : setMessages) {
+            // As in 4.x: the message is given its height, and every message that has not
+            // expired is announced, which is what -zmqpubrawmessage publishes.
+            message.nBlockHeight = height;
+            if (signals && (message.nExpiredTime == 0 || GetTime() < message.nExpiredTime)) {
+                signals->NewAssetMessage(message);
+            }
             if (IsChannelSubscribed(message.strName)) {
                 AddMessage(message);
             }
@@ -3091,9 +3097,10 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
 
                     std::string ownerName;
                     std::string ownerAddress;
-                    OwnerFromTransaction(tx, ownerName, ownerAddress);
-                    if (!assetsCache->AddOwnerAsset(ownerName, ownerAddress))
-                        LogError("ConnectBlock: Failed to add owner asset %s", ownerName);
+                    if (OwnerFromTransaction(tx, ownerName, ownerAddress)) {
+                        if (!assetsCache->AddOwnerAsset(ownerName, ownerAddress))
+                            LogError("ConnectBlock: Failed to add owner asset %s", ownerName);
+                    }
                 }
             } else if (IsReissueAsset(tx)) {
                 CReissueAsset reissue;
@@ -3169,12 +3176,7 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
                 if (QualifierAssetFromTransaction(tx, asset, strAddress)) {
                     if (!assetsCache->AddNewAsset(asset, strAddress, pindex->nHeight, pindex->GetBlockHash()))
                         LogError("ConnectBlock: Failed to add qualifier asset %s", asset.strName);
-
-                    std::string ownerName;
-                    std::string ownerAddress;
-                    OwnerFromTransaction(tx, ownerName, ownerAddress);
-                    if (!assetsCache->AddOwnerAsset(ownerName, ownerAddress))
-                        LogError("ConnectBlock: Failed to add owner asset %s", ownerName);
+                    // No owner token: only root and sub assets have one.
                 }
             } else if (IsNewRestrictedAsset(tx)) {
                 CNewAsset asset;
@@ -3333,7 +3335,7 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
     // setMessages was populated in CheckTxAssets; persist any that belong to
     // subscribed channels.  This is intentionally placed after the fJustCheck
     // early return so we only write on a real block connection.
-    WriteBlockMessages(setMessages);
+    WriteBlockMessages(setMessages, pindex->nHeight, m_chainman.m_options.signals);
 
     const auto time_5{SteadyClock::now()};
     m_chainman.time_undo += time_5 - time_4;
@@ -3900,6 +3902,30 @@ bool Chainstate::ConnectTip(
     }
 
     connectTrace.BlockConnected(pindexNew, std::move(block_to_connect));
+
+    // AVN: capture the reward snapshots requested for this height, as 4.x did here.
+    if (pSnapshotRequestDb && pAssetSnapshotDb) {
+        std::set<CSnapshotRequestDBEntry> requests;
+        if (!pSnapshotRequestDb->RetrieveSnapshotRequestsForHeight("", pindexNew->nHeight, requests)) {
+            LogWarning("ConnectTip: failed to load snapshot requests at height %d\n", pindexNew->nHeight);
+        } else if (!requests.empty()) {
+            // A snapshot is read from the asset database on disk, which has this block's
+            // changes only once the cache is written. 4.x did not write it first, and its
+            // snapshots could miss the blocks since the last flush.
+            BlockValidationState flush_state;
+            if (FlushStateToDisk(flush_state, FlushStateMode::ALWAYS)) {
+                for (const auto& request : requests) {
+                    if (!pAssetSnapshotDb->AddAssetOwnershipSnapshot(request.assetName, pindexNew->nHeight)) {
+                        LogWarning("ConnectTip: failed to snapshot owners of '%s' at height %d\n", request.assetName, pindexNew->nHeight);
+                    }
+                }
+            } else {
+                LogError("ConnectTip: the %d reward snapshot(s) requested for height %d were not taken, because the asset database could not be written: %s\n",
+                         requests.size(), pindexNew->nHeight, flush_state.ToString());
+            }
+        }
+    }
+
     return true;
 }
 
