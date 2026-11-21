@@ -240,6 +240,34 @@ void ScriptToUniv(const CScript& script, UniValue& out, bool include_hex, bool i
         }
         out.pushKV("asset", assetInfo);
     }
+
+    // AVN: qualifier tags, restrictions and verifier strings, with the fields 4.x gave them
+    if (type == TxoutType::RESTRICTED_ASSET_DATA) {
+        UniValue assetInfo(UniValue::VOBJ);
+        CNullAssetTxData data;
+        CNullAssetTxVerifierString verifierData;
+        std::string dataAddress;
+        if (AssetNullDataFromScript(script, data, dataAddress)) {
+            AssetType assetType;
+            IsAssetNameValid(data.asset_name, assetType);
+            if (assetType == AssetType::QUALIFIER || assetType == AssetType::SUB_QUALIFIER) {
+                assetInfo.pushKV("asset_name", data.asset_name);
+                assetInfo.pushKV("qualifier_type", data.flag ? "adding qualifier" : "removing qualifier");
+                assetInfo.pushKV("address", dataAddress);
+            } else if (assetType == AssetType::RESTRICTED) {
+                assetInfo.pushKV("asset_name", data.asset_name);
+                assetInfo.pushKV("restricted_type", data.flag ? "freezing address" : "unfreezing address");
+                assetInfo.pushKV("address", dataAddress);
+            }
+        } else if (GlobalAssetNullDataFromScript(script, data)) {
+            assetInfo.pushKV("restricted_name", data.asset_name);
+            assetInfo.pushKV("restricted_type", data.flag ? "freezing" : "unfreezing");
+            assetInfo.pushKV("address", "all addresses");
+        } else if (AssetNullVerifierDataFromScript(script, verifierData)) {
+            assetInfo.pushKV("verifier_string", verifierData.verifier_string);
+        }
+        out.pushKV("asset_data", assetInfo);
+    }
 }
 
 void TxToUniv(const CTransaction& tx, const uint256& block_hash, UniValue& entry, bool include_hex, const CTxUndo* txundo, TxVerbosity verbosity)
