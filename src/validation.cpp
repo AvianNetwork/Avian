@@ -862,6 +862,11 @@ bool MemPoolAccept::PreChecks(ATMPArgs& args, Workspace& ws)
         return state.Invalid(TxValidationResult::TX_CONFLICT, "txn-same-nonwitness-data-in-mempool");
     }
 
+    // AVN: the asset rules that need no context, which 4.x had in CheckTransaction()
+    if (AreAssetsDeployed() && !Consensus::CheckTxAssetStructure(tx, state)) {
+        return false; // state filled in by CheckTxAssetStructure
+    }
+
     // AVN: Check for duplicate asset creation in the mempool
     if (AreAssetsDeployed() && !tx.IsCoinBase()) {
         CAssetsCache* currentAssetCache = GetCurrentAssetCache();
@@ -2972,6 +2977,18 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
                 }
             }
             if (!state.IsValid()) break;
+        }
+
+        // AVN: the asset rules that need no context, which 4.x had in CheckTransaction().
+        // For every transaction, the coinbase included, whether or not there is an asset cache.
+        if (AreAssetsDeployed()) {
+            TxValidationState asset_state;
+            if (!Consensus::CheckTxAssetStructure(tx, asset_state)) {
+                state.Invalid(BlockValidationResult::BLOCK_CONSENSUS,
+                              asset_state.GetRejectReason(),
+                              asset_state.GetDebugMessage() + " in transaction " + tx.GetHash().ToString());
+                break;
+            }
         }
 
         // AVN: Check asset transaction validity
