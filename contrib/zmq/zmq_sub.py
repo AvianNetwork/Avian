@@ -48,6 +48,7 @@ class ZMQHandler():
         self.zmqSubSocket.setsockopt_string(zmq.SUBSCRIBE, "rawblock")
         self.zmqSubSocket.setsockopt_string(zmq.SUBSCRIBE, "rawtx")
         self.zmqSubSocket.setsockopt_string(zmq.SUBSCRIBE, "sequence")
+        self.zmqSubSocket.setsockopt_string(zmq.SUBSCRIBE, "rawmessage")
         self.zmqSubSocket.connect("tcp://127.0.0.1:%i" % port)
 
     async def handle(self) :
@@ -67,6 +68,9 @@ class ZMQHandler():
         elif topic == b"rawtx":
             print('- RAW TX ('+sequence+') -')
             print(body.hex())
+        elif topic == b"rawmessage":
+            print('- RAW ASSET MESSAGE ('+sequence+') -')
+            print(body.decode())
         elif topic == b"sequence":
             hash = body[:32].hex()
             label = chr(body[32])

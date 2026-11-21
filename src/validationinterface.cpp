@@ -5,6 +5,7 @@
 
 #include <validationinterface.h>
 
+#include <assets/messages.h>
 #include <chain.h>
 #include <consensus/validation.h>
 #include <kernel/chain.h>
@@ -244,6 +245,15 @@ void ValidationSignals::ChainStateFlushed(ChainstateRole role, const CBlockLocat
     };
     ENQUEUE_AND_LOG_EVENT(event, "%s: block hash=%s", __func__,
                           locator.IsNull() ? "null" : locator.vHave.front().ToString());
+}
+
+void ValidationSignals::NewAssetMessage(const CMessage& message)
+{
+    auto event = [message, this] {
+        m_internals->Iterate([&](CValidationInterface& callbacks) { callbacks.NewAssetMessage(message); });
+    };
+    ENQUEUE_AND_LOG_EVENT(event, "%s: asset=%s height=%d", __func__,
+                          message.strName, message.nBlockHeight);
 }
 
 void ValidationSignals::BlockChecked(const std::shared_ptr<const CBlock>& block, const BlockValidationState& state)

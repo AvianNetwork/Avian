@@ -11,6 +11,7 @@
 #include <string>
 
 class CBlockIndex;
+class CMessage;
 class CTransaction;
 class CZMQAbstractNotifier;
 
@@ -56,6 +57,8 @@ public:
     virtual bool NotifyTransactionRemoval(const CTransaction &transaction, uint64_t mempool_sequence);
     // Notifies of transactions added to mempool or appearing in blocks
     virtual bool NotifyTransaction(const CTransaction &transaction);
+    // AVN: notifies of an asset message in a block that has just been connected
+    virtual bool NotifyMessage(const CMessage& message);
 
 protected:
     void* psocket{nullptr};

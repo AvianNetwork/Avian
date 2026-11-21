@@ -351,11 +351,11 @@ static const CRPCConvertParam vRPCConvertParams[] =
     // reissue
     { "reissue", 1, "qty" },
     { "reissue", 4, "reissuable" },
-    { "reissue", 5, "new_unit" },
+    { "reissue", 5, "new_units" },
     // reissuerestrictedasset
     { "reissuerestrictedasset", 1, "qty" },
     { "reissuerestrictedasset", 3, "change_verifier" },
-    { "reissuerestrictedasset", 6, "new_unit" },
+    { "reissuerestrictedasset", 6, "new_units" },
     { "reissuerestrictedasset", 7, "reissuable" },
     // listmyassets
     { "listmyassets", 1, "verbose" },
@@ -367,11 +367,11 @@ static const CRPCConvertParam vRPCConvertParams[] =
     { "listassets", 2, "count" },
     { "listassets", 3, "start" },
     // listaddressesbyasset
-    { "listaddressesbyasset", 1, "totalonly" },
+    { "listaddressesbyasset", 1, "onlytotal" },
     { "listaddressesbyasset", 2, "count" },
     { "listaddressesbyasset", 3, "start" },
     // listassetbalancesbyaddress
-    { "listassetbalancesbyaddress", 1, "totalonly" },
+    { "listassetbalancesbyaddress", 1, "onlytotal" },
     { "listassetbalancesbyaddress", 2, "count" },
     { "listassetbalancesbyaddress", 3, "start" },
     // sendmessage
@@ -386,6 +386,8 @@ static const CRPCConvertParam vRPCConvertParams[] =
     // rewards
     { "distributereward", 1, "snapshot_height" },
     { "distributereward", 3, "gross_distribution_amount" },
+    { "canceldistribution", 1, "snapshot_height" },
+    { "canceldistribution", 3, "gross_distribution_amount" },
     { "getdistributestatus", 1, "snapshot_height" },
     { "getdistributestatus", 3, "gross_distribution_amount" },
     // consolidateutxos

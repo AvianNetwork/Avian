@@ -598,11 +598,13 @@ public:
      * Returns whether the script is guaranteed to fail at execution,
      * regardless of the initial stack. This allows outputs to be pruned
      * instantly when entering the UTXO set.
+     *
+     * AVN: as in 4.x, that includes a script that begins with OP_AVN_ASSET
+     * (qualifier tags, restrictions, verifier strings) and an asset script
+     * that carries an amount of zero. Neither enters the UTXO set, so this
+     * is consensus.
      */
-    bool IsUnspendable() const
-    {
-        return (size() > 0 && *begin() == OP_RETURN) || (size() > MAX_SCRIPT_SIZE);
-    }
+    bool IsUnspendable() const;
 
     void clear()
     {

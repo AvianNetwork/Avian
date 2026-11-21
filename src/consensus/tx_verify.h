@@ -33,6 +33,15 @@ namespace Consensus {
  */
 [[nodiscard]] bool CheckTxInputs(const CTransaction& tx, TxValidationState& state, const CCoinsViewCache& inputs, int nSpendHeight, CAmount& txfee);
 
+/**
+ * AVN: the asset rules that need neither the UTXO set nor the asset database,
+ * which 4.x enforced in CheckTransaction().
+ *
+ * Unlike CheckTxAssets() this is for every transaction, coinbases included: a
+ * coinbase has no inputs to balance asset outputs against, so it may carry none.
+ */
+[[nodiscard]] bool CheckTxAssetStructure(const CTransaction& tx, TxValidationState& state);
+
 /** AVN: Check asset inputs/outputs balance and validate asset operations */
 bool CheckTxAssets(const CTransaction& tx, TxValidationState& state, const CCoinsViewCache& inputs,
                    CAssetsCache* assetCache, const CTxMemPool* mempool,

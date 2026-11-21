@@ -5,9 +5,12 @@
 
 #include <script/script.h>
 
+#include <assets/assettypes.h>
+#include <consensus/amount.h>
 #include <crypto/common.h>
 #include <crypto/hex_base.h>
 #include <hash.h>
+#include <streams.h>
 #include <uint256.h>
 #include <util/hash_type.h>
 
@@ -460,6 +463,51 @@ bool CScript::IsAssetScript(int& nType, bool& fIsOwner) const
 {
     int nStartingIndex = 0;
     return IsAssetScript(nType, fIsOwner, nStartingIndex);
+}
+
+//! The amount an asset script carries. False when it is not an asset script,
+//! or does not deserialize, in which case 4.x did not call it unspendable.
+static bool AssetAmountFromScript(const CScript& script, CAmount& amount)
+{
+    int type{0};
+    bool is_owner{false};
+    int start{0};
+    if (!script.IsAssetScript(type, is_owner, start)) return false;
+
+    if (type == TX_NEW_ASSET && is_owner) {
+        amount = COIN; // OWNER_ASSET_AMOUNT: an owner token is always one
+        return true;
+    }
+
+    DataStream ss{std::span{script.begin() + start, script.end()}};
+    try {
+        if (type == TX_NEW_ASSET) {
+            CNewAsset asset;
+            ss >> asset;
+            amount = asset.nAmount;
+        } else if (type == TX_TRANSFER_ASSET) {
+            CAssetTransfer transfer;
+            ss >> transfer;
+            amount = transfer.nAmount;
+        } else if (type == TX_REISSUE_ASSET) {
+            CReissueAsset reissue;
+            ss >> reissue;
+            amount = reissue.nAmount;
+        } else {
+            return false;
+        }
+    } catch (const std::exception&) {
+        return false;
+    }
+    return true;
+}
+
+bool CScript::IsUnspendable() const
+{
+    if (size() > 0 && (*begin() == OP_RETURN || *begin() == OP_AVN_ASSET)) return true;
+    if (size() > MAX_SCRIPT_SIZE) return true;
+    CAmount amount;
+    return AssetAmountFromScript(*this, amount) && amount == 0;
 }
 
 bool CScript::IsAssetScript() const

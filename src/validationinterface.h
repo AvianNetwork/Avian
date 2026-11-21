@@ -24,6 +24,7 @@ class TaskRunnerInterface;
 class BlockValidationState;
 class CBlock;
 class CBlockIndex;
+class CMessage;
 struct CBlockLocator;
 enum class MemPoolRemovalReason;
 struct RemovedMempoolTransactionInfo;
@@ -145,6 +146,14 @@ protected:
      */
     virtual void ChainStateFlushed(ChainstateRole role, const CBlockLocator &locator) {}
     /**
+     * AVN: Notifies listeners of an asset message in a block that has just been connected:
+     * a transfer of an owner token or a message channel token that carries one.
+     * Every such message, whether or not this node is subscribed to its channel.
+     *
+     * Called on a background thread.
+     */
+    virtual void NewAssetMessage(const CMessage& message) {}
+    /**
      * Notifies listeners of a block validation result.
      * If the provided BlockValidationState IsValid, the provided block
      * is guaranteed to be the current best block at the time the
@@ -224,6 +233,7 @@ public:
     void BlockConnected(ChainstateRole, const std::shared_ptr<const CBlock> &, const CBlockIndex *pindex);
     void BlockDisconnected(const std::shared_ptr<const CBlock> &, const CBlockIndex* pindex);
     void ChainStateFlushed(ChainstateRole, const CBlockLocator &);
+    void NewAssetMessage(const CMessage&);
     void BlockChecked(const std::shared_ptr<const CBlock>&, const BlockValidationState&);
     void NewPoWValidBlock(const CBlockIndex *, const std::shared_ptr<const CBlock>&);
 };

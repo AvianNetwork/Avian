@@ -746,9 +746,10 @@ bool SendAssetTransaction(
     CWallet& wallet,
     CTransactionRef& tx,
     std::pair<int, std::string>& error,
-    std::string& txid)
+    std::string& txid,
+    mapValue_t map_value)
 {
-    wallet.CommitTransaction(tx, {}, {});
+    wallet.CommitTransaction(tx, std::move(map_value), {});
     txid = tx->GetHash().GetHex();
     return true;
 }

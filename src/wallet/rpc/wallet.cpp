@@ -931,6 +931,7 @@ RPCHelpMan myansnames();
 
 // rewards (wallet/rpc/rewards.cpp)
 RPCHelpMan distributereward();
+RPCHelpMan canceldistribution();
 
 std::span<const CRPCCommand> GetWalletRPCCommands()
 {
@@ -1016,6 +1017,7 @@ std::span<const CRPCCommand> GetWalletRPCCommands()
         {"wallet", &consolidateutxos},
         /** AVN: Reward distribution RPCs */
         {"rewards", &distributereward},
+        {"rewards", &canceldistribution},
         /** AVN: ANS wallet RPCs */
         {"avian name system", &myansnames},
     };

@@ -92,9 +92,21 @@ void WalletModel::updateStatus()
 
 void WalletModel::pollBalanceChanged()
 {
+    // Heights come from the client model's cache, so this takes no lock.
+    const bool catching_up{m_client_model && m_client_model->getNumBlocks() + 6 < m_client_model->getHeaderTipHeight()};
+
+    // The confirmations that were left alone while the chain caught up are due now.
+    if (!catching_up && m_confirmations_stale) fForceCheckBalanceChanged = true;
+
     // Avoid recomputing wallet balances unless a TransactionChanged or
     // BlockTip notification was received.
     if (!fForceCheckBalanceChanged && m_cached_last_update_tip == getLastBlockProcessed()) return;
+
+    // While the chain is catching up, wait out the longer interval. Nothing shown is current
+    // until the sync is done, and whatever asked for this refresh is still pending when the
+    // interval is over.
+    const auto now{std::chrono::steady_clock::now()};
+    if (catching_up && now < m_last_poll_refresh + MODEL_UPDATE_DELAY_SYNCING) return;
 
     // Try to get balances and return early if locks can't be acquired. This
     // avoids the GUI from getting stuck on periodical polls if the core is
@@ -108,13 +120,22 @@ void WalletModel::pollBalanceChanged()
 
     if (fForceCheckBalanceChanged || block_hash != m_cached_last_update_tip) {
         fForceCheckBalanceChanged = false;
+        m_last_poll_refresh = now;
 
         // Balance and number of transactions might have changed
         m_cached_last_update_tip = block_hash;
 
         checkBalanceChanged(new_balances);
-        if(transactionTableModel)
-            transactionTableModel->updateConfirmations();
+        // Updating the confirmations has the views go through every transaction of the
+        // wallet again. While the chain catches up they change with each block and mean
+        // nothing yet, so that is left for when it has. A row that is drawn in the
+        // meantime still gets its own status brought up to date.
+        if (catching_up) {
+            m_confirmations_stale = true;
+        } else {
+            m_confirmations_stale = false;
+            if (transactionTableModel) transactionTableModel->updateConfirmations();
+        }
     }
 }
 

@@ -13,6 +13,7 @@
 #include <util/string.h>
 #include <util/translation.h>
 #include <wallet/context.h>
+#include <wallet/rewards.h>
 #include <wallet/spend.h>
 #include <wallet/wallet.h>
 #include <wallet/walletdb.h>
@@ -190,6 +191,8 @@ void StartWallets(WalletContext& context)
     }
 
     context.scheduler->scheduleEvery([&context] { MaybeResendWalletTxs(context); }, 1min);
+    // AVN: reward distributions that could not be finished when they were asked for
+    context.scheduler->scheduleEvery([&context] { MaybeDistributeRewards(context); }, 10s);
 }
 
 void UnloadWallets(WalletContext& context)

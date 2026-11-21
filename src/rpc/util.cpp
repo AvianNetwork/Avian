@@ -1419,6 +1419,15 @@ std::vector<RPCResult> ScriptPubKeyDoc() {
                  {RPCResult::Type::BOOL, "reissuable", /*optional=*/true, "Whether the asset can be reissued (new/reissue only)"},
                  {RPCResult::Type::STR, "ipfs_hash", /*optional=*/true, "IPFS hash (new/reissue only)"},
              }},
+             {RPCResult::Type::OBJ, "asset_data", /*optional=*/true, "The qualifier tag, restriction or verifier string (only for restricted_asset_data outputs)",
+             {
+                 {RPCResult::Type::STR, "asset_name", /*optional=*/true, "The qualifier or restricted asset name"},
+                 {RPCResult::Type::STR, "qualifier_type", /*optional=*/true, "Whether the qualifier is being added to or removed from the address"},
+                 {RPCResult::Type::STR, "restricted_name", /*optional=*/true, "The restricted asset name (global restrictions)"},
+                 {RPCResult::Type::STR, "restricted_type", /*optional=*/true, "Whether the address, or the whole asset, is being frozen or unfrozen"},
+                 {RPCResult::Type::STR, "address", /*optional=*/true, "The address being tagged or restricted, or \"all addresses\""},
+                 {RPCResult::Type::STR, "verifier_string", /*optional=*/true, "The verifier string of a restricted asset"},
+             }},
          };
 }
 

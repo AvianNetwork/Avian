@@ -9,6 +9,7 @@
 #include <assets/assettypes.h>
 #include <consensus/amount.h>
 #include <sync.h>
+#include <wallet/transaction.h>
 
 #include <string>
 #include <utility>
@@ -76,7 +77,8 @@ bool SendAssetTransaction(
     CWallet& wallet,
     CTransactionRef& tx,
     std::pair<int, std::string>& error,
-    std::string& txid);
+    std::string& txid,
+    mapValue_t map_value = {});
 
 } // namespace wallet
 
