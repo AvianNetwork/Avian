@@ -84,6 +84,8 @@ extern CLRUCache<std::string, CNullAssetTxVerifierString>* passetsVerifierCache;
 extern CLRUCache<std::string, int8_t>* passetsQualifierCache;
 extern CLRUCache<std::string, int8_t>* passetsRestrictionCache;
 extern CLRUCache<std::string, int8_t>* passetsGlobalRestrictionCache;
+/** On unless -assetindex=0: address balances, owner lookups and reward snapshots read it. */
+static constexpr bool DEFAULT_ASSETINDEX{true};
 extern bool fAssetIndex;
 
 class CAssets {
