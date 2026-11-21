@@ -2592,6 +2592,7 @@ DisconnectResult Chainstate::DisconnectBlock(const CBlock& block, const CBlockIn
                             LogError("DisconnectBlock: Failed to remove transfer of %s", transfer.strName);
                             return DISCONNECT_FAILED;
                         }
+                        OrphanBlockMessage(out, transfer);
                     }
                 }
             }
@@ -2702,11 +2703,11 @@ static unsigned int GetBlockScriptFlags(const CBlockIndex& block_index, const Ch
 
 
 // AVN: persist messages collected during block connection. cs_messaging guards only the
-// Avian message caches (nothing is marked GUARDED_BY it), so it is a leaf lock taken at this
-// single site. Isolating the lock in a NO_THREAD_SAFETY_ANALYSIS helper keeps the
+// Avian message caches (nothing is marked GUARDED_BY it), so it is a leaf lock taken here and in
+// OrphanBlockMessage() only. Isolating the lock in a NO_THREAD_SAFETY_ANALYSIS helper keeps the
 // !cs_messaging negative capability from having to be threaded through ConnectBlock and the
 // entire validation call chain above it (ConnectTip, ActivateBestChain, ...).
-static void WriteBlockMessages(const std::set<CMessage>& setMessages) NO_THREAD_SAFETY_ANALYSIS
+static void WriteBlockMessages(const std::set<CMessage>& setMessages, int height, ValidationSignals* signals) NO_THREAD_SAFETY_ANALYSIS
 {
     extern bool fMessaging;
     extern CMessageDB* pmessagedb;
@@ -7132,8 +7133,8 @@ bool ReindexAssets(ChainstateManager& chainman)
                 if (AssetFromTransaction(tx, asset, strAddress)) {
                     assetCache.AddNewAsset(asset, strAddress, pindex->nHeight, pindex->GetBlockHash());
                     std::string ownerName, ownerAddress;
-                    OwnerFromTransaction(tx, ownerName, ownerAddress);
-                    assetCache.AddOwnerAsset(ownerName, ownerAddress);
+                    if (OwnerFromTransaction(tx, ownerName, ownerAddress))
+                        assetCache.AddOwnerAsset(ownerName, ownerAddress);
                 }
             } else if (IsReissueAsset(tx)) {
                 CReissueAsset reissue;
@@ -7170,9 +7171,6 @@ bool ReindexAssets(ChainstateManager& chainman)
                 std::string strAddress;
                 if (QualifierAssetFromTransaction(tx, asset, strAddress)) {
                     assetCache.AddNewAsset(asset, strAddress, pindex->nHeight, pindex->GetBlockHash());
-                    std::string ownerName, ownerAddress;
-                    OwnerFromTransaction(tx, ownerName, ownerAddress);
-                    assetCache.AddOwnerAsset(ownerName, ownerAddress);
                 }
             } else if (IsNewRestrictedAsset(tx)) {
                 CNewAsset asset;
