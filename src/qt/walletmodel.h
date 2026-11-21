@@ -13,6 +13,7 @@
 #include <primitives/transaction_identifier.h>
 #include <support/allocators/secure.h>
 
+#include <chrono>
 #include <vector>
 
 #include <QObject>
@@ -192,6 +193,10 @@ private:
 
     // Block hash denoting when the last balance update was done.
     uint256 m_cached_last_update_tip{};
+    //! When pollBalanceChanged() last refreshed, to space refreshes out while the chain catches up.
+    std::chrono::steady_clock::time_point m_last_poll_refresh{};
+    //! Set while the chain catches up, when the transaction table's confirmations are not updated.
+    bool m_confirmations_stale{false};
 
     void subscribeToCoreSignals();
     void unsubscribeFromCoreSignals();

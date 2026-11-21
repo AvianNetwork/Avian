@@ -19,6 +19,11 @@ using namespace std::chrono_literals;
 /* A delay between model updates */
 static constexpr auto MODEL_UPDATE_DELAY{250ms};
 
+/* How often a wallet's balances and transaction statuses are refreshed while the chain is
+ * catching up. A refresh walks every transaction of the wallet, and the tip moves at every
+ * poll then, so at MODEL_UPDATE_DELAY a large wallet leaves the GUI no time for anything else. */
+static constexpr auto MODEL_UPDATE_DELAY_SYNCING{10s};
+
 /* A delay between shutdown pollings */
 static constexpr auto SHUTDOWN_POLLING_DELAY{200ms};
 

@@ -350,8 +350,17 @@ public:
             return false;
         }
         num_blocks = m_wallet->GetLastBlockHeight();
-        block_time = -1;
-        CHECK_NONFATAL(m_wallet->chain().findBlock(m_wallet->GetLastBlockHash(), FoundBlock().time(block_time)));
+        // The GUI asks this for every row of its transaction table each time the tip moves.
+        // The block's time is the same for all of them, and finding it takes cs_main, which
+        // validation holds while a block connects: look it up once a block.
+        const uint256 last_block{m_wallet->GetLastBlockHash()};
+        if (last_block != m_status_block_hash) {
+            int64_t time{-1};
+            CHECK_NONFATAL(m_wallet->chain().findBlock(last_block, FoundBlock().time(time)));
+            m_status_block_hash = last_block;
+            m_status_block_time = time;
+        }
+        block_time = m_status_block_time;
         tx_status = MakeWalletTxStatus(*m_wallet, mi->second);
         return true;
     }
@@ -534,6 +543,9 @@ public:
 
     WalletContext& m_context;
     std::shared_ptr<CWallet> m_wallet;
+    //! The wallet's last processed block and its time, for tryGetTxStatus(). Under cs_wallet.
+    uint256 m_status_block_hash;
+    int64_t m_status_block_time{-1};
 };
 
 class WalletLoaderImpl : public WalletLoader
