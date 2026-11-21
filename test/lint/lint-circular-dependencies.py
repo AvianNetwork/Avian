@@ -40,6 +40,10 @@ EXPECTED_CIRCULAR_DEPENDENCIES = (
     "policy/rbf -> txmempool -> validation -> policy/rbf",
     "policy/truc_policy -> txmempool -> validation -> policy/truc_policy",
     "assets/assets -> validation -> signet -> core_io -> assets/assets",
+    # A script that carries a zero asset amount is unspendable, as in 4.x, and
+    # finding the amount means deserialising the asset types, which build scripts.
+    "addresstype -> script/script -> assets/assettypes -> addresstype",
+    "assets/assettypes -> primitives/transaction -> script/script -> assets/assettypes",
 
     # Temporary, removed in followup https://github.com/bitcoin/bitcoin/pull/24230
     "index/base -> node/context -> net_processing -> index/blockfilterindex -> index/base",
