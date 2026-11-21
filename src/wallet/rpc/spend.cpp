@@ -856,6 +856,9 @@ RPCHelpMan fundrawtransaction()
     for (const auto& tx_out : tx.vout) {
         CTxDestination dest;
         ExtractDestination(tx_out.scriptPubKey, dest);
+        // The outputs are rebuilt from these. An asset output resolves to its owner's
+        // address, which would rebuild as bare P2PKH and drop the asset payload.
+        if (GetScriptForDestination(dest) != tx_out.scriptPubKey) dest = CNoDestination{tx_out.scriptPubKey};
         destinations.emplace_back(dest, tx_out.nValue);
     }
     std::vector<std::string> dummy(destinations.size(), "dummy");
