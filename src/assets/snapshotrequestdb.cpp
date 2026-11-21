@@ -12,6 +12,7 @@ static const uint8_t SNAPSHOTREQUEST_FLAG = 'S';
 
 static const uint8_t DISTRIBUTEREQUEST_FLAG = 'D';
 static const uint8_t DISTRIBUTETRANSACTION_FLAG = 'T';
+static const uint8_t DISTRIBUTEWALLET_FLAG = 'W';
 
 CSnapshotRequestDBEntry::CSnapshotRequestDBEntry()
 {
@@ -204,7 +205,29 @@ bool CDistributeSnapshotRequestDB::RetrieveDistributeSnapshotRequest(const uint2
 // Remove a distribute snapshot request
 bool CDistributeSnapshotRequestDB::RemoveDistributeSnapshotRequest(const uint256& hash)
 {
+    Erase(std::make_pair(DISTRIBUTEWALLET_FLAG, hash));
     return Erase(std::make_pair(DISTRIBUTEREQUEST_FLAG, hash));
+}
+
+bool CDistributeSnapshotRequestDB::SetDistributeWallet(const uint256& hash, const std::string& wallet_name)
+{
+    return Write(std::make_pair(DISTRIBUTEWALLET_FLAG, hash), wallet_name);
+}
+
+bool CDistributeSnapshotRequestDB::GetDistributeWallet(const uint256& hash, std::string& wallet_name)
+{
+    return Read(std::make_pair(DISTRIBUTEWALLET_FLAG, hash), wallet_name);
+}
+
+void CDistributeSnapshotRequestDB::ListDistributeSnapshots(std::map<uint256, CRewardSnapshot>& snapshots)
+{
+    std::unique_ptr<CDBIterator> pcursor(NewIterator());
+    for (pcursor->Seek(std::make_pair(DISTRIBUTEREQUEST_FLAG, uint256())); pcursor->Valid(); pcursor->Next()) {
+        std::pair<uint8_t, uint256> key;
+        if (!pcursor->GetKey(key) || key.first != DISTRIBUTEREQUEST_FLAG) break;
+        CRewardSnapshot snapshot;
+        if (pcursor->GetValue(snapshot)) snapshots[key.second] = snapshot;
+    }
 }
 
 // Load all distribute snapshot from database

@@ -386,6 +386,8 @@ static const CRPCConvertParam vRPCConvertParams[] =
     // rewards
     { "distributereward", 1, "snapshot_height" },
     { "distributereward", 3, "gross_distribution_amount" },
+    { "canceldistribution", 1, "snapshot_height" },
+    { "canceldistribution", 3, "gross_distribution_amount" },
     { "getdistributestatus", 1, "snapshot_height" },
     { "getdistributestatus", 3, "gross_distribution_amount" },
     // consolidateutxos

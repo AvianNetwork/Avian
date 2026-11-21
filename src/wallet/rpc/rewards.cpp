@@ -14,10 +14,15 @@
 #include <common/args.h>
 #include <key_io.h>
 #include <sync.h>
+#include <util/moneystr.h>
+#include <util/strencodings.h>
+#include <util/string.h>
 #include <validation.h>
 
 #include <wallet/asset_tx.h>
 #include <wallet/coincontrol.h>
+#include <wallet/context.h>
+#include <wallet/rewards.h>
 #include <wallet/rpc/util.h>
 #include <wallet/transaction.h>
 #include <wallet/wallet.h>
@@ -33,12 +38,221 @@ namespace wallet {
 // Forward declaration from spend.cpp
 UniValue SendMoney(CWallet& wallet, const CCoinControl &coin_control, std::vector<CRecipient> &recipients, mapValue_t map_value, bool verbose);
 
+//! One distribution is worked on at a time: the RPC and the scheduler would otherwise
+//! both find the same batch unsent, and both send it.
+static GlobalMutex g_reward_distribution_mutex;
+
+bool ContinueRewardDistribution(CWallet& wallet, const uint256& hash, CRewardSnapshot& snapshot,
+                                const std::string& change_address, std::vector<std::string>& sent_txids,
+                                std::pair<int, std::string>& error)
+{
+    LOCK(g_reward_distribution_mutex);
+
+    const auto stop = [&](int status, int code, const std::string& why) {
+        snapshot.nStatus = status;
+        pDistributeSnapshotDb->OverrideDistributeSnapshot(hash, snapshot);
+        error = {code, why};
+        return false;
+    };
+
+    std::vector<OwnerAndAmount> payments;
+    if (!GenerateDistributionList(snapshot, payments)) {
+        return stop(CRewardSnapshot::REWARD_ERROR, RPC_INVALID_REQUEST, "Failed to generate the distribution list");
+    }
+    if (payments.empty()) {
+        return stop(CRewardSnapshot::LOW_REWARDS, RPC_INVALID_REQUEST, "Distribution list is empty. All reward amounts round to zero.");
+    }
+    if (wallet.IsLocked()) {
+        // Not a failure of the distribution: its status stays, and it is paid once the wallet is unlocked.
+        error = {RPC_WALLET_UNLOCK_NEEDED, "Error: Please enter the wallet passphrase with walletpassphrase first."};
+        return false;
+    }
+
+    // The batches this wallet has already made for this distribution. A batch carries the
+    // distribution and its number in the wallet, written with the transaction itself, so
+    // one that went out just before the node stopped is found here although the record of
+    // it below was never written. Without this it would be sent a second time.
+    std::map<int, uint256> tagged;
+    {
+        LOCK(wallet.cs_wallet);
+        for (const auto& [wtxid, wtx] : wallet.mapWallet) {
+            const auto distribution = wtx.mapValue.find("reward_distribution");
+            const auto number = wtx.mapValue.find("reward_batch");
+            if (distribution == wtx.mapValue.end() || number == wtx.mapValue.end()) continue;
+            if (distribution->second != hash.GetHex()) continue;
+            if (const auto n{ToIntegral<int>(number->second)}) tagged.emplace(*n, wtxid.ToUint256());
+        }
+    }
+
+    const bool is_avn{snapshot.strDistributionAsset == "AVN"};
+    int batch{0};
+    for (size_t first = 0; first < payments.size(); first += MAX_PAYMENTS_PER_TRANSACTION, ++batch) {
+        const size_t last{std::min(first + MAX_PAYMENTS_PER_TRANSACTION, payments.size())};
+
+        uint256 recorded;
+        bool sent_before{pDistributeSnapshotDb->GetDistributeTransaction(hash, batch, recorded)};
+        if (!sent_before) {
+            if (const auto it{tagged.find(batch)}; it != tagged.end()) {
+                recorded = it->second;
+                pDistributeSnapshotDb->AddDistributeTransaction(hash, batch, recorded);
+                sent_before = true;
+            }
+        }
+        if (sent_before) {
+            // The next batch goes out only if that transaction is this wallet's and still
+            // stands. One that was abandoned, or that something in the mempool or in a block
+            // has displaced, pays nobody, and has a depth of zero like any unconfirmed one.
+            std::string fault;
+            {
+                LOCK(wallet.cs_wallet);
+                const CWalletTx* wtx{wallet.GetWalletTx(Txid::FromUint256(recorded))};
+                if (!wtx) {
+                    fault = "which this wallet does not have";
+                } else if (wtx->isAbandoned()) {
+                    fault = "which was abandoned";
+                } else if (wtx->isMempoolConflicted() || wtx->isBlockConflicted() || wallet.GetTxDepthInMainChain(*wtx) < 0) {
+                    fault = "which conflicts with another transaction";
+                }
+            }
+            if (!fault.empty()) {
+                return stop(CRewardSnapshot::STUCK_TX, RPC_WALLET_ERROR,
+                            strprintf("Batch %d was sent as %s, %s. It has not paid, and nothing more is sent", batch, recorded.GetHex(), fault));
+            }
+            continue;
+        }
+
+        mapValue_t map_value;
+        map_value["reward_distribution"] = hash.GetHex();
+        map_value["reward_batch"] = util::ToString(batch);
+
+        std::string txid;
+        if (is_avn) {
+            std::vector<CRecipient> recipients;
+            for (size_t i = first; i < last; ++i) {
+                const CTxDestination dest{DecodeDestination(payments[i].address)};
+                if (!IsValidDestination(dest)) {
+                    wallet.WalletLogPrintf("Reward distribution of %s to holders of %s at height %d: '%s' is not a valid address and is not paid its %s\n",
+                                           snapshot.strDistributionAsset, snapshot.strOwnershipAsset, snapshot.nHeight,
+                                           payments[i].address, FormatMoney(payments[i].amount));
+                    continue;
+                }
+                recipients.push_back({dest, payments[i].amount, false, CScript()});
+            }
+            if (recipients.empty()) continue;
+
+            CCoinControl coin_control;
+            if (!change_address.empty()) coin_control.destChange = DecodeDestination(change_address);
+
+            try {
+                txid = SendMoney(wallet, coin_control, recipients, std::move(map_value), false).get_str();
+            } catch (const UniValue& rpc_error) {
+                // SendMoney reports as an RPC does
+                const std::string why{rpc_error.isObject() && rpc_error["message"].isStr() ? rpc_error["message"].get_str() : rpc_error.write()};
+                const int code{rpc_error.isObject() && rpc_error["code"].isNum() ? rpc_error["code"].getInt<int>() : int{RPC_WALLET_ERROR}};
+                return stop(code == RPC_WALLET_INSUFFICIENT_FUNDS ? CRewardSnapshot::LOW_FUNDS : CRewardSnapshot::FAILED_CREATE_TRANSACTION, code, why);
+            } catch (const std::exception& e) {
+                return stop(CRewardSnapshot::FAILED_CREATE_TRANSACTION, RPC_WALLET_ERROR, e.what());
+            }
+        } else {
+            std::vector<std::pair<CAssetTransfer, std::string>> transfers;
+            for (size_t i = first; i < last; ++i) {
+                transfers.emplace_back(CAssetTransfer(snapshot.strDistributionAsset, payments[i].amount), payments[i].address);
+            }
+
+            CCoinControl coin_control;
+            if (!change_address.empty()) {
+                coin_control.destChange = DecodeDestination(change_address);
+                coin_control.destAssetChange = DecodeDestination(change_address);
+            }
+
+            CTransactionRef tx;
+            CAmount fee_required;
+            std::pair<int, std::string> asset_error;
+            if (!CreateTransferAssetTransaction(wallet, coin_control, transfers, "", asset_error, tx, fee_required)) {
+                return stop(CRewardSnapshot::FAILED_CREATE_TRANSACTION, asset_error.first,
+                            "Failed to create distribution transaction: " + asset_error.second);
+            }
+            if (!SendAssetTransaction(wallet, tx, asset_error, txid, std::move(map_value))) {
+                return stop(CRewardSnapshot::FAILED_COMMIT_TRANSACTION, asset_error.first,
+                            "Failed to send distribution transaction: " + asset_error.second);
+            }
+        }
+
+        sent_txids.push_back(txid);
+        if (HasTestOption(gArgs, "reward_stop_before_record")) {
+            error = {RPC_MISC_ERROR, "Stopped before recording the batch (-test=reward_stop_before_record)"};
+            return false;
+        }
+        pDistributeSnapshotDb->AddDistributeTransaction(hash, batch, uint256::FromHex(txid).value());
+    }
+
+    snapshot.nStatus = CRewardSnapshot::COMPLETE;
+    pDistributeSnapshotDb->OverrideDistributeSnapshot(hash, snapshot);
+    return true;
+}
+
+void MaybeDistributeRewards(WalletContext& context)
+{
+    if (!pDistributeSnapshotDb || !pAssetSnapshotDb || !passets) return;
+
+    // The height each wallet was last looked at, and what was last logged about each
+    // distribution: a locked wallet would otherwise say the same thing at every block.
+    // Only the scheduler thread comes here.
+    static std::map<std::string, int> last_height;
+    static std::map<uint256, std::string> last_said;
+
+    std::map<uint256, CRewardSnapshot> snapshots;
+    bool listed{false};
+
+    for (const std::shared_ptr<CWallet>& pwallet : GetWallets(context)) {
+        if (pwallet->chain().isInitialBlockDownload()) continue;
+        const int height{WITH_LOCK(pwallet->cs_wallet, return pwallet->GetLastBlockHeight())};
+        auto [it, first_look] = last_height.try_emplace(pwallet->GetName(), height);
+        if (!first_look && it->second == height) continue;
+        it->second = height;
+
+        if (!listed) {
+            pDistributeSnapshotDb->ListDistributeSnapshots(snapshots);
+            listed = true;
+        }
+        for (auto& [hash, snapshot] : snapshots) {
+            // These three end a distribution. Anything else is tried again.
+            if (snapshot.nStatus == CRewardSnapshot::COMPLETE || snapshot.nStatus == CRewardSnapshot::REWARD_ERROR ||
+                snapshot.nStatus == CRewardSnapshot::LOW_REWARDS || snapshot.nStatus == CRewardSnapshot::STUCK_TX) {
+                continue;
+            }
+            // Only the wallet it was asked of pays. One made before that was recorded is left alone.
+            std::string owner;
+            if (!pDistributeSnapshotDb->GetDistributeWallet(hash, owner) || owner != pwallet->GetName()) continue;
+
+            std::vector<std::string> sent;
+            std::pair<int, std::string> error;
+            if (ContinueRewardDistribution(*pwallet, hash, snapshot, "", sent, error)) {
+                pwallet->WalletLogPrintf("Reward distribution of %s to holders of %s at height %d is complete, %d transaction(s) sent now\n",
+                                         snapshot.strDistributionAsset, snapshot.strOwnershipAsset, snapshot.nHeight, sent.size());
+                last_said.erase(hash);
+            } else {
+                const std::string say{strprintf("status %d: %s", snapshot.nStatus, error.second)};
+                if (last_said[hash] != say) {
+                    pwallet->WalletLogPrintf("Reward distribution of %s to holders of %s at height %d is not complete (%s)%s\n",
+                                             snapshot.strDistributionAsset, snapshot.strOwnershipAsset, snapshot.nHeight, say,
+                                             sent.empty() ? "" : strprintf(", %d transaction(s) sent now", sent.size()));
+                    last_said[hash] = say;
+                }
+            }
+        }
+    }
+}
+
 RPCHelpMan distributereward()
 {
     return RPCHelpMan{
         "distributereward",
         "Splits the specified amount of the distribution asset to all owners of asset_name that are not in the optional exclusion_addresses.\n"
-        "Requires wallet passphrase to be set with walletpassphrase call if wallet is encrypted.\n",
+        "Requires wallet passphrase to be set with walletpassphrase call if wallet is encrypted.\n"
+        "A distribution that cannot be sent in full now, because the wallet is locked or short of funds, stays\n"
+        "registered: this wallet tries again each time it sees a new block, until every batch has been sent or\n"
+        "canceldistribution withdraws it.\n",
         {
             {"asset_name", RPCArg::Type::STR, RPCArg::Optional::NO, "the reward will be distributed to all owners of this asset"},
             {"snapshot_height", RPCArg::Type::NUM, RPCArg::Optional::NO, "the block height of the ownership snapshot"},
@@ -130,98 +344,96 @@ RPCHelpMan distributereward()
                 throw JSONRPCError(RPC_INVALID_REQUEST, std::string("Distribution of reward has already been created. You must remove the distribution before creating another one"));
 
             auto snapshotHash = distribRewardSnapshotData.GetHash();
+            pDistributeSnapshotDb->SetDistributeWallet(snapshotHash, pwallet->GetName());
 
-            // Generate the distribution list from the snapshot
-            std::vector<OwnerAndAmount> vecDistributionList;
-            if (!GenerateDistributionList(distribRewardSnapshotData, vecDistributionList)) {
-                distribRewardSnapshotData.nStatus = CRewardSnapshot::REWARD_ERROR;
-                pDistributeSnapshotDb->OverrideDistributeSnapshot(snapshotHash, distribRewardSnapshotData);
-                throw JSONRPCError(RPC_INVALID_REQUEST, std::string("Failed to generate the distribution list"));
+            // Everything is sent now if it can be. What cannot be is tried again each time
+            // this wallet sees a new block, as 4.x did, until the distribution is complete.
+            std::vector<std::string> sent;
+            std::pair<int, std::string> error;
+            if (!ContinueRewardDistribution(*pwallet, snapshotHash, distribRewardSnapshotData, change_address, sent, error)) {
+                const bool retried{distribRewardSnapshotData.nStatus != CRewardSnapshot::REWARD_ERROR &&
+                                   distribRewardSnapshotData.nStatus != CRewardSnapshot::LOW_REWARDS &&
+                                   distribRewardSnapshotData.nStatus != CRewardSnapshot::STUCK_TX};
+                throw JSONRPCError(error.first, error.second +
+                                   (retried ? ". The distribution is registered, and is tried again with each new block." : ""));
             }
-
-            if (vecDistributionList.empty()) {
-                distribRewardSnapshotData.nStatus = CRewardSnapshot::LOW_REWARDS;
-                pDistributeSnapshotDb->OverrideDistributeSnapshot(snapshotHash, distribRewardSnapshotData);
-                throw JSONRPCError(RPC_INVALID_REQUEST, std::string("Distribution list is empty. All reward amounts round to zero."));
-            }
-
-            EnsureWalletIsUnlocked(*pwallet);
 
             UniValue txids(UniValue::VARR);
-            bool isAVN = (distribution_asset_name == "AVN");
-            int batchNumber = 0;
+            for (const std::string& txid : sent) txids.push_back(txid);
+            return txids;
+        },
+    };
+}
 
-            // Process in batches of MAX_PAYMENTS_PER_TRANSACTION
-            for (size_t i = 0; i < vecDistributionList.size(); i += MAX_PAYMENTS_PER_TRANSACTION) {
-                size_t batchEnd = std::min(i + MAX_PAYMENTS_PER_TRANSACTION, vecDistributionList.size());
+RPCHelpMan canceldistribution()
+{
+    return RPCHelpMan{
+        "canceldistribution",
+        "Withdraws a reward distribution that distributereward registered, so that nothing more is sent for it.\n"
+        "The batches it has already sent stay sent, and are listed. They are remembered: if the same\n"
+        "distribution is asked for again, only the batches that were never sent go out.\n"
+        "The arguments are those the distribution was made with.\n",
+        {
+            {"asset_name", RPCArg::Type::STR, RPCArg::Optional::NO, "the asset whose owners the reward goes to"},
+            {"snapshot_height", RPCArg::Type::NUM, RPCArg::Optional::NO, "the block height of the ownership snapshot"},
+            {"distribution_asset_name", RPCArg::Type::STR, RPCArg::Optional::NO, "the name of the asset that is distributed, or AVN"},
+            {"gross_distribution_amount", RPCArg::Type::NUM, RPCArg::Optional::NO, "the amount of the distribution asset that is split amongst all owners"},
+            {"exception_addresses", RPCArg::Type::STR, RPCArg::Default{""}, "comma-separated list of ownership addresses that are excluded"},
+        },
+        RPCResult{
+            RPCResult::Type::OBJ, "", "",
+            {
+                {RPCResult::Type::STR, "request_status", "\"Removed\""},
+                {RPCResult::Type::NUM, "status", "the status code the distribution had"},
+                {RPCResult::Type::ARR, "sent", "the transactions already sent for it, a batch each",
+                {
+                    {RPCResult::Type::STR_HEX, "", "txid of a distribution batch"},
+                }},
+            }
+        },
+        RPCExamples{
+            HelpExampleCli("canceldistribution", "\"ASSET_NAME\" 12345 \"AVN\" 1000")
+          + HelpExampleRpc("canceldistribution", "\"ASSET_NAME\", 34987, \"DIVIDENDS\", 100000")
+        },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+        {
+            const std::shared_ptr<CWallet> pwallet = GetWalletForJSONRPCRequest(request);
+            if (!pwallet) throw JSONRPCError(RPC_WALLET_NOT_FOUND, "Wallet not found");
 
-                if (isAVN) {
-                    // AVN distribution: use standard SendMoney
-                    std::vector<CRecipient> recipients;
-                    for (size_t j = i; j < batchEnd; j++) {
-                        CTxDestination dest = DecodeDestination(vecDistributionList[j].address);
-                        if (!IsValidDestination(dest)) continue;
-                        recipients.push_back({dest, vecDistributionList[j].amount, false, CScript()});
-                    }
+            if (!pDistributeSnapshotDb)
+                throw JSONRPCError(RPC_DATABASE_ERROR, std::string("Distribute snapshot database is not setup. Please restart wallet to try again"));
 
-                    if (recipients.empty()) continue;
+            const std::string exception_addresses{request.params[4].isNull() ? "" : request.params[4].get_str()};
+            const CRewardSnapshot asked(request.params[0].get_str(), request.params[2].get_str(), exception_addresses,
+                                        AmountFromValue(request.params[3]), request.params[1].getInt<int>());
+            const uint256 hash{asked.GetHash()};
 
-                    CCoinControl coinControl;
-                    if (!change_address.empty())
-                        coinControl.destChange = DecodeDestination(change_address);
+            // Held so that a batch is not sent, or the distribution written back, while it is removed
+            LOCK(g_reward_distribution_mutex);
 
-                    mapValue_t mapValue;
-                    mapValue["reward_distribution"] = snapshotHash.GetHex();
+            CRewardSnapshot stored;
+            if (!pDistributeSnapshotDb->RetrieveDistributeSnapshotRequest(hash, stored))
+                throw JSONRPCError(RPC_MISC_ERROR, std::string("Distribution not found"));
 
-                    UniValue result = SendMoney(*pwallet, coinControl, recipients, std::move(mapValue), false);
-                    std::string txid = result.get_str();
-                    txids.push_back(txid);
+            std::string owner;
+            if (pDistributeSnapshotDb->GetDistributeWallet(hash, owner) && owner != pwallet->GetName())
+                throw JSONRPCError(RPC_WALLET_ERROR, strprintf("This distribution belongs to the wallet \"%s\". Withdraw it from there", owner));
 
-                    pDistributeSnapshotDb->AddDistributeTransaction(snapshotHash, batchNumber, uint256::FromHex(txid).value());
-                } else {
-                    // Asset distribution: use CreateTransferAssetTransaction
-                    std::vector<std::pair<CAssetTransfer, std::string>> vTransfers;
-                    for (size_t j = i; j < batchEnd; j++) {
-                        CAssetTransfer transfer(distribution_asset_name, vecDistributionList[j].amount);
-                        vTransfers.emplace_back(std::make_pair(transfer, vecDistributionList[j].address));
-                    }
-
-                    if (vTransfers.empty()) continue;
-
-                    CCoinControl ctrl;
-                    if (!change_address.empty()) {
-                        ctrl.destChange = DecodeDestination(change_address);
-                        ctrl.destAssetChange = DecodeDestination(change_address);
-                    }
-
-                    CTransactionRef tx;
-                    CAmount nFeeRequired;
-                    std::pair<int, std::string> error;
-
-                    if (!CreateTransferAssetTransaction(*pwallet, ctrl, vTransfers, "", error, tx, nFeeRequired)) {
-                        distribRewardSnapshotData.nStatus = CRewardSnapshot::FAILED_CREATE_TRANSACTION;
-                        pDistributeSnapshotDb->OverrideDistributeSnapshot(snapshotHash, distribRewardSnapshotData);
-                        throw JSONRPCError(error.first, "Failed to create distribution transaction: " + error.second);
-                    }
-
-                    std::string txid;
-                    if (!SendAssetTransaction(*pwallet, tx, error, txid)) {
-                        distribRewardSnapshotData.nStatus = CRewardSnapshot::FAILED_COMMIT_TRANSACTION;
-                        pDistributeSnapshotDb->OverrideDistributeSnapshot(snapshotHash, distribRewardSnapshotData);
-                        throw JSONRPCError(error.first, "Failed to send distribution transaction: " + error.second);
-                    }
-
-                    txids.push_back(txid);
-                    pDistributeSnapshotDb->AddDistributeTransaction(snapshotHash, batchNumber, uint256::FromHex(txid).value());
-                }
-                batchNumber++;
+            UniValue sent(UniValue::VARR);
+            uint256 txid;
+            for (int batch = 0; pDistributeSnapshotDb->GetDistributeTransaction(hash, batch, txid); ++batch) {
+                sent.push_back(txid.GetHex());
             }
 
-            // Mark distribution as complete
-            distribRewardSnapshotData.nStatus = CRewardSnapshot::COMPLETE;
-            pDistributeSnapshotDb->OverrideDistributeSnapshot(snapshotHash, distribRewardSnapshotData);
+            if (!pDistributeSnapshotDb->RemoveDistributeSnapshotRequest(hash))
+                throw JSONRPCError(RPC_DATABASE_ERROR, std::string("Failed to remove the distribution"));
+            mapRewardSnapshots.erase(hash);
 
-            return txids;
+            UniValue result(UniValue::VOBJ);
+            result.pushKV("request_status", "Removed");
+            result.pushKV("status", stored.nStatus);
+            result.pushKV("sent", std::move(sent));
+            return result;
         },
     };
 }
