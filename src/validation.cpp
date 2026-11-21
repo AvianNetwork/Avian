@@ -3904,7 +3904,7 @@ bool Chainstate::ConnectTip(
     connectTrace.BlockConnected(pindexNew, std::move(block_to_connect));
 
     // AVN: capture the reward snapshots requested for this height, as 4.x did here.
-    if (pSnapshotRequestDb && pAssetSnapshotDb) {
+    if (pSnapshotRequestDb && pAssetSnapshotDb && passetsdb) {
         std::set<CSnapshotRequestDBEntry> requests;
         if (!pSnapshotRequestDb->RetrieveSnapshotRequestsForHeight("", pindexNew->nHeight, requests)) {
             LogWarning("ConnectTip: failed to load snapshot requests at height %d\n", pindexNew->nHeight);
@@ -3915,7 +3915,7 @@ bool Chainstate::ConnectTip(
             BlockValidationState flush_state;
             if (FlushStateToDisk(flush_state, FlushStateMode::ALWAYS)) {
                 for (const auto& request : requests) {
-                    if (!pAssetSnapshotDb->AddAssetOwnershipSnapshot(request.assetName, pindexNew->nHeight)) {
+                    if (!pAssetSnapshotDb->AddAssetOwnershipSnapshot(*passetsdb, request.assetName, pindexNew->nHeight)) {
                         LogWarning("ConnectTip: failed to snapshot owners of '%s' at height %d\n", request.assetName, pindexNew->nHeight);
                     }
                 }
