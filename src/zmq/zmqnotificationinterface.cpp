@@ -49,6 +49,7 @@ std::unique_ptr<CZMQNotificationInterface> CZMQNotificationInterface::Create(std
         return std::make_unique<CZMQPublishRawBlockNotifier>(get_block_by_index);
     };
     factories["pubrawtx"] = CZMQAbstractNotifier::Create<CZMQPublishRawTransactionNotifier>;
+    factories["pubrawmessage"] = CZMQAbstractNotifier::Create<CZMQPublishNewAssetMessageNotifier>;
     factories["pubsequence"] = CZMQAbstractNotifier::Create<CZMQPublishSequenceNotifier>;
 
     std::list<std::unique_ptr<CZMQAbstractNotifier>> notifiers;
@@ -206,6 +207,13 @@ void CZMQNotificationInterface::BlockDisconnected(const std::shared_ptr<const CB
     // Next we notify BlockDisconnect listeners for *all* blocks
     TryForEachAndRemoveFailed(notifiers, [pindexDisconnected](CZMQAbstractNotifier* notifier) {
         return notifier->NotifyBlockDisconnect(pindexDisconnected);
+    });
+}
+
+void CZMQNotificationInterface::NewAssetMessage(const CMessage& message)
+{
+    TryForEachAndRemoveFailed(notifiers, [&message](CZMQAbstractNotifier* notifier) {
+        return notifier->NotifyMessage(message);
     });
 }
 

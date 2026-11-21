@@ -4,6 +4,7 @@
 
 #include <zmq/zmqpublishnotifier.h>
 
+#include <assets/messages.h>
 #include <chain.h>
 #include <chainparams.h>
 #include <crypto/common.h>
@@ -44,6 +45,7 @@ static const char *MSG_HASHBLOCK = "hashblock";
 static const char *MSG_HASHTX    = "hashtx";
 static const char *MSG_RAWBLOCK  = "rawblock";
 static const char *MSG_RAWTX     = "rawtx";
+static const char *MSG_RAWASSETMSG = "rawmessage";
 static const char *MSG_SEQUENCE  = "sequence";
 
 // Internal function to send multipart message
@@ -259,6 +261,13 @@ bool CZMQPublishRawTransactionNotifier::NotifyTransaction(const CTransaction &tr
     DataStream ss;
     ss << TX_WITH_WITNESS(transaction);
     return SendZmqMessage(MSG_RAWTX, &(*ss.begin()), ss.size());
+}
+
+bool CZMQPublishNewAssetMessageNotifier::NotifyMessage(const CMessage& message)
+{
+    LogDebug(BCLog::ZMQ, "Publish rawmessage for %s to %s\n", message.strName, this->address);
+    const std::string json{CZMQMessage(message).createJsonString()};
+    return SendZmqMessage(MSG_RAWASSETMSG, json.data(), json.size());
 }
 
 // Helper function to send a 'sequence' topic message with the following structure:

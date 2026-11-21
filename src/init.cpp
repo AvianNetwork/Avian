@@ -670,22 +670,26 @@ void SetupServerArgs(ArgsManager& argsman, bool can_listen_ipc)
     argsman.AddArg("-zmqpubrawblock=<address>", "Enable publish raw block in <address>", ArgsManager::ALLOW_ANY, OptionsCategory::ZMQ);
     argsman.AddArg("-zmqpubrawtx=<address>", "Enable publish raw transaction in <address>", ArgsManager::ALLOW_ANY, OptionsCategory::ZMQ);
     argsman.AddArg("-zmqpubsequence=<address>", "Enable publish hash block and tx sequence in <address>", ArgsManager::ALLOW_ANY, OptionsCategory::ZMQ);
+    argsman.AddArg("-zmqpubrawmessage=<address>", "Enable publish raw asset messages in <address>", ArgsManager::ALLOW_ANY, OptionsCategory::ZMQ);
     argsman.AddArg("-zmqpubhashblockhwm=<n>", strprintf("Set publish hash block outbound message high water mark (default: %d)", CZMQAbstractNotifier::DEFAULT_ZMQ_SNDHWM), ArgsManager::ALLOW_ANY, OptionsCategory::ZMQ);
     argsman.AddArg("-zmqpubhashtxhwm=<n>", strprintf("Set publish hash transaction outbound message high water mark (default: %d)", CZMQAbstractNotifier::DEFAULT_ZMQ_SNDHWM), ArgsManager::ALLOW_ANY, OptionsCategory::ZMQ);
     argsman.AddArg("-zmqpubrawblockhwm=<n>", strprintf("Set publish raw block outbound message high water mark (default: %d)", CZMQAbstractNotifier::DEFAULT_ZMQ_SNDHWM), ArgsManager::ALLOW_ANY, OptionsCategory::ZMQ);
     argsman.AddArg("-zmqpubrawtxhwm=<n>", strprintf("Set publish raw transaction outbound message high water mark (default: %d)", CZMQAbstractNotifier::DEFAULT_ZMQ_SNDHWM), ArgsManager::ALLOW_ANY, OptionsCategory::ZMQ);
     argsman.AddArg("-zmqpubsequencehwm=<n>", strprintf("Set publish hash sequence message high water mark (default: %d)", CZMQAbstractNotifier::DEFAULT_ZMQ_SNDHWM), ArgsManager::ALLOW_ANY, OptionsCategory::ZMQ);
+    argsman.AddArg("-zmqpubrawmessagehwm=<n>", strprintf("Set publish raw asset message outbound message high water mark (default: %d)", CZMQAbstractNotifier::DEFAULT_ZMQ_SNDHWM), ArgsManager::ALLOW_ANY, OptionsCategory::ZMQ);
 #else
     hidden_args.emplace_back("-zmqpubhashblock=<address>");
     hidden_args.emplace_back("-zmqpubhashtx=<address>");
     hidden_args.emplace_back("-zmqpubrawblock=<address>");
     hidden_args.emplace_back("-zmqpubrawtx=<address>");
     hidden_args.emplace_back("-zmqpubsequence=<n>");
+    hidden_args.emplace_back("-zmqpubrawmessage=<address>");
     hidden_args.emplace_back("-zmqpubhashblockhwm=<n>");
     hidden_args.emplace_back("-zmqpubhashtxhwm=<n>");
     hidden_args.emplace_back("-zmqpubrawblockhwm=<n>");
     hidden_args.emplace_back("-zmqpubrawtxhwm=<n>");
     hidden_args.emplace_back("-zmqpubsequencehwm=<n>");
+    hidden_args.emplace_back("-zmqpubrawmessagehwm=<n>");
 #endif
 
     argsman.AddArg("-checkblocks=<n>", strprintf("How many blocks to check at startup (default: %u, 0 = all)", DEFAULT_CHECKBLOCKS), ArgsManager::ALLOW_ANY | ArgsManager::DEBUG_ONLY, OptionsCategory::DEBUG_TEST);
@@ -1282,6 +1286,7 @@ bool CheckHostPortOptions(const ArgsManager& args) {
         {"-zmqpubrawblock",  true,                false},
         {"-zmqpubrawtx",     true,                false},
         {"-zmqpubsequence",  true,                false},
+        {"-zmqpubrawmessage", true,               false},
     }) {
         for (const std::string& param_value : args.GetArgs(param_name)) {
             const std::string param_value_hostport{

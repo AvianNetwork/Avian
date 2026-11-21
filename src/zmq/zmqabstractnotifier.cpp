@@ -42,3 +42,8 @@ bool CZMQAbstractNotifier::NotifyTransactionRemoval(const CTransaction &/*transa
 {
     return true;
 }
+
+bool CZMQAbstractNotifier::NotifyMessage(const CMessage& /*message*/)
+{
+    return true;
+}

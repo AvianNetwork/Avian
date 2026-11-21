@@ -63,6 +63,7 @@ Currently, the following notifications are supported:
     -zmqpubrawblock=address
     -zmqpubrawtx=address
     -zmqpubsequence=address
+    -zmqpubrawmessage=address
 
 The socket type is PUB and the address must be a valid ZeroMQ socket
 address. The same address can be used in more than one notification.
@@ -76,6 +77,7 @@ The option to set the PUB socket's outbound message high water mark
     -zmqpubrawblockhwm=n
     -zmqpubrawtxhwm=n
     -zmqpubsequencehwm=n
+    -zmqpubrawmessagehwm=n
 
 The high water mark value must be an integer greater than or equal to 0.
 
@@ -108,6 +110,7 @@ message _body_, and _message sequence number_:
     | sequence  | <reversed 32-byte block hash>D                       | <4-byte LE uint>         |
     | sequence  | <reversed 32-byte transaction hash>R<8-byte LE uint> | <4-byte LE uint>         |
     | sequence  | <reversed 32-byte transaction hash>A<8-byte LE uint> | <4-byte LE uint>         |
+    | rawmessage | <JSON text of an asset message>                     | <4-byte LE uint>         |
 
 where:
 
@@ -115,6 +118,17 @@ where:
  - all transaction and block hashes are in _reversed byte order_ (i. e. with bytes
    produced by hashing function reversed), the same format as the RPC interface and block
    explorers use to display transaction and block hashes
+
+#### rawmessage
+
+Notifies about every asset message in a block as it is connected: a transfer of an owner
+token or of a message channel token that carries an IPFS hash or a txid. It is sent whether
+or not the node is subscribed to the channel, and not for a message that has already
+expired. The body is JSON text:
+
+    {"blockheight": 1234, "assetname": "ASSET~CHANNEL", "ipfshash": "Qm...", "expiretime": 0}
+
+Nothing is sent when the block is disconnected again.
 
 #### rawtx
 
