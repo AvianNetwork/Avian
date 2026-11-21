@@ -118,12 +118,13 @@ bool CSnapshotRequestDB::RetrieveSnapshotRequestsForHeight(
 {
     bool assetNameProvided = p_assetName.length() > 0;
     if (assetNameProvided) {
-        LogPrintf( "%s : Looking for snapshot requests for asset '%s' at height %d!\n",
+        LogDebug(BCLog::VALIDATION, "%s : Looking for snapshot requests for asset '%s' at height %d!\n",
             __func__,
             p_assetName.c_str(), p_blockHeight);
     }
     else {
-        LogPrintf( "%s : Looking for all snapshot requests at height %d!\n",
+        // ConnectTip asks this for every block, so not at the default log level
+        LogDebug(BCLog::VALIDATION, "%s : Looking for all snapshot requests at height %d!\n",
             __func__,
             p_blockHeight);
     }

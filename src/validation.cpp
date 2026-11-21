@@ -28,6 +28,8 @@
 #include <assets/assettypes.h>
 #include <assets/messages.h>
 #include <assets/myassetsdb.h>
+#include <assets/assetsnapshotdb.h>
+#include <assets/snapshotrequestdb.h>
 #include <key_io.h>
 #include <hash.h>
 #include <kernel/chain.h>
@@ -97,6 +99,10 @@ using node::BlockMap;
 using node::CBlockIndexHeightOnlyComparator;
 using node::CBlockIndexWorkComparator;
 using node::SnapshotMetadata;
+
+// AVN: the reward snapshot databases, defined in init.cpp
+extern CSnapshotRequestDB* pSnapshotRequestDb;
+extern CAssetSnapshotDB* pAssetSnapshotDb;
 
 /** Size threshold for warning about slow UTXO set flush to disk. */
 static constexpr size_t WARN_FLUSH_COINS_SIZE = 1 << 30; // 1 GiB
@@ -2360,6 +2366,21 @@ int ApplyTxInUndo(Coin&& undo, CCoinsViewCache& view, const COutPoint& out)
     return fClean ? DISCONNECT_OK : DISCONNECT_UNCLEAN;
 }
 
+// AVN: a message whose transfer is disconnected is marked orphaned, as 4.x did in
+// DisconnectBlock(). The lock is taken here for the reason given at WriteBlockMessages().
+static void OrphanBlockMessage(const COutPoint& out, const CAssetTransfer& transfer) NO_THREAD_SAFETY_ANALYSIS
+{
+    extern bool fMessaging;
+    extern CMessageDB* pmessagedb;
+    if (!AreMessagesDeployed() || !fMessaging || transfer.message.empty()) return;
+    if (!IsAssetNameAnOwner(transfer.strName) && !IsAssetNameAnMsgChannel(transfer.strName)) return;
+
+    LOCK(cs_messaging);
+    if (!IsChannelSubscribed(transfer.strName)) return;
+    OrphanMessage(out);
+    if (pmessagedb) pmessagedb->Flush();
+}
+
 /** Undo the effects of this block (with given index) on the UTXO set represented by coins.
  *  When FAILED is returned, view is left in an indeterminate state. */
 DisconnectResult Chainstate::DisconnectBlock(const CBlock& block, const CBlockIndex* pindex, CCoinsViewCache& view,
@@ -3139,12 +3160,7 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
                 if (MsgChannelAssetFromTransaction(tx, asset, strAddress)) {
                     if (!assetsCache->AddNewAsset(asset, strAddress, pindex->nHeight, pindex->GetBlockHash()))
                         LogError("ConnectBlock: Failed to add msg channel asset %s", asset.strName);
-
-                    std::string ownerName;
-                    std::string ownerAddress;
-                    OwnerFromTransaction(tx, ownerName, ownerAddress);
-                    if (!assetsCache->AddOwnerAsset(ownerName, ownerAddress))
-                        LogError("ConnectBlock: Failed to add owner asset %s", ownerName);
+                    // No owner token: only root and sub assets have one.
                 }
             } else if (IsNewQualifierAsset(tx)) {
                 CNewAsset asset;
@@ -7148,9 +7164,6 @@ bool ReindexAssets(ChainstateManager& chainman)
                 std::string strAddress;
                 if (MsgChannelAssetFromTransaction(tx, asset, strAddress)) {
                     assetCache.AddNewAsset(asset, strAddress, pindex->nHeight, pindex->GetBlockHash());
-                    std::string ownerName, ownerAddress;
-                    OwnerFromTransaction(tx, ownerName, ownerAddress);
-                    assetCache.AddOwnerAsset(ownerName, ownerAddress);
                 }
             } else if (IsNewQualifierAsset(tx)) {
                 CNewAsset asset;
