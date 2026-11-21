@@ -4,7 +4,6 @@
 
 #include <util/string.h>
 #include <assets/assetsnapshotdb.h>
-#include <assets/assets.h>
 #include <assets/assetdb.h>
 #include <key_io.h>
 #include <logging.h>
@@ -42,22 +41,17 @@ CAssetSnapshotDB::CAssetSnapshotDB(const fs::path& datadir, size_t nCacheSize, b
 }
 
 bool CAssetSnapshotDB::AddAssetOwnershipSnapshot(
-    const std::string & p_assetName, int p_height)
+    CAssetsDB& assets_db, const std::string & p_assetName, int p_height)
 {
     LogPrintf( "AddAssetOwnershipSnapshot: Adding snapshot for '%s' at height %d\n",
         p_assetName.c_str(), p_height);
 
     //  Retrieve ownership interest for the asset at this height
-    if (passetsdb == nullptr) {
-        LogPrintf( "AddAssetOwnershipSnapshot: Invalid assets DB!\n");
-        return false;
-    }
-
     std::set<std::pair<std::string, CAmount>> ownersAndAmounts;
     std::vector<std::pair<std::string, CAmount>> tempOwnersAndAmounts;
     int totalEntryCount;
 
-    if (!passetsdb->AssetAddressDir(tempOwnersAndAmounts, totalEntryCount, true, p_assetName, INT_MAX, 0)) {
+    if (!assets_db.AssetAddressDir(tempOwnersAndAmounts, totalEntryCount, true, p_assetName, INT_MAX, 0)) {
         LogPrintf( "AddAssetOwnershipSnapshot: Failed to retrieve assets directory for '%s'\n", p_assetName.c_str());
         return false;
     }
@@ -68,7 +62,7 @@ bool CAssetSnapshotDB::AddAssetOwnershipSnapshot(
 
     for (int retrievalOffset = 0; retrievalOffset < totalEntryCount; retrievalOffset += MAX_RETRIEVAL_COUNT) {
         //  Retrieve the specified segment of addresses
-        if (!passetsdb->AssetAddressDir(tempOwnersAndAmounts, totalEntryCount, false, p_assetName, MAX_RETRIEVAL_COUNT, retrievalOffset)) {
+        if (!assets_db.AssetAddressDir(tempOwnersAndAmounts, totalEntryCount, false, p_assetName, MAX_RETRIEVAL_COUNT, retrievalOffset)) {
             LogPrintf( "AddAssetOwnershipSnapshot: Failed to retrieve assets directory for '%s'\n", p_assetName.c_str());
             errorsOccurred = true;
             break;

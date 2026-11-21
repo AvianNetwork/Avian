@@ -11,6 +11,8 @@
 #include <consensus/amount.h>
 #include <util/fs.h>
 
+class CAssetsDB;
+
 class CAssetSnapshotDBEntry
 {
 public:
@@ -60,7 +62,7 @@ public:
 
     //  Add an entry to the snapshot at the specified height
     bool AddAssetOwnershipSnapshot(
-        const std::string & p_assetName, int p_height);
+        CAssetsDB& assets_db, const std::string & p_assetName, int p_height);
 
     //  Read all of the entries at a specified height
     bool RetrieveOwnershipSnapshot(
