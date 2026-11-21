@@ -3531,15 +3531,52 @@ bool CAssetsCache::GetAssetMetaDataIfExists(const std::string &name, CNewAsset &
 
 bool CAssetsCache::GetAssetMetaDataIfExists(const std::string &name, CNewAsset &asset, int& nHeight, uint256& blockHash)
 {
+    // The height and block hash an asset was issued at never change. When the asset data comes
+    // from a reissue that is not on disk yet (the two checks below), they still have to be read
+    // from where the asset itself is recorded. Returning without them left the caller's values
+    // uninitialised, and a second reissue in the same flush window then wrote garbage to the
+    // database as the asset's block height and hash.
+    const auto read_origin = [&]() {
+        CNewAsset temp;
+        temp.strName = name;
+        const CAssetCacheNewAsset key(temp, "", 0, uint256());
+        for (const auto* pending : {&setNewAssetsToAdd, &passets->setNewAssetsToAdd}) {
+            const auto it = pending->find(key);
+            if (it != pending->end()) {
+                nHeight = it->blockHeight;
+                blockHash = it->blockHash;
+                return;
+            }
+        }
+        if (passetsCache && passetsCache->Exists(name)) {
+            const CDatabasedAssetData data = passetsCache->Get(name);
+            nHeight = data.nHeight;
+            blockHash = data.blockHash;
+            return;
+        }
+        CNewAsset stored;
+        int height;
+        uint256 hash;
+        if (passetsdb && passetsdb->ReadAssetData(name, stored, height, hash)) {
+            nHeight = height;
+            blockHash = hash;
+            return;
+        }
+        nHeight = -1;
+        blockHash.SetNull();
+    };
+
     // Check the map that contains the reissued asset data. If it is in this map, it hasn't been saved to disk yet
     if (mapReissuedAssetData.count(name)) {
         asset = mapReissuedAssetData.at(name);
+        read_origin();
         return true;
     }
 
     // Check the map that contains the reissued asset data. If it is in this map, it hasn't been saved to disk yet
     if (passets->mapReissuedAssetData.count(name)) {
         asset = passets->mapReissuedAssetData.at(name);
+        read_origin();
         return true;
     }
 
