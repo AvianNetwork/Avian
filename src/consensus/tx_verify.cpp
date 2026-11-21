@@ -185,6 +185,15 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, TxValidationState& state, 
         const Coin& coin = inputs.AccessCoin(prevout);
         assert(!coin.IsSpent());
 
+        // AVN: an unspendable script never becomes a coin, so there is nothing here to spend.
+        // A node that ran 5.0.x still has the tag, restriction, verifier and zero-amount asset
+        // outputs it stored as coins before IsUnspendable() covered them. Without this it would
+        // accept a spend of one, which a 4.x node and a freshly synced node both refuse.
+        if (coin.out.scriptPubKey.IsUnspendable()) {
+            return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-txns-inputs-missingorspent",
+                                 strprintf("%s: input %s has an unspendable script", __func__, prevout.ToString()));
+        }
+
         // If prev is coinbase, check that it's matured
         if (coin.IsCoinBase() && nSpendHeight - coin.nHeight < COINBASE_MATURITY) {
             return state.Invalid(TxValidationResult::TX_PREMATURE_SPEND, "bad-txns-premature-spend-of-coinbase",
