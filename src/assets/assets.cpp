@@ -3248,8 +3248,8 @@ bool CheckReissueBurnTx(const CTxOut& txOut)
     if (!IsValidDestination(destination))
         return false;
 
-    // Check destination address is the correct burn address
-    if (EncodeDestination(destination) != "RXReissueAssetXXXXXXXXXXXXXXVEFAWu")
+    // Check destination address is the correct burn address for this network
+    if (EncodeDestination(destination) != GetBurnAddress(AssetType::REISSUE))
         return false;
 
     return true;
@@ -3798,7 +3798,7 @@ std::string GetBurnAddress(const AssetType type)
             return fTestnet ? "n1issueSubAssetXXXXXXXXXXXXXbNiH6v"
                             : "RXissueSubAssetXXXXXXXXXXXXXWcwhwL";
         case AssetType::MSGCHANNEL:
-            return fTestnet ? "n1issueMsgChanneLAssetXXXXXXW2ptUU"
+            return fTestnet ? "n1issueMsgChanneLAssetXXXXXXT2PBdD"
                             : "RXissueMsgChanneLAssetXXXXXXSjHvAY";
         case AssetType::OWNER:
             return "";
@@ -3820,7 +3820,7 @@ std::string GetBurnAddress(const AssetType type)
             return fTestnet ? "n1issueRestrictedXXXXXXXXXXXXZVT9V"
                             : "RXissueRestrictedXXXXXXXXXXXXzJZ1q";
         case AssetType::NULL_ADD_QUALIFIER:
-            return fTestnet ? "n1addTagBurnXXXXXXXXXXXXXXXXWQj6Et"
+            return fTestnet ? "n1addTagBurnXXXXXXXXXXXXXXXXX5oLMH"
                             : "RXaddTagBurnXXXXXXXXXXXXXXXXZQm5ya";
         default:
             return "";
