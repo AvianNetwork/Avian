@@ -290,6 +290,20 @@ schedule it. The work since v5.0.4 prepares it:
   with a warning. `-DWITH_LIBOQS=OFF` builds without it, and such a node
   refuses to start on a network where the deployment can activate.
 
+Chain parameters
+----------------
+
+The sync hints for mainnet are moved from block 5,140,000 to block 5,412,000:
+
+- `defaultAssumeValid`:
+  `0000004574bf0b15809cc76cc0fb1827503b0da3615cad29683381a488b8b00b`
+- `nMinimumChainWork`:
+  `00000000000000000000000000000000000000000000000046a64f229bfb97ec`
+- `chainTxData`: 6,149,804 transactions as of 21 November 2026
+
+A new node skips script verification for the blocks up to that height, so its
+first sync is faster.
+
 Tests and CI
 ------------
 
