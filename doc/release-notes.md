@@ -152,3 +152,12 @@ Credits
 
 Thanks to everyone who directly contributed to this release:
 
+P2P
+---
+
+- A header or block that forks from the active chain below the maximum
+  reorganization depth is refused as before, but the peer that sent it is no
+  longer disconnected and discouraged. The refusal depends on this node's own
+  tip and peers and says nothing against the peer, which 4.x gave a ban score
+  of 1 in 100.
+

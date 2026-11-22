@@ -61,6 +61,7 @@ add_executable(test_bitcoin
   mldsa44_witness_tests.cpp
   pqkey_vectors_tests.cpp
   logging_tests.cpp
+  maxreorg_tests.cpp
   mempool_tests.cpp
   merkle_tests.cpp
   merkleblock_tests.cpp

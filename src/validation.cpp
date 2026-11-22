@@ -4919,7 +4919,9 @@ static bool ContextualCheckBlockHeader(const CBlockHeader& block, BlockValidatio
                 if ((nCurrentNodeCount >= nMinReorgPeers) && bIsCurrentChainCaughtUp) {
                     LogError("%s: forked chain older than max reorganization depth (height %d), with connections (count %d), and caught up with active chain (%s)\n",
                         __func__, nHeight, nCurrentNodeCount, bIsCurrentChainCaughtUp ? "true" : "false");
-                    return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-fork-prior-to-maxreorgdepth");
+                    // Not BLOCK_CONSENSUS: the answer depends on our own tip, peers and clock, so the
+                    // peer is not misbehaving. 4.x gave it a ban score of 1 in 100 and kept it.
+                    return state.Invalid(BlockValidationResult::BLOCK_MAX_REORG_DEPTH, "bad-fork-prior-to-maxreorgdepth");
                 }
             }
         }

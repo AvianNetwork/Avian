@@ -1834,6 +1834,9 @@ void PeerManagerImpl::MaybePunishNodeForBlock(NodeId nodeid, const BlockValidati
         return;
     case BlockValidationResult::BLOCK_TIME_FUTURE:
         break;
+    // Refused because of our own state. The peer may simply be on the other side of a fork.
+    case BlockValidationResult::BLOCK_MAX_REORG_DEPTH:
+        break;
     }
     if (message != "") {
         LogDebug(BCLog::NET, "peer=%d: %s\n", nodeid, message);
