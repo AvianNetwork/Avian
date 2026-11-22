@@ -31,7 +31,7 @@ set(CLIENT_VERSION_MAJOR 5)
 set(CLIENT_VERSION_MINOR 0)
 set(CLIENT_VERSION_BUILD 5)
 set(CLIENT_VERSION_RC 0)
-set(CLIENT_VERSION_IS_RELEASE "false")
+set(CLIENT_VERSION_IS_RELEASE "true")
 set(COPYRIGHT_YEAR "2026")
 
 # During the enabling of the CXX and CXXOBJ languages, we modify
