@@ -36,8 +36,9 @@ enum class ExtensionPolicy {
     //! The client must send RequestExtensions and include everything in
     //! `required_extensions`, or it is disconnected.
     REQUIRE,
-    //! RequestExtensions is answered if sent, but is not demanded.
-    OPTIONAL,
+    //! RequestExtensions is answered if sent, but is not demanded. Not named
+    //! OPTIONAL, which the Windows headers define as a macro.
+    ALLOW,
     //! Avian extensions are not advertised at all. For proving that an
     //! unmodified client can still complete a session.
     OFF,

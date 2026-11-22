@@ -71,7 +71,7 @@ std::unique_ptr<Server> StartServer(const fs::path& datadir,
     opts.authority_key_file = datadir / "unused_authority";
     // Tests pin the policy they exercise; the production default is covered by
     // its own cases and by sv2_options_tests.
-    opts.extension_policy = sv2::ExtensionPolicy::OPTIONAL;
+    opts.extension_policy = sv2::ExtensionPolicy::ALLOW;
     if (tweak) tweak(opts);
 
     server->connman = std::make_unique<sv2::Connman>(opts, server->static_key, server->cert);
@@ -289,7 +289,7 @@ BOOST_AUTO_TEST_CASE(handshake_timeout_drops_idle_client)
 BOOST_AUTO_TEST_CASE(negotiation_agrees_on_supported_extensions)
 {
     auto server{StartServer(m_args.GetDataDirNet(), [](sv2::Options& o) {
-        o.extension_policy = sv2::ExtensionPolicy::OPTIONAL;
+        o.extension_policy = sv2::ExtensionPolicy::ALLOW;
         o.supported_extensions = {TEST_EXT};
     })};
     auto client{Connect(*server, server->AuthorityPubKey())};
@@ -534,7 +534,7 @@ BOOST_AUTO_TEST_CASE(optional_policy_still_serves_a_first_algorithm_selection)
     // one and -sv2extensionpolicy=optional could not serve minotaurx to
     // anybody. Only the require policy was tested, which is why it survived.
     auto server{StartServer(m_args.GetDataDirNet(), [](sv2::Options& o) {
-        o.extension_policy = sv2::ExtensionPolicy::OPTIONAL;
+        o.extension_policy = sv2::ExtensionPolicy::ALLOW;
         o.extension_id = sv2::AVIAN_EXTENSION_ID;
         o.supported_extensions = {sv2::AVIAN_EXTENSION_ID};
         o.pow_algos = {POW_TYPE_X16RT, POW_TYPE_MINOTAURX};
@@ -639,7 +639,7 @@ BOOST_AUTO_TEST_CASE(selection_without_negotiating_disconnects)
     // confirmed, so this is a protocol violation rather than an error reply.
     auto server{StartServer(m_args.GetDataDirNet(), [](sv2::Options& o) {
         ProductionLike(o);
-        o.extension_policy = sv2::ExtensionPolicy::OPTIONAL;
+        o.extension_policy = sv2::ExtensionPolicy::ALLOW;
         o.required_extensions.clear();
     })};
     auto client{Connect(*server, server->AuthorityPubKey())};

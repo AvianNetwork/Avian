@@ -285,7 +285,7 @@ BOOST_AUTO_TEST_CASE(extension_policy_parsing)
     {
         const auto opts{sv2::ReadOptions(m_args, ChainType::REGTEST)};
         BOOST_REQUIRE(opts);
-        BOOST_CHECK(opts->extension_policy == sv2::ExtensionPolicy::OPTIONAL);
+        BOOST_CHECK(opts->extension_policy == sv2::ExtensionPolicy::ALLOW);
         // Still advertised, just not demanded.
         BOOST_CHECK(!opts->supported_extensions.empty());
         BOOST_CHECK(opts->required_extensions.empty());

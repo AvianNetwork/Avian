@@ -144,7 +144,7 @@ util::Result<Options> ReadOptions(const ArgsManager& args, ChainType chain)
     if (policy == "require") {
         opts.extension_policy = ExtensionPolicy::REQUIRE;
     } else if (policy == "optional") {
-        opts.extension_policy = ExtensionPolicy::OPTIONAL;
+        opts.extension_policy = ExtensionPolicy::ALLOW;
     } else if (policy == "off") {
         opts.extension_policy = ExtensionPolicy::OFF;
     } else {
