@@ -41,8 +41,8 @@ Two related rules are back as well:
   longer offers such an output as an asset coin.
 - A qualifier tag or an address freeze is recorded against the address it
   names. 5.0.x recorded every one against an empty address. The tags and
-  freezes a 5.0.x node already stored stay as they are: `-reindexassets` does
-  not replay them, so a node that has processed any needs a full `-reindex`.
+  freezes a 5.0.x node already stored are put right at the first start with
+  this version: see "Asset database" below.
 
 Reward snapshots
 ----------------
@@ -55,7 +55,8 @@ own block.
 `distributereward` still pays every batch at once when it can. When it cannot,
 because the wallet is locked or short of funds, or the node stops part way, the
 distribution stays registered and the wallet it was asked of tries again each
-time it sees a new block, as 4.x did, until every batch has been sent. A
+time it sees a new block, as 4.x did, until every batch has been sent. The
+batches sent later use the change address `distributereward` was given. A
 distribution registered by an earlier 5.0.x is not picked up this way.
 
 - `canceldistribution` is new, and withdraws a registered distribution so that
@@ -137,9 +138,36 @@ GUI
 Asset database
 --------------
 
+- The asset database now records a version. A database written by 5.0.x has
+  none, and is rebuilt from the blocks on disk at the first start with this
+  version, which is what moves the tags and freezes 5.0.x stored under an
+  empty address to the addresses they name. The rebuild is automatic and needs
+  no `-reindex`. The node does not answer RPC calls until it is done, which on
+  mainnet takes a minute or two with a fast disk.
+- That rebuild, which is also what `-reindexassets` runs and what a node does
+  by itself when the asset database and the chain state disagree after an
+  unclean shutdown, now restores everything a full `-reindex` does. In 5.0.x
+  it lost every qualifier tag, address freeze and global freeze, and a
+  verifier string changed by a reissue went back to the one the asset was
+  issued with. It also left each asset credited to the address it was issued
+  to, in `listaddressesbyasset` and in reward snapshots, when that address had
+  since sent all of it away.
+- A rebuild that is interrupted is started again at the next start. 5.0.x
+  could take a partly rebuilt database for a finished one.
+- A rebuild keeps the undo data of reissues, so a reorganization across a
+  reissue after one still restores the asset as it was.
 - Reissuing an asset twice before the asset database was next written stored
   an arbitrary block height and hash for it, which `getassetdata` then showed.
   The height and hash the asset was issued at are kept.
+
+P2P
+---
+
+- A header or block that forks from the active chain below the maximum
+  reorganization depth is refused as before, but the peer that sent it is no
+  longer disconnected and discouraged. The refusal depends on this node's own
+  tip and peers and says nothing against the peer, which 4.x gave a ban score
+  of 1 in 100.
 
 No longer recorded
 ------------------

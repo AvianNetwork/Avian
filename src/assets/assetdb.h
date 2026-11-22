@@ -74,6 +74,11 @@ struct CBlockAssetUndo
     }
 };
 
+//! What the asset and restricted databases hold. Raised when a build stores something
+//! differently, so that a database written by an older one is rebuilt at startup.
+//!   1: a tag or a freeze is stored under the address it names (5.0.x used an empty one)
+static constexpr int ASSET_DB_VERSION{1};
+
 /** Asset database (assets/) */
 class CAssetsDB : public CDBWrapper
 {
@@ -100,6 +105,14 @@ public:
     // Best block tracking for asset DB consistency
     bool WriteBestBlock(const uint256& blockHash);
     bool ReadBestBlock(uint256& blockHash);
+
+    //! The ASSET_DB_VERSION of the build that last wrote a tip. False when there is none.
+    bool ReadVersion(int& version);
+
+    //! Set while the asset and restricted databases are being rebuilt from the chain, so
+    //! that a rebuild cut short is started again and not taken for a finished one.
+    bool WriteRebuildPending(bool pending);
+    bool ReadRebuildPending();
 
     // Erase from database functions
     bool EraseAssetData(const std::string& assetName);

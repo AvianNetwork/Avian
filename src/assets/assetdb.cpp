@@ -15,6 +15,8 @@ static const uint8_t MY_ASSET_FLAG = 'M';
 static const uint8_t BLOCK_ASSET_UNDO_DATA = 'U';
 static const uint8_t MEMPOOL_REISSUED_TX = 'Z';
 static const uint8_t ASSET_BEST_BLOCK_FLAG = 'T'; // Tip tracking
+static const uint8_t ASSET_DB_VERSION_FLAG = 'V';
+static const uint8_t ASSET_REBUILD_PENDING_FLAG = 'R';
 
 [[maybe_unused]] static size_t MAX_DATABASE_RESULTS = 50000;
 
@@ -63,7 +65,24 @@ bool CAssetsDB::ReadAssetAddressQuantity(const std::string& assetName, const std
 
 bool CAssetsDB::WriteBestBlock(const uint256& blockHash)
 {
-    return Write(ASSET_BEST_BLOCK_FLAG, blockHash);
+    // The version goes in with the tip, so a database that has a tip and no version
+    // is one written before there were versions.
+    return Write(ASSET_DB_VERSION_FLAG, ASSET_DB_VERSION) && Write(ASSET_BEST_BLOCK_FLAG, blockHash);
+}
+
+bool CAssetsDB::ReadVersion(int& version)
+{
+    return Read(ASSET_DB_VERSION_FLAG, version);
+}
+
+bool CAssetsDB::WriteRebuildPending(bool pending)
+{
+    return pending ? Write(ASSET_REBUILD_PENDING_FLAG, uint8_t{1}) : Erase(ASSET_REBUILD_PENDING_FLAG);
+}
+
+bool CAssetsDB::ReadRebuildPending()
+{
+    return Exists(ASSET_REBUILD_PENDING_FLAG);
 }
 
 bool CAssetsDB::ReadBestBlock(uint256& blockHash)

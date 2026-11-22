@@ -251,6 +251,9 @@ int main(int argc, char* argv[])
         case BlockValidationResult::BLOCK_TIME_FUTURE:
             std::cerr << "block timestamp was > 2 hours in the future (or our clock is bad)" << std::endl;
             break;
+        case BlockValidationResult::BLOCK_MAX_REORG_DEPTH:
+            std::cerr << "forks from the active chain below the maximum reorganization depth" << std::endl;
+            break;
         }
     }
 

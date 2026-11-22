@@ -13,6 +13,7 @@ static const uint8_t SNAPSHOTREQUEST_FLAG = 'S';
 static const uint8_t DISTRIBUTEREQUEST_FLAG = 'D';
 static const uint8_t DISTRIBUTETRANSACTION_FLAG = 'T';
 static const uint8_t DISTRIBUTEWALLET_FLAG = 'W';
+static const uint8_t DISTRIBUTECHANGE_FLAG = 'C';
 
 CSnapshotRequestDBEntry::CSnapshotRequestDBEntry()
 {
@@ -206,7 +207,18 @@ bool CDistributeSnapshotRequestDB::RetrieveDistributeSnapshotRequest(const uint2
 bool CDistributeSnapshotRequestDB::RemoveDistributeSnapshotRequest(const uint256& hash)
 {
     Erase(std::make_pair(DISTRIBUTEWALLET_FLAG, hash));
+    Erase(std::make_pair(DISTRIBUTECHANGE_FLAG, hash));
     return Erase(std::make_pair(DISTRIBUTEREQUEST_FLAG, hash));
+}
+
+bool CDistributeSnapshotRequestDB::SetDistributeChangeAddress(const uint256& hash, const std::string& address)
+{
+    return Write(std::make_pair(DISTRIBUTECHANGE_FLAG, hash), address);
+}
+
+bool CDistributeSnapshotRequestDB::GetDistributeChangeAddress(const uint256& hash, std::string& address)
+{
+    return Read(std::make_pair(DISTRIBUTECHANGE_FLAG, hash), address);
 }
 
 bool CDistributeSnapshotRequestDB::SetDistributeWallet(const uint256& hash, const std::string& wallet_name)

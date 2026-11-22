@@ -109,6 +109,10 @@ public:
     bool SetDistributeWallet(const uint256& hash, const std::string& wallet_name);
     bool GetDistributeWallet(const uint256& hash, std::string& wallet_name);
 
+    //! The change address distributereward was given, kept for the batches sent later.
+    bool SetDistributeChangeAddress(const uint256& hash, const std::string& address);
+    bool GetDistributeChangeAddress(const uint256& hash, std::string& address);
+
     //! Every distribution in the database, by the hash it is stored under.
     void ListDistributeSnapshots(std::map<uint256, CRewardSnapshot>& snapshots);
     void LoadAllDistributeSnapshot(std::map<uint256, CRewardSnapshot>& mapRewardSnapshots);
