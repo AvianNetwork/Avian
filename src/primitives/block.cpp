@@ -27,7 +27,6 @@
 #include <cstring>
 #include <unordered_map>
 
-#define TIME_MASK 0xffffff80
 
 // Global PoW algorithm timestamps, set during initialization
 static uint32_t g_nX16rtTimestamp = 0;
@@ -68,6 +67,12 @@ bool ArePoWHashParamsSet()
 // Format: [uint64_t version][uint64_t count][count × (uint256 key + uint256 value)]
 // ========================================================================
 static constexpr uint64_t POWCACHE_FILE_VERSION = 1;
+
+size_t PowCacheSize()
+{
+    LOCK(cs_powcache);
+    return g_pow_cache.size();
+}
 
 bool SavePowCache(const fs::path& cache_path)
 {

@@ -911,6 +911,11 @@ public:
         return TransactionMerklePath(m_block_template->block, 0);
     }
 
+    size_t getBlockReservedWeight() override
+    {
+        return m_assemble_options.block_reserved_weight;
+    }
+
     bool submitSolution(uint32_t version, uint32_t timestamp, uint32_t nonce, CTransactionRef coinbase) override
     {
         AddMerkleRootAndCoinbase(m_block_template->block, std::move(coinbase), version, timestamp, nonce);
@@ -971,6 +976,11 @@ public:
 
         BlockAssembler::Options assemble_options{options};
         ApplyArgsManOptions(*Assert(m_node.args), assemble_options);
+        // Clamped here as well as inside the assembler, so that what the
+        // template reports is what it was built with. A caller bounding a
+        // coinbase built elsewhere against the reservation needs the two to
+        // agree.
+        assemble_options = ClampOptions(assemble_options);
         return std::make_unique<BlockTemplateImpl>(assemble_options, BlockAssembler{chainman().ActiveChainstate(), context()->mempool.get(), assemble_options}.CreateNewBlock(), m_node);
     }
 

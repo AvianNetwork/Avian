@@ -11,8 +11,15 @@ export CI_IMAGE_NAME_TAG="mirror.gcr.io/ubuntu:24.04"
 export NO_DEPENDS=1
 export PACKAGES="cmake ninja-build pkgconf libboost-dev libevent-dev libsqlite3-dev libzmq3-dev qt6-base-dev qt6-tools-dev qt6-l10n-tools libqrencode-dev capnproto libcapnp-dev"
 export RUN_UNIT_TESTS=true
-# The functional (Python) test suite is not yet localized to Avian; keep it off for now.
-export RUN_FUNCTIONAL_TESTS=false
+# Most of the functional (Python) suite is not yet localized to Avian, so the
+# runner is given an explicit list rather than being let loose. mining_sv2.py
+# is localized and earns its place: it is the only test that crosses the Noise
+# handshake, extension negotiation, template delivery and ProcessNewBlock in
+# one go, and it mines real blocks under both proof-of-work algorithms. Unit
+# tests cannot reach any of that. Add further tests here as they are
+# localized.
+export RUN_FUNCTIONAL_TESTS=true
+export TEST_RUNNER_EXTRA="mining_sv2.py"
 export GOAL="install"
 # RIP-25 (feat/rip-25-keygen): build liboqs from source and build WITH_LIBOQS=ON so the
 # ML-DSA-44 code and its tests (pqkey_tests, mldsa44_sighash_tests) are actually exercised.

@@ -54,6 +54,17 @@ public:
     virtual std::vector<uint256> getCoinbaseMerklePath() = 0;
 
     /**
+     * The weight the assembler reserved for the coinbase transaction.
+     *
+     * Not the weight the caller asked for: a request below
+     * MINIMUM_BLOCK_RESERVED_WEIGHT is raised and -blockreservedweight
+     * replaces it outright. A caller that lets someone else build the
+     * coinbase has to bound it by the figure that was honoured, because the
+     * rest of the block was packed to fit inside MAX_BLOCK_WEIGHT minus this.
+     */
+    virtual size_t getBlockReservedWeight() = 0;
+
+    /**
      * Construct and broadcast the block.
      *
      * @returns if the block was processed, independent of block validity
