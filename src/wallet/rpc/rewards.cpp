@@ -225,9 +225,12 @@ void MaybeDistributeRewards(WalletContext& context)
             std::string owner;
             if (!pDistributeSnapshotDb->GetDistributeWallet(hash, owner) || owner != pwallet->GetName()) continue;
 
+            std::string change_address;
+            pDistributeSnapshotDb->GetDistributeChangeAddress(hash, change_address);
+
             std::vector<std::string> sent;
             std::pair<int, std::string> error;
-            if (ContinueRewardDistribution(*pwallet, hash, snapshot, "", sent, error)) {
+            if (ContinueRewardDistribution(*pwallet, hash, snapshot, change_address, sent, error)) {
                 pwallet->WalletLogPrintf("Reward distribution of %s to holders of %s at height %d is complete, %d transaction(s) sent now\n",
                                          snapshot.strDistributionAsset, snapshot.strOwnershipAsset, snapshot.nHeight, sent.size());
                 last_said.erase(hash);
@@ -345,6 +348,7 @@ RPCHelpMan distributereward()
 
             auto snapshotHash = distribRewardSnapshotData.GetHash();
             pDistributeSnapshotDb->SetDistributeWallet(snapshotHash, pwallet->GetName());
+            pDistributeSnapshotDb->SetDistributeChangeAddress(snapshotHash, change_address);
 
             // Everything is sent now if it can be. What cannot be is tried again each time
             // this wallet sees a new block, as 4.x did, until the distribution is complete.

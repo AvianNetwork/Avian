@@ -55,7 +55,8 @@ own block.
 `distributereward` still pays every batch at once when it can. When it cannot,
 because the wallet is locked or short of funds, or the node stops part way, the
 distribution stays registered and the wallet it was asked of tries again each
-time it sees a new block, as 4.x did, until every batch has been sent. A
+time it sees a new block, as 4.x did, until every batch has been sent. The
+batches sent later use the change address `distributereward` was given. A
 distribution registered by an earlier 5.0.x is not picked up this way.
 
 - `canceldistribution` is new, and withdraws a registered distribution so that
