@@ -126,7 +126,8 @@ public:
 
     void Clear()
     {
-        memory_cleanse(m_keydata.data(), m_keydata.size());
+        // A moved-from or never-set key has no buffer; memset(nullptr, 0, 0) is UB.
+        if (!m_keydata.empty()) memory_cleanse(m_keydata.data(), m_keydata.size());
         m_keydata.clear();
         m_pubkey = CPQPubKey{};
     }
