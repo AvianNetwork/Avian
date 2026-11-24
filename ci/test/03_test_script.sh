@@ -143,9 +143,16 @@ if [ "${BUILD_LIBOQS}" = "true" ]; then
     ${CI_RETRY_EXE} curl --location --fail "https://github.com/open-quantum-safe/liboqs/archive/refs/tags/${LIBOQS_VERSION}.tar.gz" -o liboqs.tar.gz
     echo "${LIBOQS_SHA256}  liboqs.tar.gz" | sha256sum -c -
     tar xzf liboqs.tar.gz
+    # The fuzz job sets these so liboqs gets the same sanitizers and coverage
+    # instrumentation as the fuzz binary; without them the fuzzer cannot see into
+    # the ML-DSA code and sanitizers do not check it.
+    LIBOQS_CMAKE_ARGS=()
+    if [ -n "${LIBOQS_C_COMPILER}" ]; then LIBOQS_CMAKE_ARGS+=("-DCMAKE_C_COMPILER=${LIBOQS_C_COMPILER}"); fi
+    if [ -n "${LIBOQS_C_FLAGS}" ]; then LIBOQS_CMAKE_ARGS+=("-DCMAKE_C_FLAGS=${LIBOQS_C_FLAGS}"); fi
     cmake -S "liboqs-${LIBOQS_VERSION}" -B liboqs-build -GNinja \
       -DOQS_BUILD_ONLY_LIB=ON -DOQS_MINIMAL_BUILD=SIG_ml_dsa_44 \
-      -DOQS_USE_OPENSSL=OFF -DBUILD_SHARED_LIBS=OFF -DCMAKE_INSTALL_PREFIX=/usr/local
+      -DOQS_USE_OPENSSL=OFF -DBUILD_SHARED_LIBS=OFF -DCMAKE_INSTALL_PREFIX=/usr/local \
+      "${LIBOQS_CMAKE_ARGS[@]}"
     cmake --build liboqs-build
     cmake --install liboqs-build
   )

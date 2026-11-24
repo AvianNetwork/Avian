@@ -64,6 +64,7 @@ add_executable(fuzz
   message.cpp
   miniscript.cpp
   mldsa44.cpp
+  mldsa44_oracle.cpp
   minisketch.cpp
   mini_miner.cpp
   muhash.cpp

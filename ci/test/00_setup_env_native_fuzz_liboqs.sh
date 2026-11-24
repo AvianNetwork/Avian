@@ -6,10 +6,12 @@
 
 # RIP-25: a WITH_LIBOQS=ON fuzz build so the real ML-DSA-44 verifier/decoder is
 # fuzzed, not the stub. Run nightly (off the per-PR critical path) via
-# .github/workflows/fuzz-liboqs-nightly.yml, and focused on the mldsa44 target,
-# which constructs a witness-v2 spend and shapes the witness toward the ML-DSA
-# sizes so control actually reaches mldsa::Verify. The per-PR fuzz job stays
-# WITH_LIBOQS=OFF and covers the parsing/consensus-structure paths of all targets.
+# .github/workflows/fuzz-liboqs-nightly.yml, and focused on the mldsa44* targets:
+# mldsa44 shapes a witness-v2 spend toward the ML-DSA sizes so control reaches
+# mldsa::Verify, and the mldsa44_oracle.cpp targets check the verifier's answers
+# (backend agreement, sign/verify round trips, descriptor derivation). The per-PR
+# fuzz job stays WITH_LIBOQS=OFF and covers the parsing/consensus-structure paths
+# of all targets.
 
 export LC_ALL=C.UTF-8
 
@@ -25,9 +27,11 @@ export RUN_FUZZ_TESTS=true
 # --generate loads the corpus in ${BASE_BUILD_DIR}/fuzz_corpus, fuzzes, and saves
 # new coverage-increasing inputs back so each nightly run deepens it.
 export FUZZ_GENERATE=${FUZZ_GENERATE:-true}
-# Run only the ML-DSA-44 target: it is the one that reaches the real verifier, and
-# the liboqs build exists solely to exercise that path.
-export FUZZ_TARGETS=${FUZZ_TARGETS:-mldsa44}
+# Run only the ML-DSA-44 targets: they are the ones that reach the real verifier
+# and signer, and the liboqs build exists solely to exercise those paths. The
+# runner fuzzes them in parallel, one per core, so keep the list within the
+# runner's core count or the job runs a second 100-minute round.
+export FUZZ_TARGETS=${FUZZ_TARGETS:-mldsa44 mldsa44_verify_differential mldsa44_spend mldsa44_descriptor}
 # Force a set-cover corpus minimization on this run regardless of the day. The
 # nightly minimizes weekly on its own (Sundays); set this (e.g. via the
 # workflow_dispatch input) to shrink the corpus on demand. Exported so the value
@@ -39,6 +43,10 @@ export CI_CONTAINER_CAP="--cap-add SYS_PTRACE"  # If run with (ASan + LSan), the
 # can find and statically link it. Version pinned to depends/packages/liboqs.mk.
 export BUILD_LIBOQS=true
 export LIBOQS_VERSION=0.16.0
+# Instrument liboqs like the fuzz binary. The "integer" sanitizer is left out:
+# lattice arithmetic wraps unsigned integers on purpose.
+export LIBOQS_C_COMPILER=clang
+export LIBOQS_C_FLAGS="-fsanitize=fuzzer-no-link,address,undefined -fno-sanitize-recover=undefined -fno-omit-frame-pointer"
 export AVIAN_CONFIG="\
  -DBUILD_FOR_FUZZING=ON \
  -DWITH_LIBOQS=ON \
