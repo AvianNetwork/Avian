@@ -57,6 +57,7 @@ add_executable(test_bitcoin
   key_io_tests.cpp
   key_tests.cpp
   pqkey_tests.cpp
+  mldsa44_conformance_tests.cpp
   mldsa44_sighash_tests.cpp
   mldsa44_witness_tests.cpp
   pqkey_vectors_tests.cpp
@@ -148,6 +149,7 @@ add_executable(test_bitcoin
 
 include(TargetDataSources)
 target_json_data_sources(test_bitcoin
+  data/acvp_mldsa_44_sigver.json
   data/base58_encode_decode.json
   data/bip341_wallet_vectors.json
   data/blockfilters.json
@@ -158,6 +160,7 @@ target_json_data_sources(test_bitcoin
   data/sighash.json
   data/tx_invalid.json
   data/tx_valid.json
+  data/wycheproof_mldsa_44_verify_test.json
 )
 target_raw_data_sources(test_bitcoin NAMESPACE test::data
   data/asmap.raw

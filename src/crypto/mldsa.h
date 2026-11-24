@@ -74,6 +74,18 @@ bool Verify(std::span<const uint8_t, SIG_SIZE> sig,
             std::span<const uint8_t, PUBKEY_SIZE> pubkey);
 
 /**
+ * Verify with liboqs's portable C backend, bypassing runtime CPU dispatch.
+ * Verify() runs an AVX2, NEON or C backend depending on the CPU; this always
+ * runs the C code, which is the same on every platform. Tests and fuzzers
+ * compare the two, so a backend that disagrees with the reference (which would
+ * split consensus between CPUs) is caught. Not used by consensus code.
+ */
+bool VerifyReference(std::span<const uint8_t, SIG_SIZE> sig,
+                     std::span<const uint8_t> msg,
+                     std::span<const uint8_t> ctx,
+                     std::span<const uint8_t, PUBKEY_SIZE> pubkey);
+
+/**
  * @return true if this build has real ML-DSA-44 (liboqs) support; false if it
  *         was built without liboqs, in which case KeyGen/Sign/Verify are stubs
  *         that return false. A node built without liboqs must refuse to run as a

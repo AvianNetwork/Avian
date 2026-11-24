@@ -45,6 +45,11 @@ struct OqsSig {
 // (Sign/Verify below use the public OQS ctx-string API and need no internal symbol.)
 extern "C" {
     int PQCP_MLDSA_NATIVE_MLDSA44_C_keypair_internal(uint8_t* pk, uint8_t* sk, const uint8_t* seed);
+    // The same portable backend's verify, used by VerifyReference only.
+    int PQCP_MLDSA_NATIVE_MLDSA44_C_verify(const uint8_t* sig, size_t siglen,
+                                           const uint8_t* m, size_t mlen,
+                                           const uint8_t* ctx, size_t ctxlen,
+                                           const uint8_t* pk);
 }
 
 } // namespace
@@ -108,6 +113,19 @@ bool Verify(std::span<const uint8_t, SIG_SIZE> sig,
     return rc == OQS_SUCCESS;
 }
 
+bool VerifyReference(std::span<const uint8_t, SIG_SIZE> sig,
+                     std::span<const uint8_t> msg,
+                     std::span<const uint8_t> ctx,
+                     std::span<const uint8_t, PUBKEY_SIZE> pubkey)
+{
+    if (ctx.size() > 255) return false;
+    return PQCP_MLDSA_NATIVE_MLDSA44_C_verify(
+        sig.data(), SIG_SIZE,
+        msg.data(), msg.size(),
+        ctx.data(), ctx.size(),
+        pubkey.data()) == 0;
+}
+
 bool IsAvailable() { return true; }
 
 #else // HAVE_LIBOQS not defined — stub implementations
@@ -125,6 +143,10 @@ bool Sign(std::span<uint8_t, SIG_SIZE>, std::span<const uint8_t>,
 
 bool Verify(std::span<const uint8_t, SIG_SIZE>, std::span<const uint8_t>,
             std::span<const uint8_t>, std::span<const uint8_t, PUBKEY_SIZE>)
+{ return false; }
+
+bool VerifyReference(std::span<const uint8_t, SIG_SIZE>, std::span<const uint8_t>,
+                     std::span<const uint8_t>, std::span<const uint8_t, PUBKEY_SIZE>)
 { return false; }
 
 bool IsAvailable() { return false; }
