@@ -2724,6 +2724,10 @@ std::vector<std::unique_ptr<DescriptorImpl>> ParseScript(uint32_t& key_exp_index
             error = "mldsa44(): path must not be empty";
             return {};
         }
+        if (std::ranges::any_of(paths[0], [](uint32_t step) { return (step >> 31) == 0; })) {
+            error = "mldsa44(): every derivation step must be hardened";
+            return {};
+        }
         ret.emplace_back(std::make_unique<MLDsa44Descriptor>(extpubkey, std::move(paths[0]), apostrophe));
         return ret;
     } else if (Func("mldsa44", expr)) {
