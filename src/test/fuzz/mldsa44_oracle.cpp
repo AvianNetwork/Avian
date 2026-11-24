@@ -350,15 +350,25 @@ FUZZ_TARGET(mldsa44_descriptor, .init = initialize_mldsa44_descriptor)
     const bool apostrophe = fdp.ConsumeBool();
     const std::string hardened_marker{apostrophe ? "'" : "h"};
     std::string path;
+    bool all_hardened{true};
     const int depth = fdp.ConsumeIntegralInRange<int>(1, 5);
     for (int i = 0; i < depth; ++i) {
         path += "/" + util::ToString(fdp.ConsumeIntegralInRange<uint32_t>(0, 0x7FFFFFFF));
-        if (fdp.ConsumeBool()) path += hardened_marker;
+        if (fdp.ConsumeBool()) {
+            path += hardened_marker;
+        } else {
+            all_hardened = false;
+        }
     }
     path += "/*" + hardened_marker;
 
     FlatSigningProvider keys;
     const auto parsed = Parse("mldsa44(" + EncodeExtKey(root) + path + ")", keys, error);
+    if (!all_hardened) {
+        assert(parsed.empty());
+        assert(error == "mldsa44(): every derivation step must be hardened");
+        return;
+    }
     assert(parsed.size() == 1);
     const Descriptor& desc = *parsed[0];
     assert(desc.IsRange());

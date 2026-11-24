@@ -1413,6 +1413,14 @@ BOOST_AUTO_TEST_CASE(descriptor_mldsa44_test)
         "mldsa44(" + xprv + "/*')",
         "mldsa44(" + xpub + "/*')",
         "mldsa44(): path must not be empty");
+
+    // Every fixed step must be hardened, not only the final one.
+    for (const std::string path : {"/25/921'/0'/0'/*'", "/25'/921'/0/0'/*'", "/25'/921'/0'/0/*'", "/0/*h"}) {
+        CheckUnparsable(
+            "mldsa44(" + xprv + path + ")",
+            "mldsa44(" + xpub + path + ")",
+            "mldsa44(): every derivation step must be hardened");
+    }
 }
 #endif // HAVE_LIBOQS
 

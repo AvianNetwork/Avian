@@ -138,8 +138,8 @@ Wallets derive ML-DSA-44 keys through a descriptor:
 mldsa44(<xpub>/25h/921h/0h/<0h|1h>/*h)         (purpose 25 = RIP-25, coin type 921 = Avian)
 ```
 
-All steps are hardened; the final step must be `/*h` (`src/script/descriptor.cpp:2678-2717`,
-`src/wallet/walletutil.cpp:63-75`). Let `leaf` be the 32-byte hardened BIP32 child private key at
+Every step must be hardened and the final step must be `/*h`; the descriptor parser rejects any
+other path (`src/script/descriptor.cpp:2692-2736`, `src/wallet/walletutil.cpp:63-75`). Let `leaf` be the 32-byte hardened BIP32 child private key at
 the leaf. The keypair is then derived by this exact, normative algorithm:
 
 ```
@@ -312,7 +312,7 @@ across a clean liboqs rebuild. They pin the derivation and the digest so neither
 - Signing: `src/script/sign.cpp:98-121`
 - Crypto wrapper / keygen: `src/crypto/mldsa.{h,cpp}`, keys `src/pqkey.{h,cpp}`
 - Address type: `src/addresstype.h:132-144`, `src/script/solver.{h,cpp}`
-- Descriptor: `src/script/descriptor.cpp:2161-2362`
+- Descriptor: `src/script/descriptor.cpp:2164-2376`, parser at `2692-2736`
 - Activation: `src/consensus/params.h:40`, `src/kernel/chainparams.cpp`, `src/validation.cpp:2667-2670`
 - Error codes: `src/script/script_error.h:90-94`
 
