@@ -121,6 +121,14 @@ static RPCHelpMan listassets()
                     if (matches)
                         assets.emplace_back(entry.asset, entry.blockHeight, entry.blockHash);
                 }
+
+                // Overlay uncommitted reissues so a just-reissued asset shows its
+                // new amount/units/flags before the next flush, as getassetdata does.
+                for (auto& d : assets) {
+                    auto it = passets->mapReissuedAssetData.find(d.asset.strName);
+                    if (it != passets->mapReissuedAssetData.end())
+                        d.asset = it->second;
+                }
             }
 
             UniValue result;
