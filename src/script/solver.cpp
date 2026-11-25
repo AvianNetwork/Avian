@@ -157,6 +157,29 @@ TxoutType Solver(const CScript& scriptPubKey, std::vector<std::vector<unsigned c
         return TxoutType::SCRIPTHASH;
     }
 
+    // Avian asset scripts (4.x parity). 4.x (Solver in standard.cpp) tests the
+    // asset template immediately after P2SH, BEFORE witness/pubkey/pubkeyhash/
+    // multisig. An asset-shaped script that also matches one of those templates
+    // must therefore classify as an asset, and its address is bytes 3..22. Testing
+    // it last (as before) classified such a script as a pubkey or multisig with a
+    // different or empty address, so the asset balance, owner-address match and
+    // restricted-asset frozen/verifier checks keyed on that address diverged from
+    // 4.x and could reject or accept a block the 4.x majority did not.
+    {
+        int nType = 0;
+        bool fIsOwner = false;
+        if (scriptPubKey.IsAssetScript(nType, fIsOwner)) {
+            // Extract the destination hash (bytes 3..22) for standard asset scripts
+            if (scriptPubKey.size() >= 23) {
+                std::vector<unsigned char> hashBytes(scriptPubKey.begin() + 3, scriptPubKey.begin() + 23);
+                vSolutionsRet.push_back(hashBytes);
+            }
+            if (nType == 8) return TxoutType::NEW_ASSET;
+            if (nType == 9) return TxoutType::REISSUE_ASSET;
+            if (nType == 10) return TxoutType::TRANSFER_ASSET;
+        }
+    }
+
     int witnessversion;
     std::vector<unsigned char> witnessprogram;
     if (scriptPubKey.IsWitnessProgram(witnessversion, witnessprogram)) {
@@ -215,22 +238,6 @@ TxoutType Solver(const CScript& scriptPubKey, std::vector<std::vector<unsigned c
         vSolutionsRet.insert(vSolutionsRet.end(), keys.begin(), keys.end());
         vSolutionsRet.push_back({static_cast<unsigned char>(keys.size())}); // safe as size is in range 1..20
         return TxoutType::MULTISIG;
-    }
-
-    // Avian asset scripts
-    {
-        int nType = 0;
-        bool fIsOwner = false;
-        if (scriptPubKey.IsAssetScript(nType, fIsOwner)) {
-            // Extract the destination hash (bytes 3..22) for standard asset scripts
-            if (scriptPubKey.size() >= 23) {
-                std::vector<unsigned char> hashBytes(scriptPubKey.begin() + 3, scriptPubKey.begin() + 23);
-                vSolutionsRet.push_back(hashBytes);
-            }
-            if (nType == 8) return TxoutType::NEW_ASSET;
-            if (nType == 9) return TxoutType::REISSUE_ASSET;
-            if (nType == 10) return TxoutType::TRANSFER_ASSET;
-        }
     }
 
     // Avian OP_AVN_ASSET null data (restricted asset data, qualifier tags, verifier strings)
