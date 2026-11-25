@@ -17,6 +17,8 @@
 #include <key_io.h>
 #include <primitives/transaction.h>
 #include <script/script.h>
+#include <span.h>
+#include <streams.h>
 #include <test/util/setup_common.h>
 #include <uint256.h>
 #include <univalue.h>
@@ -252,6 +254,47 @@ BOOST_AUTO_TEST_CASE(asset_data_to_univ)
         BOOST_CHECK(!out.exists("asset_data"));
         BOOST_CHECK_EQUAL(out["asset"]["name"].get_str(), "AVIANTEST");
     }
+}
+
+// A reissue payload truncated before strANSID. 4.x reads strANSID
+// unconditionally and rejects this; 5.0.x skipped the field when no bytes
+// remained and accepted (and would mint) an output a 4.x node rejects.
+BOOST_AUTO_TEST_CASE(reissue_truncated_before_ansid_is_rejected)
+{
+    CReissueAsset reissue{"REISSUETEST", 100 * COIN, /*nUnits=*/0, /*nReissuable=*/1,
+                          /*strIPFSHash=*/"", /*strANSID=*/""};
+    DataStream ss{};
+    ss << reissue;
+    const std::vector<unsigned char> full(UCharCast(ss.data()), UCharCast(ss.data() + ss.size()));
+
+    // strANSID is serialised last; empty is a single 0x00 length byte. Dropping
+    // it leaves a payload that ends exactly at the IPFS field.
+    BOOST_REQUIRE(!full.empty());
+    BOOST_REQUIRE_EQUAL(full.back(), 0x00);
+    const std::vector<unsigned char> truncated{full.begin(), full.end() - 1};
+
+    // A reissue script carrying the given payload, with no trailing opcode so the
+    // extracted stream ends exactly where the payload does.
+    const auto reissue_script = [](const std::vector<unsigned char>& payload) {
+        std::vector<unsigned char> msg{AVN_R, AVN_V, AVN_N, AVN_R}; // "rvnr"
+        msg.insert(msg.end(), payload.begin(), payload.end());
+        CScript script{GetScriptForDestination(Owner())};
+        script << OP_AVN_ASSET << msg;
+        return script;
+    };
+
+    CReissueAsset parsed;
+    std::string address;
+
+    // The whole payload still parses.
+    BOOST_CHECK(reissue_script(full).IsAssetScript());
+    BOOST_CHECK(ReissueAssetFromScript(reissue_script(full), parsed, address));
+    BOOST_CHECK_EQUAL(parsed.strName, "REISSUETEST");
+
+    // Truncated before strANSID: still recognised as a reissue script, but must
+    // fail to deserialize, matching 4.x.
+    BOOST_CHECK(reissue_script(truncated).IsAssetScript());
+    BOOST_CHECK(!ReissueAssetFromScript(reissue_script(truncated), parsed, address));
 }
 
 BOOST_AUTO_TEST_SUITE_END()
