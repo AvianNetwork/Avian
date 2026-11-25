@@ -16,6 +16,11 @@
 > that version (`.../v2`). The deployment is `NEVER_ACTIVE` on mainnet, so the tunable constants
 > (sigop cost, the `.../v1` derivation and context tags) remain revisable by such a versioned spec
 > update before activation; the freeze fixes the current values so they cannot drift silently.
+>
+> **Revision 2.** Two rules changed after a review of PR #259, under the procedure above. The
+> signature context gained the network's message start and its tag became `.../v2` (see Domain
+> separation), and a P2SH-wrapped program is no longer charged a sigop cost (see Resource limits
+> and DoS). Signatures made under the `.../v1` context do not verify under this revision.
 
 ## Abstract
 
@@ -118,6 +123,7 @@ Error codes are defined at `src/script/script_error.h:90-94`.
 
 A RIP-25 program wrapped in P2SH is not recognized (`!is_p2sh` guard, `interpreter.cpp:2027`).
 RIP-25 outputs are native SegWit only.
+It is an unknown witness program: no signature is verified for it, and it is charged no sigop cost.
 
 ### Pre-activation semantics
 
@@ -214,7 +220,10 @@ already tolerates for ECDSA. RIP-25 is therefore not a validation-time DoS vecto
 
 To make that bound explicit and to price the operation, each active ML-DSA-44 verification is charged
 a **sigop cost** (`MLDSA44_SIGOP_COST = 50`, `src/script/script.h`), counted in `WitnessSigOps`
-(`src/script/interpreter.cpp`) only when `SCRIPT_VERIFY_MLDSA44` is set. Charging it through the
+(`src/script/interpreter.cpp`) only when `SCRIPT_VERIFY_MLDSA44` is set and the program is not
+wrapped in P2SH. A P2SH-wrapped program is not a RIP-25 output and nothing is verified for it (see
+P2SH exclusion), so it is charged nothing: the cost applies exactly where the verification does.
+Charging it through the
 existing sigop machinery reuses three limits at once, with no parallel accounting system:
 
 - **Per block:** it counts toward `MAX_BLOCK_SIGOPS_COST` (80000), capping a block at 1600 PQ
@@ -244,21 +253,29 @@ native context string (the `pre = 0x00 || len(ctx) || ctx` prefix prepended to t
 signing and verification). The context is:
 
 ```
-ctx = "AVN/ML-DSA-44/v1/" || genesis_block_hash        (24 + 32 = 56 bytes)
+ctx = "AVN/ML-DSA-44/v2/" || genesis_block_hash || message_start        (17 + 32 + 4 = 53 bytes)
 ```
 
-The genesis block hash is the canonical, immutable per-network identifier, so a signature made for
-one network (e.g. testnet) can never verify on another (mainnet), independently of the transaction
-contents. The versioned prefix separates RIP-25 from any other ML-DSA use and lets a future context
-change be unambiguous (`.../v2`), and reserves room for a distinct context in a future asset-enabled
+`genesis_block_hash` is the 32-byte hash in internal byte order and `message_start` is the 4-byte
+P2P network magic (`CChainParams::MessageStart()`). The genesis hash alone does not identify a
+network: testnet and testnet4 share one, and so do regtest and signet. The message start differs on
+every network, including a signet with a custom challenge, so with both a signature made for one
+network (e.g. testnet) can never verify on another (testnet4, mainnet), independently of the
+transaction contents. The versioned prefix separates RIP-25 from any other ML-DSA use and makes a
+context change unambiguous, and reserves room for a distinct context in a future asset-enabled
 revision (AVN vs asset spends).
+
+The `.../v1` context was the prefix and the genesis hash only (49 bytes). It gave testnet and
+testnet4 the same context, and it is no longer accepted.
 
 The context is a single process value, set once from the active network in `SelectParams()` and read
 by both the consensus verifier and the signer via `GetMLDsa44DomainContext()`
 (`src/script/interpreter.h`). It lives in the `bitcoin_consensus` layer because the script verifier
 cannot depend on chainparams; the network-selection layer pushes the value in. Signing and verifying
 therefore always agree, and there is no per-call-site value that could drift between mempool and
-consensus. Enforced by `mldsa44_sighash_tests.cpp` (`domain_separation_binds_the_network`).
+consensus. Enforced by `mldsa44_sighash_tests.cpp` (`domain_separation_binds_the_network`, and
+`domain_context_differs_on_every_network`, which selects each network in turn and requires five
+different contexts).
 
 > Note: this is defence in depth. BIP143 already binds each input to its prevout, so a spend built on
 > one chain does not have a valid preimage on another; the context makes the network binding explicit
@@ -270,13 +287,13 @@ consensus. Enforced by `mldsa44_sighash_tests.cpp` (`domain_separation_binds_the
    standards-aligned derandomized keygen (`xi = SHA256(DST || leaf)`, then FIPS-204
    `KeyGen_internal(xi)`), pinned by a known-answer vector (see Key derivation).
 2. **Domain separation:** RESOLVED. Every signature is bound to a FIPS-204 context string
-   `"AVN/ML-DSA-44/v1/" || genesis_block_hash`, set once from the active network in
-   `SelectParams()` and shared by signer and verifier, giving explicit per-network binding (see
+   `"AVN/ML-DSA-44/v2/" || genesis_block_hash || message_start`, set once from the active network
+   in `SelectParams()` and shared by signer and verifier, giving explicit per-network binding (see
    Domain separation).
 3. **Resource limits:** RESOLVED. Each active ML-DSA-44 verification is charged
    `MLDSA44_SIGOP_COST = 50` sigops, bounding a block to 1600 and a standard transaction to 320 PQ
-   verifications and tying fees to the cost; `IsWitnessStandard` requires the canonical two-element
-   witness (see Resource limits and DoS).
+   verifications and tying fees to the cost; a P2SH-wrapped program is charged nothing;
+   `IsWitnessStandard` requires the canonical two-element witness (see Resource limits and DoS).
 4. **Sighash policy:** RESOLVED. `SIGHASH_ALL | SIGHASH_FORKID` is the permanent and only rule; no
    sighash-type byte is carried in the witness. The two magic `0x41` literals are replaced by the
    named `SIGHASH_ALL | SIGHASH_FORKID` on both the signing and verifying sides, and the rule is

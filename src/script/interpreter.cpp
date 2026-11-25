@@ -2228,7 +2228,7 @@ bool VerifyScript(const CScript& scriptSig, const CScript& scriptPubKey, const C
     return set_success(serror);
 }
 
-size_t static WitnessSigOps(int witversion, const std::vector<unsigned char>& witprogram, const CScriptWitness& witness, unsigned int flags)
+size_t static WitnessSigOps(int witversion, const std::vector<unsigned char>& witprogram, const CScriptWitness& witness, unsigned int flags, bool is_p2sh)
 {
     if (witversion == 0) {
         if (witprogram.size() == WITNESS_V0_KEYHASH_SIZE)
@@ -2245,7 +2245,9 @@ size_t static WitnessSigOps(int witversion, const std::vector<unsigned char>& wi
     // the block and per-tx sigop limits and the sigop-based fee weighting, but
     // only once the post-quantum rule is active (the same gate as the
     // verification itself), so pre-activation cost accounting is unchanged.
-    if (witversion == 2 && witprogram.size() == 32 && (flags & SCRIPT_VERIFY_MLDSA44)) {
+    // A P2SH-wrapped v2 program is not an ML-DSA-44 output and is never
+    // verified (see VerifyWitnessProgram), so it is not charged either.
+    if (witversion == 2 && witprogram.size() == 32 && !is_p2sh && (flags & SCRIPT_VERIFY_MLDSA44)) {
         return MLDSA44_SIGOP_COST;
     }
 
@@ -2265,7 +2267,7 @@ size_t CountWitnessSigOps(const CScript& scriptSig, const CScript& scriptPubKey,
     int witnessversion;
     std::vector<unsigned char> witnessprogram;
     if (scriptPubKey.IsWitnessProgram(witnessversion, witnessprogram)) {
-        return WitnessSigOps(witnessversion, witnessprogram, witness ? *witness : witnessEmpty, flags);
+        return WitnessSigOps(witnessversion, witnessprogram, witness ? *witness : witnessEmpty, flags, /*is_p2sh=*/false);
     }
 
     if (scriptPubKey.IsPayToScriptHash() && scriptSig.IsPushOnly()) {
@@ -2277,7 +2279,7 @@ size_t CountWitnessSigOps(const CScript& scriptSig, const CScript& scriptPubKey,
         }
         CScript subscript(data.begin(), data.end());
         if (subscript.IsWitnessProgram(witnessversion, witnessprogram)) {
-            return WitnessSigOps(witnessversion, witnessprogram, witness ? *witness : witnessEmpty, flags);
+            return WitnessSigOps(witnessversion, witnessprogram, witness ? *witness : witnessEmpty, flags, /*is_p2sh=*/true);
         }
     }
 
