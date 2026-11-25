@@ -128,4 +128,11 @@ CI_EXEC "${BASE_ROOT_DIR}/ci/test/03_test_script.sh"
 if [ -z "$DANGER_RUN_CI_ON_HOST" ]; then
   echo "Stop and remove CI container by ID"
   docker container kill "${CI_CONTAINER_ID}"
+  # The kill returns before --rm has removed the container. A job that runs its
+  # build and test phases as two steps starts the next container under the same
+  # name, which fails while the old one still exists.
+  for _ in $(seq 1 30); do
+    docker container inspect "${CI_CONTAINER_ID}" > /dev/null 2>&1 || break
+    sleep 1
+  done
 fi

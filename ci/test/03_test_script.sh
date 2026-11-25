@@ -234,13 +234,15 @@ if [ "$RUN_CHECK_DEPS" = "true" ]; then
 fi
 
 if [ "$RUN_UNIT_TESTS" = "true" ] && [ "${CI_PHASE}" != "build" ]; then
+  # shellcheck disable=SC2086
   DIR_UNIT_TEST_DATA="${DIR_UNIT_TEST_DATA}" \
   LD_LIBRARY_PATH="${DEPENDS_DIR}/${HOST}/lib" \
   CTEST_OUTPUT_ON_FAILURE=ON \
   ctest --test-dir "${BASE_BUILD_DIR}" \
     --stop-on-failure \
     "${MAKEJOBS}" \
-    --timeout $(( TEST_RUNNER_TIMEOUT_FACTOR * 60 ))
+    --timeout $(( TEST_RUNNER_TIMEOUT_FACTOR * 60 )) \
+    ${CTEST_EXCLUDE_REGEX:+--exclude-regex "${CTEST_EXCLUDE_REGEX}"}
 fi
 
 if [ "$RUN_FUNCTIONAL_TESTS" = "true" ] && [ "${CI_PHASE}" != "build" ]; then
