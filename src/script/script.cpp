@@ -364,6 +364,20 @@ bool GetScriptOp(CScriptBase::const_iterator& pc, CScriptBase::const_iterator en
         pc += nSize;
     }
 
+    // Avian consensus (4.x parity): OP_AVN_ASSET ends script parsing. Everything
+    // after it is treated as this opcode's data, not as further opcodes, and the
+    // cursor jumps to the end of the script. 4.x nodes do this in CScript::GetOp2,
+    // so without it the bytes after the asset marker execute as script (changing
+    // the result, the sigop count and the signature hash) and a 5.x node would
+    // diverge from the 4.x majority. The canonical asset output (ending OP_DROP)
+    // is unaffected; only non-canonical tails behave differently.
+    if (opcode == OP_AVN_ASSET) {
+        unsigned int nSize = end - pc;
+        if (pvchRet)
+            pvchRet->assign(pc, pc + nSize);
+        pc += nSize;
+    }
+
     opcodeRet = static_cast<opcodetype>(opcode);
     return true;
 }
@@ -429,12 +443,15 @@ bool CScript::IsAssetScript(int& nType, bool& fIsOwner, int& nStartingIndex) con
                 if ((*this)[29] == AVN_V)
                     if ((*this)[30] == AVN_N)
                         index = 31;
-            } else if (this->size() > 32 && (*this)[29] == AVN_R) {
-                // OP_PUSHDATA2 (3-byte prefix) at [26-28]: data starts at [29]
-                if ((*this)[30] == AVN_V)
-                    if ((*this)[31] == AVN_N)
-                        index = 32;
             }
+            // 4.x (CScript::IsAssetScript) recognises only the 1-byte-push and
+            // OP_PUSHDATA1 layouts. A 3-byte OP_PUSHDATA2 layout, needed only for
+            // an ANS-v2 payload larger than 520 bytes, is deliberately NOT matched
+            // here: it is ungated new behaviour that 4.x rejects, so recognising it
+            // would let a 5.x node classify an output no 4.x node sees as an asset
+            // and fork from the majority. When ANS v2 is readied for activation,
+            // reintroduce it gated on the ANS-v2 deployment, in step with the
+            // interpreter's SCRIPT_VERIFY_ANS_V2 element-size gate.
 
             if (index > 0) {
                 nStartingIndex = index + 1;

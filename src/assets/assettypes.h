@@ -103,15 +103,15 @@ bool SerializeIPFSHash(Stream& s, const std::string& strIPFSHash)
 template <typename Stream>
 bool UnserializeIPFSHash(Stream& s, std::string& strIPFSHash)
 {
+    // 4.x parity (CNewAsset::ReadWriteAssetIPFSHash read path). The field is a
+    // single type byte followed by a length-prefixed string, and 4.x consumes it
+    // unconditionally whenever it is present (>= 33 bytes remain), whatever the
+    // type byte is. The type byte only decides whether the "Qm" IPFS marker is
+    // prepended. Gating consumption on the type byte (only 0x12/0x54), or using a
+    // 34-byte threshold, leaves bytes that a 4.x node consumed, so the two nodes
+    // then decode the same asset payload differently and fork.
     strIPFSHash.clear();
-    if (!s.empty() && s.size() >= 34) {
-        // Peek at the type byte before consuming.  If it is not a known IPFS/TXID
-        // marker (0x12 or 0x54) the remaining stream bytes belong to a different
-        // field (e.g. strANSID) and must not be consumed here.
-        int8_t peekType = static_cast<int8_t>(s[0]);
-        if (peekType != IPFS_SHA2_256 && peekType != TXID_NOTIFIER)
-            return false;
-
+    if (!s.empty() && s.size() >= 33) {
         int8_t type;
         ::Unserialize(s, type);
         std::string hash;
