@@ -367,7 +367,12 @@ void SendAssetsEntry::onAssetSelected(int index)
 
     // Look up asset balance from the cached AssetTableModel
     QString balanceStr = tr("(unknown)");
-    if (model && model->getAssetTableModel()) {
+    if (fIsOwnerAsset) {
+        // An owner token is a single indivisible unit, and the administrator list
+        // only offers ones the wallet holds. The asset table merges it into the
+        // base asset's row, so it has no row of its own to look up.
+        balanceStr = "1";
+    } else if (model && model->getAssetTableModel()) {
         AssetTableModel* assetModel = model->getAssetTableModel();
         QString lookupName = ui->assetSelectionBox->currentText();
         for (int i = 0; i < assetModel->rowCount(QModelIndex()); i++) {
