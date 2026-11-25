@@ -1017,13 +1017,13 @@ bool BlockManager::WriteBlockUndo(const CBlockUndo& blockundo, BlockValidationSt
     return true;
 }
 
-bool BlockManager::ReadBlock(CBlock& block, const FlatFilePos& pos, const std::optional<uint256>& expected_hash) const
+bool BlockManager::ReadBlock(CBlock& block, const FlatFilePos& pos, const std::optional<uint256>& expected_hash, AutoFile* open_file) const
 {
     block.SetNull();
 
     // Open history file to read
     std::vector<std::byte> block_data;
-    if (!ReadRawBlock(block_data, pos)) {
+    if (!(open_file ? ReadRawBlock(block_data, pos, *open_file) : ReadRawBlock(block_data, pos))) {
         return false;
     }
 
@@ -1078,10 +1078,24 @@ bool BlockManager::ReadRawBlock(std::vector<std::byte>& block, const FlatFilePos
         LogError("OpenBlockFile failed for %s while reading raw block", pos.ToString());
         return false;
     }
+    return ReadRawBlock(block, pos, filein);
+}
+
+bool BlockManager::ReadRawBlock(std::vector<std::byte>& block, const FlatFilePos& pos, AutoFile& filein) const
+{
+    if (pos.nPos < STORAGE_HEADER_BYTES || filein.IsNull()) {
+        LogError("Failed for %s while reading raw block storage header", pos.ToString());
+        return false;
+    }
 
     try {
         MessageStartChars blk_start;
         unsigned int blk_size;
+
+        // A block stored right after the one read before needs no seek, which keeps
+        // the read buffer.
+        const int64_t header_pos{int64_t{pos.nPos} - STORAGE_HEADER_BYTES};
+        if (filein.tell() != header_pos) filein.seek(header_pos, SEEK_SET);
 
         filein >> blk_start >> blk_size;
 
@@ -1104,6 +1118,30 @@ bool BlockManager::ReadRawBlock(std::vector<std::byte>& block, const FlatFilePos
         return false;
     }
 
+    return true;
+}
+
+bool BlockFileReader::ReadBlock(CBlock& block, const CBlockIndex& index)
+{
+    const FlatFilePos pos{WITH_LOCK(cs_main, return index.GetBlockPos())};
+    if (pos.IsNull()) {
+        LogError("No block data for %s while reading block", index.GetBlockHash().ToString());
+        return false;
+    }
+    if (!m_file || m_file_num != pos.nFile) {
+        m_file.reset(new AutoFile(m_blockman.OpenBlockFile({pos.nFile, 0}, /*fReadOnly=*/true)));
+        m_file_num = pos.nFile;
+        if (m_file->IsNull()) {
+            m_file.reset();
+            LogError("OpenBlockFile failed for %s while reading block", pos.ToString());
+            return false;
+        }
+    }
+    if (!m_blockman.ReadBlock(block, pos, index.GetBlockHash(), m_file.get())) {
+        // The file may be left in an error state; open it again for the next block.
+        m_file.reset();
+        return false;
+    }
     return true;
 }
 

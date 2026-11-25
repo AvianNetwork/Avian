@@ -411,13 +411,40 @@ public:
     void UnlinkPrunedFiles(const std::set<int>& setFilesToPrune) const;
 
     /** Functions for disk access for blocks */
-    bool ReadBlock(CBlock& block, const FlatFilePos& pos, const std::optional<uint256>& expected_hash) const;
+    /** @param[in] open_file  If given, the block file of pos, already open; it is read from instead of opening the file. */
+    bool ReadBlock(CBlock& block, const FlatFilePos& pos, const std::optional<uint256>& expected_hash, AutoFile* open_file = nullptr) const;
     bool ReadBlock(CBlock& block, const CBlockIndex& index) const;
     bool ReadRawBlock(std::vector<std::byte>& block, const FlatFilePos& pos) const;
+    /** Read from filein, which must be the block file of pos. It is moved to the block if it is not there. */
+    bool ReadRawBlock(std::vector<std::byte>& block, const FlatFilePos& pos, AutoFile& filein) const;
 
     bool ReadBlockUndo(CBlockUndo& blockundo, const CBlockIndex& index) const;
 
     void CleanupBlockRevFiles() const;
+};
+
+/**
+ * Reads blocks one after another and keeps the block file it last read from open.
+ *
+ * BlockManager::ReadBlock() opens blk?????.dat once per block. In a walk over the whole
+ * chain that is most of the time taken where opening a file is slow, as it is on
+ * Windows. Blocks of neighbouring heights are stored close together, so a walk in height
+ * order through this reader opens each file only a few times.
+ *
+ * The file is held open for reading only. Do not keep a reader across anything that may
+ * delete block files (pruning).
+ */
+class BlockFileReader
+{
+    const BlockManager& m_blockman;
+    std::unique_ptr<AutoFile> m_file;
+    int m_file_num{-1};
+
+public:
+    explicit BlockFileReader(const BlockManager& blockman) : m_blockman{blockman} {}
+
+    /** As BlockManager::ReadBlock(block, index). */
+    bool ReadBlock(CBlock& block, const CBlockIndex& index);
 };
 
 // Calls ActivateBestChain() even if no blocks are imported.

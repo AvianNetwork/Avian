@@ -7255,6 +7255,16 @@ bool ReindexAssets(ChainstateManager& chainman)
         return true;
     }
 
+    // A pruned node has deleted block data, so Phase 1 cannot replay every block.
+    // It would rebuild an asset database that silently omits assets issued in the
+    // pruned range, and the node would then reject the next transfer of one and
+    // fork. Refuse before erasing anything, leaving the rebuild pending.
+    if (chainman.m_blockman.m_have_pruned) {
+        LogError("ReindexAssets: cannot rebuild the asset database on a pruned node; "
+                 "block data has been deleted. Resync without pruning to rebuild it.\n");
+        return false;
+    }
+
     // Erase all asset DB keys so both phases start from a known-clean state:
     // Phase 1 rebuilds 'A' (metadata) and the restricted database from blocks;
     // Phase 2 rebuilds 'B'/'C' (address balances) from the UTXO set. The caller
@@ -7284,6 +7294,10 @@ bool ReindexAssets(ChainstateManager& chainman)
 
     const int metadata_log_interval = 10000;
     int blocks_processed = 0;
+    // Every block of the chain is read here; keep the block file open across
+    // reads instead of opening it once per block (slow on Windows). Safe because
+    // a pruned node was already refused above.
+    node::BlockFileReader block_reader{active_chainstate.m_blockman};
 
     for (int height = 1; height <= tip_height; height++) {
         if (chainman.m_interrupt) {
@@ -7296,9 +7310,13 @@ bool ReindexAssets(ChainstateManager& chainman)
         if (!pindex) continue;
 
         CBlock block;
-        if (!active_chainstate.m_blockman.ReadBlock(block, *pindex)) {
-            LogError("ReindexAssets: Failed to read block at height %d\n", height);
-            continue;
+        if (!block_reader.ReadBlock(block, *pindex)) {
+            // A missing block means we cannot rebuild a complete asset database.
+            // Fail rather than skip it and report success with assets omitted.
+            LogError("ReindexAssets: failed to read block at height %d; cannot rebuild "
+                     "the asset database from incomplete block data\n", height);
+            chainman.GetNotifications().progress(bilingual_str{}, 100, false);
+            return false;
         }
 
         if (!AreAssetsDeployed()) continue;

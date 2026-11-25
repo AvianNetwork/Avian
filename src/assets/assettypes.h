@@ -335,10 +335,11 @@ public:
         ::Unserialize(s, nUnits);
         ::Unserialize(s, nReissuable);
         UnserializeIPFSHash(s, strIPFSHash);
-        // strANSID is absent in pre-ANS reissue scripts; only read if bytes remain.
-        if (!s.empty()) {
-            ::Unserialize(s, strANSID);
-        }
+        // 4.x reads strANSID unconditionally, so a reissue payload truncated
+        // before it is rejected there; read it the same way to stay in consensus.
+        // main always serialises the field (empty when unused), so valid scripts
+        // always carry it.
+        ::Unserialize(s, strANSID);
     }
 
     CReissueAsset(const std::string& strAssetName, const CAmount& nAmount, const int& nUnits, const int& nReissuable, const std::string& strIPFSHash, const std::string& strANSID);

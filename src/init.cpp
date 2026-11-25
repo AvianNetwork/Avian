@@ -2208,8 +2208,12 @@ bool AppInitMain(NodeContext& node, interfaces::BlockAndHeaderTipInfo* tip_info)
         // Rebuild asset database if requested
         if (do_reindex_assets) {
             uiInterface.InitMessage(_("Rebuilding asset database..."));
+            // A failed rebuild leaves the asset database incomplete, which would
+            // fork the node. Stop rather than run on with it; the rebuild stays
+            // pending and is retried on the next start.
             if (!ReindexAssets(chainman)) {
-                LogError("Failed to reindex assets\n");
+                chainman.GetNotifications().fatalError(_("Failed to rebuild the asset database. If this node is pruned, resync without pruning."));
+                return;
             }
         }
 
