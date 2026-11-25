@@ -975,6 +975,36 @@ bool MemPoolAccept::PreChecks(ATMPArgs& args, Workspace& ws)
                 return false; // state filled in by CheckTxAssets
             }
         }
+
+        // 4.x parity: refuse a second unconfirmed tx that adds the same tag to an
+        // address, or globally (un)freezes the same asset. Two of either in one
+        // block are invalid, so admitting both lets a miner build a block its own
+        // node and 4.x reject. Mempool-policy rejection, not a ban.
+        for (const CTxOut& out : tx.vout) {
+            if (out.scriptPubKey.IsNullGlobalRestrictionAssetTxDataScript()) {
+                CNullAssetTxData g;
+                if (GlobalAssetNullDataFromScript(out.scriptPubKey, g)) {
+                    if (g.flag == 1 && m_pool.mapGlobalFreezingAssetTransactions.count(g.asset_name)) {
+                        return state.Invalid(TxValidationResult::TX_MEMPOOL_POLICY, "bad-txns-global-freeze-already-in-mempool");
+                    }
+                    if (g.flag == 0 && m_pool.mapGlobalUnFreezingAssetTransactions.count(g.asset_name)) {
+                        return state.Invalid(TxValidationResult::TX_MEMPOOL_POLICY, "bad-txns-global-unfreeze-already-in-mempool");
+                    }
+                }
+            } else if (out.scriptPubKey.IsNullAssetTxDataScript()) {
+                CNullAssetTxData d;
+                std::string address;
+                if (AssetNullDataFromScript(out.scriptPubKey, d, address) && IsAssetNameAQualifier(d.asset_name)) {
+                    const auto key = std::make_pair(address, d.asset_name);
+                    if (d.flag == (int)QualifierType::ADD_QUALIFIER && m_pool.mapAddressAddedTag.count(key)) {
+                        return state.Invalid(TxValidationResult::TX_MEMPOOL_POLICY, "bad-txns-adding-tag-already-in-mempool");
+                    }
+                    if (d.flag == (int)QualifierType::REMOVE_QUALIFIER && m_pool.mapAddressRemoveTag.count(key)) {
+                        return state.Invalid(TxValidationResult::TX_MEMPOOL_POLICY, "bad-txns-remove-tag-already-in-mempool");
+                    }
+                }
+            }
+        }
     }
     /** AVN END */
 
@@ -1391,6 +1421,80 @@ bool MemPoolAccept::ConsensusScriptChecks(const ATMPArgs& args, Workspace& ws)
     return true;
 }
 
+//! Record, for a tx entering the mempool, the asset state it depends on or
+//! changes, so removeForBlock can evict it when a block invalidates that state
+//! and the reissue-chaining check in CheckTxAssets sees an unconfirmed reissue.
+//! 4.x does this on accept; main declared the maps and cleared them in
+//! removeUnchecked but never populated them. mapReissuedAssets/mapReissuedTx are
+//! the assets.cpp globals those two paths already use. Caller holds the pool lock.
+static void TrackMempoolAssetState(CTxMemPool& pool, const CTransaction& tx, const CCoinsViewCache& view)
+    EXCLUSIVE_LOCKS_REQUIRED(pool.cs)
+{
+    if (!AreAssetsDeployed()) return;
+    const uint256 hash = tx.GetHash().ToUint256();
+
+    for (const CTxOut& out : tx.vout) {
+        if (out.scriptPubKey.IsAssetScript()) {
+            CAssetOutputEntry data;
+            if (!GetAssetData(out.scriptPubKey, data)) continue;
+            if (data.type == TX_REISSUE_ASSET) {
+                mapReissuedAssets[data.assetName] = hash;
+                mapReissuedTx[hash] = data.assetName;
+            }
+            if (AreRestrictedAssetsDeployed() && IsAssetNameAnRestricted(data.assetName)) {
+                const std::string address = EncodeDestination(data.destination);
+                pool.mapAddressesQualifiersChanged[address].insert(hash);
+                pool.mapHashQualifiersChanged[hash].insert(address);
+                pool.mapAssetVerifierChanged[data.assetName].insert(hash);
+                pool.mapHashVerifierChanged[hash].insert(data.assetName);
+            }
+        } else if (out.scriptPubKey.IsNullGlobalRestrictionAssetTxDataScript()) {
+            CNullAssetTxData globalNullData;
+            if (GlobalAssetNullDataFromScript(out.scriptPubKey, globalNullData)) {
+                if (globalNullData.flag == 1) {
+                    pool.mapGlobalFreezingAssetTransactions[globalNullData.asset_name].insert(hash);
+                    pool.mapHashGlobalFreezingAssetTransactions[hash].insert(globalNullData.asset_name);
+                } else if (globalNullData.flag == 0) {
+                    pool.mapGlobalUnFreezingAssetTransactions[globalNullData.asset_name].insert(hash);
+                    pool.mapHashGlobalUnFreezingAssetTransactions[hash].insert(globalNullData.asset_name);
+                }
+            }
+        } else if (out.scriptPubKey.IsNullAssetTxDataScript()) {
+            CNullAssetTxData addressNullData;
+            std::string address;
+            if (AssetNullDataFromScript(out.scriptPubKey, addressNullData, address)) {
+                if (IsAssetNameAQualifier(addressNullData.asset_name)) {
+                    const auto key = std::make_pair(address, addressNullData.asset_name);
+                    if (addressNullData.flag == (int)QualifierType::ADD_QUALIFIER) {
+                        pool.mapAddressAddedTag[key].insert(hash);
+                        pool.mapHashToAddressAddedTag[hash].insert(key);
+                    } else {
+                        pool.mapAddressRemoveTag[key].insert(hash);
+                        pool.mapHashToAddressRemoveTag[hash].insert(key);
+                    }
+                }
+            }
+        }
+    }
+
+    // A restricted-asset transfer can be invalidated by a later global freeze of
+    // the asset or an address freeze of its source, so track its restricted inputs.
+    if (AreRestrictedAssetsDeployed()) {
+        for (const CTxIn& in : tx.vin) {
+            const Coin& coin = view.AccessCoin(in.prevout);
+            if (coin.IsSpent() || !coin.out.scriptPubKey.IsAssetScript()) continue;
+            CAssetOutputEntry data;
+            if (GetAssetData(coin.out.scriptPubKey, data) && IsAssetNameAnRestricted(data.assetName)) {
+                pool.mapAssetMarkedGlobalFrozen[data.assetName].insert(hash);
+                pool.mapHashMarkedGlobalFrozen[hash].insert(data.assetName);
+                const auto key = std::make_pair(EncodeDestination(data.destination), data.assetName);
+                pool.mapAddressesMarkedFrozen[key].insert(hash);
+                pool.mapHashToAddressMarkedFrozen[hash].insert(key);
+            }
+        }
+    }
+}
+
 void MemPoolAccept::FinalizeSubpackage(const ATMPArgs& args)
 {
     AssertLockHeld(cs_main);
@@ -1440,22 +1544,18 @@ void MemPoolAccept::FinalizeSubpackage(const ATMPArgs& args)
     }
     // Collect added transaction hashes before Apply() clears the changeset's entry vector.
     std::vector<Txid> added_txids;
-    if (fAddressIndex || fSpentIndex) {
-        added_txids.reserve(m_subpackage.m_changeset->GetTxCount());
-        for (size_t i = 0; i < m_subpackage.m_changeset->GetTxCount(); ++i) {
-            added_txids.push_back(m_subpackage.m_changeset->GetAddedTxn(i).GetHash());
-        }
+    // Asset-state tracking runs for every accepted tx; the indexes additionally.
+    added_txids.reserve(m_subpackage.m_changeset->GetTxCount());
+    for (size_t i = 0; i < m_subpackage.m_changeset->GetTxCount(); ++i) {
+        added_txids.push_back(m_subpackage.m_changeset->GetAddedTxn(i).GetHash());
     }
     m_subpackage.m_changeset->Apply();
-    // Populate in-memory mempool address/spent indexes for newly accepted transactions.
-    if (fAddressIndex || fSpentIndex) {
-        for (const Txid& txid : added_txids) {
-            std::optional<CTxMemPool::txiter> it{m_pool.GetIter(txid)};
-            if (it.has_value()) {
-                if (fAddressIndex) m_pool.addAddressIndex(**it, m_view);
-                if (fSpentIndex) m_pool.addSpentIndex(**it, m_view);
-            }
-        }
+    for (const Txid& txid : added_txids) {
+        std::optional<CTxMemPool::txiter> it{m_pool.GetIter(txid)};
+        if (!it.has_value()) continue;
+        TrackMempoolAssetState(m_pool, (**it).GetTx(), m_view);
+        if (fAddressIndex) m_pool.addAddressIndex(**it, m_view);
+        if (fSpentIndex) m_pool.addSpentIndex(**it, m_view);
     }
     m_subpackage.m_changeset.reset();
 }
@@ -3144,19 +3244,19 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
                 CReissueAsset reissue;
                 std::string strAddress;
                 if (ReissueAssetFromTransaction(tx, reissue, strAddress)) {
-                    // Build undo data from current metadata before modifying
+                    // Build undo data from current metadata before modifying.
                     CNewAsset oldAsset;
                     if (assetsCache->GetAssetMetaDataIfExists(reissue.strName, oldAsset)) {
-                        undoPair.first = reissue.strName;
-                        undoPair.second.fChangedIPFS = !reissue.strIPFSHash.empty();
-                        undoPair.second.strIPFS = oldAsset.strIPFSHash;
-                        undoPair.second.fChangedANS = false;
-                        undoPair.second.strANSID = "";
-                        undoPair.second.fChangedUnits = (reissue.nUnits != -1);
-                        undoPair.second.nUnits = oldAsset.units;
-                        undoPair.second.fChangedVerifierString = false;
+                        // 4.x parity: record an undo entry only when the reissue
+                        // changed something (a no-op entry makes RemoveReissueAsset
+                        // pick the wrong one on a reorg with two reissues of one
+                        // asset), and keep the old ANS id so a disconnect restores it.
+                        const bool fChangedIPFS = !reissue.strIPFSHash.empty();
+                        const bool fChangedANS = !reissue.strANSID.empty();
+                        const bool fChangedUnits = (reissue.nUnits != -1);
+                        bool fChangedVerifier = false;
+                        std::string oldVerifierString;
 
-                        // Check for verifier string changes on restricted assets
                         if (IsAssetNameAnRestricted(reissue.strName)) {
                             std::string strError;
                             CNullAssetTxVerifierString verifier;
@@ -3164,11 +3264,23 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
                                 CNullAssetTxVerifierString oldVerifier;
                                 assetsCache->GetAssetVerifierStringIfExists(reissue.strName, oldVerifier);
                                 if (oldVerifier.verifier_string != verifier.verifier_string) {
-                                    undoPair.second.fChangedVerifierString = true;
-                                    undoPair.second.verifierString = oldVerifier.verifier_string;
+                                    fChangedVerifier = true;
+                                    oldVerifierString = oldVerifier.verifier_string;
                                     assetsCache->AddRestrictedVerifier(reissue.strName, verifier.verifier_string);
                                 }
                             }
+                        }
+
+                        if (fChangedIPFS || fChangedANS || fChangedUnits || fChangedVerifier) {
+                            undoPair.first = reissue.strName;
+                            undoPair.second.fChangedIPFS = fChangedIPFS;
+                            undoPair.second.strIPFS = oldAsset.strIPFSHash;
+                            undoPair.second.fChangedANS = fChangedANS;
+                            undoPair.second.strANSID = oldAsset.strANSID;
+                            undoPair.second.fChangedUnits = fChangedUnits;
+                            undoPair.second.nUnits = oldAsset.units;
+                            undoPair.second.fChangedVerifierString = fChangedVerifier;
+                            undoPair.second.verifierString = oldVerifierString;
                         }
                     }
 
@@ -3827,6 +3939,9 @@ bool Chainstate::ConnectTip(
     // num_blocks_total may be zero until the ConnectBlock() call below.
     LogDebug(BCLog::BENCH, "  - Load block from disk: %.2fms\n",
              Ticks<MillisecondsDouble>(time_2 - time_1));
+    // What this block adds, captured before the asset cache is flushed, so
+    // removeForBlock below can evict mempool txs the block invalidated.
+    ConnectedBlockAssetData assetDataFromBlock;
     {
         CCoinsViewCache view(&CoinsTip());
 
@@ -3865,6 +3980,13 @@ bool Chainstate::ConnectTip(
 
         // AVN: Flush asset cache after successful UTXO flush
         if (AreAssetsDeployed()) {
+            // Capture before Flush clears the cache's dirty sets.
+            assetDataFromBlock.newAssetsToAdd = assetCache.setNewAssetsToAdd;
+            assetDataFromBlock.newVerifiersToAdd = assetCache.setNewRestrictedVerifierToAdd;
+            assetDataFromBlock.newAddressRestrictionsToAdd = assetCache.setNewRestrictedAddressToAdd;
+            assetDataFromBlock.newGlobalRestrictionsToAdd = assetCache.setNewRestrictedGlobalToAdd;
+            assetDataFromBlock.newQualifiersToAdd = assetCache.setNewQualifierAddressToAdd;
+
             bool assetFlushed = assetCache.Flush();
             assert(assetFlushed);
         }
@@ -3887,7 +4009,10 @@ bool Chainstate::ConnectTip(
              Ticks<MillisecondsDouble>(m_chainman.time_chainstate) / m_chainman.num_blocks_total);
     // Remove conflicting transactions from the mempool.;
     if (m_mempool) {
-        m_mempool->removeForBlock(block_to_connect->vtx, pindexNew->nHeight);
+        // Asset-aware overload: also evict txs the block invalidated on asset
+        // state (duplicate issuance, spend from a newly frozen address,
+        // verifier/qualifier/freeze change), not only those spending its inputs.
+        m_mempool->removeForBlock(block_to_connect->vtx, pindexNew->nHeight, assetDataFromBlock);
         disconnectpool.removeForBlock(block_to_connect->vtx);
     }
     // Update m_chain & related variables.
@@ -5400,8 +5525,12 @@ BlockValidationState TestBlockValidity(
     index_dummy.phashBlock = &block_hash;
     CCoinsViewCache view_dummy(&chainstate.CoinsTip());
 
+    // Validate the template against an asset cache so the contextual asset checks
+    // run here, not only later at ConnectTip after the miner has done the work.
+    CAssetsCache assetCacheDummy = *GetCurrentAssetCache();
+
     // Set fJustCheck to true in order to update, and not clear, validation caches.
-    if(!chainstate.ConnectBlock(block, state, &index_dummy, view_dummy, /*fJustCheck=*/true)) {
+    if(!chainstate.ConnectBlock(block, state, &index_dummy, view_dummy, /*fJustCheck=*/true, &assetCacheDummy)) {
         if (state.IsValid()) NONFATAL_UNREACHABLE();
         return state;
     }
