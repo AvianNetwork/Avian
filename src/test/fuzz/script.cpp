@@ -66,17 +66,25 @@ FUZZ_TARGET(script, .init = initialize_script)
         assert(script.IsUnspendable());
     }
     if (script.IsUnspendable()) {
+        // Avian: OP_AVN_ASSET data carriers and zero-amount asset scripts are
+        // unspendable as well.
         assert(which_type == TxoutType::NULL_DATA ||
-               which_type == TxoutType::NONSTANDARD);
+               which_type == TxoutType::NONSTANDARD ||
+               which_type == TxoutType::RESTRICTED_ASSET_DATA ||
+               which_type == TxoutType::NEW_ASSET ||
+               which_type == TxoutType::REISSUE_ASSET ||
+               which_type == TxoutType::TRANSFER_ASSET);
     }
 
     CTxDestination address;
     bool extract_destination_ret = ExtractDestination(script, address);
     if (!extract_destination_ret) {
+        // Avian: an OP_AVN_ASSET data carrier names an address only in some forms.
         assert(which_type == TxoutType::PUBKEY ||
                which_type == TxoutType::NONSTANDARD ||
                which_type == TxoutType::NULL_DATA ||
-               which_type == TxoutType::MULTISIG);
+               which_type == TxoutType::MULTISIG ||
+               which_type == TxoutType::RESTRICTED_ASSET_DATA);
     }
     if (which_type == TxoutType::NONSTANDARD ||
         which_type == TxoutType::NULL_DATA ||
