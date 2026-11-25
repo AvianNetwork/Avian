@@ -24,6 +24,7 @@
 
 #include <test/data/rip25_vectors.json.h>
 
+#include <chainparams.h>
 #include <core_io.h>
 #include <crypto/mldsa.h>
 #include <key_io.h>
@@ -123,9 +124,10 @@ BOOST_AUTO_TEST_CASE(vectors_match_committed_file)
     BOOST_REQUIRE(root.isObject());
 
     // The vectors are network-scoped (address HRP + domain context). They were
-    // generated under the same network BasicTestingSetup selects (regtest), so
-    // the active domain context must equal the committed one.
-    BOOST_CHECK_EQUAL(root["network"].get_str(), "regtest");
+    // generated under the network BasicTestingSetup selects (main), so the
+    // active domain context must equal the committed one.
+    BOOST_CHECK_EQUAL(root["network"].get_str(), "main");
+    BOOST_CHECK_EQUAL(root["network"].get_str(), Params().GetChainTypeString());
     BOOST_CHECK_EQUAL(root["domain_context"].get_str(), HexStr(GetMLDsa44DomainContext()));
 
     const UniValue& vectors = root["vectors"].get_array();
@@ -221,8 +223,8 @@ BOOST_AUTO_TEST_CASE(generate)
         "byte-pinned and lock the derivation + BIP143 sighash. ML-DSA signing is "
         "randomized (FIPS-204 hedged), so signature/final_tx/wtxid are a captured "
         "VALID instance asserted to verify; txid is witness-independent. Generated "
-        "under regtest (domain context + address HRP are that network's).");
-    root.pushKV("network", "regtest");
+        "under mainnet parameters (domain context + address HRP are that network's).");
+    root.pushKV("network", Params().GetChainTypeString());
     root.pushKV("domain_context", HexStr(GetMLDsa44DomainContext()));
     root.pushKV("vectors", arr);
     std::cout << "RIP25_VECTORS_BEGIN\n" << root.write(2) << "\nRIP25_VECTORS_END\n";

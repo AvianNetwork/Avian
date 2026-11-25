@@ -153,19 +153,22 @@ void SelectParams(const ChainType chain)
         consensus.vUpgrades[Consensus::UPGRADE_DUAL_ALGO].nTimestamp);
 
     // RIP-25: bind ML-DSA-44 signatures to this network. The context is
-    //   "AVN/ML-DSA-44/v1/" || genesis block hash (32 bytes).
-    // The genesis hash is the canonical, immutable per-network identifier, so a
-    // signature made for one network cannot verify on another. This is set here,
-    // the single choke point for network selection (node and tests alike), so
-    // the consensus verifier and the signer share one value; see
-    // GetMLDsa44DomainContext() in script/interpreter.h.
+    //   "AVN/ML-DSA-44/v2/" || genesis block hash (32 bytes) || message start (4 bytes).
+    // The genesis hash alone does not identify a network: testnet and testnet4
+    // share one, as do regtest and signet. The message start differs on every
+    // network, so with it a signature made for one network cannot verify on
+    // another. This is set here, the single choke point for network selection
+    // (node and tests alike), so the consensus verifier and the signer share one
+    // value; see GetMLDsa44DomainContext() in script/interpreter.h.
     {
-        static constexpr char PQ_DST[] = "AVN/ML-DSA-44/v1/";
+        static constexpr char PQ_DST[] = "AVN/ML-DSA-44/v2/";
         const uint256& genesis = consensus.hashGenesisBlock;
+        const MessageStartChars& magic = globalChainParams->MessageStart();
         std::vector<unsigned char> ctx;
-        ctx.reserve(sizeof(PQ_DST) - 1 + genesis.size());
+        ctx.reserve(sizeof(PQ_DST) - 1 + genesis.size() + magic.size());
         ctx.insert(ctx.end(), PQ_DST, PQ_DST + sizeof(PQ_DST) - 1);
         ctx.insert(ctx.end(), genesis.begin(), genesis.end());
+        ctx.insert(ctx.end(), magic.begin(), magic.end());
         SetMLDsa44DomainContext(ctx);
     }
 }

@@ -14,6 +14,8 @@
 //   3. a signature over a digest built with any other hashtype (e.g. plain
 //      SIGHASH_ALL, no FORKID) is rejected (SCRIPT_ERR_PQ_SIGNATURE_VERIFY_FAILED).
 
+#include <addresstype.h>
+#include <chainparams.h>
 #include <crypto/mldsa.h>
 #include <pqkey.h>
 #include <primitives/transaction.h>
@@ -22,6 +24,7 @@
 #include <script/script_error.h>
 #include <test/util/transaction_utils.h>
 #include <uint256.h>
+#include <util/chaintype.h>
 
 #include <test/util/setup_common.h>
 
@@ -29,6 +32,7 @@
 
 #include <array>
 #include <cstdint>
+#include <set>
 #include <span>
 #include <vector>
 
@@ -196,6 +200,50 @@ BOOST_AUTO_TEST_CASE(pq_verify_sigop_cost_gated_on_activation)
     // Active: one PQ verify is charged the fixed sigop cost.
     BOOST_CHECK_EQUAL(CountWitnessSigOps(CScript(), spk, &wit, base | SCRIPT_VERIFY_MLDSA44),
                       static_cast<size_t>(MLDSA44_SIGOP_COST));
+}
+
+BOOST_AUTO_TEST_CASE(p2sh_wrapped_v2_program_is_not_charged)
+{
+    // A v2 program wrapped in P2SH is not an ML-DSA-44 output. The verifier
+    // treats it as an unknown upgrade and checks no signature, so the sigop
+    // count must not charge for one. The two rules have to agree: a cost with
+    // no verification behind it would be fixed into consensus at activation.
+    std::vector<unsigned char> program(32, 0xAB);
+    const CScript redeem = CScript() << OP_2 << program;
+    const CScript p2sh_spk = GetScriptForDestination(ScriptHash(redeem));
+    const CScript script_sig = CScript() << std::vector<unsigned char>(redeem.begin(), redeem.end());
+    CScriptWitness wit;
+    wit.stack.emplace_back(mldsa::SIG_SIZE, 0x11);
+    wit.stack.emplace_back(mldsa::PUBKEY_SIZE, 0x22);
+
+    const unsigned int active = SCRIPT_VERIFY_WITNESS | SCRIPT_VERIFY_P2SH | SCRIPT_VERIFY_MLDSA44;
+    BOOST_CHECK_EQUAL(CountWitnessSigOps(script_sig, p2sh_spk, &wit, active), 0U);
+
+    // The witness above is not a valid ML-DSA-44 spend, yet the script passes:
+    // nothing is verified.
+    ScriptError err = SCRIPT_ERR_UNKNOWN_ERROR;
+    BOOST_CHECK(VerifyScript(script_sig, p2sh_spk, &wit, active, BaseSignatureChecker(), &err));
+    BOOST_CHECK_EQUAL(err, SCRIPT_ERR_OK);
+
+    // The P2SH path itself still counts: a wrapped v0 key hash is one sigop.
+    const CScript v0_redeem = CScript() << OP_0 << std::vector<unsigned char>(20, 0xCD);
+    const CScript v0_script_sig = CScript() << std::vector<unsigned char>(v0_redeem.begin(), v0_redeem.end());
+    BOOST_CHECK_EQUAL(CountWitnessSigOps(v0_script_sig, GetScriptForDestination(ScriptHash(v0_redeem)), &wit, active), 1U);
+}
+
+BOOST_AUTO_TEST_CASE(domain_context_differs_on_every_network)
+{
+    // The context must identify the network. The genesis hash alone does not:
+    // testnet and testnet4 share one, as do regtest and signet.
+    const ChainType fixture_chain{Params().GetChainType()};
+    std::set<std::vector<unsigned char>> seen;
+    for (const ChainType chain : {ChainType::MAIN, ChainType::TESTNET, ChainType::TESTNET4, ChainType::SIGNET, ChainType::REGTEST}) {
+        SelectParams(chain);
+        const auto ctx = GetMLDsa44DomainContext();
+        BOOST_CHECK_MESSAGE(seen.emplace(ctx.begin(), ctx.end()).second,
+                            "ML-DSA-44 context of " << ChainTypeToString(chain) << " equals another network's");
+    }
+    SelectParams(fixture_chain);
 }
 
 BOOST_AUTO_TEST_SUITE_END()
