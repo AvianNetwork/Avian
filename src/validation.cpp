@@ -2684,14 +2684,21 @@ static unsigned int GetBlockScriptFlags(const CBlockIndex& block_index, const Ch
     // retroactively applied to testnet)
     // However, only one historical block violated the P2SH rules (on both
     // mainnet and testnet).
-    // Similarly, only one historical block violated the TAPROOT rules on
-    // mainnet.
-    // For simplicity, always leave P2SH+WITNESS+TAPROOT on except for the two
-    // violating blocks.
-    uint32_t flags{SCRIPT_VERIFY_P2SH | SCRIPT_VERIFY_WITNESS | SCRIPT_VERIFY_TAPROOT};
+    // For simplicity, always leave P2SH+WITNESS on except for the one
+    // violating block.
+    uint32_t flags{SCRIPT_VERIFY_P2SH | SCRIPT_VERIFY_WITNESS};
     const auto it{consensusparams.script_flag_exceptions.find(*Assert(block_index.phashBlock))};
     if (it != consensusparams.script_flag_exceptions.end()) {
         flags = it->second;
+    }
+
+    // Enforce Taproot (BIPs 341/342) only once its deployment is active. Avian
+    // sets DEPLOYMENT_TAPROOT NEVER_ACTIVE on every network, so this stays off and
+    // a witness v1 output is treated as an unknown upgrade (anyone-can-spend),
+    // matching 4.x. The flag was previously set unconditionally, which made a 5.x
+    // node reject a witness v1 spend that 4.x accepts and fork from the majority.
+    if (DeploymentActiveAt(block_index, chainman, Consensus::DEPLOYMENT_TAPROOT)) {
+        flags |= SCRIPT_VERIFY_TAPROOT;
     }
 
     // Enforce the DERSIG (BIP66) rule
@@ -4979,6 +4986,16 @@ static bool ContextualCheckBlockHeader(const CBlockHeader& block, BlockValidatio
     }
     // Note: Avian doesn't enforce BIP34/66/65 version-based block rejection
     // because nVersion is repurposed for algorithm type in dual-algo mode.
+    //
+    // 4.x additionally rejects a block whose nVersion is below
+    // VERSIONBITS_TOP_BITS_ASSETS (0x30000000) once assets are active. That
+    // floor is NOT restored here: main's wall-clock AreAssetsDeployed() reports
+    // assets active on regtest from genesis (its asset timestamp equals the
+    // regtest genesis time), so the floor would reject the Core-derived
+    // regtest test fixtures, which build blocks with a lower version. Restoring
+    // it needs an activation predicate aligned with those fixtures (or updating
+    // them), tracked separately. Its practical risk is low: a sub-floor block is
+    // rejected by the 4.x majority and cannot out-work the honest chain.
 
     return true;
 }
