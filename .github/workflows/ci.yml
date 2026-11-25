@@ -90,6 +90,96 @@ jobs:
       - name: Save caches
         uses: ./.github/actions/save-caches
 
+  # RIP-25: liboqs picks its ML-DSA-44 verifier per CPU, so the two ARM64 jobs
+  # below run the unit tests where that verifier is the NEON one.
+  linux-arm64:
+    name: 'Linux ARM64, build + unit tests'
+    runs-on: ubuntu-24.04-arm
+    if: ${{ vars.SKIP_BRANCH_PUSH != 'true' || github.event_name == 'pull_request' }}
+    timeout-minutes: 120
+
+    env:
+      DANGER_CI_ON_HOST_FOLDERS: 1
+      BITCOIN_GENBUILD_NO_GIT: 1
+      FILE_ENV: './ci/test/00_setup_env_native_arm64.sh'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event_name == 'pull_request' && github.ref || '' }}
+
+      - name: Configure environment
+        uses: ./.github/actions/configure-environment
+
+      - name: Restore caches
+        id: restore-cache
+        uses: ./.github/actions/restore-caches
+
+      - name: Configure Docker
+        uses: ./.github/actions/configure-docker
+        with:
+          cache-provider: gha
+
+      - name: Build
+        run: ./ci/test_run_all.sh
+        env:
+          CI_PHASE: build
+
+      - name: Unit tests
+        run: ./ci/test_run_all.sh
+        env:
+          CI_PHASE: test
+
+      - name: Save caches
+        uses: ./.github/actions/save-caches
+
+  macos-arm64:
+    name: 'macOS ARM64, build + unit tests'
+    runs-on: macos-15
+    if: ${{ vars.SKIP_BRANCH_PUSH != 'true' || github.event_name == 'pull_request' }}
+    timeout-minutes: 120
+
+    env:
+      # No container on macOS: the CI scripts run on the runner itself, in the checkout.
+      DANGER_RUN_CI_ON_HOST: 1
+      BASE_ROOT_DIR: ${{ github.workspace }}
+      FILE_ENV: './ci/test/00_setup_env_mac_native_arm64.sh'
+      CCACHE_KEY: ccache-ci_mac_native_arm64
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event_name == 'pull_request' && github.ref || '' }}
+
+      - name: Install Homebrew packages
+        env:
+          HOMEBREW_NO_AUTO_UPDATE: 1
+          HOMEBREW_NO_INSTALLED_DEPENDENTS_CHECK: 1
+        run: brew install --quiet coreutils ninja pkgconf gnu-getopt ccache boost libevent
+
+      - name: Set Ccache directory
+        run: echo "CCACHE_DIR=${RUNNER_TEMP}/ccache_dir" >> "$GITHUB_ENV"
+
+      - name: Restore Ccache cache
+        uses: cirruslabs/cache/restore@v5
+        with:
+          path: ${{ env.CCACHE_DIR }}
+          key: ${{ env.CCACHE_KEY }}-${{ github.run_id }}
+          restore-keys: |
+            ${{ env.CCACHE_KEY }}-
+
+      - name: Build and unit tests
+        run: ./ci/test_run_all.sh
+
+      - name: Save Ccache cache
+        uses: cirruslabs/cache/save@v5
+        if: ${{ (github.event_name == 'push') && (github.ref_name == github.event.repository.default_branch) }}
+        with:
+          path: ${{ env.CCACHE_DIR }}
+          key: ${{ env.CCACHE_KEY }}-${{ github.run_id }}
+
   fuzz:
     name: 'Linux, fuzz (build + smoke)'
     runs-on: ubuntu-24.04

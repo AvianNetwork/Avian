@@ -152,6 +152,10 @@ target_link_libraries(fuzz
   Boost::headers
   libevent::extra
 )
+# mldsa44_oracle.cpp includes liboqs headers; see src/test/CMakeLists.txt.
+if(WITH_LIBOQS AND LIBOQS_FOUND)
+  target_link_libraries(fuzz ${LIBOQS_TARGET})
+endif()
 
 if(ENABLE_WALLET)
   add_subdirectory(${PROJECT_SOURCE_DIR}/src/wallet/test/fuzz wallet)

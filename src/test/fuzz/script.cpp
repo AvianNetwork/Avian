@@ -65,18 +65,24 @@ FUZZ_TARGET(script, .init = initialize_script)
     if (which_type == TxoutType::NULL_DATA) {
         assert(script.IsUnspendable());
     }
-    if (script.IsUnspendable()) {
+    // Avian: an OP_AVN_ASSET data carrier is unspendable too. So is a script with
+    // a zero-amount asset payload, but that is matched on fixed byte offsets, so
+    // Solver() can call such a script anything and its type is not checked.
+    if (script.IsUnspendable() && !script.IsAssetScript()) {
         assert(which_type == TxoutType::NULL_DATA ||
-               which_type == TxoutType::NONSTANDARD);
+               which_type == TxoutType::NONSTANDARD ||
+               which_type == TxoutType::RESTRICTED_ASSET_DATA);
     }
 
     CTxDestination address;
     bool extract_destination_ret = ExtractDestination(script, address);
     if (!extract_destination_ret) {
+        // Avian: an OP_AVN_ASSET data carrier names an address only in some forms.
         assert(which_type == TxoutType::PUBKEY ||
                which_type == TxoutType::NONSTANDARD ||
                which_type == TxoutType::NULL_DATA ||
-               which_type == TxoutType::MULTISIG);
+               which_type == TxoutType::MULTISIG ||
+               which_type == TxoutType::RESTRICTED_ASSET_DATA);
     }
     if (which_type == TxoutType::NONSTANDARD ||
         which_type == TxoutType::NULL_DATA ||

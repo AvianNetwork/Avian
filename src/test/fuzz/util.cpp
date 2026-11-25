@@ -224,7 +224,11 @@ CTxDestination ConsumeTxDestination(FuzzedDataProvider& fuzzed_data_provider) no
             if (program.size() < 2) {
                 program = {0, 0};
             }
-            tx_destination = WitnessUnknown{fuzzed_data_provider.ConsumeIntegralInRange<unsigned int>(2, 16), program};
+            auto version{fuzzed_data_provider.ConsumeIntegralInRange<unsigned int>(2, 16)};
+            // Witness v2 with a 32-byte program is an ML-DSA-44 output (RIP-25),
+            // which decodes as WitnessV2MLDsa44 and would not round-trip as unknown.
+            if (version == 2 && program.size() == WitnessV2MLDsa44::size()) version = 3;
+            tx_destination = WitnessUnknown{version, program};
         })};
     Assert(call_size == std::variant_size_v<CTxDestination>);
     return tx_destination;

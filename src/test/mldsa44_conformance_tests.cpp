@@ -35,8 +35,11 @@
 #include <univalue.h>
 #include <util/strencodings.h>
 
+#include <oqs/oqs.h>
+
 #include <array>
 #include <cstdint>
+#include <cstdlib>
 #include <span>
 #include <string>
 #include <vector>
@@ -238,6 +241,37 @@ BOOST_AUTO_TEST_CASE(oversized_context_rejected)
     BOOST_CHECK(r.dispatched && r.reference);
     r = VerifyBoth(sig, msg, Bytes(256, 0x22), pk);
     BOOST_CHECK(!r.dispatched && !r.reference);
+}
+
+// The backend mldsa::Verify reaches on this build and CPU. Mirrors the choice
+// in liboqs's OQS_SIG_ml_dsa_44_verify_with_ctx_str.
+std::string DispatchedBackend()
+{
+#if defined(OQS_ENABLE_SIG_ml_dsa_44_x86_64)
+#if defined(OQS_DIST_BUILD)
+    if (!OQS_CPU_has_extension(OQS_CPU_EXT_AVX2) || !OQS_CPU_has_extension(OQS_CPU_EXT_BMI2) || !OQS_CPU_has_extension(OQS_CPU_EXT_POPCNT)) return "C";
+#endif
+    return "X86_64";
+#elif defined(OQS_ENABLE_SIG_ml_dsa_44_aarch64)
+#if defined(OQS_DIST_BUILD)
+    if (!OQS_CPU_has_extension(OQS_CPU_EXT_ARM_NEON)) return "C";
+#endif
+    return "AARCH64";
+#else
+    return "C";
+#endif
+}
+
+// A CI job that exists to test one backend names it in LIBOQS_REQUIRE_BACKEND.
+// If liboqs dispatches to another one here, every case above compared the
+// portable C code with itself.
+BOOST_AUTO_TEST_CASE(required_backend_is_dispatched)
+{
+    const std::string dispatched{DispatchedBackend()};
+    BOOST_TEST_MESSAGE("ML-DSA-44 verify backend: " << dispatched);
+    if (const char* required{std::getenv("LIBOQS_REQUIRE_BACKEND")}) {
+        BOOST_CHECK_EQUAL(dispatched, std::string{required});
+    }
 }
 
 #else // HAVE_LIBOQS not defined

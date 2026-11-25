@@ -28,6 +28,7 @@ export GOAL="install"
 # missing, so the install must precede cmake.
 export BUILD_LIBOQS=true
 export LIBOQS_VERSION=0.16.0
+export LIBOQS_REQUIRE_BACKEND=X86_64
 # ENABLE_IPC=ON so the multiprocess Mining interface and its Cap'n Proto schema are
 # actually compiled. Without it, src/ipc and the ipc_tests round-trip are built by
 # nobody, and a schema that no longer matches node::BlockCreateOptions passes CI.
