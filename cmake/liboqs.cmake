@@ -10,9 +10,14 @@
 option(WITH_LIBOQS "Enable ML-DSA-44 post-quantum signatures (requires liboqs)." ON)
 
 if(WITH_LIBOQS)
+  # src/crypto/mldsa.cpp uses the context-string API and mldsa-native's seeded
+  # keygen, both new in liboqs 0.16. An older liboqs would pass configuration and
+  # then fail to link, so every way of finding it checks the version.
+  set(LIBOQS_MIN_VERSION 0.16.0)
+
   # Try the official cmake config first — works for both vcpkg and depends builds
   # because the depends toolchain sets CMAKE_PREFIX_PATH to the deps install prefix.
-  find_package(liboqs CONFIG QUIET)
+  find_package(liboqs ${LIBOQS_MIN_VERSION} CONFIG QUIET)
   if(TARGET OQS::oqs)
     set(LIBOQS_FOUND TRUE)
     set(LIBOQS_TARGET OQS::oqs)
@@ -22,7 +27,7 @@ if(WITH_LIBOQS)
     # Fallback: pkg-config
     find_package(PkgConfig QUIET)
     if(PKG_CONFIG_FOUND)
-      pkg_check_modules(LIBOQS QUIET liboqs>=0.9.0)
+      pkg_check_modules(LIBOQS QUIET liboqs>=${LIBOQS_MIN_VERSION})
     endif()
 
     if(NOT LIBOQS_FOUND)
@@ -30,9 +35,18 @@ if(WITH_LIBOQS)
       find_path(LIBOQS_INCLUDE_DIR NAMES oqs/oqs.h)
       find_library(LIBOQS_LIBRARY NAMES oqs)
       if(LIBOQS_INCLUDE_DIR AND LIBOQS_LIBRARY)
-        set(LIBOQS_FOUND TRUE)
-        set(LIBOQS_LIBRARIES "${LIBOQS_LIBRARY}")
-        set(LIBOQS_INCLUDE_DIRS "${LIBOQS_INCLUDE_DIR}")
+        set(LIBOQS_HEADER_VERSION "")
+        if(EXISTS "${LIBOQS_INCLUDE_DIR}/oqs/oqsconfig.h")
+          file(STRINGS "${LIBOQS_INCLUDE_DIR}/oqs/oqsconfig.h" liboqs_version_line REGEX "#define OQS_VERSION_TEXT")
+          string(REGEX MATCH "[0-9]+\\.[0-9]+\\.[0-9]+" LIBOQS_HEADER_VERSION "${liboqs_version_line}")
+        endif()
+        if(LIBOQS_HEADER_VERSION VERSION_GREATER_EQUAL LIBOQS_MIN_VERSION)
+          set(LIBOQS_FOUND TRUE)
+          set(LIBOQS_LIBRARIES "${LIBOQS_LIBRARY}")
+          set(LIBOQS_INCLUDE_DIRS "${LIBOQS_INCLUDE_DIR}")
+        else()
+          set(LIBOQS_TOO_OLD "${LIBOQS_INCLUDE_DIR} (version \"${LIBOQS_HEADER_VERSION}\")")
+        endif()
       endif()
     endif()
 
@@ -56,13 +70,20 @@ if(WITH_LIBOQS)
     # returns false) and could fork from liboqs-enabled nodes. Disabling
     # post-quantum support must therefore be a deliberate, explicit choice, not
     # an accident of a missing dependency.
+    set(liboqs_too_old_note "")
+    if(liboqs_CONSIDERED_VERSIONS)
+      set(liboqs_too_old_note "An older liboqs was found and rejected: version ${liboqs_CONSIDERED_VERSIONS}.\n")
+    elseif(LIBOQS_TOO_OLD)
+      set(liboqs_too_old_note "An older liboqs was found and rejected: ${LIBOQS_TOO_OLD}.\n")
+    endif()
     message(FATAL_ERROR
-      "liboqs not found, but WITH_LIBOQS is ON (the default).\n"
+      "liboqs ${LIBOQS_MIN_VERSION} or newer not found, but WITH_LIBOQS is ON (the default).\n"
+      "${liboqs_too_old_note}"
       "ML-DSA-44 (RIP-25) post-quantum signature verification is a consensus rule once the "
       "deployment activates, so a missing liboqs is a hard error rather than a silent downgrade.\n"
       "Fix one of:\n"
-      "  - install liboqs (https://github.com/open-quantum-safe/liboqs), or build via the depends "
-      "system which provides it; or\n"
+      "  - install liboqs ${LIBOQS_MIN_VERSION} or newer (https://github.com/open-quantum-safe/liboqs), "
+      "or build via the depends system which provides it; or\n"
       "  - pass -DWITH_LIBOQS=OFF to opt out explicitly, ONLY for a build that will never act as a "
       "validating or mining node once RIP-25 has activated on its network."
     )

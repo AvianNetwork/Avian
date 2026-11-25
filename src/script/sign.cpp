@@ -522,8 +522,8 @@ static bool SignStep(const SigningProvider& provider, const BaseSignatureCreator
     case TxoutType::WITNESS_V2_MLDSA44: {
         // vSolutions[0] is the 32-byte witness program = SHA256(mldsa_pubkey).
         // CreateMLDsa44Sig is virtual: the real creator produces a genuine
-        // signature, the dummy creator produces a correctly-sized placeholder
-        // (for fee estimation), and other creators default to unsupported.
+        // signature, the dummy creator a placeholder of the right sizes, and
+        // other creators default to unsupported.
         uint256 program(vSolutions[0]);
         std::vector<unsigned char> sig, pubkey;
         if (!creator.CreateMLDsa44Sig(provider, sig, pubkey, program)) return false;
@@ -802,7 +802,11 @@ public:
     }
     bool CreateMLDsa44Sig(const SigningProvider& provider, std::vector<unsigned char>& sig_out, std::vector<unsigned char>& pubkey_out, const uint256& program) const override
     {
-        // RIP-25: dummy witness of the exact spend sizes for fee estimation.
+        // RIP-25: a placeholder of the right sizes. It never verifies: only the
+        // secret key yields the public key, so this zero key cannot hash to the
+        // witness program and ProduceSignature reports the input incomplete.
+        // Fee estimation does not use it; input sizes come from the descriptor's
+        // MaxSatisfactionWeight.
         sig_out.assign(mldsa::SIG_SIZE, '\000');
         pubkey_out.assign(mldsa::PUBKEY_SIZE, '\000');
         return true;
