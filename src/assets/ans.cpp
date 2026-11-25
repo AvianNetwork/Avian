@@ -13,6 +13,11 @@
 #include <key_io.h>
 #include <util/strencodings.h>
 
+// Defined in assets/assets.cpp. Forward-declared here rather than including
+// assets/assets.h, which includes assets/ans.h and would form a circular
+// dependency the lint check rejects.
+bool IsAvianNameSystemDeployed();
+
 /* Static prefix */
 const std::string CAvianNameSystemID::prefix = "ANS";
 
@@ -28,6 +33,16 @@ bool CAvianNameSystemID::CheckTypeData(Type type, std::string typeData) {
         // AIP-0010: external address — any non-empty string, max 468 bytes
         if (typeData.empty() || typeData.size() > 468) return false;
     } else if (type == Type::PROFILE) {
+        // AIP-0009 PROFILE (type 0x2) is new behaviour: 4.x does not know this
+        // type and its IsValidID returns false for it. EncodeAssetData then
+        // treats a 4.x-rejected id as a plain 32-byte txid hash (64 hex), which
+        // CheckEncoded accepts. If a 5.x node instead recognises the PROFILE id
+        // it classifies the same asset field differently and rejects a block the
+        // 4.x majority accepts, forking off. Gate recognition on the ANS v2
+        // deployment so that before activation a 5.x node matches 4.x exactly.
+        // (Type 0x1 is left unchanged: 4.x's HexToIP falls back to 0.0.0.0, so
+        // 4.x's IsValidID is effectively true there too, matching XADDR.)
+        if (!IsAvianNameSystemDeployed()) return false;
         // typeData is raw CBOR bytes; max 468 bytes (active after DEPLOYMENT_ANS_V2).
         if (typeData.size() > 468) return false;
         ANSProfileData profile;
