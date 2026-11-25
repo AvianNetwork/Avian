@@ -1042,12 +1042,9 @@ public:
     bool ToPrivateString(const SigningProvider& arg, std::string& out) const final { return false; }
     std::optional<int64_t> ScriptSize() const override { return GetScriptForDestination(m_destination).size(); }
     std::optional<int64_t> MaxSatisfactionWeight(bool) const override {
-        // RIP-25 native witness v2 spend: witness = [signature (SIG_SIZE),
-        // public_key (PUBKEY_SIZE)], each prefixed by a 3-byte compact-size
-        // length (both exceed 253 bytes). For segwit the satisfaction weight is
-        // the raw witness bytes (1 WU each); the witness-stack element count is
-        // added separately by the caller (MaxInputWeight).
-        return (3 + mldsa::SIG_SIZE) + (3 + mldsa::PUBKEY_SIZE);
+        // The witness bytes at 1 WU each. The caller (MaxInputWeight) adds the
+        // witness-stack element count.
+        return mldsa::WITNESS_SATISFACTION_WEIGHT;
     }
     std::optional<int64_t> MaxSatisfactionElems() const override { return 2; }
     std::unique_ptr<DescriptorImpl> Clone() const override
@@ -2359,12 +2356,9 @@ public:
 
     std::optional<int64_t> MaxSatisfactionWeight(bool) const override
     {
-        // Witness = [signature (SIG_SIZE), public_key (PUBKEY_SIZE)], each with a
-        // 3-byte compact-size length prefix (both exceed 253 bytes). For segwit
-        // the satisfaction weight is the raw witness bytes (1 WU each), NOT scaled
-        // by WITNESS_SCALE_FACTOR; the witness-stack element count is added by the
-        // caller (MaxInputWeight). Must match MLDsaAddressDescriptor.
-        return (3 + mldsa::SIG_SIZE) + (3 + mldsa::PUBKEY_SIZE);
+        // The witness bytes at 1 WU each. The caller (MaxInputWeight) adds the
+        // witness-stack element count.
+        return mldsa::WITNESS_SATISFACTION_WEIGHT;
     }
     std::optional<int64_t> MaxSatisfactionElems() const override { return 2; }
 

@@ -424,11 +424,8 @@ void CoinControlDialog::updateLabels(CCoinControl& m_coin_control, WalletModel *
                 // 1 WU (witness item count) + 65 WU (Schnorr signature with len byte)
                 nBytesInputs += 66 / WITNESS_SCALE_FACTOR;
             } else if (witnessversion == 2 && witnessprogram.size() == 32) { // RIP-25 ML-DSA-44
-                // witness = [signature (SIG_SIZE), public_key (PUBKEY_SIZE)]:
-                // 1 WU (witness item count)
-                // + 3 + SIG_SIZE WU    (signature, 3-byte compact-size length prefix)
-                // + 3 + PUBKEY_SIZE WU (public key, 3-byte compact-size length prefix)
-                nBytesInputs += (1 + (3 + mldsa::SIG_SIZE) + (3 + mldsa::PUBKEY_SIZE)) / WITNESS_SCALE_FACTOR;
+                // 1 WU (witness item count) + the signature and public key
+                nBytesInputs += (1 + mldsa::WITNESS_SATISFACTION_WEIGHT) / WITNESS_SCALE_FACTOR;
             } else {
                 // not supported, should be unreachable
                 throw std::runtime_error("Trying to spend future segwit version script");

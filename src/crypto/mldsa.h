@@ -22,6 +22,9 @@ static constexpr size_t PUBKEY_SIZE    = 1312;
 static constexpr size_t SECRETKEY_SIZE = 2560;
 static constexpr size_t SIG_SIZE       = 2420;
 static constexpr size_t SEED_SIZE      = 32;   // Deterministic keygen seed
+// Weight of the witness that spends an ML-DSA-44 output, not counting the item
+// count: the signature and the public key, each behind a 3-byte length.
+static constexpr size_t WITNESS_SATISFACTION_WEIGHT = (3 + SIG_SIZE) + (3 + PUBKEY_SIZE);
 
 /**
  * Deterministically derive an ML-DSA-44 keypair from a 32-byte seed.
