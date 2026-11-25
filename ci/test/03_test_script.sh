@@ -157,11 +157,14 @@ if [ "${BUILD_LIBOQS}" = "true" ]; then
     cmake -S "liboqs-${LIBOQS_VERSION}" -B liboqs-build -GNinja \
       -DOQS_BUILD_ONLY_LIB=ON -DOQS_MINIMAL_BUILD=SIG_ml_dsa_44 \
       -DOQS_USE_OPENSSL=OFF -DBUILD_SHARED_LIBS=OFF -DCMAKE_INSTALL_PREFIX="${LIBOQS_PREFIX}" \
+      -DCMAKE_INSTALL_LIBDIR=lib \
       "${LIBOQS_CMAKE_ARGS[@]}"
     cmake --build liboqs-build
     cmake --install liboqs-build
     # A job that exists to test one ML-DSA-44 backend names it here. Without that
     # backend the tests would compare the portable C code with itself and pass.
+    # This only shows the backend was compiled in; mldsa44_conformance_tests reads
+    # the same variable and checks that liboqs dispatches to it on the test CPU.
     if [ -n "${LIBOQS_REQUIRE_BACKEND}" ]; then
       if ! nm --defined-only liboqs-build/lib/liboqs.a | grep -q "PQCP_MLDSA_NATIVE_MLDSA44_${LIBOQS_REQUIRE_BACKEND}_verify"; then
         echo "liboqs was built without the ${LIBOQS_REQUIRE_BACKEND} ML-DSA-44 backend"

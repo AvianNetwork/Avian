@@ -135,4 +135,8 @@ if [ -z "$DANGER_RUN_CI_ON_HOST" ]; then
     docker container inspect "${CI_CONTAINER_ID}" > /dev/null 2>&1 || break
     sleep 1
   done
+  if docker container inspect "${CI_CONTAINER_ID}" > /dev/null 2>&1; then
+    echo "CI container ${CI_CONTAINER_ID} still exists 30 seconds after it was killed"
+    exit 1
+  fi
 fi

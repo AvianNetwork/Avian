@@ -7,6 +7,11 @@
 # RIP-25: unit tests on Apple Silicon with the real ML-DSA-44 code, so the NEON
 # verifier is also checked under the macOS toolchain and its CPU detection. See
 # 00_setup_env_native_arm64.sh for what the tests compare.
+#
+# This is liboqs's default build, not the one macOS releases ship. depends
+# builds liboqs for darwin with OQS_DIST_BUILD=OFF, and liboqs then skips CPU
+# feature detection when cross-compiling, so release binaries get the portable C
+# verifier only. That verifier is the reference half of every comparison here.
 
 export LC_ALL=C.UTF-8
 
