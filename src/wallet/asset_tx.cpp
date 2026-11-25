@@ -339,8 +339,7 @@ bool CreateTransferAssetTransaction(
         return false;
     }
 
-    // cs_wallet before cs_main: the block-connected handler takes them in that
-    // order (AddToWallet -> ComputeTimeSmart -> findBlock), so we must too.
+    // cs_wallet before cs_main (see CreateIssueAssetTransaction).
     LOCK2(wallet.cs_wallet, cs_main);
 
     // Collect required asset amounts and build transfer outputs
@@ -611,8 +610,7 @@ bool CreateReissueAssetTransaction(
         return false;
     }
 
-    // cs_wallet before cs_main: the block-connected handler takes them in that
-    // order (AddToWallet -> ComputeTimeSmart -> findBlock), so we must too.
+    // cs_wallet before cs_main (see CreateIssueAssetTransaction).
     LOCK2(wallet.cs_wallet, cs_main);
 
     // Verify ownership
