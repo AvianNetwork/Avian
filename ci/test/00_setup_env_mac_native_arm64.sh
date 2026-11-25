@@ -26,4 +26,6 @@ export LIBOQS_VERSION=0.16.0
 # The runner's /usr/local is not ours to write to.
 export LIBOQS_PREFIX="${BASE_SCRATCH_DIR}/liboqs"
 export LIBOQS_REQUIRE_BACKEND=AARCH64
-export AVIAN_CONFIG="-DBUILD_GUI=OFF -DENABLE_IPC=OFF -DBUILD_TESTS=ON -DWITH_LIBOQS=ON"
+# Homebrew's CMake is newer than the Linux images' and reports directory-scope
+# commands in the tree (include_directories and the like) as developer errors.
+export AVIAN_CONFIG="-DBUILD_GUI=OFF -DENABLE_IPC=OFF -DBUILD_TESTS=ON -DWITH_LIBOQS=ON -Wno-error=dev"
