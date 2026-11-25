@@ -137,11 +137,16 @@ if [ "${CI_PHASE}" != "test" ]; then
 if [ "${BUILD_LIBOQS}" = "true" ]; then
   LIBOQS_VERSION="${LIBOQS_VERSION:-0.16.0}"
   LIBOQS_SHA256="162d5b510518ee5f285f82fa1f16402a885176e818bf1b1a4c3c91c9a2f01eae"
+  LIBOQS_PREFIX="${LIBOQS_PREFIX:-/usr/local}"
   (
     set -e
     cd "${BASE_SCRATCH_DIR}"
     ${CI_RETRY_EXE} curl --location --fail "https://github.com/open-quantum-safe/liboqs/archive/refs/tags/${LIBOQS_VERSION}.tar.gz" -o liboqs.tar.gz
-    echo "${LIBOQS_SHA256}  liboqs.tar.gz" | sha256sum -c -
+    if [ "$CI_OS_NAME" == "macos" ]; then
+      echo "${LIBOQS_SHA256}  liboqs.tar.gz" | shasum -a 256 -c -
+    else
+      echo "${LIBOQS_SHA256}  liboqs.tar.gz" | sha256sum -c -
+    fi
     tar xzf liboqs.tar.gz
     # The fuzz job sets these so liboqs gets the same sanitizers and coverage
     # instrumentation as the fuzz binary; without them the fuzzer cannot see into
@@ -151,14 +156,25 @@ if [ "${BUILD_LIBOQS}" = "true" ]; then
     if [ -n "${LIBOQS_C_FLAGS}" ]; then LIBOQS_CMAKE_ARGS+=("-DCMAKE_C_FLAGS=${LIBOQS_C_FLAGS}"); fi
     cmake -S "liboqs-${LIBOQS_VERSION}" -B liboqs-build -GNinja \
       -DOQS_BUILD_ONLY_LIB=ON -DOQS_MINIMAL_BUILD=SIG_ml_dsa_44 \
-      -DOQS_USE_OPENSSL=OFF -DBUILD_SHARED_LIBS=OFF -DCMAKE_INSTALL_PREFIX=/usr/local \
+      -DOQS_USE_OPENSSL=OFF -DBUILD_SHARED_LIBS=OFF -DCMAKE_INSTALL_PREFIX="${LIBOQS_PREFIX}" \
       "${LIBOQS_CMAKE_ARGS[@]}"
     cmake --build liboqs-build
     cmake --install liboqs-build
+    # A job that exists to test one ML-DSA-44 backend names it here. Without that
+    # backend the tests would compare the portable C code with itself and pass.
+    if [ -n "${LIBOQS_REQUIRE_BACKEND}" ]; then
+      if ! nm --defined-only liboqs-build/lib/liboqs.a | grep -q "PQCP_MLDSA_NATIVE_MLDSA44_${LIBOQS_REQUIRE_BACKEND}_verify"; then
+        echo "liboqs was built without the ${LIBOQS_REQUIRE_BACKEND} ML-DSA-44 backend"
+        exit 1
+      fi
+    fi
   )
 fi
 
 AVIAN_CONFIG_ALL="-DBUILD_BENCH=OFF -DBUILD_FUZZ_BINARY=OFF"
+if [ "${BUILD_LIBOQS}" = "true" ]; then
+  AVIAN_CONFIG_ALL="${AVIAN_CONFIG_ALL} -Dliboqs_DIR=${LIBOQS_PREFIX}/lib/cmake/liboqs"
+fi
 if [ -z "$NO_DEPENDS" ]; then
   AVIAN_CONFIG_ALL="${AVIAN_CONFIG_ALL} -DCMAKE_TOOLCHAIN_FILE=$DEPENDS_DIR/$HOST/toolchain.cmake"
 fi
