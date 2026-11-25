@@ -180,6 +180,12 @@ target_link_libraries(test_bitcoin
   Boost::headers
   libevent::extra
 )
+# mldsa44_conformance_tests.cpp includes liboqs headers. bitcoin_crypto does not
+# pass its liboqs include path this far, and a system directory may hold no
+# liboqs, or a different version.
+if(WITH_LIBOQS AND LIBOQS_FOUND)
+  target_link_libraries(test_bitcoin ${LIBOQS_TARGET})
+endif()
 
 if(ENABLE_WALLET)
   add_subdirectory(${PROJECT_SOURCE_DIR}/src/wallet/test wallet)
