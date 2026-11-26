@@ -1963,8 +1963,8 @@ bool AppInitMain(NodeContext& node, interfaces::BlockAndHeaderTipInfo* tip_info)
         const bool wipe_asset_dbs{do_reindex || coinsBestBlock.IsNull()};
 
         // Core asset databases
-        // Note: a rebuild of the asset database does NOT wipe it here; ReindexAssets() erases
-        // the keys it rebuilds and keeps the others.
+        // Note: a rebuild of the asset database on a connected chain does not go through this
+        // wipe; ReindexAssets() erases the keys it rebuilds and keeps the others.
         passetsdb = new CAssetsDB(args.GetDataDirNet(), nAssetDBCache, false, wipe_asset_dbs);
         passets = new CAssetsCache();
         passetsCache = new CLRUCache<std::string, CDatabasedAssetData>(MAX_CACHE_ASSETS_SIZE);
@@ -1996,10 +1996,13 @@ bool AppInitMain(NodeContext& node, interfaces::BlockAndHeaderTipInfo* tip_info)
             return InitError(_("Failed to load Assets Database"));
         }
 
-        // Read reissued mempool state
-        if (!passetsdb->ReadReissuedMempoolState(mapReissuedAssets, mapReissuedTx)) {
-            LogPrintf("Database failed to load last Reissued Mempool State. Will start from empty state.\n");
-        }
+        // The reissue lock names the unconfirmed transaction that is reissuing an asset. It
+        // is set again for each such transaction as the mempool loads. The copy saved with
+        // the asset database is not restored: a lock whose transaction does not come back
+        // (it expired, or another reissue was mined meanwhile) would stay for good, and no
+        // later reissue of that asset would enter this node's mempool.
+        mapReissuedAssets.clear();
+        mapReissuedTx.clear();
 
         LogPrintf("Successfully loaded assets from database. Cache size: %d\n", passetsCache->Size());
 
@@ -2014,8 +2017,6 @@ bool AppInitMain(NodeContext& node, interfaces::BlockAndHeaderTipInfo* tip_info)
             if (coinsBestBlock.IsNull()) {
                 // Nothing is connected yet: the databases are empty and fill as the chain does.
                 do_reindex_assets = false;
-            } else if (do_reindex_assets) {
-                why = "-reindexassets was given";
             } else if (passetsdb->ReadRebuildPending()) {
                 why = "an earlier rebuild did not finish";
             } else if (hasAssetBestBlock && assetBestBlock != coinsBestBlock) {
@@ -2028,6 +2029,23 @@ bool AppInitMain(NodeContext& node, interfaces::BlockAndHeaderTipInfo* tip_info)
             } else if (!current_version) {
                 // 5.0.x stored every tag and freeze under an empty address.
                 why = strprintf("it was written by an older version (%d, now %d)", version, ASSET_DB_VERSION);
+            }
+
+            // Whether the database is unusable as it is, or only -reindexassets asks for it.
+            const bool rebuild_needed{!why.empty()};
+            if (!rebuild_needed && do_reindex_assets) why = "-reindexassets was given";
+
+            if (!why.empty() && WITH_LOCK(cs_main, return chainman.m_blockman.m_have_pruned)) {
+                // A pruned node has deleted blocks the rebuild reads. Stop before anything is
+                // erased. When the rebuild is needed, leave it pending: the flush at shutdown
+                // marks the asset database as matching the UTXO tip, and without the flag the
+                // next start would run on it.
+                LogPrintf("The asset database cannot be rebuilt on a pruned node: %s.\n", why);
+                if (!rebuild_needed) {
+                    return InitError(_("-reindexassets cannot be used on a pruned node: the blocks it reads have been deleted."));
+                }
+                passetsdb->WriteRebuildPending(true);
+                return InitError(_("The asset database has to be rebuilt, which a pruned node cannot do: the blocks it reads have been deleted. Restart with -reindex to download the chain again."));
             }
 
             if (!why.empty()) {

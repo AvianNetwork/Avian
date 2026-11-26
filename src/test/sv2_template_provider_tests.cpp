@@ -4,6 +4,7 @@
 
 #include <addresstype.h>
 #include <arith_uint256.h>
+#include <assets/assettypes.h>
 #include <chainparams.h>
 #include <compat/compat.h>
 #include <consensus/amount.h>
@@ -21,8 +22,11 @@
 #include <sv2/options.h>
 #include <sv2/template_provider.h>
 #include <sv2/transport.h>
+#include <test/util/logging.h>
 #include <test/util/setup_common.h>
 #include <test/util/sv2.h>
+#include <test/util/txmempool.h>
+#include <txmempool.h>
 #include <util/sock.h>
 #include <util/time.h>
 #include <validation.h>
@@ -870,6 +874,48 @@ BOOST_AUTO_TEST_CASE(the_coinbase_ceiling_is_what_the_assembler_reserved)
     const auto handle{mining->createNewBlock(create)};
     BOOST_REQUIRE(handle);
     BOOST_CHECK_EQUAL(handle->getBlockReservedWeight(), MINIMUM_BLOCK_RESERVED_WEIGHT);
+}
+
+// The assembler throws when its template fails the validity check. That must
+// not leave the provider's thread: the client is kept and served at the next
+// refresh. Twelve transactions that fail the asset rules are more than one
+// call removes, so the first build throws and the second succeeds.
+BOOST_AUTO_TEST_CASE(a_template_that_cannot_be_built_is_retried)
+{
+    mineBlocks(15); // so that the first coinbases can be spent
+    CTxMemPool& pool{*Assert(m_node.mempool)};
+    {
+        LOCK2(::cs_main, pool.cs);
+        TestMemPoolEntryHelper entry;
+        for (int i{0}; i < 12; ++i) {
+            CMutableTransaction tx;
+            tx.vin.emplace_back(COutPoint{m_coinbase_txns[i]->GetHash(), 0});
+            tx.vout.emplace_back(m_coinbase_txns[i]->vout[0].nValue - CAmount{10000}, CScript{} << OP_TRUE);
+            CScript transfer{GetScriptForDestination(PKHash(coinbaseKey.GetPubKey()))};
+            CAssetTransfer{"AVIANTEST", COIN}.ConstructTransaction(transfer);
+            tx.vout.emplace_back(0, transfer);
+            AddToMempool(pool, entry.Fee(10000).SpendsCoinbase(true).FromTx(tx));
+        }
+    }
+
+    auto server{StartTemplateServer(m_node, m_args.GetDataDirNet(), [](sv2::Options& opts) {
+        opts.refresh_interval = std::chrono::seconds{1};
+    })};
+    auto client{ConnectTo(*server, server->AuthorityPubKey())};
+    BOOST_REQUIRE(Ready(*client, POW_TYPE_X16RT));
+    {
+        // The first build has to fail for this test to mean anything.
+        ASSERT_DEBUG_LOG("could not be given a template");
+        BOOST_REQUIRE(SendConstraints(*client));
+        // Pushed by the watcher rather than sent in reply, so it gets the
+        // longer timeout.
+        bool closed{false};
+        const auto msg{ReadMessage(*client, closed, PUSH_TIMEOUT)};
+        BOOST_REQUIRE(msg.has_value());
+        BOOST_CHECK_EQUAL(msg->header.msg_type, static_cast<uint8_t>(sv2::CoreMsg::NEW_TEMPLATE));
+    }
+    BOOST_CHECK_EQUAL(server->connman->ClientCount(), 1u);
+    BOOST_CHECK_EQUAL(WITH_LOCK(pool.cs, return pool.size()), 0u);
 }
 
 BOOST_AUTO_TEST_CASE(a_client_without_the_extension_is_sent_no_extension_frames)

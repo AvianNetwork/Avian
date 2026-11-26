@@ -14,18 +14,20 @@
 BOOST_FIXTURE_TEST_SUITE(pow_tests, BasicTestingSetup)
 
 /* A header names its proof-of-work algorithm in nVersion. One that names an
- * algorithm that does not exist is refused; there is no limit to look up. */
+ * algorithm that does not exist is refused; there is no limit to look up.
+ * The hash given here meets every target, so the limit alone decides. */
 BOOST_AUTO_TEST_CASE(unknown_pow_algorithm_is_refused)
 {
-    const auto chainParams = CreateChainParams(*m_node.args, ChainType::MAIN);
+    const auto chainParams = CreateChainParams(*m_node.args, ChainType::REGTEST);
     const Consensus::Params& params{chainParams->GetConsensus()};
-    for (const int32_t algo : {2, 3, 127, 255}) {
-        CBlockHeader header;
-        header.nVersion = 0x30000000 | (algo << 16);
-        header.nTime = params.powForkTime + 1;
-        header.nBits = UintToArith256(params.powLimit).GetCompact();
-        BOOST_CHECK(!CheckProofOfWork(header, params));
-    }
+    const uint32_t time{params.powForkTime + 1};
+    const unsigned int bits{UintToArith256(params.powLimit).GetCompact()};
+    const auto accepted = [&](int32_t algo) {
+        return CheckProofOfWorkFromIndex(uint256{}, bits, time, 0x30000000 | (algo << 16), params);
+    };
+    BOOST_CHECK(accepted(0));
+    BOOST_CHECK(accepted(1));
+    for (const int32_t algo : {2, 3, 127, 255}) BOOST_CHECK(!accepted(algo));
 }
 
 /* Test calculation of next difficulty target with no constraints applying */

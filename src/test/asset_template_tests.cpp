@@ -11,6 +11,7 @@
 #include <assets/assettypes.h>
 #include <consensus/amount.h>
 #include <node/miner.h>
+#include <policy/packages.h>
 #include <primitives/transaction.h>
 #include <script/script.h>
 #include <test/util/setup_common.h>
@@ -123,6 +124,40 @@ BOOST_AUTO_TEST_CASE(template_eviction_is_bounded_per_call)
     const std::unique_ptr<CBlockTemplate> block_template{assembler.CreateNewBlock()};
     BOOST_REQUIRE(block_template);
     BOOST_CHECK_EQUAL(block_template->block.vtx.size(), 1U);
+    BOOST_CHECK_EQUAL(pool.size(), 0U);
+}
+
+// The asset checks of mempool acceptance cannot see the other members of a
+// package, so a package with an asset transaction in it is not evaluated.
+BOOST_AUTO_TEST_CASE(asset_transactions_are_not_accepted_as_a_package)
+{
+    mineBlocks(15);
+    CTxMemPool& pool{*Assert(m_node.mempool)};
+    const CScript own{GetScriptForDestination(PKHash{coinbaseKey.GetPubKey()})};
+    const CTransactionRef parent{MakeTransactionRef(CreateValidMempoolTransaction(
+        m_coinbase_txns[0], 0, /*input_height=*/1, coinbaseKey, own,
+        m_coinbase_txns[0]->vout[0].nValue - FEE, /*submit=*/false))};
+    const CMutableTransaction plain_child{CreateValidMempoolTransaction(
+        parent, 0, /*input_height=*/116, coinbaseKey, Holder(), parent->vout[0].nValue - FEE, /*submit=*/false)};
+
+    CMutableTransaction transfer_child{plain_child};
+    CScript transfer{Holder()};
+    CAssetTransfer{"AVIANTEST", COIN}.ConstructTransaction(transfer);
+    transfer_child.vout.emplace_back(0, transfer);
+
+    // A tag, a freeze or a verifier string: any script that starts with OP_AVN_ASSET
+    CMutableTransaction tag_child{plain_child};
+    tag_child.vout.emplace_back(0, CScript{} << OP_AVN_ASSET << std::vector<unsigned char>(20, 0x11) << std::vector<unsigned char>(8, 0x22));
+
+    const auto state = [&](const CMutableTransaction& child) {
+        const Package package{parent, MakeTransactionRef(child)};
+        LOCK(::cs_main);
+        return ProcessNewPackage(m_node.chainman->ActiveChainstate(), pool, package, /*test_accept=*/true, /*client_maxfeerate=*/{}).m_state;
+    };
+    BOOST_CHECK_EQUAL(state(transfer_child).GetRejectReason(), "package-asset-transaction");
+    BOOST_CHECK_EQUAL(state(tag_child).GetRejectReason(), "package-asset-transaction");
+    // The same package without the asset output is evaluated, and passes
+    BOOST_CHECK_MESSAGE(state(plain_child).IsValid(), state(plain_child).ToString());
     BOOST_CHECK_EQUAL(pool.size(), 0U);
 }
 
