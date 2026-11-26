@@ -61,17 +61,18 @@ RPCHelpMan getnewaddress()
         output_type = parsed.value();
     }
 
-    auto op_dest = pwallet->GetNewDestination(output_type, label);
-    if (!op_dest) {
-        throw JSONRPCError(RPC_WALLET_KEYPOOL_RAN_OUT, util::ErrorString(op_dest).original);
-    }
-
     // RIP-25: Reject PQ addresses until DEPLOYMENT_MLDSA44 activates. Before activation
     // witness v2 outputs are anyone-can-spend; no node enforces ML-DSA-44 rules yet.
+    // Checked first, so that no address is derived and put in the address book.
     if (output_type == OutputType::PQ && !pwallet->chain().isDeploymentActive(Consensus::DEPLOYMENT_MLDSA44)) {
         throw JSONRPCError(RPC_INVALID_PARAMETER,
             "ML-DSA-44 (pq) addresses are not yet active on this network. "
             "Wait for DEPLOYMENT_MLDSA44 to activate via miner signalling before using PQ addresses.");
+    }
+
+    auto op_dest = pwallet->GetNewDestination(output_type, label);
+    if (!op_dest) {
+        throw JSONRPCError(RPC_WALLET_KEYPOOL_RAN_OUT, util::ErrorString(op_dest).original);
     }
 
     return EncodeDestination(*op_dest);
