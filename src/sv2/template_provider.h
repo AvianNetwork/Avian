@@ -15,6 +15,7 @@
 #include <util/threadinterrupt.h>
 #include <uint256.h>
 
+#include <atomic>
 #include <cstdint>
 #include <chrono>
 #include <deque>
@@ -209,6 +210,10 @@ private:
     void RefreshClients(bool tip_changed) EXCLUSIVE_LOCKS_REQUIRED(!m_mutex);
 
     void ThreadWatcher() EXCLUSIVE_LOCKS_REQUIRED(!m_mutex);
+
+    //! Set when a client could not be given a template, so that the watcher
+    //! tries again shortly instead of a whole refresh interval later.
+    std::atomic<bool> m_retry_soon{false};
 
     interfaces::Mining& m_mining;
     const Options m_opts;

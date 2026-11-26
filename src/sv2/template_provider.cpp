@@ -218,13 +218,15 @@ bool TemplateProvider::SendNewTemplate(ClientId id, ClientState& state)
 
     // The assembler throws when its template does not pass the validity check.
     // Left to leave this thread, that ends the process. Keep the client and
-    // try again at the next refresh.
+    // have the watcher try again shortly: after a new tip the client is still
+    // working on the old one until a template reaches it.
     std::unique_ptr<interfaces::BlockTemplate> handle;
     try {
         handle = m_mining.createNewBlock(create);
-    } catch (const std::runtime_error& e) {
+    } catch (const std::exception& e) {
         LogPrintLevel(BCLog::SV2, BCLog::Level::Error,
                       "client=%d could not be given a template: %s\n", id, e.what());
+        m_retry_soon = true;
         return true;
     }
     if (!handle) {
@@ -804,14 +806,18 @@ void TemplateProvider::ThreadWatcher()
             last_tip = tip->hash;
             RefreshClients(/*tip_changed=*/true);
             next_refresh = std::chrono::steady_clock::now() + m_opts.refresh_interval;
-            continue;
-        }
-
-        // No new tip. Refresh anyway on the interval, which is what picks up
-        // new fees and keeps X16RT work inside its 128-second epoch.
-        if (std::chrono::steady_clock::now() >= next_refresh) {
+        } else if (std::chrono::steady_clock::now() >= next_refresh) {
+            // No new tip. Refresh anyway on the interval, which is what picks up
+            // new fees and keeps X16RT work inside its 128-second epoch.
             RefreshClients(/*tip_changed=*/false);
             next_refresh = std::chrono::steady_clock::now() + m_opts.refresh_interval;
+        }
+
+        // A template could not be built, here or for a client that has just
+        // asked for its first. Do not leave that client a whole interval
+        // without work.
+        if (m_retry_soon.exchange(false)) {
+            next_refresh = std::min(next_refresh, std::chrono::steady_clock::now() + std::chrono::seconds{1});
         }
     }
 }
