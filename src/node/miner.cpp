@@ -136,7 +136,9 @@ static bool EvictFromMempool(Chainstate& chainstate, const CTxMemPool* assembler
 {
     CTxMemPool* const mempool{chainstate.GetMempool()};
     if (!mempool || mempool != assembler_mempool) return false;
-    LOCK(mempool->cs);
+    // cs_main as well: removing a reissue edits the reissue lock maps, which
+    // cs_main guards and FlushStateToDisk() reads.
+    LOCK2(::cs_main, mempool->cs);
     const CTransactionRef tx{mempool->get(txid)};
     if (!tx) return false;
     mempool->removeRecursive(*tx, MemPoolRemovalReason::CONFLICT);
