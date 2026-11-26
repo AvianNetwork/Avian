@@ -3260,14 +3260,17 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
                         if (IsAssetNameAnRestricted(reissue.strName)) {
                             std::string strError;
                             CNullAssetTxVerifierString verifier;
+                            // As in 4.x, a verifier output counts as a change even
+                            // when it repeats the current string. Within a block the
+                            // first verifier added for an asset is the one kept, so
+                            // skipping a repeated one would let a later reissue in the
+                            // same block set a string 4.x does not.
                             if (GetVerifierStringFromTx(tx, verifier, strError)) {
                                 CNullAssetTxVerifierString oldVerifier;
                                 assetsCache->GetAssetVerifierStringIfExists(reissue.strName, oldVerifier);
-                                if (oldVerifier.verifier_string != verifier.verifier_string) {
-                                    fChangedVerifier = true;
-                                    oldVerifierString = oldVerifier.verifier_string;
-                                    assetsCache->AddRestrictedVerifier(reissue.strName, verifier.verifier_string);
-                                }
+                                fChangedVerifier = true;
+                                oldVerifierString = oldVerifier.verifier_string;
+                                assetsCache->AddRestrictedVerifier(reissue.strName, verifier.verifier_string);
                             }
                         }
 
