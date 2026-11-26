@@ -1727,6 +1727,15 @@ MempoolAcceptResult MemPoolAccept::AcceptSingleTransaction(const CTransactionRef
                                         effective_feerate, single_wtxid);
 }
 
+//! Whether a transaction has an output that carries an asset, a tag, a freeze
+//! or a verifier string.
+static bool HasAssetOutput(const CTransaction& tx)
+{
+    return std::ranges::any_of(tx.vout, [](const CTxOut& out) {
+        return out.scriptPubKey.IsAssetScript() || (!out.scriptPubKey.empty() && out.scriptPubKey[0] == OP_AVN_ASSET);
+    });
+}
+
 PackageMempoolAcceptResult MemPoolAccept::AcceptMultipleTransactions(const std::vector<CTransactionRef>& txns, ATMPArgs& args)
 {
     AssertLockHeld(cs_main);
@@ -1734,6 +1743,16 @@ PackageMempoolAcceptResult MemPoolAccept::AcceptMultipleTransactions(const std::
     // These context-free package limits can be done before taking the mempool lock.
     PackageValidationState package_state;
     if (!IsWellFormedPackage(txns, package_state, /*require_sorted=*/true)) return PackageMempoolAcceptResult(package_state, {});
+
+    // The asset checks in PreChecks() read mempool state that is recorded when
+    // a transaction is added. Every member of a package is checked before any
+    // is added, so two issuances of one name, or two reissues of one asset,
+    // would pass together. An asset transaction is accepted on its own.
+    if (txns.size() > 1 && AreAssetsDeployed() &&
+        std::ranges::any_of(txns, [](const CTransactionRef& tx) { return HasAssetOutput(*tx); })) {
+        package_state.Invalid(PackageValidationResult::PCKG_POLICY, "package-asset-transaction");
+        return PackageMempoolAcceptResult(package_state, {});
+    }
 
     std::vector<Workspace> workspaces{};
     workspaces.reserve(txns.size());

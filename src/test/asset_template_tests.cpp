@@ -11,6 +11,7 @@
 #include <assets/assettypes.h>
 #include <consensus/amount.h>
 #include <node/miner.h>
+#include <policy/packages.h>
 #include <primitives/transaction.h>
 #include <script/script.h>
 #include <test/util/setup_common.h>
@@ -124,6 +125,33 @@ BOOST_AUTO_TEST_CASE(template_eviction_is_bounded_per_call)
     BOOST_REQUIRE(block_template);
     BOOST_CHECK_EQUAL(block_template->block.vtx.size(), 1U);
     BOOST_CHECK_EQUAL(pool.size(), 0U);
+}
+
+// The asset checks of mempool acceptance cannot see the other members of a
+// package, so a package with an asset transaction in it is not evaluated.
+BOOST_AUTO_TEST_CASE(asset_transactions_are_not_accepted_as_a_package)
+{
+    mineBlocks(15);
+    CTxMemPool& pool{*Assert(m_node.mempool)};
+    const CTransactionRef parent{MakeTransactionRef(CreateValidMempoolTransaction(
+        m_coinbase_txns[0], 0, /*input_height=*/1, coinbaseKey, Holder(),
+        m_coinbase_txns[0]->vout[0].nValue - FEE, /*submit=*/false))};
+
+    CMutableTransaction plain_child;
+    plain_child.vin.emplace_back(COutPoint{parent->GetHash(), 0});
+    plain_child.vout.emplace_back(parent->vout[0].nValue - FEE, Holder());
+    CMutableTransaction asset_child{plain_child};
+    CScript transfer{Holder()};
+    CAssetTransfer{"AVIANTEST", COIN}.ConstructTransaction(transfer);
+    asset_child.vout.emplace_back(0, transfer);
+
+    const auto reason = [&](const CMutableTransaction& child) {
+        const Package package{parent, MakeTransactionRef(child)};
+        LOCK(::cs_main);
+        return ProcessNewPackage(m_node.chainman->ActiveChainstate(), pool, package, /*test_accept=*/true, /*client_maxfeerate=*/{}).m_state.GetRejectReason();
+    };
+    BOOST_CHECK_EQUAL(reason(asset_child), "package-asset-transaction");
+    BOOST_CHECK(reason(plain_child) != "package-asset-transaction");
 }
 
 // A unique-asset issuance creates one name per output. Each is tracked, the
