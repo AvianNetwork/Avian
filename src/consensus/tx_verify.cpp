@@ -718,7 +718,7 @@ bool Consensus::CheckTxAssets(const CTransaction& tx, TxValidationState& state, 
                 }
             }
 
-            if (!ContextualCheckUniqueAssetTx(assetCache, strError, tx))
+            if (!ContextualCheckUniqueAssetTx(assetCache, strError, tx, mempool))
                 return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-txns-issue-unique-contextual-" + strError);
         } else if (IsNewMsgChannelAsset(tx)) {
             if (!AreMessagesDeployed())

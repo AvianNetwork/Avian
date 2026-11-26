@@ -410,12 +410,16 @@ bool CheckBlock(const CBlock& block, BlockValidationState& state, const Consensu
  *         can fail trying to save new data.)
  *
  * For signets the challenge verification is skipped when check_pow is false.
+ *
+ * @param[out]  asset_invalid_tx  set to the transaction that failed the asset
+ *                                rules, when that is why the block is invalid
  */
 BlockValidationState TestBlockValidity(
     Chainstate& chainstate,
     const CBlock& block,
     bool check_pow,
-    bool check_merkle_root) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
+    bool check_merkle_root,
+    std::optional<Txid>* asset_invalid_tx = nullptr) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
 
 /** Check with the proof of work on each blockheader matches the value in nBits */
 bool HasValidProofOfWork(const std::vector<CBlockHeader>& headers, const Consensus::Params& consensusParams);
@@ -745,7 +749,8 @@ public:
         EXCLUSIVE_LOCKS_REQUIRED(::cs_main);
     bool ConnectBlock(const CBlock& block, BlockValidationState& state, CBlockIndex* pindex,
                       CCoinsViewCache& view, bool fJustCheck = false,
-                      class CAssetsCache* assetsCache = nullptr) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
+                      class CAssetsCache* assetsCache = nullptr,
+                      std::optional<Txid>* asset_invalid_tx = nullptr) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
 
     // Apply the effects of a block disconnection on the UTXO set.
     bool DisconnectTip(BlockValidationState& state, DisconnectedBlockTransactions* disconnectpool) EXCLUSIVE_LOCKS_REQUIRED(cs_main, m_mempool->cs);

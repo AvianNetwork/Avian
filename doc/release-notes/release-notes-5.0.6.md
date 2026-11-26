@@ -130,6 +130,14 @@ The mempool and the reorganization paths now track asset state as 4.x does:
   it keeps the previous ANS id. Before, a no-op reissue restored the wrong
   value on a reorg across two reissues of one asset, and a reorged-out ANS
   change was not undone.
+- A mempool transaction that fails the asset rules when a block template is
+  checked is removed from the mempool, with the transactions that spend it,
+  and the template is built again. Before, every template failed until the
+  transaction expired, up to 336 hours later, and the node could mine nothing.
+  4.x has the same weakness.
+- The names of a unique-asset issuance are tracked in the mempool like every
+  other issued name. A second transaction that issues one of them is refused,
+  and the transaction is evicted when a block issues one first.
 
 Asset database
 --------------

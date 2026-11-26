@@ -11,6 +11,7 @@ add_executable(test_bitcoin
   amount_tests.cpp
   asset_mempool_tests.cpp
   asset_script_tests.cpp
+  asset_template_tests.cpp
   asset_tx_check_tests.cpp
   assets_amount_tests.cpp
   asset_transfer_overflow_tests.cpp
