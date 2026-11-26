@@ -1010,10 +1010,7 @@ void CTxMemPool::removeForBlock(const std::vector<CTransactionRef>& vtx, unsigne
 {
     AssertLockHeld(cs);
     Assume(!m_have_changeset);
-    std::set<uint256> setAlreadyRemoving;
-
     std::vector<RemovedMempoolTransactionInfo> txs_removed_for_block;
-    std::vector<CTransaction> assetConflictTxs;
 
     if (mapTx.size() || mapNextTx.size() || mapDeltas.size()) {
         txs_removed_for_block.reserve(vtx.size());
@@ -1031,131 +1028,53 @@ void CTxMemPool::removeForBlock(const std::vector<CTransactionRef>& vtx, unsigne
     }
 
     /** AVN START - Remove mempool transactions that conflict with connected block asset data */
-    // Remove mempool txs that tried to create assets that are now confirmed
+    // Removing a transaction erases its hash from the set it was found in, so
+    // walk a copy. Its descendants go with it: they spend outputs that are gone.
+    const auto evict = [&](const std::set<uint256>& hashes) EXCLUSIVE_LOCKS_REQUIRED(cs) {
+        for (const uint256& txhash : std::vector<uint256>(hashes.begin(), hashes.end())) {
+            const txiter it = mapTx.find(Txid::FromUint256(txhash));
+            if (it == mapTx.end()) continue;
+            const CTransactionRef tx{it->GetSharedTx()};
+            ClearPrioritisation(tx->GetHash());
+            removeRecursive(*tx, MemPoolRemovalReason::CONFLICT);
+        }
+    };
+    const auto evict_for = [&](const auto& map, const auto& key) EXCLUSIVE_LOCKS_REQUIRED(cs) {
+        const auto found = map.find(key);
+        if (found != map.end()) evict(found->second);
+    };
+
+    // Issuances of a name the block has now issued
     for (const auto& it : connectedBlockData.newAssetsToAdd) {
-        if (mapAssetToHash.count(it.asset.strName)) {
-            uint256 assetHash = mapAssetToHash.at(it.asset.strName);
-            txiter i = mapTx.find(Txid::FromUint256(assetHash));
-            if (i != mapTx.end()) {
-                assetConflictTxs.emplace_back(i->GetTx());
-                setEntries stage;
-                stage.insert(i);
-                RemoveStaged(stage, true, MemPoolRemovalReason::BLOCK);
-                setAlreadyRemoving.insert(assetHash);
-            }
-        }
+        const auto found = mapAssetToHash.find(it.asset.strName);
+        if (found != mapAssetToHash.end()) evict({found->second});
     }
 
-    // Remove mempool txs that conflict with newly confirmed verifier string changes
+    // Transfers of a restricted asset whose verifier string the block changed
     for (const auto& it : connectedBlockData.newVerifiersToAdd) {
-        if (mapAssetVerifierChanged.count(it.assetName)) {
-            for (const auto& txhash : mapAssetVerifierChanged.at(it.assetName)) {
-                if (!setAlreadyRemoving.count(txhash)) {
-                    txiter i = mapTx.find(Txid::FromUint256(txhash));
-                    if (i != mapTx.end()) {
-                        assetConflictTxs.emplace_back(i->GetTx());
-                        setEntries stage;
-                        stage.insert(i);
-                        RemoveStaged(stage, true, MemPoolRemovalReason::BLOCK);
-                        setAlreadyRemoving.insert(txhash);
-                    }
-                }
-            }
-        }
+        evict_for(mapAssetVerifierChanged, it.assetName);
     }
 
-    // Remove mempool txs that conflict with newly confirmed qualifier changes
+    // Transfers of a restricted asset to an address the block tagged or untagged
     for (const auto& it : connectedBlockData.newQualifiersToAdd) {
-        if (mapAddressesQualifiersChanged.count(it.address)) {
-            for (const auto& txhash : mapAddressesQualifiersChanged.at(it.address)) {
-                if (!setAlreadyRemoving.count(txhash)) {
-                    txiter i = mapTx.find(Txid::FromUint256(txhash));
-                    if (i != mapTx.end()) {
-                        assetConflictTxs.emplace_back(i->GetTx());
-                        setEntries stage;
-                        stage.insert(i);
-                        RemoveStaged(stage, true, MemPoolRemovalReason::BLOCK);
-                        setAlreadyRemoving.insert(txhash);
-                    }
-                }
-            }
-        }
+        evict_for(mapAddressesQualifiersChanged, it.address);
     }
 
-    // Remove mempool txs that conflict with newly confirmed global restriction changes
+    // Spends of an asset the block froze, and other global freezes or unfreezes of it
     for (const auto& it : connectedBlockData.newGlobalRestrictionsToAdd) {
         if (it.type == RestrictedType::GLOBAL_FREEZE) {
-            if (mapAssetMarkedGlobalFrozen.count(it.assetName)) {
-                for (const auto& txhash : mapAssetMarkedGlobalFrozen.at(it.assetName)) {
-                    if (!setAlreadyRemoving.count(txhash)) {
-                        txiter i = mapTx.find(Txid::FromUint256(txhash));
-                        if (i != mapTx.end()) {
-                            assetConflictTxs.emplace_back(i->GetTx());
-                            setEntries stage;
-                            stage.insert(i);
-                            RemoveStaged(stage, true, MemPoolRemovalReason::BLOCK);
-                            setAlreadyRemoving.insert(txhash);
-                        }
-                    }
-                }
-            }
-            if (mapGlobalFreezingAssetTransactions.count(it.assetName)) {
-                for (const auto& txhash : mapGlobalFreezingAssetTransactions.at(it.assetName)) {
-                    if (!setAlreadyRemoving.count(txhash)) {
-                        txiter i = mapTx.find(Txid::FromUint256(txhash));
-                        if (i != mapTx.end()) {
-                            assetConflictTxs.emplace_back(i->GetTx());
-                            setEntries stage;
-                            stage.insert(i);
-                            RemoveStaged(stage, true, MemPoolRemovalReason::BLOCK);
-                            setAlreadyRemoving.insert(txhash);
-                        }
-                    }
-                }
-            }
+            evict_for(mapAssetMarkedGlobalFrozen, it.assetName);
+            evict_for(mapGlobalFreezingAssetTransactions, it.assetName);
         } else if (it.type == RestrictedType::GLOBAL_UNFREEZE) {
-            if (mapGlobalUnFreezingAssetTransactions.count(it.assetName)) {
-                for (const auto& txhash : mapGlobalUnFreezingAssetTransactions.at(it.assetName)) {
-                    if (!setAlreadyRemoving.count(txhash)) {
-                        txiter i = mapTx.find(Txid::FromUint256(txhash));
-                        if (i != mapTx.end()) {
-                            assetConflictTxs.emplace_back(i->GetTx());
-                            setEntries stage;
-                            stage.insert(i);
-                            RemoveStaged(stage, true, MemPoolRemovalReason::BLOCK);
-                            setAlreadyRemoving.insert(txhash);
-                        }
-                    }
-                }
-            }
+            evict_for(mapGlobalUnFreezingAssetTransactions, it.assetName);
         }
     }
 
-    // Remove mempool txs that conflict with newly confirmed address restriction changes
+    // Spends from an address the block froze
     for (const auto& it : connectedBlockData.newAddressRestrictionsToAdd) {
         if (it.type == RestrictedType::FREEZE_ADDRESS) {
-            auto pair = std::make_pair(it.address, it.assetName);
-            if (mapAddressesMarkedFrozen.count(pair)) {
-                for (const auto& txhash : mapAddressesMarkedFrozen.at(pair)) {
-                    if (!setAlreadyRemoving.count(txhash)) {
-                        txiter i = mapTx.find(Txid::FromUint256(txhash));
-                        if (i != mapTx.end()) {
-                            assetConflictTxs.emplace_back(i->GetTx());
-                            setEntries stage;
-                            stage.insert(i);
-                            RemoveStaged(stage, true, MemPoolRemovalReason::BLOCK);
-                            setAlreadyRemoving.insert(txhash);
-                        }
-                    }
-                }
-            }
+            evict_for(mapAddressesMarkedFrozen, std::make_pair(it.address, it.assetName));
         }
-    }
-
-    // Clean up conflicts for the additionally removed asset transactions
-    for (const auto& tx : assetConflictTxs) {
-        removeConflicts(tx);
-        ClearPrioritisation(tx.GetHash());
     }
     /** AVN END */
 
