@@ -216,7 +216,17 @@ bool TemplateProvider::SendNewTemplate(ClientId id, ClientState& state)
         std::max<size_t>(MINIMUM_BLOCK_RESERVED_WEIGHT,
                          DEFAULT_BLOCK_RESERVED_WEIGHT + WITNESS_SCALE_FACTOR * state.coinbase_max_additional_size);
 
-    auto handle{m_mining.createNewBlock(create)};
+    // The assembler throws when its template does not pass the validity check.
+    // Left to leave this thread, that ends the process. Keep the client and
+    // try again at the next refresh.
+    std::unique_ptr<interfaces::BlockTemplate> handle;
+    try {
+        handle = m_mining.createNewBlock(create);
+    } catch (const std::runtime_error& e) {
+        LogPrintLevel(BCLog::SV2, BCLog::Level::Error,
+                      "client=%d could not be given a template: %s\n", id, e.what());
+        return true;
+    }
     if (!handle) {
         LogPrintLevel(BCLog::SV2, BCLog::Level::Warning,
                       "client=%d could not be given a template; the node is shutting down\n", id);
