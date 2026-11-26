@@ -133,25 +133,32 @@ BOOST_AUTO_TEST_CASE(asset_transactions_are_not_accepted_as_a_package)
 {
     mineBlocks(15);
     CTxMemPool& pool{*Assert(m_node.mempool)};
+    const CScript own{GetScriptForDestination(PKHash{coinbaseKey.GetPubKey()})};
     const CTransactionRef parent{MakeTransactionRef(CreateValidMempoolTransaction(
-        m_coinbase_txns[0], 0, /*input_height=*/1, coinbaseKey, Holder(),
+        m_coinbase_txns[0], 0, /*input_height=*/1, coinbaseKey, own,
         m_coinbase_txns[0]->vout[0].nValue - FEE, /*submit=*/false))};
+    const CMutableTransaction plain_child{CreateValidMempoolTransaction(
+        parent, 0, /*input_height=*/116, coinbaseKey, Holder(), parent->vout[0].nValue - FEE, /*submit=*/false)};
 
-    CMutableTransaction plain_child;
-    plain_child.vin.emplace_back(COutPoint{parent->GetHash(), 0});
-    plain_child.vout.emplace_back(parent->vout[0].nValue - FEE, Holder());
-    CMutableTransaction asset_child{plain_child};
+    CMutableTransaction transfer_child{plain_child};
     CScript transfer{Holder()};
     CAssetTransfer{"AVIANTEST", COIN}.ConstructTransaction(transfer);
-    asset_child.vout.emplace_back(0, transfer);
+    transfer_child.vout.emplace_back(0, transfer);
 
-    const auto reason = [&](const CMutableTransaction& child) {
+    // A tag, a freeze or a verifier string: any script that starts with OP_AVN_ASSET
+    CMutableTransaction tag_child{plain_child};
+    tag_child.vout.emplace_back(0, CScript{} << OP_AVN_ASSET << std::vector<unsigned char>(20, 0x11) << std::vector<unsigned char>(8, 0x22));
+
+    const auto state = [&](const CMutableTransaction& child) {
         const Package package{parent, MakeTransactionRef(child)};
         LOCK(::cs_main);
-        return ProcessNewPackage(m_node.chainman->ActiveChainstate(), pool, package, /*test_accept=*/true, /*client_maxfeerate=*/{}).m_state.GetRejectReason();
+        return ProcessNewPackage(m_node.chainman->ActiveChainstate(), pool, package, /*test_accept=*/true, /*client_maxfeerate=*/{}).m_state;
     };
-    BOOST_CHECK_EQUAL(reason(asset_child), "package-asset-transaction");
-    BOOST_CHECK(reason(plain_child) != "package-asset-transaction");
+    BOOST_CHECK_EQUAL(state(transfer_child).GetRejectReason(), "package-asset-transaction");
+    BOOST_CHECK_EQUAL(state(tag_child).GetRejectReason(), "package-asset-transaction");
+    // The same package without the asset output is evaluated, and passes
+    BOOST_CHECK_MESSAGE(state(plain_child).IsValid(), state(plain_child).ToString());
+    BOOST_CHECK_EQUAL(pool.size(), 0U);
 }
 
 // A unique-asset issuance creates one name per output. Each is tracked, the
