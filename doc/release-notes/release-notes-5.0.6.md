@@ -7,10 +7,10 @@ Avian Core version v5.0.6 is now available from:
 
 This is a **consensus release**. It closes the remaining places where a 5.x
 node accepted or refused a block differently from the 4.x series: how asset
-scripts are parsed and classified, how witness v1 outputs are validated, and
-how the mempool and a reorganization track asset state. It follows v5.0.5,
-which restored the asset rules in `CheckTransaction()`, and completes that
-work.
+scripts are parsed and classified, how a burn output is recognised, how
+witness v1 outputs are validated, and how the mempool and a reorganization
+track asset state. It follows v5.0.5, which restored the asset rules in
+`CheckTransaction()`, and completes that work.
 
 Every node that validates blocks should upgrade, and pools first. A pool on an
 earlier 5.x release can build a block that the 4.x majority rejects, or reject
@@ -41,7 +41,7 @@ so. It has to download the chain again with `-reindex`.
 ### Activation
 
 The restored parse and classification rules have no activation height: they
-apply to every block. The whole mainnet chain up to block 5,423,525 was
+apply to every block. The whole mainnet chain up to block 5,425,627 was
 validated under this release and no block was refused, so a node that upgrades
 stays on the chain it is on.
 
