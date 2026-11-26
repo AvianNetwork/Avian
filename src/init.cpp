@@ -1955,10 +1955,17 @@ bool AppInitMain(NodeContext& node, interfaces::BlockAndHeaderTipInfo* tip_info)
         delete pmyrestricteddb;
         delete pSnapshotRequestDb; delete pAssetSnapshotDb; delete pDistributeSnapshotDb;
 
+        // The asset and restricted databases describe the chain up to the UTXO tip. Without
+        // a UTXO tip (a new datadir, -reindex, -reindex-chainstate, a removed chainstate)
+        // no block is connected, so they start empty and fill as the chain does. Left in
+        // place, the first issuance connected again would be refused as already used.
+        const uint256 coinsBestBlock{WITH_LOCK(cs_main, return chainman.ActiveChainstate().CoinsTip().GetBestBlock())};
+        const bool wipe_asset_dbs{do_reindex || coinsBestBlock.IsNull()};
+
         // Core asset databases
         // Note: a rebuild of the asset database does NOT wipe it here; ReindexAssets() erases
         // the keys it rebuilds and keeps the others.
-        passetsdb = new CAssetsDB(args.GetDataDirNet(), nAssetDBCache, false, do_reindex /* wipe only on full -reindex */);
+        passetsdb = new CAssetsDB(args.GetDataDirNet(), nAssetDBCache, false, wipe_asset_dbs);
         passets = new CAssetsCache();
         passetsCache = new CLRUCache<std::string, CDatabasedAssetData>(MAX_CACHE_ASSETS_SIZE);
 
@@ -1973,7 +1980,7 @@ bool AppInitMain(NodeContext& node, interfaces::BlockAndHeaderTipInfo* tip_info)
         pmyrestricteddb = new CMyRestrictedDB(args.GetDataDirNet(), nAssetDBCache, false, false);
 
         // Restricted asset caches
-        prestricteddb = new CRestrictedDB(args.GetDataDirNet(), nAssetDBCache, false, do_reindex /* wipe only on full -reindex */);
+        prestricteddb = new CRestrictedDB(args.GetDataDirNet(), nAssetDBCache, false, wipe_asset_dbs);
         passetsVerifierCache = new CLRUCache<std::string, CNullAssetTxVerifierString>(MAX_CACHE_ASSETS_SIZE);
         passetsQualifierCache = new CLRUCache<std::string, int8_t>(MAX_CACHE_ASSETS_SIZE);
         passetsRestrictionCache = new CLRUCache<std::string, int8_t>(MAX_CACHE_ASSETS_SIZE);
@@ -1999,22 +2006,18 @@ bool AppInitMain(NodeContext& node, interfaces::BlockAndHeaderTipInfo* tip_info)
         // Decide whether the asset and restricted databases have to be rebuilt from the chain.
         {
             uint256 assetBestBlock;
-            uint256 coinsBestBlock;
-            {
-                LOCK(cs_main);
-                coinsBestBlock = chainman.ActiveChainstate().CoinsTip().GetBestBlock();
-            }
             const bool hasAssetBestBlock = passetsdb->ReadBestBlock(assetBestBlock);
             int version{0};
             const bool current_version{passetsdb->ReadVersion(version) && version >= ASSET_DB_VERSION};
 
             std::string why;
-            if (do_reindex_assets) {
+            if (coinsBestBlock.IsNull()) {
+                // Nothing is connected yet: the databases are empty and fill as the chain does.
+                do_reindex_assets = false;
+            } else if (do_reindex_assets) {
                 why = "-reindexassets was given";
             } else if (passetsdb->ReadRebuildPending()) {
                 why = "an earlier rebuild did not finish";
-            } else if (coinsBestBlock.IsNull()) {
-                // Nothing is connected yet: the databases fill as the chain does.
             } else if (hasAssetBestBlock && assetBestBlock != coinsBestBlock) {
                 why = strprintf("its best block (%s) differs from the UTXO tip (%s)", assetBestBlock.ToString(), coinsBestBlock.ToString());
             } else if (!hasAssetBestBlock && !passetsdb->IsEmpty()) {
@@ -2195,6 +2198,23 @@ bool AppInitMain(NodeContext& node, interfaces::BlockAndHeaderTipInfo* tip_info)
 
     node.background_init_thread = std::thread(&util::TraceThread, "initload", [=, &chainman, &args, &node] {
         ScheduleBatchPriority();
+
+        // Rebuild the asset database first. It has to describe the UTXO tip
+        // before ImportBlocks() connects a block on top of that tip: a block
+        // checked against older asset state can be found invalid and stay so.
+        if (do_reindex_assets) {
+            uiInterface.InitMessage(_("Rebuilding asset database..."));
+            // A failed rebuild leaves the asset database incomplete, which would
+            // fork the node. Stop rather than run on with it; the rebuild stays
+            // pending and is retried on the next start.
+            if (!ReindexAssets(chainman)) {
+                if (!chainman.m_interrupt) {
+                    chainman.GetNotifications().fatalError(_("Failed to rebuild the asset database. If this node is pruned, resync without pruning."));
+                }
+                return;
+            }
+        }
+
         // Import blocks and ActivateBestChain()
         ImportBlocks(chainman, vImportFiles);
         if (args.GetBoolArg("-stopafterblockimport", DEFAULT_STOPAFTERBLOCKIMPORT)) {
@@ -2203,18 +2223,6 @@ bool AppInitMain(NodeContext& node, interfaces::BlockAndHeaderTipInfo* tip_info)
                 LogError("Failed to send shutdown signal after finishing block import\n");
             }
             return;
-        }
-
-        // Rebuild asset database if requested
-        if (do_reindex_assets) {
-            uiInterface.InitMessage(_("Rebuilding asset database..."));
-            // A failed rebuild leaves the asset database incomplete, which would
-            // fork the node. Stop rather than run on with it; the rebuild stays
-            // pending and is retried on the next start.
-            if (!ReindexAssets(chainman)) {
-                chainman.GetNotifications().fatalError(_("Failed to rebuild the asset database. If this node is pruned, resync without pruning."));
-                return;
-            }
         }
 
         // Start indexes initial sync
