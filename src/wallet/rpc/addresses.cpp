@@ -115,6 +115,13 @@ RPCHelpMan getrawchangeaddress()
         output_type = parsed.value();
     }
 
+    // RIP-25: as in getnewaddress, no PQ address before DEPLOYMENT_MLDSA44 activates.
+    if (output_type == OutputType::PQ && !pwallet->chain().isDeploymentActive(Consensus::DEPLOYMENT_MLDSA44)) {
+        throw JSONRPCError(RPC_INVALID_PARAMETER,
+            "ML-DSA-44 (pq) addresses are not yet active on this network. "
+            "Wait for DEPLOYMENT_MLDSA44 to activate via miner signalling before using PQ addresses.");
+    }
+
     auto op_dest = pwallet->GetNewChangeDestination(output_type);
     if (!op_dest) {
         throw JSONRPCError(RPC_WALLET_KEYPOOL_RAN_OUT, util::ErrorString(op_dest).original);

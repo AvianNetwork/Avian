@@ -729,5 +729,27 @@ BOOST_FIXTURE_TEST_CASE(RemoveTxs, TestChain100Setup)
     TestUnloadWallet(std::move(wallet));
 }
 
+// On the main chain ML-DSA-44 is not active, so a witness v2 output has no
+// spending rule. Change must not go to one, whoever is paid and whatever the
+// wallet was told to prefer.
+BOOST_FIXTURE_TEST_CASE(no_pq_change_before_activation, WalletTestingSetup)
+{
+    LOCK(m_wallet.cs_wallet);
+    m_wallet.SetWalletFlag(WALLET_FLAG_DESCRIPTORS);
+    m_wallet.SetupDescriptorScriptPubKeyMans();
+    BOOST_REQUIRE(!m_wallet.chain().isDeploymentActive(Consensus::DEPLOYMENT_MLDSA44));
+
+    const std::vector<CRecipient> to_pq{{WitnessV2MLDsa44{}, COIN, /*fSubtractFeeFromAmount=*/false, CScript{}}};
+    const std::vector<CRecipient> to_legacy{{PKHash{}, COIN, /*fSubtractFeeFromAmount=*/false, CScript{}}};
+
+    BOOST_CHECK(m_wallet.TransactionChangeType(std::nullopt, to_pq) != OutputType::PQ);
+    BOOST_CHECK(m_wallet.TransactionChangeType(OutputType::PQ, to_pq) != OutputType::PQ);
+    BOOST_CHECK(m_wallet.TransactionChangeType(OutputType::BECH32, to_pq) == OutputType::BECH32);
+
+    m_wallet.m_default_address_type = OutputType::PQ;
+    BOOST_CHECK(m_wallet.TransactionChangeType(std::nullopt, to_legacy) != OutputType::PQ);
+    BOOST_CHECK(m_wallet.TransactionChangeType(std::nullopt, to_pq) != OutputType::PQ);
+}
+
 BOOST_AUTO_TEST_SUITE_END()
 } // namespace wallet
