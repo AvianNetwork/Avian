@@ -2244,8 +2244,12 @@ SigningResult CWallet::SignMessage(const std::string& message, const PKHash& pkh
 
 OutputType CWallet::TransactionChangeType(const std::optional<OutputType>& change_type, const std::vector<CRecipient>& vecSend) const
 {
+    // RIP-25: until DEPLOYMENT_MLDSA44 is active a witness v2 output has no
+    // spending rule and any miner can take it, so change never goes to one.
+    const bool pq_active{HaveChain() && chain().isDeploymentActive(Consensus::DEPLOYMENT_MLDSA44)};
+
     // If -changetype is specified, always use that change type.
-    if (change_type) {
+    if (change_type && (*change_type != OutputType::PQ || pq_active)) {
         return *change_type;
     }
 
@@ -2275,7 +2279,7 @@ OutputType CWallet::TransactionChangeType(const std::optional<OutputType>& chang
     // spend to a post-quantum address should not leave change in an output a
     // quantum adversary could seize.
     const bool has_pq_spkman(GetScriptPubKeyMan(OutputType::PQ, /*internal=*/true));
-    if (has_pq_spkman && any_pq) {
+    if (has_pq_spkman && any_pq && pq_active) {
         return OutputType::PQ;
     }
 
@@ -2313,6 +2317,7 @@ OutputType CWallet::TransactionChangeType(const std::optional<OutputType>& chang
         return OutputType::BECH32;
     }
     // else use m_default_address_type for change
+    if (m_default_address_type == OutputType::PQ && !pq_active) return OutputType::LEGACY;
     return m_default_address_type;
 }
 

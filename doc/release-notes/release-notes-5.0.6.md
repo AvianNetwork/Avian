@@ -153,6 +153,15 @@ Asset database
   instead of reopening it for every block. On Windows this cuts the mainnet
   pass from minutes to seconds. It is safe because the one case that can delete
   block files, a pruned node, is now refused up front.
+- The rebuild runs before the node connects any block that is on disk and not
+  yet in the chain. It ran after, so a node stopped in the middle of a flush,
+  most likely during the first sync, could check such a block against asset
+  state older than its UTXO set, find a valid block invalid, and stay below it
+  until `reconsiderblock` was run.
+- `-reindex-chainstate` now empties the asset and restricted databases, as
+  `-reindex` does. They were left in place, so the first issuance connected
+  again was refused as already used and the node stopped at that block. The
+  same holds when the chainstate directory has been removed by hand.
 
 Wallet
 ------
@@ -162,6 +171,10 @@ Wallet
   `cs_wallet` in opposite orders, so a reissue or tag change issued in the same
   moment a block arrived could hang the node. The builders now take the locks
   in the handler's order.
+- Change never goes to an ML-DSA-44 output before that deployment is active,
+  and `getrawchangeaddress` refuses the `pq` type until then, as `getnewaddress`
+  already did. Before activation such an output has no spending rule. On
+  mainnet the deployment is not scheduled.
 
 GUI
 ---
@@ -201,6 +214,13 @@ schedule it. The changes affect only the test networks, where it is active:
 are updated to match. The suite now has conformance vectors that check the
 verify result, a backend agreement check, and fuzz targets that check results
 rather than only that the code does not crash.
+
+P2P
+---
+
+- A header that names a proof-of-work algorithm which does not exist is
+  refused before its difficulty limit is looked up. The lookup read past the
+  end of a two-entry table. The header was refused afterwards either way.
 
 Tests and CI
 ------------
