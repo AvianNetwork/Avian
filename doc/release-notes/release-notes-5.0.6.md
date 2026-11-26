@@ -86,6 +86,12 @@ the 3-byte `OP_PUSHDATA2` asset layout, and the ANS v2 PROFILE identifier.
 5.x matched both with no gate, so it classified as an asset, or rejected, an
 output that no 4.x node sees the same way.
 
+The burn output of an issuance, a reissue or a tag is found in every script
+4.x finds it in. 4.x reads the burn address from a pay-to-pubkey-hash script
+whatever opcode pushes the hash, and from a push-only `OP_AVN_ASSET` script of
+23 bytes or more. 5.x read it from the exact 25-byte script only, and refused
+the transaction, and the block, when a burn was written another way.
+
 Taproot deployment honoured
 ---------------------------
 
@@ -107,7 +113,16 @@ The mempool and the reorganization paths now track asset state as 4.x does:
   chained reissue could enter the mempool, and two transactions adding the same
   tag or globally freezing the same asset could both sit unconfirmed although
   no block can hold both. These are now refused at mempool accept and evicted
-  when a block invalidates them.
+  when a block invalidates them, together with the transactions that spend
+  them.
+- The rule of one unconfirmed reissue per asset applies to the mempool only.
+  4.x also applies it when it validates a block, so a 4.x node that holds one
+  reissue of an asset refuses a block that confirms a different one. A 5.x
+  node never refuses a block for what its own mempool holds.
+- A reissue of a restricted asset that carries a verifier string is recorded
+  as changing it even when the string is the same, as in 4.x. With two
+  reissues of one asset in a block, 5.x could otherwise end on a different
+  verifier string from 4.x.
 - Block-template validation runs the contextual asset checks. `TestBlockValidity`
   had no asset cache, so an asset-invalid template was caught only later, after
   the miner had worked on it.

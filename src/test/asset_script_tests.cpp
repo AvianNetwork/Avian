@@ -29,6 +29,8 @@
 #include <map>
 #include <optional>
 #include <string>
+#include <variant>
+#include <vector>
 
 namespace {
 PKHash Owner()
@@ -295,6 +297,70 @@ BOOST_AUTO_TEST_CASE(reissue_truncated_before_ansid_is_rejected)
     // fail to deserialize, matching 4.x.
     BOOST_CHECK(reissue_script(truncated).IsAssetScript());
     BOOST_CHECK(!ReissueAssetFromScript(reissue_script(truncated), parsed, address));
+}
+
+// 4.x finds the burn address in more scripts than Solver() does here: a key
+// hash pushed by any push opcode, and a push-only OP_AVN_ASSET script. Its
+// pools mine such a burn, so it has to be found here too.
+BOOST_AUTO_TEST_CASE(burn_output_is_read_as_4x_reads_it)
+{
+    const CAmount amount{GetBurnAmount(AssetType::ROOT)};
+    const CTxDestination burn_dest{DecodeDestination(GetBurnAddress(AssetType::ROOT))};
+    const std::vector<unsigned char> burn{ToByteVector(std::get<PKHash>(burn_dest))};
+    const std::vector<unsigned char> other{ToByteVector(Owner())};
+
+    const auto pushdata1 = [](const std::vector<unsigned char>& data) {
+        std::vector<unsigned char> push{OP_PUSHDATA1, static_cast<unsigned char>(data.size())};
+        push.insert(push.end(), data.begin(), data.end());
+        return push;
+    };
+    const auto pushdata2 = [](const std::vector<unsigned char>& data) {
+        std::vector<unsigned char> push{OP_PUSHDATA2, static_cast<unsigned char>(data.size()), 0};
+        push.insert(push.end(), data.begin(), data.end());
+        return push;
+    };
+    const auto p2pkh = [](const std::vector<unsigned char>& push) {
+        CScript script{CScript{} << OP_DUP << OP_HASH160};
+        script.insert(script.end(), push.begin(), push.end());
+        return script << OP_EQUALVERIFY << OP_CHECKSIG;
+    };
+    const auto is_burn = [&](const CScript& script) { return CheckIssueBurnTx(CTxOut{amount, script}, AssetType::ROOT); };
+
+    // The ordinary burn
+    BOOST_CHECK(is_burn(GetScriptForDestination(burn_dest)));
+    BOOST_CHECK(!is_burn(GetScriptForDestination(Owner())));
+    BOOST_CHECK(!CheckIssueBurnTx(CTxOut{amount - 1, GetScriptForDestination(burn_dest)}, AssetType::ROOT));
+
+    // The hash pushed another way
+    BOOST_CHECK(is_burn(p2pkh(pushdata1(burn))));
+    BOOST_CHECK(is_burn(p2pkh(pushdata2(burn))));
+    BOOST_CHECK(!is_burn(p2pkh(pushdata1(other))));
+    BOOST_CHECK(!is_burn(p2pkh(pushdata1(burn)) << OP_NOP));
+    BOOST_CHECK(!is_burn(CScript{} << OP_DUP << OP_HASH160 << burn << OP_EQUAL << OP_CHECKSIG));
+
+    // A push-only OP_AVN_ASSET script of 23 bytes or more holds the hash in bytes 2 to 21
+    BOOST_CHECK(is_burn(CScript{} << OP_AVN_ASSET << burn << OP_0));
+    std::vector<unsigned char> longer{burn};
+    longer.push_back(0x01);
+    BOOST_CHECK(is_burn(CScript{} << OP_AVN_ASSET << longer));
+    BOOST_CHECK(!is_burn(CScript{} << OP_AVN_ASSET << burn));
+    BOOST_CHECK(!is_burn(CScript{} << OP_AVN_ASSET << other << OP_0));
+    BOOST_CHECK(!is_burn(CScript{} << OP_AVN_ASSET << burn << OP_DROP));
+    BOOST_CHECK(!is_burn(CScript{} << OP_AVN_ASSET << OP_RESERVED << burn << OP_0));
+
+    // Not an address in 4.x either
+    BOOST_CHECK(!is_burn(CScript{} << OP_0 << burn));
+    BOOST_CHECK(!is_burn(CScript{} << OP_RETURN << burn));
+    BOOST_CHECK(!is_burn(CScript{}));
+
+    // A reissue burn goes the same way
+    const CAmount reissue_amount{GetReissueAssetBurnAmount()};
+    const CTxDestination reissue_dest{DecodeDestination(GetBurnAddress(AssetType::REISSUE))};
+    const std::vector<unsigned char> reissue_burn{ToByteVector(std::get<PKHash>(reissue_dest))};
+    BOOST_CHECK(CheckReissueBurnTx(CTxOut{reissue_amount, GetScriptForDestination(reissue_dest)}));
+    BOOST_CHECK(CheckReissueBurnTx(CTxOut{reissue_amount, p2pkh(pushdata1(reissue_burn))}));
+    BOOST_CHECK(CheckReissueBurnTx(CTxOut{reissue_amount, CScript{} << OP_AVN_ASSET << reissue_burn << OP_0}));
+    BOOST_CHECK(!CheckReissueBurnTx(CTxOut{reissue_amount, p2pkh(pushdata1(burn))}));
 }
 
 BOOST_AUTO_TEST_SUITE_END()

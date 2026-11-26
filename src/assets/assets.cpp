@@ -3192,6 +3192,51 @@ size_t CAssetsCache::GetCacheSizeV2() const
     return size;
 }
 
+// The address a burn output pays, read the way 4.x reads it. The 4.x Solver
+// matches pay-to-pubkey and pay-to-pubkey-hash by template, whatever opcode
+// pushes the key or the hash, and takes an address from any push-only
+// OP_AVN_ASSET script of 23 bytes or more. Solver() here matches the exact
+// encodings only, so it would refuse a burn that 4.x accepts.
+static bool ExtractBurnDestination(const CScript& script, CTxDestination& dest)
+{
+    if (script.IsPayToScriptHash() || script.IsAssetScript()) return ExtractDestination(script, dest);
+
+    int witness_version;
+    std::vector<unsigned char> witness_program;
+    if (script.IsWitnessProgram(witness_version, witness_program)) return false;
+
+    if (script.empty()) return false;
+    if (script[0] == OP_RETURN && script.IsPushOnly(script.begin() + 1)) return false;
+    if (script[0] == OP_AVN_ASSET && script.IsPushOnly(script.begin() + 1)) {
+        if (script.size() < 23 || script[1] == OP_RESERVED) return false;
+        dest = PKHash(uint160(std::vector<unsigned char>(script.begin() + 2, script.begin() + 22)));
+        return true;
+    }
+
+    CScript::const_iterator pc = script.begin();
+    opcodetype opcode;
+    std::vector<unsigned char> data;
+    if (!script.GetOp(pc, opcode, data)) return false;
+
+    // <pubkey> OP_CHECKSIG
+    if (opcode <= OP_PUSHDATA4 && data.size() >= 33 && data.size() <= 65) {
+        if (!script.GetOp(pc, opcode) || opcode != OP_CHECKSIG || pc != script.end()) return false;
+        const CPubKey pubkey{data};
+        if (!pubkey.IsValid()) return false;
+        dest = PKHash(pubkey);
+        return true;
+    }
+
+    // OP_DUP OP_HASH160 <hash> OP_EQUALVERIFY OP_CHECKSIG
+    if (opcode != OP_DUP) return false;
+    if (!script.GetOp(pc, opcode) || opcode != OP_HASH160) return false;
+    if (!script.GetOp(pc, opcode, data) || opcode > OP_PUSHDATA4 || data.size() != 20) return false;
+    if (!script.GetOp(pc, opcode) || opcode != OP_EQUALVERIFY) return false;
+    if (!script.GetOp(pc, opcode) || opcode != OP_CHECKSIG || pc != script.end()) return false;
+    dest = PKHash(uint160(data));
+    return true;
+}
+
 bool CheckIssueBurnTx(const CTxOut& txOut, const AssetType& type, const int numberIssued)
 {
     if (type == AssetType::REISSUE || type == AssetType::VOTE || type == AssetType::OWNER || type == AssetType::INVALID)
@@ -3213,7 +3258,7 @@ bool CheckIssueBurnTx(const CTxOut& txOut, const AssetType& type, const int numb
 
     // Extract the destination
     CTxDestination destination;
-    if (!ExtractDestination(txOut.scriptPubKey, destination))
+    if (!ExtractBurnDestination(txOut.scriptPubKey, destination))
         return false;
 
     // Verify destination is valid
@@ -3241,7 +3286,7 @@ bool CheckReissueBurnTx(const CTxOut& txOut)
 
     // Extract the destination
     CTxDestination destination;
-    if (!ExtractDestination(txOut.scriptPubKey, destination))
+    if (!ExtractBurnDestination(txOut.scriptPubKey, destination))
         return false;
 
     // Verify destination is valid
