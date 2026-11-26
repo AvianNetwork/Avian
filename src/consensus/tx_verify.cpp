@@ -638,9 +638,13 @@ bool Consensus::CheckTxAssets(const CTransaction& tx, TxValidationState& state, 
             if (!ReissueAssetFromScript(txout.scriptPubKey, reissue, address))
                 return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-tx-asset-reissue-bad-deserialize");
 
-            if (mapReissuedAssets.count(reissue.strName)) {
+            // One unconfirmed reissue per asset is a mempool rule. 4.x applies it
+            // to blocks too, where it makes a block invalid to the nodes that
+            // hold a different reissue of the asset and valid to every other
+            // node. A block is never refused for what this node's mempool holds.
+            if (mempool && mapReissuedAssets.count(reissue.strName)) {
                 if (mapReissuedAssets.at(reissue.strName) != tx.GetHash().ToUint256())
-                    return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-tx-reissue-chaining-not-allowed");
+                    return state.Invalid(TxValidationResult::TX_MEMPOOL_POLICY, "bad-tx-reissue-chaining-not-allowed");
             } else {
                 vPairReissueAssets.emplace_back(std::make_pair(reissue.strName, tx.GetHash().ToUint256()));
             }

@@ -135,4 +135,49 @@ BOOST_AUTO_TEST_CASE(block_evicts_tracked_transactions_with_descendants)
     }
 }
 
+// One unconfirmed reissue per asset is what the mempool allows itself. It says
+// nothing about a block: the node that holds a different reissue of the asset
+// would otherwise refuse a block every other node accepts.
+BOOST_AUTO_TEST_CASE(reissue_lock_is_mempool_only)
+{
+    CTxMemPool& pool{*Assert(m_node.mempool)};
+    LOCK2(::cs_main, pool.cs);
+
+    const std::string name{"AVIANTEST"};
+    const COutPoint prevout{Txid::FromUint256(uint256{1}), 0};
+    CCoinsView base;
+    CCoinsViewCache view{&base};
+    view.AddCoin(prevout, Coin{CTxOut{COIN, CScript{} << OP_11 << OP_EQUAL}, 1, false}, false);
+
+    CMutableTransaction mtx;
+    mtx.vin.emplace_back(prevout);
+    CScript script{GetScriptForDestination(PKHash{uint160{ParseHex("00112233445566778899aabbccddeeff00112233")}})};
+    CReissueAsset{name, COIN, /*nUnits=*/-1, /*nReissuable=*/1, /*strIPFSHash=*/"", /*strANSID=*/""}.ConstructTransaction(script);
+    mtx.vout.emplace_back(0, script);
+    const CTransaction tx{mtx};
+
+    const auto check = [&](const CTxMemPool* mempool) EXCLUSIVE_LOCKS_REQUIRED(::cs_main) {
+        TxValidationState state;
+        std::vector<std::pair<std::string, uint256>> reissues;
+        const bool valid{Consensus::CheckTxAssets(tx, state, view, /*assetCache=*/nullptr, mempool, reissues)};
+        return valid ? std::string{} : state.GetRejectReason();
+    };
+
+    // Nothing holds the asset
+    BOOST_CHECK_EQUAL(check(&pool), "");
+    BOOST_CHECK_EQUAL(check(nullptr), "");
+
+    // Another unconfirmed reissue of it does
+    mapReissuedAssets[name] = uint256::ONE;
+    BOOST_CHECK_EQUAL(check(&pool), "bad-tx-reissue-chaining-not-allowed");
+    BOOST_CHECK_EQUAL(check(nullptr), "");
+
+    // This one does
+    mapReissuedAssets[name] = tx.GetHash().ToUint256();
+    BOOST_CHECK_EQUAL(check(&pool), "");
+    BOOST_CHECK_EQUAL(check(nullptr), "");
+
+    mapReissuedAssets.erase(name);
+}
+
 BOOST_AUTO_TEST_SUITE_END()
