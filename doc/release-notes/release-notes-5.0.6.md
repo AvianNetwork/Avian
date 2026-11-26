@@ -118,7 +118,10 @@ The mempool and the reorganization paths now track asset state as 4.x does:
 - The rule of one unconfirmed reissue per asset applies to the mempool only.
   4.x also applies it when it validates a block, so a 4.x node that holds one
   reissue of an asset refuses a block that confirms a different one. A 5.x
-  node never refuses a block for what its own mempool holds.
+  node never refuses a block for what its own mempool holds. The rule is also
+  no longer restored from disk at start: it is set again as the mempool
+  loads. A restored entry whose transaction did not come back kept every later
+  reissue of that asset out of the node's mempool.
 - A reissue of a restricted asset that carries a verifier string is recorded
   as changing it even when the string is the same, as in 4.x. With two
   reissues of one asset in a block, 5.x could otherwise end on a different
@@ -137,7 +140,16 @@ The mempool and the reorganization paths now track asset state as 4.x does:
   4.x has the same weakness.
 - The names of a unique-asset issuance are tracked in the mempool like every
   other issued name. A second transaction that issues one of them is refused,
-  and the transaction is evicted when a block issues one first.
+  and the transaction is evicted when a block issues one first. As for every
+  other kind of issuance, this means an unconfirmed unique-asset issuance
+  cannot be replaced by a higher-fee version of itself; a child transaction
+  can still pay for it.
+- A package of transactions is not evaluated when one of them carries an
+  asset output, a tag, a freeze or a verifier string. The asset checks of
+  mempool acceptance read state that is recorded as each transaction is
+  added, so inside a package two issuances of one name, or two reissues of one
+  asset, passed together. Asset transactions are accepted one at a time, as on
+  4.x, which has no package acceptance.
 
 Asset database
 --------------
@@ -161,7 +173,15 @@ Asset database
 - `-reindex-chainstate` now empties the asset and restricted databases, as
   `-reindex` does. They were left in place, so the first issuance connected
   again was refused as already used and the node stopped at that block. The
-  same holds when the chainstate directory has been removed by hand.
+  same holds when the chainstate directory has been removed by hand. A node
+  that an earlier 5.x release left stopped this way keeps that block marked
+  invalid: start it once with `-reindex`, or with `-reindex-chainstate` and
+  then run `reconsiderblock` on the block it stopped at.
+- On a pruned node `-reindexassets` is refused before anything is erased. It
+  used to empty the restricted-asset database and then fail, at that start
+  and every later one. A pruned node whose asset database does need
+  rebuilding cannot do it, since the blocks are gone, and says so at start:
+  it has to download the chain again with `-reindex`.
 
 Wallet
 ------
@@ -173,8 +193,9 @@ Wallet
   in the handler's order.
 - Change never goes to an ML-DSA-44 output before that deployment is active,
   and `getrawchangeaddress` refuses the `pq` type until then, as `getnewaddress`
-  already did. Before activation such an output has no spending rule. On
-  mainnet the deployment is not scheduled.
+  does. `getnewaddress` now refuses before it derives the address; it used to
+  leave the address in the address book. Before activation such an output has
+  no spending rule. On mainnet the deployment is not scheduled.
 
 GUI
 ---
@@ -221,6 +242,15 @@ P2P
 - A header that names a proof-of-work algorithm which does not exist is
   refused before its difficulty limit is looked up. The lookup read past the
   end of a two-entry table. The header was refused afterwards either way.
+
+Mining
+------
+
+- Removing a transaction from the mempool while building a block template
+  takes the validation lock as well as the mempool lock.
+- A node serving Stratum v2 templates no longer stops when a template cannot
+  be built. The error left the template thread and ended the process. The
+  client is kept and served at the next refresh.
 
 Tests and CI
 ------------
