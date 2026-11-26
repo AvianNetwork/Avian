@@ -2873,7 +2873,8 @@ static void WriteBlockMessages(const std::set<CMessage>& setMessages, int height
  *  can fail if those validity checks fail (among other reasons). */
 bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, CBlockIndex* pindex,
                                CCoinsViewCache& view, bool fJustCheck,
-                               CAssetsCache* assetsCache)
+                               CAssetsCache* assetsCache,
+                               std::optional<Txid>* asset_invalid_tx)
 {
     AssertLockHeld(cs_main);
     assert(pindex);
@@ -3153,6 +3154,7 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
                 state.Invalid(BlockValidationResult::BLOCK_CONSENSUS,
                               asset_state.GetRejectReason(),
                               asset_state.GetDebugMessage() + " in transaction " + tx.GetHash().ToString());
+                if (asset_invalid_tx && !tx.IsCoinBase()) *asset_invalid_tx = tx.GetHash();
                 break;
             }
         }
@@ -3165,6 +3167,7 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
                 state.Invalid(BlockValidationResult::BLOCK_CONSENSUS,
                               asset_state.GetRejectReason(),
                               asset_state.GetDebugMessage() + " in transaction " + tx.GetHash().ToString());
+                if (asset_invalid_tx) *asset_invalid_tx = tx.GetHash();
                 break;
             }
         }
@@ -5468,7 +5471,8 @@ BlockValidationState TestBlockValidity(
     Chainstate& chainstate,
     const CBlock& block,
     const bool check_pow,
-    const bool check_merkle_root)
+    const bool check_merkle_root,
+    std::optional<Txid>* asset_invalid_tx)
 {
     // Lock must be held throughout this function for two reasons:
     // 1. We don't want the tip to change during several of the validation steps
@@ -5530,7 +5534,7 @@ BlockValidationState TestBlockValidity(
     CAssetsCache assetCacheDummy = *GetCurrentAssetCache();
 
     // Set fJustCheck to true in order to update, and not clear, validation caches.
-    if(!chainstate.ConnectBlock(block, state, &index_dummy, view_dummy, /*fJustCheck=*/true, &assetCacheDummy)) {
+    if(!chainstate.ConnectBlock(block, state, &index_dummy, view_dummy, /*fJustCheck=*/true, &assetCacheDummy, asset_invalid_tx)) {
         if (state.IsValid()) NONFATAL_UNREACHABLE();
         return state;
     }

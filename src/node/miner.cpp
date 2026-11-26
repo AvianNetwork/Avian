@@ -128,7 +128,39 @@ void BlockAssembler::resetBlock()
     nFees = 0;
 }
 
+//! Templates rebuilt in one CreateNewBlock() call after removing a transaction.
+static constexpr int MAX_TEMPLATE_EVICTIONS{10};
+
+//! Remove a transaction and its descendants from the mempool the assembler reads.
+static bool EvictFromMempool(Chainstate& chainstate, const CTxMemPool* assembler_mempool, const Txid& txid)
+{
+    CTxMemPool* const mempool{chainstate.GetMempool()};
+    if (!mempool || mempool != assembler_mempool) return false;
+    LOCK(mempool->cs);
+    const CTransactionRef tx{mempool->get(txid)};
+    if (!tx) return false;
+    mempool->removeRecursive(*tx, MemPoolRemovalReason::CONFLICT);
+    return true;
+}
+
 std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock()
+{
+    // A mempool transaction that fails the asset rules in a block fails every
+    // template built from that mempool, and the node could mine nothing until
+    // the transaction expired. Remove it and build again.
+    for (int evictions{0};; ++evictions) {
+        std::optional<Txid> asset_invalid_tx;
+        std::string error;
+        if (auto block_template{BuildBlock(asset_invalid_tx, error)}) return block_template;
+        if (evictions >= MAX_TEMPLATE_EVICTIONS || !asset_invalid_tx ||
+            !EvictFromMempool(m_chainstate, m_mempool, *asset_invalid_tx)) {
+            throw std::runtime_error(error);
+        }
+        LogWarning("CreateNewBlock(): removed transaction %s from the mempool: %s\n", asset_invalid_tx->ToString(), error);
+    }
+}
+
+std::unique_ptr<CBlockTemplate> BlockAssembler::BuildBlock(std::optional<Txid>& asset_invalid_tx, std::string& error)
 {
     const auto time_start{SteadyClock::now()};
 
@@ -213,8 +245,9 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock()
     pblock->nNonce         = 0;
 
     if (m_options.test_block_validity) {
-        if (BlockValidationState state{TestBlockValidity(m_chainstate, *pblock, /*check_pow=*/false, /*check_merkle_root=*/false)}; !state.IsValid()) {
-            throw std::runtime_error(strprintf("TestBlockValidity failed: %s", state.ToString()));
+        if (BlockValidationState state{TestBlockValidity(m_chainstate, *pblock, /*check_pow=*/false, /*check_merkle_root=*/false, &asset_invalid_tx)}; !state.IsValid()) {
+            error = strprintf("TestBlockValidity failed: %s", state.ToString());
+            return nullptr;
         }
     }
     const auto time_2{SteadyClock::now()};

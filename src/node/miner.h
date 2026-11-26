@@ -16,6 +16,7 @@
 #include <cstdint>
 #include <memory>
 #include <optional>
+#include <string>
 
 #include <boost/multi_index/identity.hpp>
 #include <boost/multi_index/indexed_by.hpp>
@@ -191,6 +192,9 @@ private:
     const Options m_options;
 
     // utility functions
+    /** Assemble one template. On failure returns nullptr and sets error, and
+     *  asset_invalid_tx when a transaction that fails the asset rules is the cause. */
+    std::unique_ptr<CBlockTemplate> BuildBlock(std::optional<Txid>& asset_invalid_tx, std::string& error);
     /** Clear the block's state and prepare for assembling a new block */
     void resetBlock();
     /** Add a tx to the block */
