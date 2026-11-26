@@ -14,10 +14,12 @@
 BOOST_FIXTURE_TEST_SUITE(pow_tests, BasicTestingSetup)
 
 /* A header names its proof-of-work algorithm in nVersion. One that names an
- * algorithm that does not exist is refused; there is no limit to look up. */
+ * algorithm that does not exist is refused; there is no limit to look up.
+ * With regtest limits the hash of such a header is below the target, so the
+ * limit is what decides. */
 BOOST_AUTO_TEST_CASE(unknown_pow_algorithm_is_refused)
 {
-    const auto chainParams = CreateChainParams(*m_node.args, ChainType::MAIN);
+    const auto chainParams = CreateChainParams(*m_node.args, ChainType::REGTEST);
     const Consensus::Params& params{chainParams->GetConsensus()};
     for (const int32_t algo : {2, 3, 127, 255}) {
         CBlockHeader header;
