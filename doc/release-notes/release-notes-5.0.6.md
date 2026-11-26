@@ -28,10 +28,15 @@ shut down (which might take a few minutes in some cases), then run the
 installer (on Windows) or just copy over `/Applications/Avian-Qt` (on macOS)
 or `aviand`/`avian-qt` (on Linux).
 
-No reindex or resync is required. Upgrading from v5.0.5 does not rebuild the
-asset database, because its on-disk format is unchanged. Upgrading from v5.0.0
-to v5.0.4 rebuilds it once at the first start, as v5.0.5 did; see the v5.0.5
-notes. The node does not answer RPC calls while a rebuild runs.
+No reindex or resync is required, with one exception below. Upgrading from
+v5.0.5 does not rebuild the asset database, because its on-disk format is
+unchanged. Upgrading from v5.0.0 to v5.0.4 rebuilds it once at the first start,
+as v5.0.5 did; see the v5.0.5 notes. The node does not answer RPC calls while
+a rebuild runs.
+
+The exception is a pruned node coming from v5.0.0 to v5.0.4. The rebuild reads
+every block, and a pruned node has deleted some, so it stops at start and says
+so. It has to download the chain again with `-reindex`.
 
 ### Activation
 
@@ -118,10 +123,9 @@ The mempool and the reorganization paths now track asset state as 4.x does:
 - The rule of one unconfirmed reissue per asset applies to the mempool only.
   4.x also applies it when it validates a block, so a 4.x node that holds one
   reissue of an asset refuses a block that confirms a different one. A 5.x
-  node never refuses a block for what its own mempool holds. The rule is also
-  no longer restored from disk at start: it is set again as the mempool
-  loads. A restored entry whose transaction did not come back kept every later
-  reissue of that asset out of the node's mempool.
+  node never refuses a block for what its own mempool holds. Nor is the rule
+  read back from disk at start, which 4.x does: it is set again as the mempool
+  loads, so a transaction that does not come back leaves nothing behind.
 - A reissue of a restricted asset that carries a verifier string is recorded
   as changing it even when the string is the same, as in 4.x. With two
   reissues of one asset in a block, 5.x could otherwise end on a different
@@ -142,14 +146,16 @@ The mempool and the reorganization paths now track asset state as 4.x does:
   other issued name. A second transaction that issues one of them is refused,
   and the transaction is evicted when a block issues one first. As for every
   other kind of issuance, this means an unconfirmed unique-asset issuance
-  cannot be replaced by a higher-fee version of itself; a child transaction
-  can still pay for it.
+  cannot be replaced by a higher-fee version of itself. A child transaction
+  can still pay for one that is already in the mempool.
 - A package of transactions is not evaluated when one of them carries an
   asset output, a tag, a freeze or a verifier string. The asset checks of
   mempool acceptance read state that is recorded as each transaction is
   added, so inside a package two issuances of one name, or two reissues of one
   asset, passed together. Asset transactions are accepted one at a time, as on
-  4.x, which has no package acceptance.
+  4.x, which has no package acceptance. `testmempoolaccept` given several
+  transactions of which one is an asset transaction answers with a
+  `package-error` for each.
 
 Asset database
 --------------
@@ -177,11 +183,10 @@ Asset database
   that an earlier 5.x release left stopped this way keeps that block marked
   invalid: start it once with `-reindex`, or with `-reindex-chainstate` and
   then run `reconsiderblock` on the block it stopped at.
-- On a pruned node `-reindexassets` is refused before anything is erased. It
-  used to empty the restricted-asset database and then fail, at that start
-  and every later one. A pruned node whose asset database does need
-  rebuilding cannot do it, since the blocks are gone, and says so at start:
-  it has to download the chain again with `-reindex`.
+- On a pruned node `-reindexassets` is refused at start, before anything is
+  erased, and the node starts normally without it. A pruned node whose asset
+  database does need rebuilding cannot do it, since the blocks are gone, and
+  says so at start: it has to download the chain again with `-reindex`.
 
 Wallet
 ------
@@ -249,8 +254,9 @@ Mining
 - Removing a transaction from the mempool while building a block template
   takes the validation lock as well as the mempool lock.
 - A node serving Stratum v2 templates no longer stops when a template cannot
-  be built. The error left the template thread and ended the process. The
-  client is kept and served at the next refresh.
+  be built. The error left the thread that asked for the template and ended
+  the process. The client is kept, the failure is logged, and the build is
+  tried again a second later.
 
 Tests and CI
 ------------
