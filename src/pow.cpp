@@ -456,6 +456,10 @@ static bool CheckProofOfWorkDualAlgo(uint256 hash, unsigned int nBits, const Con
     bool fOverflow;
     arith_uint256 bnTarget;
 
+    // The algorithm comes from the header's nVersion, and a header reaches this
+    // check before anything else has looked at it.
+    if (static_cast<size_t>(powType) >= params.powTypeLimits.size()) return false;
+
     bnTarget.SetCompact(nBits, &fNegative, &fOverflow);
 
     // Check range against per-algorithm limit
