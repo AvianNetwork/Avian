@@ -5280,7 +5280,7 @@ bool ContextualCheckReissueAsset(CAssetsCache* assetCache, const CReissueAsset& 
     return true;
 }
 
-bool ContextualCheckUniqueAssetTx(CAssetsCache* assetCache, std::string& strError, const CTransaction& tx)
+bool ContextualCheckUniqueAssetTx(CAssetsCache* assetCache, std::string& strError, const CTransaction& tx, const CTxMemPool* mempool)
 {
     for (auto out : tx.vout)
     {
@@ -5293,7 +5293,7 @@ bool ContextualCheckUniqueAssetTx(CAssetsCache* assetCache, std::string& strErro
                 return false;
             }
 
-            if (!ContextualCheckUniqueAsset(assetCache, asset, strError))
+            if (!ContextualCheckUniqueAsset(assetCache, asset, strError, mempool))
                 return false;
         }
     }
@@ -5301,9 +5301,9 @@ bool ContextualCheckUniqueAssetTx(CAssetsCache* assetCache, std::string& strErro
     return true;
 }
 
-bool ContextualCheckUniqueAsset(CAssetsCache* assetCache, const CNewAsset& unique_asset, std::string& strError)
+bool ContextualCheckUniqueAsset(CAssetsCache* assetCache, const CNewAsset& unique_asset, std::string& strError, const CTxMemPool* mempool)
 {
-    if (!ContextualCheckNewAsset(assetCache, unique_asset, strError))
+    if (!ContextualCheckNewAsset(assetCache, unique_asset, strError, mempool))
         return false;
 
     return true;

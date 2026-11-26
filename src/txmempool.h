@@ -441,7 +441,7 @@ public:
 
     /** AVN: Asset tracking maps for mempool conflict detection */
     std::map<std::string, uint256> mapAssetToHash GUARDED_BY(cs);
-    std::map<uint256, std::string> mapHashToAsset GUARDED_BY(cs);
+    std::map<uint256, std::set<std::string>> mapHashToAsset GUARDED_BY(cs);
 
     /** Restricted assets maps */
     std::map<std::pair<std::string, std::string>, std::set<uint256>> mapAddressesMarkedFrozen GUARDED_BY(cs);

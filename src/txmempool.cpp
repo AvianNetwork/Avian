@@ -513,18 +513,17 @@ void CTxMemPool::addNewTransaction(CTxMemPool::txiter newit, CTxMemPool::setEntr
     txns_randomized.emplace_back(tx.GetWitnessHash(), newit);
     newit->idx_randomized = txns_randomized.size() - 1;
 
-    // AVN: Track new asset creation txs for mempool duplicate detection
-    if (IsNewAsset(tx) || IsNewUniqueAsset(tx) || IsNewMsgChannelAsset(tx) ||
-        IsNewQualifierAsset(tx) || IsNewRestrictedAsset(tx)) {
-        CNewAsset asset;
-        std::string address;
-        if (AssetFromTransaction(tx, asset, address) ||
-            MsgChannelAssetFromTransaction(tx, asset, address) ||
-            QualifierAssetFromTransaction(tx, asset, address) ||
-            RestrictedAssetFromTransaction(tx, asset, address)) {
-            uint256 txHash = tx.GetHash().ToUint256();
-            mapAssetToHash[asset.strName] = txHash;
-            mapHashToAsset[txHash] = asset.strName;
+    // AVN: the asset names this transaction issues, to refuse a second issuance
+    // of one and to evict this one when a block issues it. Taken from the
+    // outputs, as in 4.x: a unique-asset issuance creates one name per output.
+    for (const CTxOut& out : tx.vout) {
+        if (!out.scriptPubKey.IsAssetScript()) continue;
+        CAssetOutputEntry data;
+        if (!GetAssetData(out.scriptPubKey, data)) continue;
+        if (data.type == TX_NEW_ASSET && !IsAssetNameAnOwner(data.assetName)) {
+            const uint256 txHash = tx.GetHash().ToUint256();
+            mapAssetToHash[data.assetName] = txHash;
+            mapHashToAsset[txHash].insert(data.assetName);
         }
     }
 
@@ -801,9 +800,12 @@ void CTxMemPool::removeUnchecked(txiter it, MemPoolRemovalReason reason)
     }
 
     // Erase from the asset mempool maps if they match txid
-    if (mapHashToAsset.count(hash)) {
-        mapAssetToHash.erase(mapHashToAsset.at(hash));
-        mapHashToAsset.erase(hash);
+    if (const auto issued{mapHashToAsset.find(hash)}; issued != mapHashToAsset.end()) {
+        for (const std::string& name : issued->second) {
+            const auto holder{mapAssetToHash.find(name)};
+            if (holder != mapAssetToHash.end() && holder->second == hash) mapAssetToHash.erase(holder);
+        }
+        mapHashToAsset.erase(issued);
     }
 
     // Erase from the restricted asset mempool maps if they match txids
