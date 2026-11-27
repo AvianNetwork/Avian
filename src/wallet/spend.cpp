@@ -7,6 +7,7 @@
 #include <common/messages.h>
 #include <common/system.h>
 #include <consensus/amount.h>
+#include <consensus/params.h>
 #include <consensus/validation.h>
 #include <interfaces/chain.h>
 #include <node/types.h>
@@ -1186,6 +1187,17 @@ bool IsDust(const CRecipient& recipient, const CFeeRate& dustRelayFee)
     return ::IsDust(CTxOut(recipient.nAmount, GetRecipientScript(recipient)), dustRelayFee);
 }
 
+std::optional<bilingual_str> InactiveDestinationError(const CWallet& wallet, const CTxDestination& dest)
+{
+    if (std::holds_alternative<WitnessV1Taproot>(dest) && !wallet.chain().isDeploymentActive(Consensus::DEPLOYMENT_TAPROOT)) {
+        return _("Taproot is not active on this network. An output to a Taproot address could be spent by any miner.");
+    }
+    if (std::holds_alternative<WitnessV2MLDsa44>(dest) && !wallet.chain().isDeploymentActive(Consensus::DEPLOYMENT_MLDSA44)) {
+        return _("ML-DSA-44 (RIP-25) is not active on this network. An output to a post-quantum address could be spent by any miner.");
+    }
+    return std::nullopt;
+}
+
 static util::Result<CreatedTransactionResult> CreateTransactionInternal(
         CWallet& wallet,
         const std::vector<CRecipient>& vecSend,
@@ -1219,6 +1231,7 @@ static util::Result<CreatedTransactionResult> CreateTransactionInternal(
     ReserveDestination reservedest(&wallet, change_type);
     unsigned int outputs_to_subtract_fee_from = 0; // The number of outputs which we are subtracting the fee from
     for (const auto& recipient : vecSend) {
+        if (const auto inactive{InactiveDestinationError(wallet, recipient.dest)}) return util::Error{*inactive};
         if (IsDust(recipient, wallet.chain().relayDustFee())) {
             return util::Error{_("Transaction amount too small")};
         }
@@ -1239,6 +1252,7 @@ static util::Result<CreatedTransactionResult> CreateTransactionInternal(
 
     // coin control: send change to custom address
     if (!std::get_if<CNoDestination>(&coin_control.destChange)) {
+        if (const auto inactive{InactiveDestinationError(wallet, coin_control.destChange)}) return util::Error{*inactive};
         scriptChange = GetScriptForDestination(coin_control.destChange);
     } else { // no coin control: send change to newly generated address
         // Note: We use a new key here to keep it from being obvious which side is the change.

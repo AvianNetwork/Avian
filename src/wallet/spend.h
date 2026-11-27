@@ -247,6 +247,13 @@ struct CreatedTransactionResult
 void DiscourageFeeSniping(CMutableTransaction& tx, FastRandomContext& rng_fast, interfaces::Chain& chain, const uint256& block_hash, int block_height);
 
 /**
+ * AVN: why the wallet does not pay to this destination, if it does not. A witness v1
+ * (Taproot) or v2 (ML-DSA-44) output has no spending rule until its deployment is
+ * active, and until then any miner can take it.
+ */
+std::optional<bilingual_str> InactiveDestinationError(const CWallet& wallet, const CTxDestination& dest);
+
+/**
  * Create a new transaction paying the recipients with a set of coins
  * selected by SelectCoins(); Also create the change output, when needed
  * @note passing change_pos as std::nullopt will result in setting a random position

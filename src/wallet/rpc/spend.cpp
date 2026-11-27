@@ -1495,6 +1495,14 @@ RPCHelpMan sendall()
             }
 
             CMutableTransaction rawTx{ConstructTransaction(options["inputs"], recipient_key_value_pairs, options["locktime"], rbf, coin_control.m_version)};
+            // AVN: sendall builds its outputs here, not in CreateTransaction()
+            for (const CTxOut& out : rawTx.vout) {
+                CTxDestination dest;
+                ExtractDestination(out.scriptPubKey, dest);
+                if (const auto inactive{InactiveDestinationError(*pwallet, dest)}) {
+                    throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, inactive->original);
+                }
+            }
             LOCK(pwallet->cs_wallet);
 
             CAmount total_input_value(0);

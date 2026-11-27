@@ -41,6 +41,17 @@ Proof-of-work cache
   deleted. A file written by an earlier release has no checksum and is still
   read, once; the node writes the new format at shutdown.
 
+Wallet
+------
+
+- The wallet does not pay to a Taproot (witness v1) or ML-DSA-44 (witness v2)
+  address, or send change to one it is given, while that deployment is not
+  active. Such an output has no spending rule yet, so any miner could take it.
+  No Avian wallet hands out these addresses on mainnet, where neither is
+  scheduled; the check covers one pasted from elsewhere. It applies to the
+  send RPCs, `sendall`, `fundrawtransaction`, `walletcreatefundedpsbt` and the
+  GUI. A transaction built by hand with `createrawtransaction` is not checked.
+
 Credits
 =======
 
