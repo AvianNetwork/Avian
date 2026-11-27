@@ -2516,6 +2516,55 @@ static void ApplyNullAssetData(const CTransaction& tx, CAssetsCache& cache)
     }
 }
 
+// AVN: records the verifier string a reissue carries and returns what the reissue
+// replaces, for DisconnectBlock() to put back. The name is empty when there is nothing
+// to put back. Call it before AddReissueAsset(). ConnectBlock() and ReindexAssets() both
+// come here, so a rebuilt database can undo the reissues a synced one can.
+static std::pair<std::string, CBlockAssetUndo> ReissueUndo(const CTransaction& tx, const CReissueAsset& reissue, CAssetsCache& cache)
+{
+    std::pair<std::string, CBlockAssetUndo> undo;
+    CNewAsset oldAsset;
+    if (!cache.GetAssetMetaDataIfExists(reissue.strName, oldAsset)) return undo;
+
+    // 4.x parity: record an undo entry only when the reissue changed something (a
+    // no-op entry makes RemoveReissueAsset pick the wrong one on a reorg with two
+    // reissues of one asset), and keep the old ANS id so a disconnect restores it.
+    const bool fChangedIPFS = !reissue.strIPFSHash.empty();
+    const bool fChangedANS = !reissue.strANSID.empty();
+    const bool fChangedUnits = (reissue.nUnits != -1);
+    bool fChangedVerifier = false;
+    std::string oldVerifierString;
+
+    if (IsAssetNameAnRestricted(reissue.strName)) {
+        std::string strError;
+        CNullAssetTxVerifierString verifier;
+        // As in 4.x, a verifier output counts as a change even when it repeats the
+        // current string. Within a block the first verifier added for an asset is the
+        // one kept, so skipping a repeated one would let a later reissue in the same
+        // block set a string 4.x does not.
+        if (GetVerifierStringFromTx(tx, verifier, strError)) {
+            CNullAssetTxVerifierString oldVerifier;
+            cache.GetAssetVerifierStringIfExists(reissue.strName, oldVerifier);
+            fChangedVerifier = true;
+            oldVerifierString = oldVerifier.verifier_string;
+            cache.AddRestrictedVerifier(reissue.strName, verifier.verifier_string);
+        }
+    }
+
+    if (fChangedIPFS || fChangedANS || fChangedUnits || fChangedVerifier) {
+        undo.first = reissue.strName;
+        undo.second.fChangedIPFS = fChangedIPFS;
+        undo.second.strIPFS = oldAsset.strIPFSHash;
+        undo.second.fChangedANS = fChangedANS;
+        undo.second.strANSID = oldAsset.strANSID;
+        undo.second.fChangedUnits = fChangedUnits;
+        undo.second.nUnits = oldAsset.units;
+        undo.second.fChangedVerifierString = fChangedVerifier;
+        undo.second.verifierString = oldVerifierString;
+    }
+    return undo;
+}
+
 // AVN: a message whose transfer is disconnected is marked orphaned, as 4.x did in
 // DisconnectBlock(). The lock is taken here for the reason given at WriteBlockMessages().
 static void OrphanBlockMessage(const COutPoint& out, const CAssetTransfer& transfer) NO_THREAD_SAFETY_ANALYSIS
@@ -2553,7 +2602,12 @@ DisconnectResult Chainstate::DisconnectBlock(const CBlock& block, const CBlockIn
     // AVN: Read block undo asset data (for reissue reversals)
     std::vector<std::pair<std::string, CBlockAssetUndo>> vUndoAssetData;
     if (assetsCache && AreAssetsDeployed() && passetsdb) {
-        passetsdb->ReadBlockUndoAssetData(pindex->GetBlockHash(), vUndoAssetData);
+        // A record that is not there is a block without one. A record that cannot be
+        // read would leave what a reissue changed in place, so the disconnect fails.
+        if (!passetsdb->ReadBlockUndoAssetData(pindex->GetBlockHash(), vUndoAssetData)) {
+            LogError("DisconnectBlock(): failure reading asset undo data\n");
+            return DISCONNECT_FAILED;
+        }
     }
 
     // Ignore blocks that contain transactions which are 'overwritten' by later transactions,
@@ -3266,48 +3320,8 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
                 CReissueAsset reissue;
                 std::string strAddress;
                 if (ReissueAssetFromTransaction(tx, reissue, strAddress)) {
-                    // Build undo data from current metadata before modifying.
-                    CNewAsset oldAsset;
-                    if (assetsCache->GetAssetMetaDataIfExists(reissue.strName, oldAsset)) {
-                        // 4.x parity: record an undo entry only when the reissue
-                        // changed something (a no-op entry makes RemoveReissueAsset
-                        // pick the wrong one on a reorg with two reissues of one
-                        // asset), and keep the old ANS id so a disconnect restores it.
-                        const bool fChangedIPFS = !reissue.strIPFSHash.empty();
-                        const bool fChangedANS = !reissue.strANSID.empty();
-                        const bool fChangedUnits = (reissue.nUnits != -1);
-                        bool fChangedVerifier = false;
-                        std::string oldVerifierString;
-
-                        if (IsAssetNameAnRestricted(reissue.strName)) {
-                            std::string strError;
-                            CNullAssetTxVerifierString verifier;
-                            // As in 4.x, a verifier output counts as a change even
-                            // when it repeats the current string. Within a block the
-                            // first verifier added for an asset is the one kept, so
-                            // skipping a repeated one would let a later reissue in the
-                            // same block set a string 4.x does not.
-                            if (GetVerifierStringFromTx(tx, verifier, strError)) {
-                                CNullAssetTxVerifierString oldVerifier;
-                                assetsCache->GetAssetVerifierStringIfExists(reissue.strName, oldVerifier);
-                                fChangedVerifier = true;
-                                oldVerifierString = oldVerifier.verifier_string;
-                                assetsCache->AddRestrictedVerifier(reissue.strName, verifier.verifier_string);
-                            }
-                        }
-
-                        if (fChangedIPFS || fChangedANS || fChangedUnits || fChangedVerifier) {
-                            undoPair.first = reissue.strName;
-                            undoPair.second.fChangedIPFS = fChangedIPFS;
-                            undoPair.second.strIPFS = oldAsset.strIPFSHash;
-                            undoPair.second.fChangedANS = fChangedANS;
-                            undoPair.second.strANSID = oldAsset.strANSID;
-                            undoPair.second.fChangedUnits = fChangedUnits;
-                            undoPair.second.nUnits = oldAsset.units;
-                            undoPair.second.fChangedVerifierString = fChangedVerifier;
-                            undoPair.second.verifierString = oldVerifierString;
-                        }
-                    }
+                    // What the reissue replaces, read before it is applied.
+                    undoPair = ReissueUndo(tx, reissue, *assetsCache);
 
                     // Find the reissue output index
                     int reissueIndex = -1;
@@ -7348,6 +7362,7 @@ bool ReindexAssets(ChainstateManager& chainman)
         if (!AreAssetsDeployed()) continue;
 
         CAssetsCache assetCache;
+        std::vector<std::pair<std::string, CBlockAssetUndo>> undo_data;
 
         for (const auto& ptx : block.vtx) {
             const CTransaction& tx = *ptx;
@@ -7366,6 +7381,9 @@ bool ReindexAssets(ChainstateManager& chainman)
                 CReissueAsset reissue;
                 std::string strAddress;
                 if (ReissueAssetFromTransaction(tx, reissue, strAddress)) {
+                    // Also records the verifier string a restricted reissue carries.
+                    auto undo{ReissueUndo(tx, reissue, assetCache)};
+                    if (!undo.first.empty()) undo_data.push_back(std::move(undo));
                     int reissueIndex = -1;
                     for (int j = (int)tx.vout.size() - 1; j >= 0; j--) {
                         int nType = 0; bool fIsOwner = false;
@@ -7376,13 +7394,6 @@ bool ReindexAssets(ChainstateManager& chainman)
                     }
                     if (reissueIndex >= 0)
                         assetCache.AddReissueAsset(reissue, strAddress, COutPoint(tx.GetHash(), reissueIndex));
-                    // A reissue of a restricted asset may replace its verifier string.
-                    if (IsAssetNameAnRestricted(reissue.strName)) {
-                        CNullAssetTxVerifierString verifier;
-                        std::string strError;
-                        if (GetVerifierStringFromTx(tx, verifier, strError))
-                            assetCache.AddRestrictedVerifier(reissue.strName, verifier.verifier_string);
-                    }
                 }
             } else if (IsNewUniqueAsset(tx)) {
                 for (int j = 0; j < (int)tx.vout.size(); j++) {
@@ -7435,6 +7446,14 @@ bool ReindexAssets(ChainstateManager& chainman)
             }
 
             ApplyNullAssetData(tx, assetCache);
+        }
+
+        // A database rebuilt from nothing has no undo records. Without them a
+        // reorganization would leave what these reissues changed in place.
+        if (!undo_data.empty() && !passetsdb->WriteBlockUndoAssetData(pindex->GetBlockHash(), undo_data)) {
+            LogError("ReindexAssets: Failed to write asset undo data at height %d\n", height);
+            chainman.GetNotifications().progress(bilingual_str{}, 100, false);
+            return false;
         }
 
         assetCache.Flush();
