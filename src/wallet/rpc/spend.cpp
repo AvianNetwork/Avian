@@ -1533,6 +1533,11 @@ RPCHelpMan sendall()
                 CoinFilterParams coins_params;
                 coins_params.min_amount = 0;
                 for (const COutput& output : AvailableCoins(*pwallet, &coin_control, fee_rate, coins_params).All()) {
+                    // AVN: an asset coin has no value and is found by min_amount = 0. Spent
+                    // here it has no asset output to go to, and the transaction is invalid.
+                    if (output.txout.scriptPubKey.IsAssetScript()) {
+                        continue;
+                    }
                     if (send_max && fee_rate.GetFee(output.input_bytes) > output.txout.nValue) {
                         continue;
                     }
