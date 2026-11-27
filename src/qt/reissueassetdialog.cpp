@@ -1712,6 +1712,7 @@ void ReissueAssetDialog::updateAssetsListAsync()
             QStringList list;
             list << "";
 
+            std::vector<std::string> administered;
             wallet::CWallet* pwallet = model ? model->wallet().wallet() : nullptr;
             if (pwallet) {
                 LOCK(pwallet->cs_wallet);
@@ -1723,8 +1724,17 @@ void ReissueAssetDialog::updateAssetsListAsync()
                     if (IsAssetNameAnOwner(assetName)) {
                         std::string baseName = assetName;
                         baseName.pop_back(); // Remove '!' suffix
-                        list << QString::fromStdString(baseName);
+                        administered.push_back(baseName);
                     }
+                }
+            }
+            // The owner token of NAME also administers the restricted asset $NAME
+            {
+                LOCK(cs_main);
+                for (const std::string& name : administered) {
+                    list << QString::fromStdString(name);
+                    const std::string restricted{RESTRICTED_CHAR + name};
+                    if (passets && passets->CheckIfAssetExists(restricted)) list << QString::fromStdString(restricted);
                 }
             }
 
