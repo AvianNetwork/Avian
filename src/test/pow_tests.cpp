@@ -75,9 +75,9 @@ BOOST_AUTO_TEST_CASE(pow_cache_file_is_checksummed)
     BOOST_CHECK_EQUAL(loaded(damaged), 0U);
     BOOST_CHECK_EQUAL(loaded(good), cached);
 
-    // Cut short
+    // The checksum is missing
     damaged = good;
-    damaged.resize(good.size() - 40);
+    damaged.resize(good.size() - 32);
     BOOST_CHECK_EQUAL(loaded(damaged), 0U);
 
     // Version 1: no checksum

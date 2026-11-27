@@ -28,6 +28,7 @@
 #include <assets/assettypes.h>
 #include <assets/messages.h>
 #include <assets/myassetsdb.h>
+#include <assets/restricteddb.h>
 #include <assets/assetsnapshotdb.h>
 #include <assets/snapshotrequestdb.h>
 #include <key_io.h>
@@ -7359,7 +7360,9 @@ bool RebuildAssetBalances(ChainstateManager& chainman)
     passets->mapAssetsAddressAmount.clear();
 
     size_t written{0};
-    const bool ok{WriteAssetBalancesFromUtxoSet(chainman, chainman.ActiveChainstate(), written)};
+    bool ok{WriteAssetBalancesFromUtxoSet(chainman, chainman.ActiveChainstate(), written)};
+    // The addresses of each tag are the other thing kept only with -assetindex
+    if (ok && prestricteddb) ok = prestricteddb->RebuildQualifierAddresses();
     chainman.GetNotifications().progress(bilingual_str{}, 100, false);
     if (!ok) return false;
 

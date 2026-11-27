@@ -25,11 +25,14 @@ Asset database
   A node that had run with `-assetindex=0` and was started with the option on
   again served the balances it had last written, and could not disconnect a
   block that moved an asset it had no balance for, which stops a
-  reorganization. The balances are now read again from the UTXO set at that
-  start. This takes no block data, so it works on a pruned node. A database
-  written by an earlier release carries no record and is taken to match the
-  setting in use: if the option was turned back on under an earlier release,
-  start once with `-assetindex=0` and then with it on.
+  reorganization, and `listaddressesfortag` answered from the tags as they were.
+  The balances are now read again from the UTXO set at that start, and the
+  addresses of each tag from the tags of each address. This takes no block
+  data, so it works on a pruned node. A database written by an earlier release
+  carries no record and is taken to match the setting in use, and a run of an
+  earlier release does not update the record: if the option was turned off and
+  on again under an earlier release, start once with `-assetindex=0` and then
+  with it on.
 
 Proof-of-work cache
 -------------------

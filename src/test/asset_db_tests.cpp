@@ -9,6 +9,7 @@
 #include <assets/assetdb.h>
 #include <assets/assets.h>
 #include <assets/assettypes.h>
+#include <assets/restricteddb.h>
 #include <coins.h>
 #include <consensus/amount.h>
 #include <key_io.h>
@@ -23,6 +24,7 @@
 
 #include <boost/test/unit_test.hpp>
 
+#include <algorithm>
 #include <string>
 #include <utility>
 #include <vector>
@@ -122,6 +124,31 @@ BOOST_AUTO_TEST_CASE(balances_are_rebuilt_from_the_utxo_set)
     bool kept{false};
     BOOST_CHECK(passetsdb->ReadAssetIndexKept(kept));
     BOOST_CHECK(kept);
+}
+
+// The addresses of a tag are kept only with -assetindex, the tags of an address
+// always. The first are written again from the second.
+BOOST_AUTO_TEST_CASE(tag_addresses_are_rebuilt_from_address_tags)
+{
+    CRestrictedDB db{m_args.GetDataDirNet(), 1 << 20, /*fMemory=*/true, /*fWipe=*/true};
+    BOOST_REQUIRE(db.WriteAddressQualifier("first", "#KYC"));
+    BOOST_REQUIRE(db.WriteAddressQualifier("second", "#KYC"));
+    BOOST_REQUIRE(db.WriteAddressQualifier("first", "#AML"));
+    // A tag removed while the entries were not kept
+    BOOST_REQUIRE(db.WriteQualifierAddress("third", "#KYC"));
+    BOOST_REQUIRE(db.WriteQualifierAddress("third", "#GONE"));
+
+    BOOST_REQUIRE(db.RebuildQualifierAddresses());
+
+    const auto addresses = [&](std::string tag) {
+        std::vector<std::string> found;
+        BOOST_CHECK(db.GetQualifierAddresses(tag, found));
+        std::sort(found.begin(), found.end());
+        return found;
+    };
+    BOOST_CHECK(addresses("#KYC") == (std::vector<std::string>{"first", "second"}));
+    BOOST_CHECK(addresses("#AML") == std::vector<std::string>{"first"});
+    BOOST_CHECK(addresses("#GONE").empty());
 }
 
 BOOST_AUTO_TEST_SUITE_END()
