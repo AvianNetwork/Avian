@@ -110,10 +110,16 @@ BOOST_AUTO_TEST_CASE(the_sighash_field_is_compared_with_the_fork_id)
         BOOST_CHECK(Sign(psbt, 0, ALL_FORKID, /*finalize=*/false) == PSBTError::OK);
     }
 
-    PartiallySignedTransaction psbt{Psbt(1, 1)};
-    psbt.inputs[0].sighash_type = SINGLE_FORKID;
-    BOOST_CHECK(Sign(psbt, 0, std::nullopt, /*finalize=*/false) == PSBTError::SIGHASH_MISMATCH);
-    BOOST_CHECK(psbt.inputs[0].partial_sigs.empty());
+    // Only ALL and ALL|FORKID are the same request. Any other type in the field has to
+    // be asked for.
+    for (const int field : {SINGLE_FORKID, int{SIGHASH_SINGLE}, int{SIGHASH_NONE}, SIGHASH_NONE | SIGHASH_FORKID,
+                            ALL_FORKID | SIGHASH_ANYONECANPAY, SIGHASH_ALL | SIGHASH_ANYONECANPAY}) {
+        PartiallySignedTransaction psbt{Psbt(1, 1)};
+        psbt.inputs[0].sighash_type = field;
+        BOOST_CHECK(Sign(psbt, 0, std::nullopt, /*finalize=*/false) == PSBTError::SIGHASH_MISMATCH);
+        BOOST_CHECK(Sign(psbt, 0, ALL_FORKID, /*finalize=*/false) == PSBTError::SIGHASH_MISMATCH);
+        BOOST_CHECK(psbt.inputs[0].partial_sigs.empty());
+    }
 
     // Another type is written to the field, with the fork id
     PartiallySignedTransaction other{Psbt(1, 1)};
@@ -145,9 +151,33 @@ BOOST_AUTO_TEST_CASE(single_is_not_signed_without_a_matching_output)
     BOOST_CHECK(Sign(psbt, 1, SINGLE_FORKID, /*finalize=*/true) == PSBTError::INCOMPLETE);
     BOOST_CHECK(psbt.inputs[1].partial_sigs.empty());
     BOOST_CHECK(psbt.inputs[1].final_script_sig.empty());
+    // Its field is left alone, so the input can still be signed with another type
+    BOOST_CHECK(!psbt.inputs[1].sighash_type);
+    BOOST_CHECK(Sign(psbt, 1, std::nullopt, /*finalize=*/false) == PSBTError::OK);
+    BOOST_CHECK_EQUAL(psbt.inputs[1].partial_sigs.size(), 1U);
 
     BOOST_CHECK(Sign(psbt, 0, SINGLE_FORKID, /*finalize=*/false) == PSBTError::OK);
     BOOST_CHECK_EQUAL(psbt.inputs[0].partial_sigs.size(), 1U);
+}
+
+// The guard is on making a signature. One that is already in the PSBT, made by
+// whoever holds the key, is put in place by the finalizer like any other.
+BOOST_AUTO_TEST_CASE(a_single_signature_that_is_there_is_still_finalized)
+{
+    PartiallySignedTransaction psbt{Psbt(2, 1)};
+    std::vector<unsigned char> signature;
+    BOOST_REQUIRE(key.Sign(uint256::ONE, signature));
+    signature.push_back(SINGLE_FORKID);
+    const CPubKey pubkey{key.GetPubKey()};
+    psbt.inputs[1].partial_sigs[pubkey.GetID()] = {pubkey, signature};
+    psbt.inputs[1].sighash_type = SINGLE_FORKID;
+
+    FlatSigningProvider public_only;
+    public_only.pubkeys[pubkey.GetID()] = pubkey;
+    const PrecomputedTransactionData txdata{PrecomputePSBTData(psbt)};
+    BOOST_CHECK(SignPSBTInput(public_only, psbt, 1, &txdata, SINGLE_FORKID, nullptr, /*finalize=*/true) == PSBTError::OK);
+    BOOST_CHECK(!psbt.inputs[1].final_script_sig.empty());
+    BOOST_CHECK(PSBTInputSignedAndVerified(psbt, 1, &txdata));
 }
 
 BOOST_AUTO_TEST_SUITE_END()

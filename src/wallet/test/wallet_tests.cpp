@@ -784,24 +784,43 @@ BOOST_FIXTURE_TEST_CASE(no_payment_to_an_inactive_witness_version, WalletTesting
 }
 
 // A transaction the mempool refuses is reported to the caller, and the wallet does
-// not keep it: kept, its inputs would count as spent until it was abandoned.
+// not keep it: kept, its inputs would count as spent until it was abandoned. One the
+// mempool takes is recorded, and marked for rebroadcast like any other the wallet sends.
 BOOST_FIXTURE_TEST_CASE(a_refused_asset_transaction_is_not_committed, TestChain100Setup)
 {
+    mineBlocks(15); // so that the first coinbase can be spent
     const std::unique_ptr<CWallet> wallet{CreateSyncedWallet(*m_node.chain, WITH_LOCK(Assert(m_node.chainman)->GetMutex(), return m_node.chainman->ActiveChain()), coinbaseKey)};
     wallet->SetBroadcastTransactions(true);
-
-    CMutableTransaction mtx;
-    mtx.vin.emplace_back(COutPoint{Txid::FromUint256(uint256::ONE), 0}); // no such coin
-    mtx.vout.emplace_back(COIN, GetScriptForDestination(PKHash{coinbaseKey.GetPubKey()}));
-    CTransactionRef tx{MakeTransactionRef(mtx)};
-
+    const CScript own{GetScriptForDestination(PKHash{coinbaseKey.GetPubKey()})};
     std::pair<int, std::string> error;
     std::string txid;
-    BOOST_CHECK(!SendAssetTransaction(*wallet, tx, error, txid));
-    BOOST_CHECK_EQUAL(error.first, RPC_VERIFY_REJECTED);
+
+    // The wallet's own coin, spent before it has matured
+    const CTransactionRef& immature{m_coinbase_txns.back()};
+    BOOST_REQUIRE(WITH_LOCK(wallet->cs_wallet, return wallet->GetWalletTx(immature->GetHash())) != nullptr);
+    CMutableTransaction mtx;
+    mtx.vin.emplace_back(COutPoint{immature->GetHash(), 0});
+    mtx.vout.emplace_back(immature->vout[0].nValue - 10000, own);
+    CTransactionRef refused{MakeTransactionRef(mtx)};
+    BOOST_CHECK(!SendAssetTransaction(*wallet, refused, error, txid));
+    BOOST_CHECK_EQUAL(error.first, RPC_WALLET_ERROR);
     BOOST_CHECK(error.second.find("rejected") != std::string::npos);
+    BOOST_CHECK(error.second.find("premature-spend-of-coinbase") != std::string::npos);
     BOOST_CHECK(txid.empty());
-    BOOST_CHECK(WITH_LOCK(wallet->cs_wallet, return wallet->GetWalletTx(tx->GetHash())) == nullptr);
+    BOOST_CHECK(WITH_LOCK(wallet->cs_wallet, return wallet->GetWalletTx(refused->GetHash())) == nullptr);
+
+    CTransactionRef accepted{MakeTransactionRef(CreateValidMempoolTransaction(
+        m_coinbase_txns[0], 0, /*input_height=*/1, coinbaseKey, own, m_coinbase_txns[0]->vout[0].nValue - 10000, /*submit=*/false))};
+    BOOST_CHECK(SendAssetTransaction(*wallet, accepted, error, txid));
+    BOOST_CHECK_EQUAL(txid, accepted->GetHash().GetHex());
+    BOOST_CHECK(m_node.mempool->exists(accepted->GetHash()));
+    BOOST_CHECK(m_node.mempool->GetUnbroadcastTxs().contains(accepted->GetHash()));
+    {
+        LOCK(wallet->cs_wallet);
+        const CWalletTx* wtx{wallet->GetWalletTx(accepted->GetHash())};
+        BOOST_REQUIRE(wtx);
+        BOOST_CHECK(wtx->InMempool());
+    }
 }
 
 BOOST_AUTO_TEST_SUITE_END()

@@ -59,8 +59,9 @@ Wallet
   reason, and is not kept. The wallet used to record it and report success, in
   the GUI and in the asset RPCs, and its inputs then counted as spent until the
   transaction was abandoned. 4.x reported the refusal.
-- `sendall` leaves asset coins alone. It collected them with the AVN coins, and
-  the transaction it built was invalid for any wallet holding an asset.
+- `sendall` leaves asset coins alone when it chooses the coins itself. It
+  collected them with the AVN coins, and unless `send_max` happened to drop
+  them, the transaction it built was invalid for a wallet holding an asset.
 
 PSBT
 ----
@@ -70,7 +71,9 @@ signatures without `SIGHASH_FORKID`, which every Avian signature carries:
 
 - A PSBT holding a partial signature could not be decoded ("Signature is not a
   valid encoding"), so a multisig could not be signed by passing a PSBT from
-  one signer to the next.
+  one signer to the next. The reverse now holds: a partial signature without
+  `SIGHASH_FORKID`, which no Avian node accepts, is refused when the PSBT is
+  decoded.
 - A PSBT whose sighash field was set, as the GUI sets it when it signs, was
   refused by the next signer with "Specified sighash value does not match value
   stored in PSBT". The default type is now `ALL|FORKID`, in the GUI and in
@@ -83,7 +86,8 @@ A PSBT input is no longer signed with `SIGHASH_SINGLE` when the transaction has
 no output at that input's index. For a non-witness input that signature does
 not commit to the transaction at all, and could be used to spend any other coin
 of the same key. `signrawtransactionwithwallet` already leaves such an input
-unsigned.
+unsigned. The input stays unsigned and can be signed with another type; a
+signature of that kind already in the PSBT is still finalized.
 
 Credits
 =======

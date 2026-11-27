@@ -436,16 +436,15 @@ PSBTError SignPSBTInput(const SigningProvider& provider, PartiallySignedTransact
     if (input.sighash_type && (taproot ? *input.sighash_type : with_forkid(*input.sighash_type)) != *sighash) {
         return PSBTError::SIGHASH_MISMATCH;
     }
-    // Set the PSBT sighash field when sighash is not the default.
-    if (taproot ? sighash != SIGHASH_DEFAULT : sighash != with_forkid(SIGHASH_ALL)) {
-        input.sighash_type = sighash;
-    }
-
     // As SignTransaction() does: SIGHASH_SINGLE is signed only where there is an output
     // at the input's index. Without one a non-witness input signs the constant 1, and
-    // that signature spends any other coin of the same key.
-    if ((*sighash & 0x1f) == SIGHASH_SINGLE && static_cast<size_t>(index) >= tx.vout.size()) {
-        return PSBTError::INCOMPLETE;
+    // that signature spends any other coin of the same key. Such an input gets no new
+    // signature and its field is left alone, so that it can still be signed with
+    // another type. Signatures already in the PSBT are combined as usual.
+    const bool single_without_output{(*sighash & 0x1f) == SIGHASH_SINGLE && static_cast<size_t>(index) >= tx.vout.size()};
+    // Set the PSBT sighash field when sighash is not the default.
+    if (!single_without_output && (taproot ? sighash != SIGHASH_DEFAULT : sighash != with_forkid(SIGHASH_ALL))) {
+        input.sighash_type = sighash;
     }
 
     // Check all existing signatures use the sighash type
@@ -474,7 +473,8 @@ PSBTError SignPSBTInput(const SigningProvider& provider, PartiallySignedTransact
         sig_complete = ProduceSignature(provider, DUMMY_SIGNATURE_CREATOR, utxo.scriptPubKey, sigdata);
     } else {
         MutableTransactionSignatureCreator creator(tx, index, utxo.nValue, txdata, *sighash);
-        sig_complete = ProduceSignature(provider, creator, utxo.scriptPubKey, sigdata);
+        const HidingSigningProvider no_new_signatures{&provider, /*hide_secret=*/true, /*hide_origin=*/false};
+        sig_complete = ProduceSignature(single_without_output ? static_cast<const SigningProvider&>(no_new_signatures) : provider, creator, utxo.scriptPubKey, sigdata);
     }
     // Verify that a witness signature was produced in case one was required.
     if (require_witness_sig && !sigdata.witness) return PSBTError::INCOMPLETE;
