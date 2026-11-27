@@ -320,10 +320,13 @@ bool PSBTInputSignedAndVerified(const PartiallySignedTransaction psbt, unsigned 
         return false;
     }
 
+    // Avian: the flags the mempool verifies with. Without SIGHASH_FORKID enabled no
+    // signature this chain accepts would pass.
+    const unsigned int flags{STANDARD_SCRIPT_VERIFY_FLAGS | SCRIPT_ENABLE_SIGHASH_FORKID};
     if (txdata) {
-        return VerifyScript(input.final_script_sig, utxo.scriptPubKey, &input.final_script_witness, STANDARD_SCRIPT_VERIFY_FLAGS, MutableTransactionSignatureChecker{&(*psbt.tx), input_index, utxo.nValue, *txdata, MissingDataBehavior::FAIL});
+        return VerifyScript(input.final_script_sig, utxo.scriptPubKey, &input.final_script_witness, flags, MutableTransactionSignatureChecker{&(*psbt.tx), input_index, utxo.nValue, *txdata, MissingDataBehavior::FAIL});
     } else {
-        return VerifyScript(input.final_script_sig, utxo.scriptPubKey, &input.final_script_witness, STANDARD_SCRIPT_VERIFY_FLAGS, MutableTransactionSignatureChecker{&(*psbt.tx), input_index, utxo.nValue, MissingDataBehavior::FAIL});
+        return VerifyScript(input.final_script_sig, utxo.scriptPubKey, &input.final_script_witness, flags, MutableTransactionSignatureChecker{&(*psbt.tx), input_index, utxo.nValue, MissingDataBehavior::FAIL});
     }
 }
 
@@ -418,18 +421,31 @@ PSBTError SignPSBTInput(const SigningProvider& provider, PartiallySignedTransact
     // If only the parameter is provided, use it and add it to the PSBT if it is other than SIGHASH_DEFAULT
     // for all input types, and not SIGHASH_ALL for non-taproot input types.
     // If neither are provided, use SIGHASH_DEFAULT if it is taproot, and SIGHASH_ALL for everything else.
-    if (!sighash) sighash = utxo.scriptPubKey.IsPayToTaproot() ? SIGHASH_DEFAULT : SIGHASH_ALL;
+    // Avian: outside taproot the signer adds SIGHASH_FORKID to whatever it is asked for,
+    // so the type is taken with it here. That is the byte the signatures end in and the
+    // value the field holds, and comparing without it refused every PSBT that had either.
+    const bool taproot{utxo.scriptPubKey.IsPayToTaproot()};
+    const auto with_forkid = [](int type) { return (type == SIGHASH_DEFAULT ? int{SIGHASH_ALL} : type) | SIGHASH_FORKID; };
+    if (!sighash) {
+        sighash = taproot ? int{SIGHASH_DEFAULT} : with_forkid(SIGHASH_ALL);
+    } else if (!taproot) {
+        sighash = with_forkid(*sighash);
+    }
     Assert(sighash.has_value());
     // For user safety, the desired sighash must be provided if the PSBT wants something other than the default set in the previous line.
-    if (input.sighash_type && input.sighash_type != sighash) {
+    if (input.sighash_type && (taproot ? *input.sighash_type : with_forkid(*input.sighash_type)) != *sighash) {
         return PSBTError::SIGHASH_MISMATCH;
     }
-    // Set the PSBT sighash field when sighash is not DEFAULT or ALL
-    // DEFAULT is allowed for non-taproot inputs since DEFAULT may be passed for them (e.g. the psbt being signed also has taproot inputs)
-    // Note that signing already aliases DEFAULT to ALL for non-taproot inputs.
-    if (utxo.scriptPubKey.IsPayToTaproot() ? sighash != SIGHASH_DEFAULT :
-                                            (sighash != SIGHASH_DEFAULT && sighash != SIGHASH_ALL)) {
+    // Set the PSBT sighash field when sighash is not the default.
+    if (taproot ? sighash != SIGHASH_DEFAULT : sighash != with_forkid(SIGHASH_ALL)) {
         input.sighash_type = sighash;
+    }
+
+    // As SignTransaction() does: SIGHASH_SINGLE is signed only where there is an output
+    // at the input's index. Without one a non-witness input signs the constant 1, and
+    // that signature spends any other coin of the same key.
+    if ((*sighash & 0x1f) == SIGHASH_SINGLE && static_cast<size_t>(index) >= tx.vout.size()) {
+        return PSBTError::INCOMPLETE;
     }
 
     // Check all existing signatures use the sighash type
