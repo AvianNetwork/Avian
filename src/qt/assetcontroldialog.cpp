@@ -427,36 +427,8 @@ void AssetControlDialog::viewItemChanged(QTreeWidgetItem* item, int column)
         else
             m_asset_control.SelectAsset(outpt);
 
-        // Update parent tristate
-        if (item->parent()) {
-            int nChecked = 0;
-            for (int i = 0; i < item->parent()->childCount(); i++)
-                if (item->parent()->child(i)->checkState(COLUMN_CHECKBOX) == Qt::Checked) nChecked++;
-            if (nChecked == item->parent()->childCount())
-                item->parent()->setCheckState(COLUMN_CHECKBOX, Qt::Checked);
-            else if (nChecked == 0)
-                item->parent()->setCheckState(COLUMN_CHECKBOX, Qt::Unchecked);
-            else
-                item->parent()->setCheckState(COLUMN_CHECKBOX, Qt::PartiallyChecked);
-        }
-
-        if (ui->treeWidget->isEnabled())
-            AssetControlDialog::updateLabels(m_asset_control, model, this);
-    }
-    else if (column == COLUMN_CHECKBOX && item->childCount() > 0)
-    {
-        // Address group row — clicking PartiallyChecked promotes to Checked
-        if (item->checkState(COLUMN_CHECKBOX) == Qt::PartiallyChecked && item->child(0)->checkState(COLUMN_CHECKBOX) == Qt::PartiallyChecked)
-            item->setCheckState(COLUMN_CHECKBOX, Qt::Checked);
-
-        // Cascade to all children
-        ui->treeWidget->setEnabled(false);
-        for (int i = 0; i < item->childCount(); i++) {
-            if (item->child(i)->checkState(COLUMN_CHECKBOX) != item->checkState(COLUMN_CHECKBOX))
-                item->child(i)->setCheckState(COLUMN_CHECKBOX, item->checkState(COLUMN_CHECKBOX));
-        }
-        ui->treeWidget->setEnabled(true);
-
+        // The address row follows its coins, and passes a click on to them, through
+        // Qt::ItemIsAutoTristate.
         if (ui->treeWidget->isEnabled())
             AssetControlDialog::updateLabels(m_asset_control, model, this);
     }
@@ -646,7 +618,8 @@ void AssetControlDialog::updateView()
         CAssetControlWidgetItem* itemWalletAddress = nullptr;
         if (treeMode) {
             itemWalletAddress = new CAssetControlWidgetItem(ui->treeWidget);
-            itemWalletAddress->setFlags(itemWalletAddress->flags() | Qt::ItemIsUserCheckable);
+            // Qt keeps the address row and its coins in step, as in the AVN coin control
+            itemWalletAddress->setFlags(itemWalletAddress->flags() | Qt::ItemIsUserCheckable | Qt::ItemIsAutoTristate);
             itemWalletAddress->setCheckState(COLUMN_CHECKBOX, Qt::Unchecked);
 
             // Address

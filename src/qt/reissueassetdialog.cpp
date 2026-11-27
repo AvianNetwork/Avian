@@ -46,6 +46,8 @@
 #include <QDesktopServices>
 #include <QGraphicsDropShadowEffect>
 #include <QMessageBox>
+#include <QPointer>
+#include <QSignalBlocker>
 #include <QModelIndex>
 #include <QSettings>
 #include <QSortFilterProxyModel>
@@ -773,6 +775,12 @@ void ReissueAssetDialog::onAssetSelected(int index)
 {
     // Only display asset information when as asset is clicked. The first index is a PlaceHolder
     if (index > 0) {
+        // A verifier string typed for the asset selected before is not carried over
+        // to this one: it would go into this asset's transaction.
+        {
+            const QSignalBlocker blocker{ui->lineEditVerifierString};
+            ui->lineEditVerifierString->clear();
+        }
         enableDataEntry();
         ui->currentAssetData->show();
         QString qstr_name = ui->comboBox->currentText();
@@ -1292,6 +1300,11 @@ void ReissueAssetDialog::onReissueAssetClicked()
     recipientElement2 = tr("%1 to %2").arg(assetAmount, assetAddress);
     formatted.append(recipientElement2);
 
+    // The verifier string decides who may hold the asset: show the one being set
+    if (!verifier_string.empty()) {
+        formatted.append(tr("Verifier string set to %1").arg("<b>" + GUIUtil::HtmlEscape(verifier_string) + "</b>"));
+    }
+
     QString questionString = tr("Are you sure you want to send?");
     questionString.append("<br /><br />%1");
 
@@ -1706,14 +1719,20 @@ void ReissueAssetDialog::updateAssetsListAsync()
     // Keep it visible so the placeholder text is shown
     ui->comboBox->setCurrentIndex(0);
 
-    // Run asset loading in background thread to avoid blocking UI
-    std::thread([this]() {
+    // Run asset loading in background thread to avoid blocking UI. The thread is given
+    // what it needs and reports through a guarded pointer: the page can be closed
+    // while it waits for a lock.
+    wallet::CWallet* const pwallet{model ? model->wallet().wallet() : nullptr};
+    const QPointer<ReissueAssetDialog> self{this};
+    const auto loaded = [self](const QStringList& names) {
+        QMetaObject::invokeMethod(qApp, [self, names]() { if (self) self->onAssetsListLoaded(names); }, Qt::QueuedConnection);
+    };
+    std::thread([pwallet, loaded]() {
         try {
             QStringList list;
             list << "";
 
             std::vector<std::string> administered;
-            wallet::CWallet* pwallet = model ? model->wallet().wallet() : nullptr;
             if (pwallet) {
                 LOCK(pwallet->cs_wallet);
                 wallet::CoinFilterParams params;
@@ -1728,23 +1747,23 @@ void ReissueAssetDialog::updateAssetsListAsync()
                     }
                 }
             }
-            // The owner token of NAME also administers the restricted asset $NAME
-            {
+            // The owner token of NAME also administers the restricted asset $NAME. Only
+            // a root asset can have one, so only those names are looked up.
+            for (const std::string& name : administered) {
+                list << QString::fromStdString(name);
+                if (!IsAssetNameARoot(name)) continue;
+                const std::string restricted{RESTRICTED_CHAR + name};
                 LOCK(cs_main);
-                for (const std::string& name : administered) {
-                    list << QString::fromStdString(name);
-                    const std::string restricted{RESTRICTED_CHAR + name};
-                    if (passets && passets->CheckIfAssetExists(restricted)) list << QString::fromStdString(restricted);
-                }
+                if (passets && passets->CheckIfAssetExists(restricted)) list << QString::fromStdString(restricted);
             }
 
             // Update UI on main thread
-            QMetaObject::invokeMethod(this, [this, list]() { onAssetsListLoaded(list); }, Qt::QueuedConnection);
+            loaded(list);
         } catch (const std::exception& e) {
             qWarning() << "Error loading assets list:" << e.what();
             QStringList emptyList;
             emptyList << "";
-            QMetaObject::invokeMethod(this, [this, emptyList]() { onAssetsListLoaded(emptyList); }, Qt::QueuedConnection);
+            loaded(emptyList);
         }
     }).detach();
 }
@@ -1777,6 +1796,7 @@ void ReissueAssetDialog::clear()
     ui->ipfsBox->setChecked(false);
     ui->ipfsText->setDisabled(true);
     ui->ipfsText->clear();
+    ui->lineEditVerifierString->clear();
     hideMessage();
 
     disableAll();

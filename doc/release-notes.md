@@ -108,18 +108,23 @@ with the 4.2.1 wallet:
   node refused it. This also affected `issuequalifierasset`.
 - Manage Assets offers a restricted asset (`$NAME`) for reissue to the wallet
   that holds the owner token `NAME!`, as 4.x did. It was missing from the list,
-  which put the verifier string out of reach.
-- A locked asset coin is not spent, in the GUI or by the asset RPCs, and
-  `listmyassets` leaves it out as 4.x does. The asset coin control shows it as
-  locked, where it can be unlocked. It was selected like any other.
+  which put the verifier string out of reach. A verifier string typed for one
+  asset is dropped when another is selected, and the confirmation shows the
+  string a reissue sets.
+- A locked asset coin is not spent, in the GUI or by the asset RPCs, and the
+  overview, `listmyassets` and `myansnames` leave it out as 4.x does. The asset
+  coin control shows it as locked, where it can be unlocked. It was selected
+  like any other. In the tree view of that dialog, a coin at an address that
+  holds several can be selected again.
 - The asset coin control forgets its selection once the transfer is sent. The
   coins it named were spent, and the next transfer failed on them.
 - The PSBT dialog says what an asset output does: an issue with its units and
-  reissuable flag, a reissue with what it changes, the creation of an owner
-  token, a tag added to or removed from an address, a freeze. All of these read
-  "Transfers" or were left as an empty line. Its warning before broadcasting a
-  transaction signed with `ANYONECANPAY` now appears; it looked only at partial
-  signatures, which a signed input no longer has.
+  reissuable flag, a reissue with what it changes, the name record either of
+  them sets, the creation of an owner token, a tag added to or removed from an
+  address, a freeze. All of these read "Transfers" or were left as an empty
+  line. Its warning before broadcasting a transaction signed with
+  `ANYONECANPAY` now appears; it looked only at partial signatures, which a
+  signed input no longer has.
 
 Credits
 =======
