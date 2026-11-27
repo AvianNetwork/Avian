@@ -180,13 +180,29 @@ bool CreateAssetTransaction(
         vecSend.push_back(rec);
     }
 
-    // 3) For sub-qualifiers: transfer parent qualifier back to change address
+    // 3) For sub-qualifiers: transfer parent qualifier back to change address. All of
+    //    the coin that is spent: a qualifier coin can hold up to ten, and returning one
+    //    of them leaves the transaction short of what it spends.
+    std::optional<COutPoint> parent_qualifier_coin;
     if (assetType == AssetType::SUB_QUALIFIER) {
         if (!VerifyWalletHasAsset(wallet, parentName, error))
             return false;
 
+        CAmount parent_amount{OWNER_ASSET_AMOUNT};
+        {
+            CoinFilterParams coin_params;
+            coin_params.min_amount = 0;
+            const CoinsResult available = AvailableCoinsWithAssets(wallet, nullptr, std::nullopt, coin_params);
+            const auto it = available.mapAssetCoins.find(parentName);
+            ::CAssetOutputEntry parent_data;
+            if (it != available.mapAssetCoins.end() && !it->second.empty() && GetAssetData(it->second[0].txout.scriptPubKey, parent_data)) {
+                parent_qualifier_coin = it->second[0].outpoint;
+                parent_amount = parent_data.nAmount;
+            }
+        }
+
         CScript scriptTransferQualifier = GetScriptForDestination(DecodeDestination(change_address));
-        CAssetTransfer qualifierTransfer(parentName, OWNER_ASSET_AMOUNT);
+        CAssetTransfer qualifierTransfer(parentName, parent_amount);
         qualifierTransfer.ConstructTransaction(scriptTransferQualifier);
 
         CRecipient rec;
@@ -285,13 +301,8 @@ bool CreateAssetTransaction(
             coinControl.Select(it->second[0].outpoint);
         }
     } else if (assetType == AssetType::SUB_QUALIFIER) {
-        CoinFilterParams coin_params;
-        coin_params.min_amount = 0;
-        CoinsResult available = AvailableCoinsWithAssets(wallet, nullptr, std::nullopt, coin_params);
-        auto it = available.mapAssetCoins.find(parentName);
-        if (it != available.mapAssetCoins.end() && !it->second.empty()) {
-            coinControl.Select(it->second[0].outpoint);
-        }
+        // The coin whose amount the transfer above returns
+        if (parent_qualifier_coin) coinControl.Select(*parent_qualifier_coin);
     } else if (assetType == AssetType::RESTRICTED) {
         std::string strStripped = parentName.substr(1, parentName.size() - 1);
         CoinFilterParams coin_params;
