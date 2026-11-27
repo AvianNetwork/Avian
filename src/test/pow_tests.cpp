@@ -5,11 +5,17 @@
 #include <chain.h>
 #include <chainparams.h>
 #include <pow.h>
+#include <primitives/block.h>
+#include <streams.h>
 #include <test/util/random.h>
 #include <test/util/setup_common.h>
 #include <util/chaintype.h>
+#include <util/fs.h>
 
 #include <boost/test/unit_test.hpp>
+
+#include <cstddef>
+#include <vector>
 
 BOOST_FIXTURE_TEST_SUITE(pow_tests, BasicTestingSetup)
 
@@ -28,6 +34,56 @@ BOOST_AUTO_TEST_CASE(unknown_pow_algorithm_is_refused)
     BOOST_CHECK(accepted(0));
     BOOST_CHECK(accepted(1));
     for (const int32_t algo : {2, 3, 127, 255}) BOOST_CHECK(!accepted(algo));
+}
+
+/* powcache.dat holds the hash each block is known by, so a damaged file is not
+ * loaded. One written before it carried a checksum still is. */
+BOOST_AUTO_TEST_CASE(pow_cache_file_is_checksummed)
+{
+    const fs::path path{m_path_root / "powcache_test.dat"};
+    for (uint32_t nonce{0}; nonce < 4; ++nonce) {
+        CBlockHeader header;
+        header.nNonce = nonce;
+        (void)header.GetHash();
+    }
+    const size_t cached{PowCacheSize()};
+    BOOST_REQUIRE_GE(cached, 4U);
+    BOOST_REQUIRE(SavePowCache(path));
+
+    const auto read = [&] {
+        std::vector<std::byte> data(fs::file_size(path));
+        AutoFile file{fsbridge::fopen(path, "rb")};
+        file.read(data);
+        return data;
+    };
+    const auto loaded = [&](const std::vector<std::byte>& data) {
+        AutoFile file{fsbridge::fopen(path, "wb")};
+        file.write(data);
+        BOOST_REQUIRE_EQUAL(file.fclose(), 0);
+        BOOST_CHECK(LoadPowCache(path));
+        return PowCacheSize();
+    };
+
+    // version, count, the entries, checksum
+    const std::vector<std::byte> good{read()};
+    BOOST_REQUIRE_EQUAL(good.size(), 16 + cached * 64 + 32);
+    BOOST_CHECK_EQUAL(loaded(good), cached);
+
+    // One bit of a cached hash
+    std::vector<std::byte> damaged{good};
+    damaged[16 + 40] ^= std::byte{1};
+    BOOST_CHECK_EQUAL(loaded(damaged), 0U);
+    BOOST_CHECK_EQUAL(loaded(good), cached);
+
+    // Cut short
+    damaged = good;
+    damaged.resize(good.size() - 40);
+    BOOST_CHECK_EQUAL(loaded(damaged), 0U);
+
+    // Version 1: no checksum
+    std::vector<std::byte> old{good.begin(), good.end() - 32};
+    old[0] = std::byte{1};
+    BOOST_CHECK_EQUAL(loaded(old), cached);
 }
 
 /* Test calculation of next difficulty target with no constraints applying */
