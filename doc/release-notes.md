@@ -10,6 +10,37 @@ This release includes the following changes since the last release:
 Notable changes
 ===============
 
+Asset database
+--------------
+
+- A rebuild of the asset database writes the undo records of reissues, as a
+  synced node has them. A database rebuilt from nothing had none, so when a
+  block with a reissue was reorganized out, the units, IPFS hash, ANS id and
+  verifier string the reissue had set stayed in place, and the node could go on
+  to judge later transactions of that asset differently from the network.
+- A block is not disconnected when its reissue undo record is there and cannot
+  be read. The read result was ignored and the block was disconnected without
+  it. 4.x fails the disconnect.
+- The database records whether the address balances were kept (`-assetindex`).
+  A node that had run with `-assetindex=0` and was started with the option on
+  again served the balances it had last written, and could not disconnect a
+  block that moved an asset it had no balance for, which stops a
+  reorganization. The balances are now read again from the UTXO set at that
+  start. This takes no block data, so it works on a pruned node. A database
+  written by an earlier release carries no record and is taken to match the
+  setting in use: if the option was turned back on under an earlier release,
+  start once with `-assetindex=0` and then with it on.
+
+Proof-of-work cache
+-------------------
+
+- `powcache.dat` ends in a checksum, and a file that fails it is ignored. The
+  file holds the hash each block header is known by. With a damaged entry the
+  block it belongs to no longer matched its own index entry when read from
+  disk, so it could not be served, rescanned or reorganized until the file was
+  deleted. A file written by an earlier release has no checksum and is still
+  read, once; the node writes the new format at shutdown.
+
 Credits
 =======
 
