@@ -403,7 +403,7 @@ void SendAssetsEntry::onAssetSelected(int index)
     if (fIsMessengerAsset) {
         ui->payAssetAmount->setUnit(asset.units);
         ui->payAssetAmount->setDisabled(true);
-        ui->payAssetAmount->setValue(1);
+        ui->payAssetAmount->setValue(OWNER_ASSET_AMOUNT);
     }
 }
 
@@ -475,7 +475,8 @@ void SendAssetsEntry::switchAdministratorList(bool fSwitchStatus)
         }
 
         ui->payAssetAmount->setUnit(MIN_UNIT);
-        ui->payAssetAmount->setValue(1);
+        // The field takes the amount in its smallest unit: one token, not 0.00000001
+        ui->payAssetAmount->setValue(OWNER_ASSET_AMOUNT);
         ui->payAssetAmount->setDisabled(true);
 
         ui->assetAmountLabel->clear();
