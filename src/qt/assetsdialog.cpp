@@ -67,7 +67,8 @@ AssetsDialog::AssetsDialog(const PlatformStyle *_platformStyle, QWidget *parent)
         model(0),
         fNewRecipientAllowed(true),
         fFeeMinimized(true),
-        platformStyle(_platformStyle)
+        platformStyle(_platformStyle),
+        m_asset_control(std::make_unique<wallet::CCoinControl>())
 {
     ui->setupUi(this);
 
@@ -308,7 +309,7 @@ void AssetsDialog::on_sendButton_clicked()
     // Rule 2: wallet::CCoinControl
     wallet::CCoinControl ctrl;
     if (model->getOptionsModel()->getCoinControlFeatures())
-        ctrl = *AssetControlDialog::assetControl();
+        ctrl = *m_asset_control;
 
     updateAssetControlState(ctrl);
 
@@ -432,6 +433,9 @@ void AssetsDialog::on_sendButton_clicked()
         } else {
             Q_EMIT message(tr("Send Confirmed"), tr("Asset transaction sent successfully. TXID: %1").arg(QString::fromStdString(txid)),
                 CClientUIInterface::MSG_INFORMATION);
+            // The selection names coins this transaction has just spent
+            m_asset_control->UnSelectAllAssets();
+            m_asset_control->strAssetSelected.clear();
             clear();
         }
     }
@@ -495,9 +499,9 @@ SendAssetsEntry *AssetsDialog::addEntry()
     QStringList list;
     bool fIsOwner = false;
     bool fIsAssetControl = false;
-    if (AssetControlDialog::assetControl()->HasAssetSelected()) {
-        list << QString::fromStdString(AssetControlDialog::assetControl()->strAssetSelected);
-        fIsOwner = IsAssetNameAnOwner(AssetControlDialog::assetControl()->strAssetSelected);
+    if (m_asset_control->HasAssetSelected()) {
+        list << QString::fromStdString(m_asset_control->strAssetSelected);
+        fIsOwner = IsAssetNameAnOwner(m_asset_control->strAssetSelected);
         fIsAssetControl = true;
     } else if (model) {
         wallet::CWallet* pwallet = model->wallet().wallet();
@@ -513,7 +517,7 @@ SendAssetsEntry *AssetsDialog::addEntry()
         }
     }
 
-    SendAssetsEntry *entry = new SendAssetsEntry(platformStyle, list, this);
+    SendAssetsEntry *entry = new SendAssetsEntry(*m_asset_control, platformStyle, list, this);
     entry->setModel(model);
     ui->entries->addWidget(entry);
     connect(entry, SIGNAL(removeEntry(SendAssetsEntry*)), this, SLOT(removeEntry(SendAssetsEntry*)));
@@ -837,7 +841,7 @@ void AssetsDialog::assetControlFeatureChanged(bool checked)
     ui->frameAssetControl->setVisible(checked);
 
     if (!checked && model) // coin control features disabled
-        *AssetControlDialog::assetControl() = wallet::CCoinControl();
+        *m_asset_control = wallet::CCoinControl();
 
     assetControlUpdateLabels();
 }
@@ -851,18 +855,18 @@ void AssetsDialog::customFeeFeatureChanged(bool checked)
 void AssetsDialog::assetControlButtonClicked()
 {
     // Pre-fill the asset selection from the first send entry if not already set
-    if (AssetControlDialog::assetControl()->strAssetSelected.empty()) {
+    if (m_asset_control->strAssetSelected.empty()) {
         if (ui->entries->count() > 0) {
             SendAssetsEntry *entry = qobject_cast<SendAssetsEntry*>(ui->entries->itemAt(0)->widget());
             if (entry) {
                 QString assetName = entry->getValue().assetName;
                 if (!assetName.isEmpty())
-                    AssetControlDialog::assetControl()->strAssetSelected = assetName.toStdString();
+                    m_asset_control->strAssetSelected = assetName.toStdString();
             }
         }
     }
 
-    AssetControlDialog dlg(platformStyle);
+    AssetControlDialog dlg(*m_asset_control, platformStyle);
     dlg.setModel(model);
     dlg.exec();
     assetControlUpdateLabels();
@@ -874,7 +878,7 @@ void AssetsDialog::assetControlChangeChecked(int state)
 {
     if (state == Qt::Unchecked)
     {
-        AssetControlDialog::assetControl()->destChange = CNoDestination();
+        m_asset_control->destChange = CNoDestination();
         ui->labelAssetControlChangeLabel->clear();
     }
     else
@@ -890,7 +894,7 @@ void AssetsDialog::assetControlChangeEdited(const QString& text)
     if (model && model->getAddressTableModel())
     {
         // Default to no change address until verified
-        AssetControlDialog::assetControl()->destChange = CNoDestination();
+        m_asset_control->destChange = CNoDestination();
         ui->labelAssetControlChangeLabel->setStyleSheet("QLabel{color:red;}");
 
         const CTxDestination dest = DecodeDestination(text.toStdString());
@@ -914,7 +918,7 @@ void AssetsDialog::assetControlChangeEdited(const QString& text)
                                                                               QMessageBox::Yes | QMessageBox::Cancel, QMessageBox::Cancel);
 
                 if(btnRetVal == QMessageBox::Yes)
-                    AssetControlDialog::assetControl()->destChange = dest;
+                    m_asset_control->destChange = dest;
                 else
                 {
                     ui->lineEditAssetControlChange->setText("");
@@ -933,7 +937,7 @@ void AssetsDialog::assetControlChangeEdited(const QString& text)
                 else
                     ui->labelAssetControlChangeLabel->setText(tr("(no label)"));
 
-                AssetControlDialog::assetControl()->destChange = dest;
+                m_asset_control->destChange = dest;
             }
         }
     }
@@ -945,7 +949,7 @@ void AssetsDialog::assetControlUpdateLabels()
     if (!model || !model->getOptionsModel())
         return;
 
-    updateAssetControlState(*AssetControlDialog::assetControl());
+    updateAssetControlState(*m_asset_control);
 
     // set pay amounts
     AssetControlDialog::payAmounts.clear();
@@ -961,10 +965,10 @@ void AssetsDialog::assetControlUpdateLabels()
         }
     }
 
-    if (AssetControlDialog::assetControl()->HasAssetSelected())
+    if (m_asset_control->HasAssetSelected())
     {
         // actual coin control calculation
-        AssetControlDialog::updateLabels(model, this);
+        AssetControlDialog::updateLabels(*m_asset_control, model, this);
 
         // show coin control stats
         ui->labelAssetControlAutomaticallySelected->hide();

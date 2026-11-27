@@ -13,6 +13,9 @@
 
 class WalletModel;
 class PlatformStyle;
+namespace wallet {
+class CCoinControl;
+} // namespace wallet
 class QStringListModel;
 class QSortFilterProxyModel;
 class QCompleter;
@@ -31,7 +34,7 @@ class SendAssetsEntry : public QStackedWidget
     Q_OBJECT
 
 public:
-    explicit SendAssetsEntry(const PlatformStyle *platformStyle, const QStringList myAssetsNames, QWidget *parent = nullptr);
+    explicit SendAssetsEntry(const wallet::CCoinControl& asset_control, const PlatformStyle *platformStyle, const QStringList myAssetsNames, QWidget *parent = nullptr);
     ~SendAssetsEntry();
 
     void setModel(WalletModel *model);
@@ -89,6 +92,8 @@ private:
     Ui::SendAssetsEntry *ui;
     WalletModel *model;
     const PlatformStyle *platformStyle;
+    //! The selection of the page this entry is on.
+    const wallet::CCoinControl& m_asset_control;
 
     bool updateLabel(const QString &address);
 };

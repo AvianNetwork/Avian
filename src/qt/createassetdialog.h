@@ -11,7 +11,12 @@
 
 #include <QDialog>
 
+#include <memory>
+
 class PlatformStyle;
+namespace wallet {
+class CCoinControl;
+} // namespace wallet
 class WalletModel;
 class ClientModel;
 
@@ -168,6 +173,11 @@ protected:
 Q_SIGNALS:
     // Fired when a message should be reported to the user
     void message(const QString &title, const QString &message, unsigned int style);
+
+private:
+    //! Coin control of this page. One per page, and so one per wallet: shared between
+    //! wallets, the change address set for one was used by the other.
+    std::unique_ptr<wallet::CCoinControl> m_coin_control;
 };
 
 #endif // BITCOIN_QT_CREATEASSETDIALOG_H

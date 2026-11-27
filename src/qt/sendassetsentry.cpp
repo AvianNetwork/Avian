@@ -29,11 +29,12 @@
 #include <QSortFilterProxyModel>
 #include <QCompleter>
 
-SendAssetsEntry::SendAssetsEntry(const PlatformStyle *_platformStyle, const QStringList myAssetsNames, QWidget *parent) :
+SendAssetsEntry::SendAssetsEntry(const wallet::CCoinControl& asset_control, const PlatformStyle *_platformStyle, const QStringList myAssetsNames, QWidget *parent) :
     QStackedWidget(parent),
     ui(new Ui::SendAssetsEntry),
     model(0),
-    platformStyle(_platformStyle)
+    platformStyle(_platformStyle),
+    m_asset_control(asset_control)
 {
     ui->setupUi(this);
 
@@ -450,7 +451,7 @@ void SendAssetsEntry::switchAdministratorList(bool fSwitchStatus)
 
     if (fShowAdministratorList) {
         ui->administratorCheckbox->setChecked(true);
-        if (!AssetControlDialog::assetControl()->HasAssetSelected()) {
+        if (!m_asset_control.HasAssetSelected()) {
             QStringList list;
             list << "";
             if (model) {
@@ -484,7 +485,7 @@ void SendAssetsEntry::switchAdministratorList(bool fSwitchStatus)
         ui->ownershipWarningMessage->show();
     } else {
         ui->administratorCheckbox->setChecked(false);
-        if (!AssetControlDialog::assetControl()->HasAssetSelected()) {
+        if (!m_asset_control.HasAssetSelected()) {
             QStringList list;
             list << "";
             if (model) {
