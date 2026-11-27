@@ -1391,4 +1391,8 @@ CAssetsCache* GetCurrentAssetCache();
 /** AVN: Rebuild asset database by scanning existing blocks (for -reindexassets) */
 bool ReindexAssets(ChainstateManager& chainman);
 
+/** AVN: Write the address balances of the asset database again from the UTXO set, for a
+ *  node that turns -assetindex on after running without it. Reads no block. */
+bool RebuildAssetBalances(ChainstateManager& chainman);
+
 #endif // BITCOIN_VALIDATION_H

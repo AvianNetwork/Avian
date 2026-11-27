@@ -7282,6 +7282,93 @@ CAssetsCache* GetCurrentAssetCache()
     return passets;
 }
 
+// AVN: the address balances of the asset database, read from the UTXO set. The caller
+// has emptied them, on disk and in the cache.
+static bool WriteAssetBalancesFromUtxoSet(ChainstateManager& chainman, Chainstate& chainstate, size_t& written) EXCLUSIVE_LOCKS_REQUIRED(::cs_main)
+{
+    // Flush the in-memory UTXO tip cache to disk so the cursor below sees
+    // the complete UTXO set. Without this, UTXOs written since the last
+    // periodic flush (e.g. at the end of ImportBlocks) would be invisible
+    // to CoinsDB().Cursor(), producing empty or partial balances.
+    chainstate.ForceFlushStateToDisk();
+
+    std::unique_ptr<CCoinsViewCursor> pcursor(chainstate.CoinsDB().Cursor());
+    if (!pcursor) {
+        LogError("%s: Failed to open UTXO cursor\n", __func__);
+        return false;
+    }
+
+    std::map<std::pair<std::string, std::string>, CAmount> mapBalances;
+    int64_t utxos_scanned = 0;
+    const int64_t utxo_log_interval = 500000;
+
+    COutPoint utxoKey;
+    Coin utxoCoin;
+    while (pcursor->Valid()) {
+        if (chainman.m_interrupt) {
+            LogPrintf("%s: Interrupted after %d UTXOs\n", __func__, utxos_scanned);
+            return false;
+        }
+
+        if (pcursor->GetKey(utxoKey) && pcursor->GetValue(utxoCoin)) {
+            const CScript& script = utxoCoin.out.scriptPubKey;
+            int nType = 0;
+            bool fIsOwner = false;
+            if (script.IsAssetScript(nType, fIsOwner)) {
+                CAssetOutputEntry assetData;
+                if (GetAssetData(script, assetData)) {
+                    std::string address = EncodeDestination(assetData.destination);
+                    mapBalances[std::make_pair(assetData.assetName, address)] += assetData.nAmount;
+                }
+            }
+            utxos_scanned++;
+            if (utxos_scanned % utxo_log_interval == 0)
+                LogPrintf("%s: scanned %d UTXOs...\n", __func__, utxos_scanned);
+        }
+        pcursor->Next();
+    }
+
+    LogPrintf("%s: writing %d address balances to database...\n", __func__, (int)mapBalances.size());
+
+    for (const auto& [pair, amount] : mapBalances) {
+        if (amount <= 0) continue;
+        if (!passetsdb->WriteAssetAddressQuantity(pair.first, pair.second, amount)) {
+            LogError("%s: Failed to write balance for %s -> %s\n", __func__, pair.first, pair.second);
+            return false;
+        }
+        if (!passetsdb->WriteAddressAssetQuantity(pair.second, pair.first, amount)) {
+            LogError("%s: Failed to write address-asset entry for %s -> %s\n", __func__, pair.second, pair.first);
+            return false;
+        }
+        passets->mapAssetsAddressAmount[pair] = amount;
+    }
+    written = mapBalances.size();
+    return true;
+}
+
+bool RebuildAssetBalances(ChainstateManager& chainman)
+{
+    LOCK(cs_main);
+    if (!passetsdb || !passets) return false;
+
+    LogPrintf("Rebuilding the asset address balances from the UTXO set...\n");
+    chainman.GetNotifications().progress(_("Rebuilding asset balances…"), 0, false);
+
+    // Whatever is there dates from before the balances stopped being kept.
+    passetsdb->EraseAllAddressQuantities();
+    passets->mapAssetsAddressAmount.clear();
+
+    size_t written{0};
+    const bool ok{WriteAssetBalancesFromUtxoSet(chainman, chainman.ActiveChainstate(), written)};
+    chainman.GetNotifications().progress(bilingual_str{}, 100, false);
+    if (!ok) return false;
+
+    // Recorded last: cut short, the rebuild starts again at the next start.
+    if (!passetsdb->WriteAssetIndexKept(true)) return false;
+    LogPrintf("Rebuilt %d asset address balances.\n", (int)written);
+    return true;
+}
+
 bool ReindexAssets(ChainstateManager& chainman)
 {
     LOCK(cs_main);
@@ -7503,73 +7590,20 @@ bool ReindexAssets(ChainstateManager& chainman)
     LogPrintf("ReindexAssets: Phase 2 — rebuilding address balances from UTXO set...\n");
     chainman.GetNotifications().progress(_("Rebuilding asset database (step 2/2)…"), 50, false);
 
-    // Flush the in-memory UTXO tip cache to disk so the cursor below sees
-    // the complete UTXO set. Without this, UTXOs written since the last
-    // periodic flush (e.g. at the end of ImportBlocks) would be invisible
-    // to CoinsDB().Cursor(), producing empty or partial balances.
-    active_chainstate.ForceFlushStateToDisk();
-
-    std::unique_ptr<CCoinsViewCursor> pcursor(active_chainstate.CoinsDB().Cursor());
-    if (!pcursor) {
-        LogError("ReindexAssets: Failed to open UTXO cursor\n");
-        return false;
-    }
-
-    std::map<std::pair<std::string, std::string>, CAmount> mapBalances;
-    int64_t utxos_scanned = 0;
-    const int64_t utxo_log_interval = 500000;
-
-    COutPoint utxoKey;
-    Coin utxoCoin;
-    while (pcursor->Valid()) {
-        if (chainman.m_interrupt) {
-            LogPrintf("ReindexAssets: Interrupted after %d UTXOs during balance pass\n", utxos_scanned);
-            return false;
-        }
-
-        if (pcursor->GetKey(utxoKey) && pcursor->GetValue(utxoCoin)) {
-            const CScript& script = utxoCoin.out.scriptPubKey;
-            int nType = 0;
-            bool fIsOwner = false;
-            if (script.IsAssetScript(nType, fIsOwner)) {
-                CAssetOutputEntry assetData;
-                if (GetAssetData(script, assetData)) {
-                    std::string address = EncodeDestination(assetData.destination);
-                    mapBalances[std::make_pair(assetData.assetName, address)] += assetData.nAmount;
-                }
-            }
-            utxos_scanned++;
-            if (utxos_scanned % utxo_log_interval == 0)
-                LogPrintf("ReindexAssets: Phase 2 — scanned %d UTXOs...\n", utxos_scanned);
-        }
-        pcursor->Next();
-    }
-
-    LogPrintf("ReindexAssets: Phase 2 — writing %d address balances to database...\n", (int)mapBalances.size());
-
-    for (const auto& [pair, amount] : mapBalances) {
-        if (amount <= 0) continue;
-        if (!passetsdb->WriteAssetAddressQuantity(pair.first, pair.second, amount)) {
-            LogError("ReindexAssets: Failed to write balance for %s -> %s\n", pair.first, pair.second);
-            return false;
-        }
-        if (!passetsdb->WriteAddressAssetQuantity(pair.second, pair.first, amount)) {
-            LogError("ReindexAssets: Failed to write address-asset entry for %s -> %s\n", pair.second, pair.first);
-            return false;
-        }
-        passets->mapAssetsAddressAmount[pair] = amount;
-    }
+    size_t balances_written{0};
+    if (!WriteAssetBalancesFromUtxoSet(chainman, active_chainstate, balances_written)) return false;
 
     // Record best block so the startup consistency check passes.
     if (passetsdb) {
         const CBlockIndex* pTip = active_chain.Tip();
         if (pTip) passetsdb->WriteBestBlock(pTip->GetBlockHash());
+        passetsdb->WriteAssetIndexKept(fAssetIndex);
         passetsdb->WriteRebuildPending(false);
     }
 
     chainman.GetNotifications().progress(bilingual_str{}, 100, false);
     LogPrintf("ReindexAssets: Complete — metadata rebuilt from blocks, %d address balances from UTXO set.\n",
-              (int)mapBalances.size());
+              (int)balances_written);
     return true;
 }
 

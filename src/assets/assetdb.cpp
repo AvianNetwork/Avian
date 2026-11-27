@@ -17,6 +17,7 @@ static const uint8_t MEMPOOL_REISSUED_TX = 'Z';
 static const uint8_t ASSET_BEST_BLOCK_FLAG = 'T'; // Tip tracking
 static const uint8_t ASSET_DB_VERSION_FLAG = 'V';
 static const uint8_t ASSET_REBUILD_PENDING_FLAG = 'R';
+static const uint8_t ASSET_INDEX_KEPT_FLAG = 'I';
 
 [[maybe_unused]] static size_t MAX_DATABASE_RESULTS = 50000;
 
@@ -83,6 +84,19 @@ bool CAssetsDB::WriteRebuildPending(bool pending)
 bool CAssetsDB::ReadRebuildPending()
 {
     return Exists(ASSET_REBUILD_PENDING_FLAG);
+}
+
+bool CAssetsDB::WriteAssetIndexKept(bool kept)
+{
+    return Write(ASSET_INDEX_KEPT_FLAG, uint8_t{kept});
+}
+
+bool CAssetsDB::ReadAssetIndexKept(bool& kept)
+{
+    uint8_t value{0};
+    if (!Read(ASSET_INDEX_KEPT_FLAG, value)) return false;
+    kept = value != 0;
+    return true;
 }
 
 bool CAssetsDB::ReadBestBlock(uint256& blockHash)

@@ -114,6 +114,11 @@ public:
     bool WriteRebuildPending(bool pending);
     bool ReadRebuildPending();
 
+    //! Whether the address balances were kept up to date (-assetindex) by the node that
+    //! last wrote this database. Read returns false when nothing is recorded.
+    bool WriteAssetIndexKept(bool kept);
+    bool ReadAssetIndexKept(bool& kept);
+
     // Erase from database functions
     bool EraseAssetData(const std::string& assetName);
     bool EraseMyAssetData(const std::string& assetName);
