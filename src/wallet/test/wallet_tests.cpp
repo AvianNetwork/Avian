@@ -14,6 +14,7 @@
 #include <key_io.h>
 #include <node/blockstorage.h>
 #include <policy/policy.h>
+#include <rpc/protocol.h>
 #include <rpc/server.h>
 #include <script/solver.h>
 #include <test/util/logging.h>
@@ -22,6 +23,7 @@
 #include <util/translation.h>
 #include <validation.h>
 #include <validationinterface.h>
+#include <wallet/asset_tx.h>
 #include <wallet/coincontrol.h>
 #include <wallet/context.h>
 #include <wallet/receive.h>
@@ -779,6 +781,27 @@ BOOST_FIXTURE_TEST_CASE(no_payment_to_an_inactive_witness_version, WalletTesting
     BOOST_CHECK(refused(PKHash{}, WitnessV2MLDsa44{}));
     // An empty wallet cannot pay this either, but not for that reason
     BOOST_CHECK(!refused(PKHash{}, CNoDestination{}));
+}
+
+// A transaction the mempool refuses is reported to the caller, and the wallet does
+// not keep it: kept, its inputs would count as spent until it was abandoned.
+BOOST_FIXTURE_TEST_CASE(a_refused_asset_transaction_is_not_committed, TestChain100Setup)
+{
+    const std::unique_ptr<CWallet> wallet{CreateSyncedWallet(*m_node.chain, WITH_LOCK(Assert(m_node.chainman)->GetMutex(), return m_node.chainman->ActiveChain()), coinbaseKey)};
+    wallet->SetBroadcastTransactions(true);
+
+    CMutableTransaction mtx;
+    mtx.vin.emplace_back(COutPoint{Txid::FromUint256(uint256::ONE), 0}); // no such coin
+    mtx.vout.emplace_back(COIN, GetScriptForDestination(PKHash{coinbaseKey.GetPubKey()}));
+    CTransactionRef tx{MakeTransactionRef(mtx)};
+
+    std::pair<int, std::string> error;
+    std::string txid;
+    BOOST_CHECK(!SendAssetTransaction(*wallet, tx, error, txid));
+    BOOST_CHECK_EQUAL(error.first, RPC_VERIFY_REJECTED);
+    BOOST_CHECK(error.second.find("rejected") != std::string::npos);
+    BOOST_CHECK(txid.empty());
+    BOOST_CHECK(WITH_LOCK(wallet->cs_wallet, return wallet->GetWalletTx(tx->GetHash())) == nullptr);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

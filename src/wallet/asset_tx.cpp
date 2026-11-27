@@ -753,6 +753,16 @@ bool SendAssetTransaction(
     std::string& txid,
     mapValue_t map_value)
 {
+    // CommitTransaction() keeps a transaction the mempool refuses and reports nothing,
+    // and its inputs then count as spent. Offer it to the mempool first, as 4.x did, so
+    // that a refusal reaches the caller and nothing is recorded.
+    if (wallet.GetBroadcastTransactions()) {
+        std::string reason;
+        if (!wallet.chain().broadcastTransaction(tx, wallet.m_default_max_tx_fee, /*relay=*/false, reason)) {
+            error = std::make_pair(RPC_VERIFY_REJECTED, strprintf("Error: The transaction was rejected! Reason given: %s", reason));
+            return false;
+        }
+    }
     wallet.CommitTransaction(tx, std::move(map_value), {});
     txid = tx->GetHash().GetHex();
     return true;
