@@ -89,6 +89,38 @@ of the same key. `signrawtransactionwithwallet` already leaves such an input
 unsigned. The input stays unsigned and can be signed with another type; a
 signature of that kind already in the PSBT is still finalized.
 
+GUI
+---
+
+Fixes from a comparison of the asset pages, coin control and the PSBT dialog
+with the 4.2.1 wallet:
+
+- Each wallet's Create Assets, Manage Assets and Transfer Assets page has its
+  own coin control. They shared one for the whole program, so with two wallets
+  open, a custom change address set in one was used by the other without being
+  shown there: its AVN change and the owner token it handed back went to that
+  address.
+- An owner token or a message channel token can be transferred again. The
+  amount was filled in as 0.00000001 where the wallet requires 1, in a field
+  that cannot be edited.
+- A sub-qualifier can be issued from a parent qualifier coin that holds more
+  than one. The transaction returned one of them and spent them all, and the
+  node refused it. This also affected `issuequalifierasset`.
+- Manage Assets offers a restricted asset (`$NAME`) for reissue to the wallet
+  that holds the owner token `NAME!`, as 4.x did. It was missing from the list,
+  which put the verifier string out of reach.
+- A locked asset coin is not spent, in the GUI or by the asset RPCs, and
+  `listmyassets` leaves it out as 4.x does. The asset coin control shows it as
+  locked, where it can be unlocked. It was selected like any other.
+- The asset coin control forgets its selection once the transfer is sent. The
+  coins it named were spent, and the next transfer failed on them.
+- The PSBT dialog says what an asset output does: an issue with its units and
+  reissuable flag, a reissue with what it changes, the creation of an owner
+  token, a tag added to or removed from an address, a freeze. All of these read
+  "Transfers" or were left as an empty line. Its warning before broadcasting a
+  transaction signed with `ANYONECANPAY` now appears; it looked only at partial
+  signatures, which a signed input no longer has.
+
 Credits
 =======
 
