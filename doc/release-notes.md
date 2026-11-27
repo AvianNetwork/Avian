@@ -31,7 +31,8 @@ Asset database
   data, so it works on a pruned node. A database written by an earlier release
   carries no record and is taken to match the setting in use, and a run of an
   earlier release does not update the record: if the option was turned off and
-  on again under an earlier release, start once with `-assetindex=0` and then
+  on again under an earlier release, start once with `-reindexassets`. A pruned
+  node cannot use that option; there, start once with `-assetindex=0` and then
   with it on.
 
 Proof-of-work cache
