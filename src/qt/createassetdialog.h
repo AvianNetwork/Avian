@@ -51,9 +51,8 @@ public:
     void setupAssetDataView(const PlatformStyle *platformStyle);
     void setupFeeControl(const PlatformStyle *platformStyle);
 
+    //! Fill the list with the wallet's assets a new asset of the selected type can be issued under.
     void updateAssetList();
-    void updateAssetListForRestrictedIssuance();
-    void updateAssetListForSubQualifierIssuance();
     void restrictedAssetSelected();
     void restrictedAssetNotSelected();
 
@@ -95,6 +94,8 @@ private:
     void enableCreateButton();
     void CheckFormState();
     void updatePresentedAssetName(QString name);
+    //! Whether an asset of the selected type is named after one picked from the list.
+    bool HasParentAsset() const;
     QString GetSpecialCharacter();
     QString GetAssetName();
     void UpdateAssetNameMaxSize();
@@ -168,6 +169,7 @@ public Q_SLOTS:
 
 protected:
     bool eventFilter( QObject* sender, QEvent* event) override;
+    void showEvent(QShowEvent* event) override;
 
 
 Q_SIGNALS:

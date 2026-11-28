@@ -6,12 +6,15 @@
 #include <qt/test/util.h>
 
 #include <wallet/coincontrol.h>
+#include <assets/assets.h>
+#include <assets/assettypes.h>
 #include <interfaces/chain.h>
 #include <interfaces/node.h>
 #include <key_io.h>
 #include <qt/bitcoinamountfield.h>
 #include <qt/bitcoinunits.h>
 #include <qt/clientmodel.h>
+#include <qt/createassetdialog.h>
 #include <qt/optionsmodel.h>
 #include <qt/overviewpage.h>
 #include <qt/platformstyle.h>
@@ -27,6 +30,7 @@
 #include <script/solver.h>
 #include <test/util/setup_common.h>
 #include <validation.h>
+#include <wallet/asset_tx.h>
 #include <wallet/test/util.h>
 #include <wallet/wallet.h>
 
@@ -38,6 +42,9 @@
 #include <QApplication>
 #include <QCheckBox>
 #include <QClipboard>
+#include <QComboBox>
+#include <QLabel>
+#include <QLineEdit>
 #include <QObject>
 #include <QPushButton>
 #include <QTimer>
@@ -457,7 +464,136 @@ void TestGUI(interfaces::Node& node)
     TestGUIWatchOnly(node, test);
 }
 
+//! Issue an asset from the wallet, to the coinbase key, and confirm it.
+void IssueAsset(interfaces::Node& node, TestChain100Setup& test, const std::shared_ptr<CWallet>& wallet, const CNewAsset& asset)
+{
+    wallet::CCoinControl coin_control;
+    std::pair<int, std::string> error;
+    CTransactionRef tx;
+    CAmount fee{0};
+    std::string txid;
+    const std::string address{EncodeDestination(PKHash{test.coinbaseKey.GetPubKey()})};
+    QVERIFY2(wallet::CreateAssetTransaction(*wallet, coin_control, asset, address, error, tx, fee), error.second.c_str());
+    QVERIFY2(wallet::SendAssetTransaction(*wallet, tx, error, txid), error.second.c_str());
+    test.CreateAndProcessBlock({CMutableTransaction{*tx}}, GetScriptForRawPubKey(test.coinbaseKey.GetPubKey()));
+    // The scan runs up to the block the wallet takes for the tip
+    const CBlockIndex* tip{WITH_LOCK(node.context()->chainman->GetMutex(), return node.context()->chainman->ActiveChain().Tip())};
+    WITH_LOCK(wallet->cs_wallet, wallet->SetLastBlockProcessed(tip->nHeight, tip->GetBlockHash()));
+    SyncUpWallet(wallet, node);
+}
+
+QStringList Items(const QComboBox& box)
+{
+    QStringList items;
+    for (int i = 0; i < box.count(); ++i) items << box.itemText(i);
+    return items;
+}
+
+//! The Create Assets page: the assets offered as parents follow the asset type, the name
+//! shown beside the field is the name that will be issued, and nothing shows that is off.
+void TestCreateAssetDialog(interfaces::Node& node)
+{
+    TestChain100Setup test;
+    for (int i = 0; i < 5; ++i) {
+        test.CreateAndProcessBlock({}, GetScriptForRawPubKey(test.coinbaseKey.GetPubKey()));
+    }
+    auto wallet_loader = interfaces::MakeWalletLoader(*test.m_node.chain, *Assert(test.m_node.args));
+    test.m_node.wallet_loader = wallet_loader.get();
+    node.setContext(&test.m_node);
+    const std::shared_ptr<CWallet>& wallet = SetupDescriptorsWallet(node, test);
+
+    IssueAsset(node, test, wallet, CNewAsset{"PARENT", 10 * COIN});
+    IssueAsset(node, test, wallet, CNewAsset{"PARENT/SUB", 10 * COIN});
+    IssueAsset(node, test, wallet, CNewAsset{"#KYC", 2 * COIN, 0, 0, 0, ""});
+    IssueAsset(node, test, wallet, CNewAsset{"#KYC/#EU", 1 * COIN, 0, 0, 0, ""});
+
+    std::unique_ptr<const PlatformStyle> platformStyle(PlatformStyle::instantiate("other"));
+    MiniGUI mini_gui(node, platformStyle.get());
+    mini_gui.initModelForWallet(node, wallet, platformStyle.get());
+    CreateAssetDialog dialog(platformStyle.get());
+    dialog.setModel(mini_gui.walletModel.get());
+
+    auto* type = dialog.findChild<QComboBox*>("assetType");
+    auto* list = dialog.findChild<QComboBox*>("assetList");
+    auto* name = dialog.findChild<QLineEdit*>("nameText");
+    auto* full_name = dialog.findChild<QLabel*>("assetFullName");
+    QVERIFY(type && list && name && full_name);
+    const auto select_type = [&](AssetType asset_type) {
+        type->setCurrentIndex(IntFromAssetType(asset_type));
+        Q_EMIT type->activated(IntFromAssetType(asset_type));
+    };
+    const auto select_parent = [&](const QString& parent) {
+        const int index{list->findText(parent)};
+        QVERIFY(index > 0);
+        list->setCurrentIndex(index);
+        Q_EMIT list->activated(index);
+    };
+
+    // The name system fields are off until their box is ticked
+    QVERIFY(dialog.findChild<QLineEdit*>("ansText")->isHidden());
+    QVERIFY(dialog.findChild<QComboBox*>("ansType")->isHidden());
+
+    // Assets with an owner token, for a unique asset
+    const QStringList owned{"", "PARENT", "PARENT/SUB"};
+    select_type(AssetType::UNIQUE);
+    QCOMPARE(Items(*list), owned);
+    // Qualifiers, and not sub-qualifiers, for a sub-qualifier
+    select_type(AssetType::SUB_QUALIFIER);
+    QCOMPARE(Items(*list), (QStringList{"", "#KYC"}));
+    // and the owned assets again on the way back
+    select_type(AssetType::UNIQUE);
+    QCOMPARE(Items(*list), owned);
+    select_type(AssetType::SUB);
+    QCOMPARE(Items(*list), owned);
+    // Main assets only, for a restricted asset
+    select_type(AssetType::RESTRICTED);
+    QCOMPARE(Items(*list), (QStringList{"", "PARENT"}));
+    QCOMPARE(list->currentText(), QString{});
+    select_parent("PARENT");
+    QCOMPARE(name->text(), QString{"$PARENT"});
+
+    // The parent stays selected between the types that have one
+    select_type(AssetType::SUB);
+    select_parent("PARENT");
+    name->setText("child");
+    QCOMPARE(name->text(), QString{"CHILD"});
+    QCOMPARE(full_name->text(), QString{"PARENT<font color=green>/CHILD</font>"});
+    select_type(AssetType::UNIQUE);
+    QCOMPARE(list->currentText(), QString{"PARENT"});
+    QCOMPARE(full_name->text(), QString{"PARENT<font color=green>#CHILD</font>"});
+
+    // A qualifier has no parent, and its name starts with '#'
+    select_type(AssetType::QUALIFIER);
+    QCOMPARE(name->text(), QString{"#CHILD"});
+    QCOMPARE(full_name->text(), QString{"<font color=green>#CHILD</font>"});
+    QVERIFY(dialog.findChild<QLabel*>("messageLabel")->isHidden());
+    name->clear();
+    name->setText("test");
+    QCOMPARE(name->text(), QString{"#TEST"});
+    QCOMPARE(full_name->text(), QString{"<font color=green>#TEST</font>"});
+
+    // A sub-qualifier is named after the qualifier picked
+    select_type(AssetType::SUB_QUALIFIER);
+    select_parent("#KYC");
+    QCOMPARE(full_name->text(), QString{"#KYC<font color=green>/#TEST</font>"});
+
+    // An asset the wallet receives while the page is closed is there when it opens
+    IssueAsset(node, test, wallet, CNewAsset{"LATER", 10 * COIN});
+    select_type(AssetType::UNIQUE);
+    dialog.show();
+    QVERIFY(Items(*list).contains("LATER"));
+    dialog.hide();
+}
+
 } // namespace
+
+void WalletTests::createAssetDialogTests()
+{
+#ifdef Q_OS_MACOS
+    if (QApplication::platformName() == "minimal") return; // as walletTests()
+#endif
+    TestCreateAssetDialog(m_node);
+}
 
 void WalletTests::walletTests()
 {

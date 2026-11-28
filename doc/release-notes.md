@@ -123,6 +123,20 @@ with the 4.2.1 wallet:
   holds several can be selected again.
 - The asset coin control forgets its selection once the transfer is sent. The
   coins it named were spent, and the next transfer failed on them.
+- On Create Assets, the list of assets to issue under follows the asset type.
+  After Sub Qualifier Asset had been selected the list held the wallet's
+  qualifiers for every other type, or nothing in a wallet without one, so a
+  sub-asset, unique asset or message channel could not be given its parent
+  until Restricted Asset had been selected and left. The list is also read
+  again when the page
+  is opened, so an asset received since is there. It offers only qualifiers,
+  not sub-qualifiers, for a sub-qualifier and only main assets for a
+  restricted asset.
+- On Create Assets, a qualifier name is given its leading `#` when it is typed
+  without one, and the name shown beside the field no longer carries the
+  parent picked for another type. A name typed for one type is checked again
+  when the type is changed. An address field of the name system showed below
+  the form with its box unticked; it is hidden.
 - The PSBT dialog says what an asset output does: an issue with its units and
   reissuable flag, a reissue with what it changes, the name record either of
   them sets, the creation of an owner token, a tag added to or removed from an
