@@ -1017,7 +1017,18 @@ bool BlockManager::WriteBlockUndo(const CBlockUndo& blockundo, BlockValidationSt
     return true;
 }
 
-bool BlockManager::ReadBlock(CBlock& block, const FlatFilePos& pos, const std::optional<uint256>& expected_hash, AutoFile* open_file) const
+/** Whether a header is, field for field, the one an index entry was made from. */
+static bool SameHeader(const CBlockHeader& header, const CBlockIndex& index)
+{
+    return header.nVersion == index.nVersion &&
+           header.hashPrevBlock == (index.pprev ? index.pprev->GetBlockHash() : uint256{}) &&
+           header.hashMerkleRoot == index.hashMerkleRoot &&
+           header.nTime == index.nTime &&
+           header.nBits == index.nBits &&
+           header.nNonce == index.nNonce;
+}
+
+bool BlockManager::ReadBlock(CBlock& block, const FlatFilePos& pos, const std::optional<uint256>& expected_hash, AutoFile* open_file, const CBlockIndex* index) const
 {
     block.SetNull();
 
@@ -1033,6 +1044,14 @@ bool BlockManager::ReadBlock(CBlock& block, const FlatFilePos& pos, const std::o
     } catch (const std::exception& e) {
         LogError("Deserialize or I/O error - %s at %s while reading block", e.what(), pos.ToString());
         return false;
+    }
+
+    // AVN: a block's hash is its proof-of-work hash, which is slow to compute. A header
+    // equal to the one its index entry was made from has the hash of that entry, so a
+    // read does not depend on powcache.dat. Any other header is hashed and compared.
+    if (index && SameHeader(block, *index)) {
+        block.m_cachedPoWHash = index->GetBlockHash();
+        block.m_hasPoWHash.store(true, std::memory_order_release);
     }
 
     const auto block_hash{block.GetHash()};
@@ -1061,7 +1080,7 @@ bool BlockManager::ReadBlock(CBlock& block, const FlatFilePos& pos, const std::o
 bool BlockManager::ReadBlock(CBlock& block, const CBlockIndex& index) const
 {
     const FlatFilePos block_pos{WITH_LOCK(cs_main, return index.GetBlockPos())};
-    return ReadBlock(block, block_pos, index.GetBlockHash());
+    return ReadBlock(block, block_pos, index.GetBlockHash(), /*open_file=*/nullptr, &index);
 }
 
 bool BlockManager::ReadRawBlock(std::vector<std::byte>& block, const FlatFilePos& pos) const
@@ -1137,7 +1156,7 @@ bool BlockFileReader::ReadBlock(CBlock& block, const CBlockIndex& index)
             return false;
         }
     }
-    if (!m_blockman.ReadBlock(block, pos, index.GetBlockHash(), m_file.get())) {
+    if (!m_blockman.ReadBlock(block, pos, index.GetBlockHash(), m_file.get(), &index)) {
         // The file may be left in an error state; open it again for the next block.
         m_file.reset();
         return false;

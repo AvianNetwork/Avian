@@ -45,6 +45,13 @@ Proof-of-work cache
   deleted. A file written by an earlier release has no checksum and is still
   read, once; the node writes the new format at shutdown.
 
+- A block read from disk through its index entry takes its hash from that
+  entry when the header on disk equals the header the entry holds, instead of
+  computing the proof-of-work hash. A rescan, `-reindexassets`,
+  `-reindex-chainstate`, `verifychain` and the building of an index are no
+  slower when `powcache.dat` is missing or was ignored. The file still saves
+  that work on a `-reindex`, which has no index to read through.
+
 Wallet
 ------
 
