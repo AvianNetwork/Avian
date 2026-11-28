@@ -11,7 +11,12 @@
 
 #include <QDialog>
 
+#include <memory>
+
 class PlatformStyle;
+namespace wallet {
+class CCoinControl;
+} // namespace wallet
 class WalletModel;
 class ClientModel;
 class CNewAsset;
@@ -156,6 +161,11 @@ Q_SIGNALS:
 
 private Q_SLOTS:
     void onAssetsListLoaded(QStringList assetsList);
+
+private:
+    //! Coin control of this page. One per page, and so one per wallet: shared between
+    //! wallets, the change address set for one was used by the other.
+    std::unique_ptr<wallet::CCoinControl> m_coin_control;
 };
 
 #endif // BITCOIN_QT_REISSUEASSETDIALOG_H

@@ -280,6 +280,10 @@ RPCHelpMan distributereward()
             const std::shared_ptr<CWallet> pwallet = GetWalletForJSONRPCRequest(request);
             if (!pwallet) throw JSONRPCError(RPC_WALLET_NOT_FOUND, "Wallet not found");
 
+            // Make sure the results are valid at least up to the most recent block
+            // the user could have gotten from another RPC command prior to now
+            pwallet->BlockUntilSyncedToCurrentChain();
+
             if (!fAssetIndex)
                 throw JSONRPCError(RPC_INVALID_REQUEST, "This RPC call is not functional unless -assetindex is enabled. To enable, please run the wallet with -assetindex, this will require a reindex to occur");
 

@@ -50,19 +50,18 @@ class AssetControlDialog : public QDialog
     Q_OBJECT
 
 public:
-    explicit AssetControlDialog(const PlatformStyle *platformStyle, QWidget *parent = nullptr);
+    explicit AssetControlDialog(wallet::CCoinControl& asset_control, const PlatformStyle *platformStyle, QWidget *parent = nullptr);
     ~AssetControlDialog();
 
     void setModel(WalletModel *model);
 
     // static because also called from sendcoinsdialog
-    static void updateLabels(WalletModel*, QDialog*);
+    static void updateLabels(wallet::CCoinControl& asset_control, WalletModel*, QDialog*);
 
     //update the list of assets
     void updateAssetList(bool fSetOnStart = false);
 
     static QList<CAmount> payAmounts;
-    static wallet::CCoinControl *assetControl();
     static bool fSubtractFeeFromAmount;
     bool fOnStartUp;
 
@@ -71,6 +70,8 @@ public:
     QCompleter* completer;
 
 private:
+    //! The selection of the page this dialog was opened from.
+    wallet::CCoinControl& m_asset_control;
     Ui::AssetControlDialog *ui;
     WalletModel *model;
     int sortColumn;

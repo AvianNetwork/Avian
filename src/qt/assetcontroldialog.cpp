@@ -53,11 +53,6 @@ static QString formatWithCustomName(const QString& name, CAmount amount)
 }
 
 QList<CAmount> AssetControlDialog::payAmounts;
-wallet::CCoinControl* AssetControlDialog::assetControl()
-{
-    static wallet::CCoinControl instance;
-    return &instance;
-}
 bool AssetControlDialog::fSubtractFeeFromAmount = false;
 
 bool CAssetControlWidgetItem::operator<(const QTreeWidgetItem &other) const {
@@ -67,8 +62,9 @@ bool CAssetControlWidgetItem::operator<(const QTreeWidgetItem &other) const {
     return QTreeWidgetItem::operator<(other);
 }
 
-AssetControlDialog::AssetControlDialog(const PlatformStyle *_platformStyle, QWidget *parent) :
+AssetControlDialog::AssetControlDialog(wallet::CCoinControl& asset_control, const PlatformStyle *_platformStyle, QWidget *parent) :
     QDialog(parent),
+    m_asset_control(asset_control),
     ui(new Ui::AssetControlDialog),
     model(0),
     platformStyle(_platformStyle)
@@ -207,7 +203,7 @@ void AssetControlDialog::setModel(WalletModel *_model)
         updateView();
         updateAssetList(true);
         updateLabelLocked();
-        AssetControlDialog::updateLabels(_model, this);
+        AssetControlDialog::updateLabels(m_asset_control, _model, this);
     }
 }
 
@@ -215,8 +211,8 @@ void AssetControlDialog::setModel(WalletModel *_model)
 void AssetControlDialog::buttonBoxClicked(QAbstractButton* button)
 {
     if (ui->buttonBox->buttonRole(button) == QDialogButtonBox::AcceptRole) {
-        if (AssetControlDialog::assetControl()->HasAssetSelected())
-            AssetControlDialog::assetControl()->strAssetSelected = ui->assetList->currentText().toStdString();
+        if (m_asset_control.HasAssetSelected())
+            m_asset_control.strAssetSelected = ui->assetList->currentText().toStdString();
         done(QDialog::Accepted);
     }
 }
@@ -239,8 +235,8 @@ void AssetControlDialog::buttonSelectAllClicked()
                 ui->treeWidget->topLevelItem(i)->setCheckState(COLUMN_CHECKBOX, state);
     ui->treeWidget->setEnabled(true);
     if (state == Qt::Unchecked)
-        assetControl()->UnSelectAllAssets();
-    AssetControlDialog::updateLabels(model, this);
+        m_asset_control.UnSelectAllAssets();
+    AssetControlDialog::updateLabels(m_asset_control, model, this);
 }
 
 // context menu
@@ -314,6 +310,7 @@ void AssetControlDialog::lockCoin()
 
     COutPoint outpt(Txid::FromUint256(uint256::FromHex(contextMenuItem->text(COLUMN_TXHASH).toStdString()).value()), contextMenuItem->text(COLUMN_VOUT_INDEX).toUInt());
     model->wallet().lockCoin(outpt, true);
+    m_asset_control.UnSelectAsset(outpt);
     contextMenuItem->setDisabled(true);
     contextMenuItem->setIcon(COLUMN_CHECKBOX, platformStyle->SingleColorIcon(":/icons/lock_closed"));
     updateLabelLocked();
@@ -424,44 +421,16 @@ void AssetControlDialog::viewItemChanged(QTreeWidgetItem* item, int column)
         COutPoint outpt(Txid::FromUint256(uint256::FromHex(item->text(COLUMN_TXHASH).toStdString()).value()), item->text(COLUMN_VOUT_INDEX).toUInt());
 
         if (item->checkState(COLUMN_CHECKBOX) == Qt::Unchecked)
-            assetControl()->UnSelectAsset(outpt);
+            m_asset_control.UnSelectAsset(outpt);
         else if (item->isDisabled())
             item->setCheckState(COLUMN_CHECKBOX, Qt::Unchecked);
         else
-            assetControl()->SelectAsset(outpt);
+            m_asset_control.SelectAsset(outpt);
 
-        // Update parent tristate
-        if (item->parent()) {
-            int nChecked = 0;
-            for (int i = 0; i < item->parent()->childCount(); i++)
-                if (item->parent()->child(i)->checkState(COLUMN_CHECKBOX) == Qt::Checked) nChecked++;
-            if (nChecked == item->parent()->childCount())
-                item->parent()->setCheckState(COLUMN_CHECKBOX, Qt::Checked);
-            else if (nChecked == 0)
-                item->parent()->setCheckState(COLUMN_CHECKBOX, Qt::Unchecked);
-            else
-                item->parent()->setCheckState(COLUMN_CHECKBOX, Qt::PartiallyChecked);
-        }
-
+        // The address row follows its coins, and passes a click on to them, through
+        // Qt::ItemIsAutoTristate.
         if (ui->treeWidget->isEnabled())
-            AssetControlDialog::updateLabels(model, this);
-    }
-    else if (column == COLUMN_CHECKBOX && item->childCount() > 0)
-    {
-        // Address group row — clicking PartiallyChecked promotes to Checked
-        if (item->checkState(COLUMN_CHECKBOX) == Qt::PartiallyChecked && item->child(0)->checkState(COLUMN_CHECKBOX) == Qt::PartiallyChecked)
-            item->setCheckState(COLUMN_CHECKBOX, Qt::Checked);
-
-        // Cascade to all children
-        ui->treeWidget->setEnabled(false);
-        for (int i = 0; i < item->childCount(); i++) {
-            if (item->child(i)->checkState(COLUMN_CHECKBOX) != item->checkState(COLUMN_CHECKBOX))
-                item->child(i)->setCheckState(COLUMN_CHECKBOX, item->checkState(COLUMN_CHECKBOX));
-        }
-        ui->treeWidget->setEnabled(true);
-
-        if (ui->treeWidget->isEnabled())
-            AssetControlDialog::updateLabels(model, this);
+            AssetControlDialog::updateLabels(m_asset_control, model, this);
     }
 }
 
@@ -478,7 +447,7 @@ void AssetControlDialog::updateLabelLocked()
     else ui->labelLocked->setVisible(false);
 }
 
-void AssetControlDialog::updateLabels(WalletModel *model, QDialog* dialog)
+void AssetControlDialog::updateLabels(wallet::CCoinControl& asset_control, WalletModel *model, QDialog* dialog)
 {
     if (!model)
         return;
@@ -490,7 +459,7 @@ void AssetControlDialog::updateLabels(WalletModel *model, QDialog* dialog)
         nPayAmount += amount;
     }
 
-    std::string strAssetName = assetControl()->strAssetSelected;
+    std::string strAssetName = asset_control.strAssetSelected;
     CAmount nAssetAmount        = 0;
     CAmount nPayFee             = 0;
     CAmount nAfterFee           = 0;
@@ -503,7 +472,7 @@ void AssetControlDialog::updateLabels(WalletModel *model, QDialog* dialog)
     if (!strAssetName.empty() && model) {
         wallet::CWallet* pwallet = model->wallet().wallet();
         if (pwallet) {
-            std::vector<COutPoint> vSelected = assetControl()->ListSelected();
+            std::vector<COutPoint> vSelected = asset_control.ListSelected();
             LOCK(pwallet->cs_wallet);
             wallet::CoinFilterParams params;
             params.min_amount = 0;
@@ -512,7 +481,7 @@ void AssetControlDialog::updateLabels(WalletModel *model, QDialog* dialog)
             auto it = available.mapAssetCoins.find(strAssetName);
             if (it != available.mapAssetCoins.end()) {
                 for (const auto& output : it->second) {
-                    if (assetControl()->IsAssetSelected(output.outpoint)) {
+                    if (asset_control.IsAssetSelected(output.outpoint)) {
                         CAssetOutputEntry data;
                         if (GetAssetData(output.txout.scriptPubKey, data)) {
                             nAssetAmount += data.nAmount;
@@ -601,7 +570,7 @@ void AssetControlDialog::updateView()
     ui->treeWidget->setEnabled(false);
     ui->treeWidget->setAlternatingRowColors(!treeMode);
 
-    std::string strSelectedAsset = assetControl()->strAssetSelected;
+    std::string strSelectedAsset = m_asset_control.strAssetSelected;
     if (strSelectedAsset.empty()) {
         sortView(sortColumn, sortOrder);
         ui->treeWidget->setEnabled(true);
@@ -622,6 +591,8 @@ void AssetControlDialog::updateView()
         wallet::CoinFilterParams params;
         params.min_amount = 0;
         params.check_version_trucness = false;
+        // Locked coins are listed, so that they can be unlocked here
+        params.skip_locked = false;
         wallet::CoinsResult available = wallet::AvailableCoinsWithAssets(*pwallet, nullptr, std::nullopt, params);
         mapAssetCoins = available.mapAssetCoins;
     }
@@ -647,7 +618,8 @@ void AssetControlDialog::updateView()
         CAssetControlWidgetItem* itemWalletAddress = nullptr;
         if (treeMode) {
             itemWalletAddress = new CAssetControlWidgetItem(ui->treeWidget);
-            itemWalletAddress->setFlags(itemWalletAddress->flags() | Qt::ItemIsUserCheckable);
+            // Qt keeps the address row and its coins in step, as in the AVN coin control
+            itemWalletAddress->setFlags(itemWalletAddress->flags() | Qt::ItemIsUserCheckable | Qt::ItemIsAutoTristate);
             itemWalletAddress->setCheckState(COLUMN_CHECKBOX, Qt::Unchecked);
 
             // Address
@@ -708,9 +680,15 @@ void AssetControlDialog::updateView()
             // Vout index
             itemOutput->setText(COLUMN_VOUT_INDEX, QString::number(out->outpoint.n));
 
-            // Set checkbox state if selected in coin control
-            if (assetControl()->IsAssetSelected(out->outpoint))
+            // A locked coin is shown as locked and cannot be selected
+            if (model->wallet().isLockedCoin(out->outpoint)) {
+                m_asset_control.UnSelectAsset(out->outpoint);
+                itemOutput->setDisabled(true);
+                itemOutput->setIcon(COLUMN_CHECKBOX, platformStyle->SingleColorIcon(":/icons/lock_closed"));
+            } else if (m_asset_control.IsAssetSelected(out->outpoint)) {
+                // Set checkbox state if selected in coin control
                 itemOutput->setCheckState(COLUMN_CHECKBOX, Qt::Checked);
+            }
         }
     }
 
@@ -721,8 +699,8 @@ void AssetControlDialog::updateView()
 
 void AssetControlDialog::viewAdministratorClicked()
 {
-    assetControl()->UnSelectAll();
-    AssetControlDialog::updateLabels(model, this);
+    m_asset_control.UnSelectAll();
+    AssetControlDialog::updateLabels(m_asset_control, model, this);
     updateAssetList();
 }
 
@@ -738,6 +716,8 @@ void AssetControlDialog::updateAssetList(bool fSetOnStart)
         LOCK(pwallet->cs_wallet);
         wallet::CoinFilterParams params;
         params.min_amount = 0;
+        // An asset whose coins are all locked stays in the list
+        params.skip_locked = false;
         wallet::CoinsResult available = wallet::AvailableCoinsWithAssets(*pwallet, nullptr, std::nullopt, params);
         bool showAdmin = ui->viewAdministrator->isChecked();
         for (const auto& [assetName, assetOutputs] : available.mapAssetCoins) {
@@ -752,7 +732,7 @@ void AssetControlDialog::updateAssetList(bool fSetOnStart)
     }
     stringModel->setStringList(list);
 
-    int index = ui->assetList->findText(QString::fromStdString(assetControl()->strAssetSelected));
+    int index = ui->assetList->findText(QString::fromStdString(m_asset_control.strAssetSelected));
     if (index != -1 ) {
         fOnStartUp = fSetOnStart;
         ui->assetList->setCurrentIndex(index);
@@ -766,10 +746,10 @@ void AssetControlDialog::onAssetSelected(QString name)
     if (fOnStartUp) {
         fOnStartUp = false;
     } else {
-        assetControl()->UnSelectAllAssets();
+        m_asset_control.UnSelectAllAssets();
     }
 
-    assetControl()->strAssetSelected = name.toStdString();
-    AssetControlDialog::updateLabels(model, this);
+    m_asset_control.strAssetSelected = name.toStdString();
+    AssetControlDialog::updateLabels(m_asset_control, model, this);
     updateView();
 }

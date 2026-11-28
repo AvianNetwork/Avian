@@ -46,6 +46,8 @@
 #include <QDesktopServices>
 #include <QGraphicsDropShadowEffect>
 #include <QMessageBox>
+#include <QPointer>
+#include <QSignalBlocker>
 #include <QModelIndex>
 #include <QSettings>
 #include <QSortFilterProxyModel>
@@ -66,16 +68,11 @@ static int getIndexForConfTarget(int target) {
     return sizeof(confTargets)/sizeof(confTargets[0]) - 1;
 }
 
-static wallet::CCoinControl& s_coinControl()
-{
-    static wallet::CCoinControl instance;
-    return instance;
-}
-
 
 ReissueAssetDialog::ReissueAssetDialog(const PlatformStyle* _platformStyle, QWidget* parent) : QDialog(parent),
                                                                                                ui(new Ui::ReissueAssetDialog),
-                                                                                               platformStyle(_platformStyle)
+                                                                                               platformStyle(_platformStyle),
+                                                                                               m_coin_control(std::make_unique<wallet::CCoinControl>())
 {
     ui->setupUi(this);
     setWindowTitle("Reissue Assets");
@@ -778,6 +775,12 @@ void ReissueAssetDialog::onAssetSelected(int index)
 {
     // Only display asset information when as asset is clicked. The first index is a PlaceHolder
     if (index > 0) {
+        // A verifier string typed for the asset selected before is not carried over
+        // to this one: it would go into this asset's transaction.
+        {
+            const QSignalBlocker blocker{ui->lineEditVerifierString};
+            ui->lineEditVerifierString->clear();
+        }
         enableDataEntry();
         ui->currentAssetData->show();
         QString qstr_name = ui->comboBox->currentText();
@@ -1196,7 +1199,7 @@ void ReissueAssetDialog::onReissueAssetClicked()
     // Always use a CCoinControl instance, use the CoinControlDialog instance if CoinControl has been enabled
     wallet::CCoinControl ctrl;
     if (model->getOptionsModel()->getCoinControlFeatures())
-        ctrl = s_coinControl();
+        ctrl = (*m_coin_control);
 
     // If the user has pre-selected inputs via coin control but they are insufficient,
     // reject early before attempting to build the transaction.
@@ -1296,6 +1299,11 @@ void ReissueAssetDialog::onReissueAssetClicked()
     QString recipientElement2;
     recipientElement2 = tr("%1 to %2").arg(assetAmount, assetAddress);
     formatted.append(recipientElement2);
+
+    // The verifier string decides who may hold the asset: show the one being set
+    if (!verifier_string.empty()) {
+        formatted.append(tr("Verifier string set to %1").arg("<b>" + GUIUtil::HtmlEscape(verifier_string) + "</b>"));
+    }
 
     QString questionString = tr("Are you sure you want to send?");
     questionString.append("<br /><br />%1");
@@ -1397,7 +1405,7 @@ void ReissueAssetDialog::onReissueAssetClicked()
                 if (msgBox.clickedButton() == okayButton) {
                     clear();
 
-                    s_coinControl().UnSelectAll();
+                    (*m_coin_control).UnSelectAll();
                     coinControlUpdateLabels();
                 }
             }
@@ -1514,7 +1522,7 @@ void ReissueAssetDialog::coinControlFeatureChanged(bool checked)
     ui->addressLabel->setVisible(checked);
 
     if (!checked && model) // coin control features disabled
-        s_coinControl() = wallet::CCoinControl(); // reset coin control
+        (*m_coin_control) = wallet::CCoinControl(); // reset coin control
 
     coinControlUpdateLabels();
 }
@@ -1528,7 +1536,7 @@ void ReissueAssetDialog::feeControlFeatureChanged(bool checked)
 // Coin Control: button inputs -> show actual coin control dialog
 void ReissueAssetDialog::coinControlButtonClicked()
 {
-    CoinControlDialog dlg(s_coinControl(), model, platformStyle);
+    CoinControlDialog dlg((*m_coin_control), model, platformStyle);
     dlg.exec();
     coinControlUpdateLabels();
 }
@@ -1537,7 +1545,7 @@ void ReissueAssetDialog::coinControlButtonClicked()
 void ReissueAssetDialog::coinControlChangeChecked(int state)
 {
     if (state == Qt::Unchecked) {
-        s_coinControl().destChange = CNoDestination();
+        (*m_coin_control).destChange = CNoDestination();
         ui->labelCoinControlChangeLabel->clear();
     } else
         // use this to re-validate an already entered address
@@ -1551,7 +1559,7 @@ void ReissueAssetDialog::coinControlChangeEdited(const QString& text)
 {
     if (model && model->getAddressTableModel()) {
         // Default to no change address until verified
-        s_coinControl().destChange = CNoDestination();
+        (*m_coin_control).destChange = CNoDestination();
         ui->labelCoinControlChangeLabel->setStyleSheet("QLabel{color:red;}");
 
         const CTxDestination dest = DecodeDestination(text.toStdString());
@@ -1572,7 +1580,7 @@ void ReissueAssetDialog::coinControlChangeEdited(const QString& text)
                     QMessageBox::Yes | QMessageBox::Cancel, QMessageBox::Cancel);
 
                 if (btnRetVal == QMessageBox::Yes)
-                    s_coinControl().destChange = dest;
+                    (*m_coin_control).destChange = dest;
                 else {
                     ui->lineEditCoinControlChange->setText("");
                     ui->labelCoinControlChangeLabel->setStyleSheet("QLabel{color:black;}");
@@ -1589,7 +1597,7 @@ void ReissueAssetDialog::coinControlChangeEdited(const QString& text)
                 else
                     ui->labelCoinControlChangeLabel->setText(tr("(no label)"));
 
-                s_coinControl().destChange = dest;
+                (*m_coin_control).destChange = dest;
             }
         }
     }
@@ -1601,7 +1609,7 @@ void ReissueAssetDialog::coinControlUpdateLabels()
     if (!model || !model->getOptionsModel())
         return;
 
-    updateCoinControlState(s_coinControl());
+    updateCoinControlState((*m_coin_control));
 
     // set pay amounts
     CoinControlDialog::payAmounts.clear();
@@ -1609,9 +1617,9 @@ void ReissueAssetDialog::coinControlUpdateLabels()
 
     CoinControlDialog::payAmounts.append(GetBurnAmount(AssetType::REISSUE));
 
-    if (s_coinControl().HasSelected()) {
+    if ((*m_coin_control).HasSelected()) {
         // actual coin control calculation
-        CoinControlDialog::updateLabels(s_coinControl(), model, this);
+        CoinControlDialog::updateLabels((*m_coin_control), model, this);
 
         // show coin control stats
         ui->labelCoinControlAutomaticallySelected->hide();
@@ -1711,13 +1719,20 @@ void ReissueAssetDialog::updateAssetsListAsync()
     // Keep it visible so the placeholder text is shown
     ui->comboBox->setCurrentIndex(0);
 
-    // Run asset loading in background thread to avoid blocking UI
-    std::thread([this]() {
+    // Run asset loading in background thread to avoid blocking UI. The thread is given
+    // what it needs and reports through a guarded pointer: the page can be closed
+    // while it waits for a lock.
+    wallet::CWallet* const pwallet{model ? model->wallet().wallet() : nullptr};
+    const QPointer<ReissueAssetDialog> self{this};
+    const auto loaded = [self](const QStringList& names) {
+        QMetaObject::invokeMethod(qApp, [self, names]() { if (self) self->onAssetsListLoaded(names); }, Qt::QueuedConnection);
+    };
+    std::thread([pwallet, loaded]() {
         try {
             QStringList list;
             list << "";
 
-            wallet::CWallet* pwallet = model ? model->wallet().wallet() : nullptr;
+            std::vector<std::string> administered;
             if (pwallet) {
                 LOCK(pwallet->cs_wallet);
                 wallet::CoinFilterParams params;
@@ -1728,18 +1743,27 @@ void ReissueAssetDialog::updateAssetsListAsync()
                     if (IsAssetNameAnOwner(assetName)) {
                         std::string baseName = assetName;
                         baseName.pop_back(); // Remove '!' suffix
-                        list << QString::fromStdString(baseName);
+                        administered.push_back(baseName);
                     }
                 }
             }
+            // The owner token of NAME also administers the restricted asset $NAME. Only
+            // a root asset can have one, so only those names are looked up.
+            for (const std::string& name : administered) {
+                list << QString::fromStdString(name);
+                if (!IsAssetNameARoot(name)) continue;
+                const std::string restricted{RESTRICTED_CHAR + name};
+                LOCK(cs_main);
+                if (passets && passets->CheckIfAssetExists(restricted)) list << QString::fromStdString(restricted);
+            }
 
             // Update UI on main thread
-            QMetaObject::invokeMethod(this, [this, list]() { onAssetsListLoaded(list); }, Qt::QueuedConnection);
+            loaded(list);
         } catch (const std::exception& e) {
             qWarning() << "Error loading assets list:" << e.what();
             QStringList emptyList;
             emptyList << "";
-            QMetaObject::invokeMethod(this, [this, emptyList]() { onAssetsListLoaded(emptyList); }, Qt::QueuedConnection);
+            loaded(emptyList);
         }
     }).detach();
 }
@@ -1772,6 +1796,7 @@ void ReissueAssetDialog::clear()
     ui->ipfsBox->setChecked(false);
     ui->ipfsText->setDisabled(true);
     ui->ipfsText->clear();
+    ui->lineEditVerifierString->clear();
     hideMessage();
 
     disableAll();

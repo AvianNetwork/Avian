@@ -65,16 +65,11 @@ static int getIndexForConfTarget(int target) {
     return sizeof(confTargets)/sizeof(confTargets[0]) - 1;
 }
 
-static wallet::CCoinControl& s_coinControl()
-{
-    static wallet::CCoinControl instance;
-    return instance;
-}
-
 CreateAssetDialog::CreateAssetDialog(const PlatformStyle *_platformStyle, QWidget *parent) :
         QDialog(parent, Qt::WindowTitleHint | Qt::CustomizeWindowHint | Qt::WindowCloseButtonHint | Qt::WindowMaximizeButtonHint),
         ui(new Ui::CreateAssetDialog),
-        platformStyle(_platformStyle)
+        platformStyle(_platformStyle),
+        m_coin_control(std::make_unique<wallet::CCoinControl>())
 {
     ui->setupUi(this);
     setWindowTitle("Create Assets");
@@ -302,6 +297,13 @@ bool CreateAssetDialog::eventFilter(QObject *sender, QEvent *event)
         }
     }
     return QWidget::eventFilter(sender,event);
+}
+
+void CreateAssetDialog::showEvent(QShowEvent* event)
+{
+    QDialog::showEvent(event);
+    // The wallet may hold other assets than when the page was last open
+    if (model) updateAssetList();
 }
 
 /** Helper Methods */
@@ -748,9 +750,10 @@ void CreateAssetDialog::openIpfsBrowser()
 
 void CreateAssetDialog::onNameChanged(QString name)
 {
-    // Update the displayed name to uppercase if the type only accepts uppercase
-    name = type == IntFromAssetType(AssetType::UNIQUE) ? name : name.toUpper();
+    // Bring the name into the form its type takes. Changing the text runs this function
+    // again for the new text, so carry on with what the field now holds.
     UpdateAssetNameToUpper();
+    name = ui->nameText->text();
 
     QString assetName = name;
 
@@ -921,7 +924,7 @@ void CreateAssetDialog::onNameChanged(QString name)
 
     // Set the assetName
     QString displayName = (type == ANS_ASSET_TYPE_INDEX) ? name + QString::fromStdString(CAvianNameSystemID::domain) : name;
-    updatePresentedAssetName(format.arg((type == IntFromAssetType(AssetType::ROOT) || type == ANS_ASSET_TYPE_INDEX) ? "" : ui->assetList->currentText(), identifier, displayName));
+    updatePresentedAssetName(format.arg(HasParentAsset() ? ui->assetList->currentText() : "", identifier, displayName));
 
     checkedAvailablity = false;
     disableCreateButton();
@@ -987,16 +990,11 @@ void CreateAssetDialog::onIPFSHashChanged(QString hash)
 
 void CreateAssetDialog::onANSTypeChanged(int index) {
     CAvianNameSystemID::Type type = currentANSType();
-    if (type == CAvianNameSystemID::PROFILE) {
-        ui->ansText->hide();
-        ui->ansText->clear();
-        ui->ansCborWidget->show();
-    } else {
+    if (type != CAvianNameSystemID::PROFILE)
         ui->ansText->setPlaceholderText(QString::fromStdString(CAvianNameSystemID::enum_to_string(type).second));
-        ui->ansText->clear();
-        ui->ansText->show();
-        ui->ansCborWidget->hide();
-    }
+    ui->ansText->clear();
+    // Filling the type list also changes the type; the fields show only with the box ticked
+    toggleANSText();
     CheckFormState();
 }
 
@@ -1079,7 +1077,7 @@ void CreateAssetDialog::onCreateAssetClicked()
     // Always use a CCoinControl instance, use the CoinControlDialog instance if CoinControl has been enabled
     wallet::CCoinControl ctrl;
     if (model->getOptionsModel()->getCoinControlFeatures())
-        ctrl = s_coinControl();
+        ctrl = (*m_coin_control);
 
     // If the user has pre-selected inputs via coin control but they are insufficient,
     // reject early before attempting to build the transaction.
@@ -1242,7 +1240,7 @@ void CreateAssetDialog::onCreateAssetClicked()
                 if (msgBox.clickedButton() == okayButton) {
                     clear();
 
-                    s_coinControl().UnSelectAll();
+                    (*m_coin_control).UnSelectAll();
                     coinControlUpdateLabels();
                 }
             }
@@ -1344,15 +1342,14 @@ void CreateAssetDialog::onAssetTypeActivated(int index)
     // Get the identifier for the asset type
     QString identifier = GetSpecialCharacter();
 
+    // Each type has its own parents: a list left by another type offered none of them
+    updateAssetList();
+
     // Add functionality when switching between restricted and none restricted asset types
     if (nCurrentType != IntFromAssetType(AssetType::RESTRICTED) && type == IntFromAssetType(AssetType::RESTRICTED)) {
         restrictedAssetSelected();
     } else if (nCurrentType == IntFromAssetType(AssetType::RESTRICTED) && type != IntFromAssetType(AssetType::RESTRICTED)) {
         restrictedAssetNotSelected();
-    }
-
-    if (type == IntFromAssetType(AssetType::SUB_QUALIFIER)) {
-        updateAssetListForSubQualifierIssuance();
     }
 
     if (fShowList) {
@@ -1363,21 +1360,15 @@ void CreateAssetDialog::onAssetTypeActivated(int index)
 
     UpdateAssetNameMaxSize();
 
-    // Set assetName when it is an original asset type
-    if (fOrginalTypeAsset)
-        updatePresentedAssetName(format.arg(type == IntFromAssetType(AssetType::ROOT) ? "" : ui->assetList->currentText(), identifier, ui->nameText->text()));
+    // Set the name shown beside the field
+    const QString suffix{fANSTypeAsset ? QString::fromStdString(CAvianNameSystemID::domain) : QString()};
+    updatePresentedAssetName(format.arg(HasParentAsset() ? ui->assetList->currentText() : "", identifier, ui->nameText->text() + suffix));
 
-    if (fANSTypeAsset)
-        updatePresentedAssetName(format.arg("", identifier, ui->nameText->text() + QString::fromStdString(CAvianNameSystemID::domain)));
-
-    if (fRestrictedTypeAsset) {
-        bool fSingleName = type != IntFromAssetType(AssetType::SUB_QUALIFIER);
-        updatePresentedAssetName(format.arg(fSingleName ? "" : ui->assetList->currentText(), identifier, ui->nameText->text()));
-    }
-
+    // A name typed for another type is checked again as a name of this one
     if (ui->nameText->text().size()) {
-        ui->availabilityButton->setDisabled(false);
+        onNameChanged(ui->nameText->text());
     } else {
+        hideMessage();
         ui->availabilityButton->setDisabled(true);
     }
 
@@ -1395,7 +1386,7 @@ void CreateAssetDialog::onAssetListActivated(int index)
     UpdateAssetNameMaxSize();
 
     // Set assetName
-    updatePresentedAssetName(format.arg(type == IntFromAssetType(AssetType::ROOT) || type == IntFromAssetType(AssetType::RESTRICTED) || type == IntFromAssetType(AssetType::QUALIFIER) ? "" : ui->assetList->currentText(), identifier, ui->nameText->text()));
+    updatePresentedAssetName(format.arg(HasParentAsset() ? ui->assetList->currentText() : "", identifier, ui->nameText->text()));
 
     if (type == IntFromAssetType(AssetType::RESTRICTED)) {
         ui->nameText->setText("$" + ui->assetList->currentText());
@@ -1424,6 +1415,12 @@ QString CreateAssetDialog::GetSpecialCharacter()
         return "~";
 
     return "";
+}
+
+bool CreateAssetDialog::HasParentAsset() const
+{
+    return type == IntFromAssetType(AssetType::SUB) || type == IntFromAssetType(AssetType::UNIQUE) ||
+           type == IntFromAssetType(AssetType::MSGCHANNEL) || type == IntFromAssetType(AssetType::SUB_QUALIFIER);
 }
 
 QString CreateAssetDialog::GetAssetName()
@@ -1472,6 +1469,12 @@ void CreateAssetDialog::UpdateAssetNameToUpper()
         stripped.remove('~');
         if (stripped != text)
             ui->nameText->setText(stripped);
+    }
+    // A qualifier name starts with '#'; put it there rather than refuse the name for it
+    if (type == IntFromAssetType(AssetType::QUALIFIER) || type == IntFromAssetType(AssetType::SUB_QUALIFIER)) {
+        const QString text = ui->nameText->text();
+        if (!text.isEmpty() && !text.startsWith('#'))
+            ui->nameText->setText("#" + text);
     }
 }
 
@@ -1566,7 +1569,7 @@ void CreateAssetDialog::coinControlFeatureChanged(bool checked)
     ui->addressLabel->setVisible(checked);
 
     if (!checked && model) // coin control features disabled
-        s_coinControl() = wallet::CCoinControl();
+        (*m_coin_control) = wallet::CCoinControl();
 
     coinControlUpdateLabels();
 }
@@ -1580,7 +1583,7 @@ void CreateAssetDialog::feeControlFeatureChanged(bool checked)
 // Coin Control: button inputs -> show actual coin control dialog
 void CreateAssetDialog::coinControlButtonClicked()
 {
-    CoinControlDialog dlg(s_coinControl(), model, platformStyle);
+    CoinControlDialog dlg((*m_coin_control), model, platformStyle);
     dlg.exec();
     coinControlUpdateLabels();
 }
@@ -1590,7 +1593,7 @@ void CreateAssetDialog::coinControlChangeChecked(int state)
 {
     if (state == Qt::Unchecked)
     {
-        s_coinControl().destChange = CNoDestination();
+        (*m_coin_control).destChange = CNoDestination();
         ui->labelCoinControlChangeLabel->clear();
     }
     else
@@ -1606,7 +1609,7 @@ void CreateAssetDialog::coinControlChangeEdited(const QString& text)
     if (model && model->getAddressTableModel())
     {
         // Default to no change address until verified
-        s_coinControl().destChange = CNoDestination();
+        (*m_coin_control).destChange = CNoDestination();
         ui->labelCoinControlChangeLabel->setStyleSheet("QLabel{color:red;}");
 
         const CTxDestination dest = DecodeDestination(text.toStdString());
@@ -1629,7 +1632,7 @@ void CreateAssetDialog::coinControlChangeEdited(const QString& text)
                                                                               QMessageBox::Yes | QMessageBox::Cancel, QMessageBox::Cancel);
 
                 if(btnRetVal == QMessageBox::Yes)
-                    s_coinControl().destChange = dest;
+                    (*m_coin_control).destChange = dest;
                 else
                 {
                     ui->lineEditCoinControlChange->setText("");
@@ -1648,7 +1651,7 @@ void CreateAssetDialog::coinControlChangeEdited(const QString& text)
                 else
                     ui->labelCoinControlChangeLabel->setText(tr("(no label)"));
 
-                s_coinControl().destChange = dest;
+                (*m_coin_control).destChange = dest;
             }
         }
     }
@@ -1660,7 +1663,7 @@ void CreateAssetDialog::coinControlUpdateLabels()
     if (!model || !model->getOptionsModel())
         return;
 
-    updateCoinControlState(s_coinControl());
+    updateCoinControlState((*m_coin_control));
 
     // set pay amounts
     CoinControlDialog::payAmounts.clear();
@@ -1668,10 +1671,10 @@ void CreateAssetDialog::coinControlUpdateLabels()
 
     CoinControlDialog::payAmounts.append(GetBurnAmount(getBurnType()));
 
-    if (s_coinControl().HasSelected())
+    if ((*m_coin_control).HasSelected())
     {
         // actual coin control calculation
-        CoinControlDialog::updateLabels(s_coinControl(), model, this);
+        CoinControlDialog::updateLabels((*m_coin_control), model, this);
 
         // show coin control stats
         ui->labelCoinControlAutomaticallySelected->hide();
@@ -1826,60 +1829,24 @@ void CreateAssetDialog::updateAssetList()
         params.min_amount = 0;
         wallet::CoinsResult available = wallet::AvailableCoinsWithAssets(*pwallet, nullptr, std::nullopt, params);
         for (const auto& [assetName, assetOutputs] : available.mapAssetCoins) {
-            if (IsAssetNameAnOwner(assetName)) {
-                std::string baseName = assetName;
-                baseName.pop_back(); // Remove '!' suffix
-                list << QString::fromStdString(baseName);
+            std::string parent;
+            if (type == IntFromAssetType(AssetType::SUB_QUALIFIER)) {
+                // A sub-qualifier is issued under a qualifier, not under another sub-qualifier
+                if (IsAssetNameAQualifier(assetName, /*fOnlyQualifiers=*/true)) parent = assetName;
+            } else if (IsAssetNameAnOwner(assetName)) {
+                parent = assetName.substr(0, assetName.size() - 1); // without the '!'
+                // A restricted asset is issued for a main asset only
+                if (type == IntFromAssetType(AssetType::RESTRICTED) && !IsAssetNameARoot(parent)) parent.clear();
             }
+            // A name of the full 30 characters leaves no room for a name under it
+            if (!parent.empty() && parent.size() < 30) list << QString::fromStdString(parent);
         }
     }
 
+    // Keep the selection where the new list still has it
+    const QString selected{ui->assetList->currentText()};
     stringModel->setStringList(list);
-}
-
-void CreateAssetDialog::updateAssetListForRestrictedIssuance()
-{
-    QStringList list;
-    list << "";
-
-    wallet::CWallet* pwallet = model ? model->wallet().wallet() : nullptr;
-    if (pwallet) {
-        LOCK(pwallet->cs_wallet);
-        wallet::CoinFilterParams params;
-        params.min_amount = 0;
-        wallet::CoinsResult available = wallet::AvailableCoinsWithAssets(*pwallet, nullptr, std::nullopt, params);
-        for (const auto& [assetName, assetOutputs] : available.mapAssetCoins) {
-            if (IsAssetNameAnOwner(assetName)) {
-                std::string baseName = assetName;
-                baseName.pop_back(); // Remove '!' suffix
-                list << QString::fromStdString(baseName);
-            }
-        }
-    }
-
-    stringModel->setStringList(list);
-}
-
-void CreateAssetDialog::updateAssetListForSubQualifierIssuance()
-{
-    QStringList list;
-    list << "";
-
-    wallet::CWallet* pwallet = model ? model->wallet().wallet() : nullptr;
-    if (pwallet) {
-        LOCK(pwallet->cs_wallet);
-        wallet::CoinFilterParams params;
-        params.min_amount = 0;
-        wallet::CoinsResult available = wallet::AvailableCoinsWithAssets(*pwallet, nullptr, std::nullopt, params);
-        for (const auto& [assetName, assetOutputs] : available.mapAssetCoins) {
-            // For sub-qualifier issuance, show qualifier assets (starting with '#')
-            if (!IsAssetNameAnOwner(assetName) && assetName.size() > 0 && assetName[0] == '#') {
-                list << QString::fromStdString(assetName);
-            }
-        }
-    }
-
-    stringModel->setStringList(list);
+    ui->assetList->setCurrentIndex(std::max(0, ui->assetList->findText(selected)));
 }
 
 void CreateAssetDialog::clear()
@@ -1940,7 +1907,8 @@ void CreateAssetDialog::selectTypeName(int type, QString name)
 
 void CreateAssetDialog::restrictedAssetSelected()
 {
-    updateAssetListForRestrictedIssuance();
+    // The name is the selected asset's with '$' before it, set when one is picked
+    ui->assetList->setCurrentIndex(0);
 
     ui->nameText->clear();
     ui->nameText->setEnabled(false);
@@ -1954,8 +1922,6 @@ void CreateAssetDialog::restrictedAssetSelected()
 
 void CreateAssetDialog::restrictedAssetNotSelected()
 {
-    updateAssetList();
-
     ui->nameText->clear();
     ui->nameText->setEnabled(true);
     ui->assetFullName->show();

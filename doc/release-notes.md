@@ -62,6 +62,11 @@ Wallet
 - `sendall` leaves asset coins alone when it chooses the coins itself. It
   collected them with the AVN coins, and unless `send_max` happened to drop
   them, the transaction it built was invalid for a wallet holding an asset.
+- The asset RPCs that use the wallet, and `distributereward`, wait until the
+  wallet has processed the chain tip, as the other wallet RPCs do. Called
+  straight after a block they worked from the wallet as it was before that
+  block: `listmyassets` showed the earlier balance. Only `consolidateutxos`
+  waited.
 
 PSBT
 ----
@@ -88,6 +93,57 @@ not commit to the transaction at all, and could be used to spend any other coin
 of the same key. `signrawtransactionwithwallet` already leaves such an input
 unsigned. The input stays unsigned and can be signed with another type; a
 signature of that kind already in the PSBT is still finalized.
+
+GUI
+---
+
+Fixes from a comparison of the asset pages, coin control and the PSBT dialog
+with the 4.2.1 wallet:
+
+- Each wallet's Create Assets, Manage Assets and Transfer Assets page has its
+  own coin control. They shared one for the whole program, so with two wallets
+  open, a custom change address set in one was used by the other without being
+  shown there: its AVN change and the owner token it handed back went to that
+  address.
+- An owner token or a message channel token can be transferred again. The
+  amount was filled in as 0.00000001 where the wallet requires 1, in a field
+  that cannot be edited.
+- A sub-qualifier can be issued from a parent qualifier coin that holds more
+  than one. The transaction returned one of them and spent them all, and the
+  node refused it. This also affected `issuequalifierasset`.
+- Manage Assets offers a restricted asset (`$NAME`) for reissue to the wallet
+  that holds the owner token `NAME!`, as 4.x did. It was missing from the list,
+  which put the verifier string out of reach. A verifier string typed for one
+  asset is dropped when another is selected, and the confirmation shows the
+  string a reissue sets.
+- A locked asset coin is not spent, in the GUI or by the asset RPCs, and the
+  overview, `listmyassets` and `myansnames` leave it out as 4.x does. The asset
+  coin control shows it as locked, where it can be unlocked. It was selected
+  like any other. In the tree view of that dialog, a coin at an address that
+  holds several can be selected again.
+- The asset coin control forgets its selection once the transfer is sent. The
+  coins it named were spent, and the next transfer failed on them.
+- On Create Assets, the list of assets to issue under follows the asset type.
+  After Sub Qualifier Asset had been selected the list held the wallet's
+  qualifiers for every other type, or nothing in a wallet without one, so a
+  sub-asset, unique asset or message channel could not be given its parent
+  until Restricted Asset had been selected and left. The list is also read
+  again when the page
+  is opened, so an asset received since is there. It offers only qualifiers,
+  not sub-qualifiers, for a sub-qualifier and only main assets for a
+  restricted asset.
+- On Create Assets, a qualifier name is given its leading `#` when it is typed
+  without one, and the name shown beside the field no longer carries the
+  parent picked for another type. A name typed for one type is checked again
+  when the type is changed. An address field of the name system showed below
+  the form with its box unticked; it is hidden.
+- The PSBT dialog says what an asset output does: an issue with its units and
+  reissuable flag, a reissue with what it changes, the name record either of
+  them sets, the creation of an owner token, a tag added to or removed from an
+  address, a freeze. All of these read "Transfers" or were left as an empty
+  line. Its warning before broadcasting a transaction signed with
+  `ANYONECANPAY` now appears; it looked only at partial signatures, which a
+  signed input no longer has.
 
 Credits
 =======

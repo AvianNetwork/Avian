@@ -24,6 +24,8 @@
 #include <util/strencodings.h>
 
 #include <fstream>
+#include <span>
+#include <vector>
 #include <iostream>
 #include <string>
 
@@ -151,6 +153,21 @@ void PSBTOperationsDialog::broadcastTransaction()
                 break;
             }
         }
+        // A finalized input has no partial signatures left. Its type is in the field
+        // while the PSBT stays in memory, and in the signatures themselves once it has
+        // been saved and loaded again.
+        if (input.sighash_type && (*input.sighash_type & SIGHASH_ANYONECANPAY)) has_anyonecanpay = true;
+        const auto anyonecanpay_signature = [](std::span<const unsigned char> data) {
+            return data.size() >= 9 && data.size() <= 73 && data.front() == 0x30 && (data.back() & SIGHASH_ANYONECANPAY);
+        };
+        opcodetype opcode;
+        std::vector<unsigned char> pushed;
+        for (CScript::const_iterator pc{input.final_script_sig.begin()}; pc < input.final_script_sig.end() && input.final_script_sig.GetOp(pc, opcode, pushed);) {
+            if (anyonecanpay_signature(pushed)) has_anyonecanpay = true;
+        }
+        for (const auto& item : input.final_script_witness.stack) {
+            if (anyonecanpay_signature(item)) has_anyonecanpay = true;
+        }
         if (has_anyonecanpay) break;
     }
     if (has_anyonecanpay) {
@@ -245,22 +262,69 @@ QString PSBTOperationsDialog::renderTransaction(const PartiallySignedTransaction
         // Check if this is an asset output
         CAssetOutputEntry assetData;
         if (GetAssetData(out.scriptPubKey, assetData)) {
-            // Asset transfer/creation/reissue output
-            tx_description.append(bullet_point).append(tr("Transfers %1 %2 to %3")
-                .arg(QString::fromStdString(ValueFromAmountString(assetData.nAmount, 8)))
-                .arg(QString::fromStdString(assetData.assetName))
-                .arg(QString::fromStdString(EncodeDestination(address))));
+            // An issue, a reissue and a transfer are different things to sign: say which.
+            // Names come from the transaction, so they are escaped.
+            const QString amount{QString::fromStdString(ValueFromAmountString(assetData.nAmount, 8))};
+            const QString name{GUIUtil::HtmlEscape(assetData.assetName)};
+            const QString to{QString::fromStdString(EncodeDestination(address))};
+            const auto yes_no = [](bool value) { return value ? tr("yes") : tr("no"); };
+            // A hash that is neither an IPFS hash nor a transaction id has no text form
+            const auto readable = [](const std::string& hash) {
+                const std::string encoded{EncodeAssetData(hash)};
+                return GUIUtil::HtmlEscape(encoded.empty() ? HexStr(MakeUCharSpan(hash)) : encoded);
+            };
+            std::string script_address;
+            CNewAsset new_asset;
+            CReissueAsset reissue;
+            if (assetData.type == TX_REISSUE_ASSET && ReissueAssetFromScript(out.scriptPubKey, reissue, script_address)) {
+                QStringList changes;
+                changes << tr("reissuable afterwards: %1").arg(yes_no(reissue.nReissuable > 0));
+                if (reissue.nUnits >= 0) changes << tr("units set to %1").arg(reissue.nUnits);
+                if (!reissue.strIPFSHash.empty()) changes << tr("IPFS or transaction hash set to %1").arg(readable(reissue.strIPFSHash));
+                if (!reissue.strANSID.empty()) changes << tr("name record set to %1").arg(GUIUtil::HtmlEscape(reissue.strANSID));
+                tx_description.append(bullet_point).append(tr("Reissues asset %1: %2 more to %3 (%4)")
+                    .arg(name).arg(amount).arg(to).arg(changes.join(", ")));
+            } else if (assetData.type == TX_NEW_ASSET && IsAssetNameAnOwner(assetData.assetName)) {
+                tx_description.append(bullet_point).append(tr("Creates owner token %1 at %2").arg(name).arg(to));
+            } else if (assetData.type == TX_NEW_ASSET && AssetFromScript(out.scriptPubKey, new_asset, script_address)) {
+                QStringList details;
+                details << tr("units %1").arg(new_asset.units) << tr("reissuable: %1").arg(yes_no(new_asset.nReissuable > 0));
+                if (new_asset.nHasIPFS > 0) details << tr("IPFS or transaction hash %1").arg(readable(new_asset.strIPFSHash));
+                if (!new_asset.strANSID.empty()) details << tr("name record %1").arg(GUIUtil::HtmlEscape(new_asset.strANSID));
+                tx_description.append(bullet_point).append(tr("Issues new asset %1: %2 to %3 (%4)")
+                    .arg(name).arg(amount).arg(to).arg(details.join(", ")));
+            } else {
+                tx_description.append(bullet_point).append(tr("Transfers %1 %2 to %3").arg(amount).arg(name).arg(to));
+            }
         } else if (out.scriptPubKey.IsNullAsset()) {
-            // Null asset metadata output (verifier string, address tag, global restriction)
+            // Null asset output: a verifier string, a tag on an address, a freeze
+            CNullAssetTxVerifierString verifier;
+            CNullAssetTxData null_data;
+            std::string null_address;
             if (out.scriptPubKey.IsNullAssetVerifierTxDataScript()) {
-                CNullAssetTxVerifierString verifier;
                 if (AssetNullVerifierDataFromScript(out.scriptPubKey, verifier)) {
                     tx_description.append(bullet_point).append(tr("Sets verifier string: \"%1\"")
-                        .arg(QString::fromStdString(verifier.verifier_string)));
+                        .arg(GUIUtil::HtmlEscape(verifier.verifier_string)));
+                } else {
+                    tx_description.append(bullet_point).append(tr("Carries asset data this wallet cannot read"));
                 }
+            } else if (AssetNullDataFromScript(out.scriptPubKey, null_data, null_address)) {
+                const QString name{GUIUtil::HtmlEscape(null_data.asset_name)};
+                const QString whom{GUIUtil::HtmlEscape(null_address)};
+                if (IsAssetNameAnRestricted(null_data.asset_name)) {
+                    tx_description.append(bullet_point).append(
+                        (null_data.flag ? tr("Freezes address %1 for restricted asset %2") : tr("Unfreezes address %1 for restricted asset %2")).arg(whom).arg(name));
+                } else {
+                    tx_description.append(bullet_point).append(
+                        (null_data.flag ? tr("Adds tag %1 to address %2") : tr("Removes tag %1 from address %2")).arg(name).arg(whom));
+                }
+            } else if (GlobalAssetNullDataFromScript(out.scriptPubKey, null_data)) {
+                tx_description.append(bullet_point).append(
+                    (null_data.flag ? tr("Freezes restricted asset %1 for all addresses") : tr("Unfreezes restricted asset %1 for all addresses"))
+                        .arg(GUIUtil::HtmlEscape(null_data.asset_name)));
+            } else {
+                tx_description.append(bullet_point).append(tr("Carries asset data this wallet cannot read"));
             }
-            // Other null asset data outputs (address tags, global restrictions) are
-            // protocol metadata and are not displayed as payments.
         } else {
             // Regular AVN output
             totalAmount += out.nValue;

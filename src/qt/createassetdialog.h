@@ -11,7 +11,12 @@
 
 #include <QDialog>
 
+#include <memory>
+
 class PlatformStyle;
+namespace wallet {
+class CCoinControl;
+} // namespace wallet
 class WalletModel;
 class ClientModel;
 
@@ -46,9 +51,8 @@ public:
     void setupAssetDataView(const PlatformStyle *platformStyle);
     void setupFeeControl(const PlatformStyle *platformStyle);
 
+    //! Fill the list with the wallet's assets a new asset of the selected type can be issued under.
     void updateAssetList();
-    void updateAssetListForRestrictedIssuance();
-    void updateAssetListForSubQualifierIssuance();
     void restrictedAssetSelected();
     void restrictedAssetNotSelected();
 
@@ -90,6 +94,8 @@ private:
     void enableCreateButton();
     void CheckFormState();
     void updatePresentedAssetName(QString name);
+    //! Whether an asset of the selected type is named after one picked from the list.
+    bool HasParentAsset() const;
     QString GetSpecialCharacter();
     QString GetAssetName();
     void UpdateAssetNameMaxSize();
@@ -163,11 +169,17 @@ public Q_SLOTS:
 
 protected:
     bool eventFilter( QObject* sender, QEvent* event) override;
+    void showEvent(QShowEvent* event) override;
 
 
 Q_SIGNALS:
     // Fired when a message should be reported to the user
     void message(const QString &title, const QString &message, unsigned int style);
+
+private:
+    //! Coin control of this page. One per page, and so one per wallet: shared between
+    //! wallets, the change address set for one was used by the other.
+    std::unique_ptr<wallet::CCoinControl> m_coin_control;
 };
 
 #endif // BITCOIN_QT_CREATEASSETDIALOG_H

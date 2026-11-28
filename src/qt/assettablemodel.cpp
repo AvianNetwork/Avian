@@ -45,6 +45,9 @@ static bool GetAllMyAssetBalances(wallet::CWallet* pwallet,
             continue;
         if (pwallet->IsSpent(outpoint))
             continue;
+        // As the lists the asset pages offer: a locked coin is not there to send
+        if (pwallet->IsLockedCoin(outpoint))
+            continue;
 
         const wallet::CWalletTx& wtx = txo.GetWalletTx();
         int nDepth = pwallet->GetTxDepthInMainChain(wtx);

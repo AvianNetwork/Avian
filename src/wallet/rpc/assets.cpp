@@ -83,6 +83,10 @@ RPCHelpMan listmyassets()
             const std::shared_ptr<const CWallet> pwallet = GetWalletForJSONRPCRequest(request);
             if (!pwallet) return UniValue::VNULL;
 
+            // Make sure the results are valid at least up to the most recent block
+            // the user could have gotten from another RPC command prior to now
+            pwallet->BlockUntilSyncedToCurrentChain();
+
             std::string filter = "*";
             if (!request.params[0].isNull())
                 filter = request.params[0].get_str();
@@ -261,6 +265,10 @@ RPCHelpMan issue()
             const std::shared_ptr<CWallet> pwallet = GetWalletForJSONRPCRequest(request);
             if (!pwallet) return UniValue::VNULL;
 
+            // Make sure the results are valid at least up to the most recent block
+            // the user could have gotten from another RPC command prior to now
+            pwallet->BlockUntilSyncedToCurrentChain();
+
             EnsureWalletIsUnlocked(*pwallet);
 
             std::string assetName = request.params[0].get_str();
@@ -391,6 +399,10 @@ RPCHelpMan transfer()
             const std::shared_ptr<CWallet> pwallet = GetWalletForJSONRPCRequest(request);
             if (!pwallet) return UniValue::VNULL;
 
+            // Make sure the results are valid at least up to the most recent block
+            // the user could have gotten from another RPC command prior to now
+            pwallet->BlockUntilSyncedToCurrentChain();
+
             EnsureWalletIsUnlocked(*pwallet);
 
             std::string asset_name = request.params[0].get_str();
@@ -494,6 +506,10 @@ RPCHelpMan reissue()
             const std::shared_ptr<CWallet> pwallet = GetWalletForJSONRPCRequest(request);
             if (!pwallet) return UniValue::VNULL;
 
+            // Make sure the results are valid at least up to the most recent block
+            // the user could have gotten from another RPC command prior to now
+            pwallet->BlockUntilSyncedToCurrentChain();
+
             EnsureWalletIsUnlocked(*pwallet);
 
             std::string asset_name = request.params[0].get_str();
@@ -573,6 +589,10 @@ static UniValue UpdateAddressTag(const JSONRPCRequest& request, const int8_t fla
     const std::shared_ptr<CWallet> pwallet = GetWalletForJSONRPCRequest(request);
     if (!pwallet) return UniValue::VNULL;
 
+    // Make sure the results are valid at least up to the most recent block
+    // the user could have gotten from another RPC command prior to now
+    pwallet->BlockUntilSyncedToCurrentChain();
+
     LOCK(pwallet->cs_wallet);
     EnsureWalletIsUnlocked(*pwallet);
 
@@ -647,6 +667,10 @@ static UniValue UpdateAddressRestriction(const JSONRPCRequest& request, const in
 {
     const std::shared_ptr<CWallet> pwallet = GetWalletForJSONRPCRequest(request);
     if (!pwallet) return UniValue::VNULL;
+
+    // Make sure the results are valid at least up to the most recent block
+    // the user could have gotten from another RPC command prior to now
+    pwallet->BlockUntilSyncedToCurrentChain();
 
     LOCK(pwallet->cs_wallet);
     EnsureWalletIsUnlocked(*pwallet);
@@ -723,6 +747,10 @@ static UniValue UpdateGlobalRestrictedAsset(const JSONRPCRequest& request, const
 {
     const std::shared_ptr<CWallet> pwallet = GetWalletForJSONRPCRequest(request);
     if (!pwallet) return UniValue::VNULL;
+
+    // Make sure the results are valid at least up to the most recent block
+    // the user could have gotten from another RPC command prior to now
+    pwallet->BlockUntilSyncedToCurrentChain();
 
     LOCK(pwallet->cs_wallet);
     EnsureWalletIsUnlocked(*pwallet);
@@ -825,6 +853,10 @@ RPCHelpMan issueunique()
         {
             const std::shared_ptr<CWallet> pwallet = GetWalletForJSONRPCRequest(request);
             if (!pwallet) return UniValue::VNULL;
+
+            // Make sure the results are valid at least up to the most recent block
+            // the user could have gotten from another RPC command prior to now
+            pwallet->BlockUntilSyncedToCurrentChain();
 
             EnsureWalletIsUnlocked(*pwallet);
 
@@ -933,6 +965,10 @@ RPCHelpMan transferfromaddress()
         {
             const std::shared_ptr<CWallet> pwallet = GetWalletForJSONRPCRequest(request);
             if (!pwallet) return UniValue::VNULL;
+
+            // Make sure the results are valid at least up to the most recent block
+            // the user could have gotten from another RPC command prior to now
+            pwallet->BlockUntilSyncedToCurrentChain();
 
             EnsureWalletIsUnlocked(*pwallet);
 
@@ -1055,6 +1091,10 @@ RPCHelpMan transferfromaddresses()
         {
             const std::shared_ptr<CWallet> pwallet = GetWalletForJSONRPCRequest(request);
             if (!pwallet) return UniValue::VNULL;
+
+            // Make sure the results are valid at least up to the most recent block
+            // the user could have gotten from another RPC command prior to now
+            pwallet->BlockUntilSyncedToCurrentChain();
 
             EnsureWalletIsUnlocked(*pwallet);
 
@@ -1186,6 +1226,10 @@ RPCHelpMan issuequalifierasset()
             const std::shared_ptr<CWallet> pwallet = GetWalletForJSONRPCRequest(request);
             if (!pwallet) return UniValue::VNULL;
 
+            // Make sure the results are valid at least up to the most recent block
+            // the user could have gotten from another RPC command prior to now
+            pwallet->BlockUntilSyncedToCurrentChain();
+
             EnsureWalletIsUnlocked(*pwallet);
 
             std::string assetName = request.params[0].get_str();
@@ -1294,6 +1338,10 @@ RPCHelpMan issuerestrictedasset()
         {
             const std::shared_ptr<CWallet> pwallet = GetWalletForJSONRPCRequest(request);
             if (!pwallet) return UniValue::VNULL;
+
+            // Make sure the results are valid at least up to the most recent block
+            // the user could have gotten from another RPC command prior to now
+            pwallet->BlockUntilSyncedToCurrentChain();
 
             EnsureWalletIsUnlocked(*pwallet);
 
@@ -1408,6 +1456,10 @@ RPCHelpMan reissuerestrictedasset()
         {
             const std::shared_ptr<CWallet> pwallet = GetWalletForJSONRPCRequest(request);
             if (!pwallet) return UniValue::VNULL;
+
+            // Make sure the results are valid at least up to the most recent block
+            // the user could have gotten from another RPC command prior to now
+            pwallet->BlockUntilSyncedToCurrentChain();
 
             EnsureWalletIsUnlocked(*pwallet);
 
@@ -1532,6 +1584,10 @@ RPCHelpMan transferqualifier()
         {
             const std::shared_ptr<CWallet> pwallet = GetWalletForJSONRPCRequest(request);
             if (!pwallet) return UniValue::VNULL;
+
+            // Make sure the results are valid at least up to the most recent block
+            // the user could have gotten from another RPC command prior to now
+            pwallet->BlockUntilSyncedToCurrentChain();
 
             EnsureWalletIsUnlocked(*pwallet);
 
@@ -1754,6 +1810,10 @@ RPCHelpMan sendmessage()
         {
             const std::shared_ptr<CWallet> pwallet = GetWalletForJSONRPCRequest(request);
             if (!pwallet) return UniValue::VNULL;
+
+            // Make sure the results are valid at least up to the most recent block
+            // the user could have gotten from another RPC command prior to now
+            pwallet->BlockUntilSyncedToCurrentChain();
 
             EnsureWalletIsUnlocked(*pwallet);
 
@@ -2098,6 +2158,10 @@ RPCHelpMan myansnames()
         {
             const std::shared_ptr<const CWallet> pwallet = GetWalletForJSONRPCRequest(request);
             if (!pwallet) return UniValue::VNULL;
+
+            // Make sure the results are valid at least up to the most recent block
+            // the user could have gotten from another RPC command prior to now
+            pwallet->BlockUntilSyncedToCurrentChain();
 
             if (!passetsdb || !passets)
                 throw JSONRPCError(RPC_INTERNAL_ERROR, "asset db unavailable.");

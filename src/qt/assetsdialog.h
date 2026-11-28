@@ -15,8 +15,13 @@
 #include <QString>
 #include <QTimer>
 
+#include <memory>
+
 class ClientModel;
 class PlatformStyle;
+namespace wallet {
+class CCoinControl;
+} // namespace wallet
 class SendAssetsEntry;
 class SendCoinsRecipient;
 
@@ -72,6 +77,9 @@ private:
     bool fNewRecipientAllowed;
     bool fFeeMinimized;
     const PlatformStyle *platformStyle;
+    //! Asset selection and change address of this page. One per page, and so one per
+    //! wallet: shared between wallets, the change address set for one was used by the other.
+    std::unique_ptr<wallet::CCoinControl> m_asset_control;
 
     // Process WalletModel::SendCoinsReturn and generate a pair consisting
     // of a message and message flags for use in Q_EMIT message().

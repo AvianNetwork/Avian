@@ -557,6 +557,9 @@ CoinsResult AvailableCoinsWithAssets(const CWallet& wallet,
         if (output.scriptPubKey.IsUnspendable())
             continue;
 
+        if (params.skip_locked && wallet.IsLockedCoin(outpoint))
+            continue;
+
         if (wallet.IsSpent(outpoint))
             continue;
 
