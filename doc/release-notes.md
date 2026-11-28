@@ -62,6 +62,11 @@ Wallet
 - `sendall` leaves asset coins alone when it chooses the coins itself. It
   collected them with the AVN coins, and unless `send_max` happened to drop
   them, the transaction it built was invalid for a wallet holding an asset.
+- The asset RPCs that use the wallet, and `distributereward`, wait until the
+  wallet has processed the chain tip, as the other wallet RPCs do. Called
+  straight after a block they worked from the wallet as it was before that
+  block: `listmyassets` showed the earlier balance. Only `consolidateutxos`
+  waited.
 
 PSBT
 ----
