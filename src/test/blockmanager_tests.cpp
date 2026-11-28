@@ -153,6 +153,43 @@ BOOST_FIXTURE_TEST_CASE(blockmanager_readblock_hash_mismatch, TestingSetup)
     BOOST_CHECK(!m_node.chainman->m_blockman.ReadBlock(block, index));
 }
 
+// A block's hash is its proof-of-work hash, slow to compute. A block read through an
+// index entry with the same header is given the hash of that entry.
+BOOST_FIXTURE_TEST_CASE(blockmanager_readblock_hash_from_index, TestChain100Setup)
+{
+    CBlockIndex index;
+    uint256 tip_hash;
+    {
+        LOCK(cs_main);
+        const auto tip{m_node.chainman->ActiveTip()};
+        tip_hash = tip->GetBlockHash();
+        index.nStatus = tip->nStatus;
+        index.nFile = tip->nFile;
+        index.nDataPos = tip->nDataPos;
+        index.pprev = tip->pprev;
+        index.nVersion = tip->nVersion;
+        index.hashMerkleRoot = tip->hashMerkleRoot;
+        index.nTime = tip->nTime;
+        index.nBits = tip->nBits;
+        index.nNonce = tip->nNonce;
+        index.phashBlock = &uint256::ONE; // not the block's hash, so a computed hash would differ
+    }
+    const auto& blockman{m_node.chainman->m_blockman};
+
+    CBlock block;
+    BOOST_REQUIRE(blockman.ReadBlock(block, index));
+    BOOST_CHECK_EQUAL(block.GetHash(), uint256::ONE);
+
+    // Read by position alone, the hash is computed
+    BOOST_REQUIRE(blockman.ReadBlock(block, WITH_LOCK(cs_main, return index.GetBlockPos()), tip_hash));
+    BOOST_CHECK_EQUAL(block.GetHash(), tip_hash);
+
+    // and so it is when any field of the header differs from the entry
+    ++index.nNonce;
+    ASSERT_DEBUG_LOG("GetHash() doesn't match index");
+    BOOST_CHECK(!blockman.ReadBlock(block, index));
+}
+
 BOOST_AUTO_TEST_CASE(blockmanager_flush_block_file)
 {
     KernelNotifications notifications{Assert(m_node.shutdown_request), m_node.exit_status, *Assert(m_node.warnings)};

@@ -411,8 +411,12 @@ public:
     void UnlinkPrunedFiles(const std::set<int>& setFilesToPrune) const;
 
     /** Functions for disk access for blocks */
-    /** @param[in] open_file  If given, the block file of pos, already open; it is read from instead of opening the file. */
-    bool ReadBlock(CBlock& block, const FlatFilePos& pos, const std::optional<uint256>& expected_hash, AutoFile* open_file = nullptr) const;
+    /**
+     * @param[in] open_file  If given, the block file of pos, already open; it is read from instead of opening the file.
+     * @param[in] index      If given, the index entry of the block. A block whose header equals the entry's
+     *                       takes its hash from the entry, so the proof-of-work hash is not computed again.
+     */
+    bool ReadBlock(CBlock& block, const FlatFilePos& pos, const std::optional<uint256>& expected_hash, AutoFile* open_file = nullptr, const CBlockIndex* index = nullptr) const;
     bool ReadBlock(CBlock& block, const CBlockIndex& index) const;
     bool ReadRawBlock(std::vector<std::byte>& block, const FlatFilePos& pos) const;
     /** Read from filein, which must be the block file of pos. It is moved to the block if it is not there. */

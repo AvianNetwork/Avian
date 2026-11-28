@@ -1462,10 +1462,11 @@ static ChainstateLoadResult InitAndLoadChainstate(
             _("Error reading from database, shutting down."),
             "", CClientUIInterface::MSG_ERROR);
     };
-    // AVN: Load PowCache from disk BEFORE block index loading.
-    // LoadBlockIndexGuts calls GetHash() for every block, which computes
-    // expensive PoW hashes (X16R/X16RT/MinotaurX). Loading the cache first
-    // avoids recomputing millions of hashes on every startup.
+    // AVN: Load PowCache from disk. The block index is loaded without it (each hash
+    // is the key of its database record) and so is a block read through its index
+    // entry. It saves the PoW hash (X16R/X16RT/MinotaurX) of a header met again with
+    // no index entry at hand: every block of a -reindex, and a block that arrives
+    // after its header.
     {
         uiInterface.InitMessage(_("Loading POW cache..."));
         LoadPowCache(args.GetDataDirNet() / "powcache.dat");
