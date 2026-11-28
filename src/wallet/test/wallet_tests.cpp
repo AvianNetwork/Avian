@@ -751,5 +751,35 @@ BOOST_FIXTURE_TEST_CASE(no_pq_change_before_activation, WalletTestingSetup)
     BOOST_CHECK(m_wallet.TransactionChangeType(std::nullopt, to_pq) != OutputType::PQ);
 }
 
+// Nor does the wallet pay to a witness v1 or v2 output, or send change to one it
+// is given, while that deployment is not active: any miner could take it.
+BOOST_FIXTURE_TEST_CASE(no_payment_to_an_inactive_witness_version, WalletTestingSetup)
+{
+    LOCK(m_wallet.cs_wallet);
+    BOOST_REQUIRE(!m_wallet.chain().isDeploymentActive(Consensus::DEPLOYMENT_MLDSA44));
+    BOOST_REQUIRE(!m_wallet.chain().isDeploymentActive(Consensus::DEPLOYMENT_TAPROOT));
+
+    BOOST_CHECK(InactiveDestinationError(m_wallet, WitnessV1Taproot{}));
+    BOOST_CHECK(InactiveDestinationError(m_wallet, WitnessV2MLDsa44{}));
+    BOOST_CHECK(!InactiveDestinationError(m_wallet, PKHash{}));
+    BOOST_CHECK(!InactiveDestinationError(m_wallet, ScriptHash{}));
+    BOOST_CHECK(!InactiveDestinationError(m_wallet, WitnessV0KeyHash{}));
+    BOOST_CHECK(!InactiveDestinationError(m_wallet, WitnessV0ScriptHash{}));
+    BOOST_CHECK(!InactiveDestinationError(m_wallet, CNoDestination{}));
+
+    const auto refused = [&](const CTxDestination& to, const CTxDestination& change) {
+        CCoinControl coin_control;
+        coin_control.destChange = change;
+        const auto res{CreateTransaction(m_wallet, {{to, COIN, /*fSubtractFeeFromAmount=*/false, CScript{}}}, /*change_pos=*/std::nullopt, coin_control)};
+        return !res && util::ErrorString(res).original.find("could be spent by any miner") != std::string::npos;
+    };
+    BOOST_CHECK(refused(WitnessV1Taproot{}, CNoDestination{}));
+    BOOST_CHECK(refused(WitnessV2MLDsa44{}, CNoDestination{}));
+    BOOST_CHECK(refused(PKHash{}, WitnessV1Taproot{}));
+    BOOST_CHECK(refused(PKHash{}, WitnessV2MLDsa44{}));
+    // An empty wallet cannot pay this either, but not for that reason
+    BOOST_CHECK(!refused(PKHash{}, CNoDestination{}));
+}
+
 BOOST_AUTO_TEST_SUITE_END()
 } // namespace wallet

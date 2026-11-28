@@ -587,7 +587,7 @@ void SetupServerArgs(ArgsManager& argsman, bool can_listen_ipc)
     argsman.AddArg("-shutdownnotify=<cmd>", "Execute command immediately before beginning shutdown. The need for shutdown may be urgent, so be careful not to delay it long (if the command doesn't require interaction with the server, consider having it fork into the background).", ArgsManager::ALLOW_ANY, OptionsCategory::OPTIONS);
 #endif
     argsman.AddArg("-txindex", strprintf("Maintain a full transaction index, used by the getrawtransaction rpc call (default: %u)", DEFAULT_TXINDEX), ArgsManager::ALLOW_ANY, OptionsCategory::OPTIONS);
-    argsman.AddArg("-assetindex", strprintf("Maintain a full asset index, used to query asset balances by address and by the reward snapshot RPCs (default: %u)", DEFAULT_ASSETINDEX), ArgsManager::ALLOW_ANY, OptionsCategory::OPTIONS);
+    argsman.AddArg("-assetindex", strprintf("Maintain a full asset index, used to query asset balances by address and by the reward snapshot RPCs. Turned on again after this version ran with it off, the index is rebuilt at the next start (default: %u)", DEFAULT_ASSETINDEX), ArgsManager::ALLOW_ANY, OptionsCategory::OPTIONS);
     argsman.AddArg("-addressindex", "Maintain a full address index, used to query for the balance, txids and unspent outputs for addresses (default: 0)", ArgsManager::ALLOW_ANY, OptionsCategory::OPTIONS);
     argsman.AddArg("-timestampindex", "Maintain a timestamp index for block hashes, used to query blocks within a time range (default: 0)", ArgsManager::ALLOW_ANY, OptionsCategory::OPTIONS);
     argsman.AddArg("-spentindex", "Maintain a full spent index, used to query the spending txid and input index for an outpoint (default: 0)", ArgsManager::ALLOW_ANY, OptionsCategory::OPTIONS);
@@ -1890,6 +1890,7 @@ bool AppInitMain(NodeContext& node, interfaces::BlockAndHeaderTipInfo* tip_info)
     bool do_reindex{args.GetBoolArg("-reindex", false)};
     const bool do_reindex_chainstate{args.GetBoolArg("-reindex-chainstate", false)};
     bool do_reindex_assets{args.GetBoolArg("-reindexassets", false)};
+    bool rebuild_asset_balances{false};
     fAssetIndex = args.GetBoolArg("-assetindex", DEFAULT_ASSETINDEX);
 
     // Chainstate initialization and loading may be retried once with reindexing by GUI users
@@ -2062,6 +2063,21 @@ bool AppInitMain(NodeContext& node, interfaces::BlockAndHeaderTipInfo* tip_info)
                 prestricteddb = new CRestrictedDB(args.GetDataDirNet(), nAssetDBCache, false, true /* wipe */);
                 do_reindex_assets = true;
             }
+
+            // The address balances are written only with -assetindex. The database records
+            // whether they were, so that a node which turns the option on after running
+            // without it does not serve, and undo blocks against, balances that are stale.
+            bool index_kept{false};
+            const bool index_recorded{passetsdb->ReadAssetIndexKept(index_kept)};
+            if (coinsBestBlock.IsNull() || !index_recorded || !fAssetIndex) {
+                // An empty database fills under the setting in use. One written before
+                // this was recorded is taken to match it. Turned off, they go stale now.
+                if (!index_recorded || index_kept != fAssetIndex) passetsdb->WriteAssetIndexKept(fAssetIndex);
+            } else if (!index_kept && !do_reindex_assets) {
+                // A full rebuild writes them as well.
+                LogPrintf("-assetindex was turned on: the asset address balances will be rebuilt.\n");
+                rebuild_asset_balances = true;
+            }
         }
 
         // Configure messaging
@@ -2228,6 +2244,14 @@ bool AppInitMain(NodeContext& node, interfaces::BlockAndHeaderTipInfo* tip_info)
             if (!ReindexAssets(chainman)) {
                 if (!chainman.m_interrupt) {
                     chainman.GetNotifications().fatalError(_("Failed to rebuild the asset database. If this node is pruned, resync without pruning."));
+                }
+                return;
+            }
+        } else if (rebuild_asset_balances) {
+            uiInterface.InitMessage(_("Rebuilding asset balances…"));
+            if (!RebuildAssetBalances(chainman)) {
+                if (!chainman.m_interrupt) {
+                    chainman.GetNotifications().fatalError(_("Failed to rebuild the asset balances."));
                 }
                 return;
             }

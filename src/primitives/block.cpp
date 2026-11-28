@@ -65,8 +65,13 @@ bool ArePoWHashParamsSet()
 // ========================================================================
 // PowCache disk persistence
 // Format: [uint64_t version][uint64_t count][count × (uint256 key + uint256 value)]
+//         [uint256 checksum of everything before it]
+// A cached value is used as the header's hash, so with a damaged entry a block read
+// from disk no longer matches its index entry. Version 1 had no checksum; it is still
+// read, since dropping it would mean computing those hashes again.
 // ========================================================================
-static constexpr uint64_t POWCACHE_FILE_VERSION = 1;
+static constexpr uint64_t POWCACHE_FILE_VERSION = 2;
+static constexpr uint64_t POWCACHE_FILE_VERSION_NO_CHECKSUM = 1;
 
 size_t PowCacheSize()
 {
@@ -93,13 +98,15 @@ bool SavePowCache(const fs::path& cache_path)
     try {
         uint64_t version = POWCACHE_FILE_VERSION;
         uint64_t count = g_pow_cache.size();
-        file << version;
-        file << count;
+        HashedSourceWriter hasher{file};
+        hasher << version;
+        hasher << count;
 
         for (const auto& [headerHash, powHash] : g_pow_cache) {
-            file << headerHash;
-            file << powHash;
+            hasher << headerHash;
+            hasher << powHash;
         }
+        file << hasher.GetHash();
 
         if (!file.Commit()) {
             (void)file.fclose();
@@ -144,15 +151,16 @@ bool LoadPowCache(const fs::path& cache_path)
     }
 
     try {
+        HashVerifier verifier{file};
         uint64_t version;
-        file >> version;
-        if (version != POWCACHE_FILE_VERSION) {
+        verifier >> version;
+        if (version != POWCACHE_FILE_VERSION && version != POWCACHE_FILE_VERSION_NO_CHECKSUM) {
             LogError("PowCache: unsupported version %llu in %s, ignoring\n", (unsigned long long)version, fs::PathToString(cache_path));
             return true; // Not fatal, just start with empty cache
         }
 
         uint64_t count;
-        file >> count;
+        verifier >> count;
 
         // Sanity check: each entry is 64 bytes (two uint256), limit to reasonable size
         if (count > 50000000ULL) {
@@ -166,9 +174,19 @@ bool LoadPowCache(const fs::path& cache_path)
 
         uint256 headerHash, powHash;
         for (uint64_t i = 0; i < count; ++i) {
-            file >> headerHash;
-            file >> powHash;
+            verifier >> headerHash;
+            verifier >> powHash;
             g_pow_cache[headerHash] = powHash;
+        }
+
+        if (version != POWCACHE_FILE_VERSION_NO_CHECKSUM) {
+            uint256 checksum;
+            file >> checksum;
+            if (checksum != verifier.GetHash()) {
+                LogError("PowCache: checksum mismatch in %s, the file is damaged. Starting with empty cache.\n", fs::PathToString(cache_path));
+                g_pow_cache.clear();
+                return true;
+            }
         }
 
         LogInfo("PowCache: loaded %llu entries from %s\n", (unsigned long long)count, fs::PathToString(cache_path));

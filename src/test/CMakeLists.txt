@@ -9,6 +9,7 @@ add_executable(test_bitcoin
   addrman_tests.cpp
   allocator_tests.cpp
   amount_tests.cpp
+  asset_db_tests.cpp
   asset_mempool_tests.cpp
   asset_script_tests.cpp
   asset_template_tests.cpp

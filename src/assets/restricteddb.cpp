@@ -74,6 +74,28 @@ bool CRestrictedDB::EraseQualifierAddress(const std::string &address, const std:
     return Erase(std::make_pair(QULAIFIER_ADDRESS_FLAG, std::make_pair(tag, address)));
 }
 
+bool CRestrictedDB::RebuildQualifierAddresses()
+{
+    using Key = std::pair<uint8_t, std::pair<std::string, std::string>>;
+    const auto keys = [this](uint8_t flag) {
+        std::vector<std::pair<std::string, std::string>> found;
+        std::unique_ptr<CDBIterator> cursor(NewIterator());
+        cursor->Seek(std::make_pair(flag, std::make_pair(std::string(), std::string())));
+        for (Key key; cursor->Valid() && cursor->GetKey(key) && key.first == flag; cursor->Next()) {
+            found.push_back(key.second);
+        }
+        return found;
+    };
+
+    for (const auto& [tag, address] : keys(QULAIFIER_ADDRESS_FLAG)) {
+        if (!EraseQualifierAddress(address, tag)) return false;
+    }
+    for (const auto& [address, tag] : keys(ADDRESS_QULAIFIER_FLAG)) {
+        if (!WriteQualifierAddress(address, tag)) return false;
+    }
+    return true;
+}
+
 
 // Address Restriction
 bool CRestrictedDB::WriteRestrictedAddress(const std::string& address, const std::string& assetName)
