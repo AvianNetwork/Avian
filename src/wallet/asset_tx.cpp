@@ -753,6 +753,23 @@ bool SendAssetTransaction(
     std::string& txid,
     mapValue_t map_value)
 {
+    // CommitTransaction() keeps a transaction the mempool refuses and reports nothing,
+    // and its inputs then count as spent. Offer it to the mempool first, as 4.x did, so
+    // that a refusal reaches the caller and nothing is recorded.
+    //
+    // The wallet lock is held from the offer to the commit: the wallet must record the
+    // transaction before it hears of it from the mempool or from a block, or a
+    // transaction confirmed in between would be recorded as inactive. The offer relays,
+    // because only the call that adds a transaction to the mempool marks it for the
+    // rebroadcast that follows when no peer takes it at first.
+    LOCK(wallet.cs_wallet);
+    if (wallet.GetBroadcastTransactions()) {
+        std::string reason;
+        if (!wallet.chain().broadcastTransaction(tx, wallet.m_default_max_tx_fee, /*relay=*/true, reason)) {
+            error = std::make_pair(RPC_WALLET_ERROR, strprintf("Error: The transaction was rejected! Reason given: %s", reason));
+            return false;
+        }
+    }
     wallet.CommitTransaction(tx, std::move(map_value), {});
     txid = tx->GetHash().GetHex();
     return true;

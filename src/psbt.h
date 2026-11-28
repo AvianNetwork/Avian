@@ -523,8 +523,9 @@ struct PSBTInput
                     std::vector<unsigned char> sig;
                     s >> sig;
 
-                    // Check that the signature is validly encoded
-                    if (sig.empty() || !CheckSignatureEncoding(sig, SCRIPT_VERIFY_DERSIG | SCRIPT_VERIFY_STRICTENC, nullptr)) {
+                    // Check that the signature is validly encoded. Avian: every ECDSA
+                    // signature carries SIGHASH_FORKID, so one without it is not valid.
+                    if (sig.empty() || !CheckSignatureEncoding(sig, SCRIPT_VERIFY_DERSIG | SCRIPT_VERIFY_STRICTENC | SCRIPT_ENABLE_SIGHASH_FORKID, nullptr)) {
                         throw std::ios_base::failure("Signature is not a valid encoding");
                     }
 
